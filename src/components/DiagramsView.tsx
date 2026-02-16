@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import useStore from '../store/useStore';
-import { GitBranch, Workflow, Search, Filter, Trash2, Eye } from 'lucide-react';
+import { GitBranch, Workflow, Search, Trash2, Eye } from 'lucide-react';
 
 export default function DiagramsView() {
     const diagrams = useStore(state => state.diagrams);
     const deleteDiagram = useStore(state => state.deleteDiagram);
     const [filter, setFilter] = useState<'all' | 'branch' | 'flowchart'>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedDiagram, setSelectedDiagram] = useState<string | null>(null);
 
     const filteredDiagrams = diagrams.filter(diagram => {
         const matchesFilter = filter === 'all' || diagram.type === filter;
@@ -139,7 +138,7 @@ export default function DiagramsView() {
 
                                 {/* Actions */}
                                 <button
-                                    onClick={() => setSelectedDiagram(diagram.id)}
+                                    onClick={() => console.log("View diagram", diagram.id)}
                                     className="w-full px-4 py-2 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg text-primary text-sm font-medium transition-all flex items-center justify-center gap-2"
                                 >
                                     <Eye size={16} />

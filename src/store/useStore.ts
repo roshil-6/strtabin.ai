@@ -145,6 +145,7 @@ export type RFState = {
     onConnect: OnConnect;
     addNode: (node: Node) => void;
     addEdge: (edge: Edge) => void;
+    deleteEdge: (id: string) => void;
 
     // Global Calendar
     calendarEvents: Record<string, string[]>;
@@ -516,6 +517,23 @@ const useStore = create<RFState>()(
             addEdge: (edge: Edge) => {
                 set((state) => {
                     const newEdges = [...state.edges, edge];
+                    // Sync with canvases map
+                    const currentId = state.currentCanvasId;
+                    const newCanvases = currentId ? {
+                        ...state.canvases,
+                        [currentId]: { ...state.canvases[currentId], edges: newEdges, updatedAt: Date.now() }
+                    } : state.canvases;
+
+                    return {
+                        edges: newEdges,
+                        canvases: newCanvases
+                    };
+                });
+            },
+
+            deleteEdge: (id: string) => {
+                set((state) => {
+                    const newEdges = state.edges.filter((e) => e.id !== id);
                     // Sync with canvases map
                     const currentId = state.currentCanvasId;
                     const newCanvases = currentId ? {

@@ -38,7 +38,7 @@ function CanvasContent() {
     const { id } = useParams<{ id: string }>();
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
-        addNode, setCurrentCanvas, createCanvas, initDefaultCanvas, updateNodeData
+        addNode, setCurrentCanvas, initDefaultCanvas
     } = useStore(useShallow(selector));
     const { screenToFlowPosition } = useReactFlow();
     // const [mode, setMode] = useState<'canvas'>('canvas'); // Removed unused state
@@ -87,9 +87,8 @@ function CanvasContent() {
     // Let's make WritingSection robust.
 
     // Handle Adding Nodes from Command Dock
-    const handleAddNode = (type: 'default') => {
-        const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-        const position = screenToFlowPosition(center);
+    const handleAddNode = () => {
+        const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
         const newNode: Node = {
             id: `node-${Date.now()}`,
@@ -171,7 +170,6 @@ function CanvasContent() {
                     canvasId={id || 'default'}
                     onBranch={() => {
                         if (nodes.length === 0) {
-                            const center = { x: window.innerWidth / 4 + window.innerWidth / 2, y: window.innerHeight / 2 };
                             const flowPos = screenToFlowPosition({ x: window.innerWidth * 0.75, y: window.innerHeight / 2 });
                             addNode({
                                 id: `root-${Date.now()}`,

@@ -1,4 +1,4 @@
-import { Plus, Square } from 'lucide-react';
+import { Square } from 'lucide-react';
 
 interface CommandDockProps {
     onAddNode: (type: 'default') => void;

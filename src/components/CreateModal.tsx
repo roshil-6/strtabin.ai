@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { X, FileText, CalendarClock } from 'lucide-react';
 
 interface CreateModalProps {
