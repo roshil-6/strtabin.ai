@@ -57,6 +57,21 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                 >
                     <CheckSquare size={20} />
                 </button>
+
+                <div className="w-8 h-[1px] bg-white/5" />
+
+                <button
+                    onClick={() => navigate(`/strab/${canvasId}`)}
+                    className={`p-3 rounded-xl transition-all ${isActive('/strab')
+                        ? 'bg-orange-500/20 text-orange-400'
+                        : 'text-white/30 hover:text-orange-400 hover:bg-white/5'
+                        }`}
+                    title="STRAB AI"
+                >
+                    <div className="w-5 h-5 rounded-md bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-white">AI</span>
+                    </div>
+                </button>
             </div>
         </div>
     );

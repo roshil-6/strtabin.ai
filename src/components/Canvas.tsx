@@ -18,8 +18,9 @@ import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import WritingSection from './WritingSection';
+import { Bot } from 'lucide-react';
 import Sidebar from './Sidebar';
+import WritingSection from './WritingSection';
 
 const selector = (state: RFState) => ({
     nodes: state.nodes,
@@ -161,101 +162,123 @@ function CanvasContent() {
                 <Sidebar canvasId={id || 'default'} />
             </div>
 
-            {/* Writing Section (Mobile: Toggleable, Desktop: 45%) */}
-            <div className={`
+            {/* Content Container - Adjusted top padding for header */}
+            <div className="flex-1 flex w-full h-full pt-16">
+
+                {/* Writing Section (Mobile: Toggleable, Desktop: 45%) */}
+                <div className={`
                 ${mobileTab === 'write' ? 'flex' : 'hidden'} 
                 md:flex w-full md:w-[45%] h-full border-r border-white/5 relative z-10 bg-background shadow-2xl
             `}>
-                <WritingSection
-                    canvasId={id || 'default'}
-                    onBranch={() => {
-                        if (nodes.length === 0) {
-                            const flowPos = screenToFlowPosition({ x: window.innerWidth * 0.75, y: window.innerHeight / 2 });
-                            addNode({
-                                id: `root-${Date.now()}`,
-                                type: 'default',
-                                position: flowPos,
-                                data: { label: 'Core Concept' }
-                            });
-                        }
-                        // On mobile, switch to map to see the result
-                        setMobileTab('map');
-                    }}
-                />
-            </div>
+                    <WritingSection
+                        canvasId={id || 'default'}
+                        onBranch={() => {
+                            if (nodes.length === 0) {
+                                const flowPos = screenToFlowPosition({ x: window.innerWidth * 0.75, y: window.innerHeight / 2 });
+                                addNode({
+                                    id: `root-${Date.now()}`,
+                                    type: 'default',
+                                    position: flowPos,
+                                    data: { label: 'Core Concept' }
+                                });
+                            }
+                            // On mobile, switch to map to see the result
+                            setMobileTab('map');
+                        }}
+                    />
+                </div>
 
-            {/* Visual Canvas (Mobile: Toggleable, Desktop: Flex-1) */}
-            <div className={`
+                {/* Visual Canvas (Mobile: Toggleable, Desktop: Flex-1) */}
+                <div className={`
                 ${mobileTab === 'map' ? 'flex' : 'hidden'} 
                 md:flex flex-1 h-full relative flex-col
             `}>
-                <div className="flex-1 w-full h-full relative">
-                    <ReactFlow
-                        nodes={nodes}
-                        edges={edges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        onConnect={onConnect}
-                        onPaneClick={onPaneClick}
-                        onNodeDoubleClick={onNodeDoubleClick}
-                        onDragOver={onDragOver}
-                        onDrop={onDrop}
-                        nodeTypes={nodeTypes}
-                        edgeTypes={edgeTypes}
-                        defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
-                        fitView
-                        fitViewOptions={{ minZoom: 0.5, maxZoom: 1.5, padding: 0.2 }}
-                        colorMode="dark"
-                        minZoom={0.2}
+                    <div className="flex-1 w-full h-full relative">
+                        {/* Flow Top Bar */}
+                        <div className="absolute top-4 left-4 right-4 h-14 bg-[#1a1a1a]/80 backdrop-blur-md rounded-2xl border border-white/10 flex items-center px-4 z-40 justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-green-500" />
+                                <span className="text-sm font-bold text-white/70">Flow Canvas</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => window.location.href = `/strab/${id || 'default'}`}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 transition-all"
+                                >
+                                    <Bot size={16} />
+                                    <span className="text-xs font-bold">Ask STRAB</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            onConnect={onConnect}
+                            onPaneClick={onPaneClick}
+                            onNodeDoubleClick={onNodeDoubleClick}
+                            onDragOver={onDragOver}
+                            onDrop={onDrop}
+                            nodeTypes={nodeTypes}
+                            edgeTypes={edgeTypes}
+                            defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
+                            fitView
+                            fitViewOptions={{ minZoom: 0.5, maxZoom: 1.5, padding: 0.2 }}
+                            colorMode="dark"
+                            minZoom={0.2}
+                        >
+                            <Background color="#151515" gap={20} variant={BackgroundVariant.Dots} size={1} />
+                            <Controls style={{
+                                backgroundColor: '#151515',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                fill: '#9aa0a6',
+                                marginBottom: '60px' // Space for bottom nav on mobile
+                            }} />
+                        </ReactFlow>
+                    </div>
+
+                    {/* Floating Command Dock */}
+                    <div className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-50">
+                        <CommandDock onAddNode={handleAddNode} />
+                    </div>
+                </div>
+
+                {/* Mobile Bottom Navigation */}
+                <div className="md:hidden fixed bottom-0 left-0 w-full h-16 bg-[#0b0b0b] border-t border-white/10 flex items-center justify-around z-50 pb-safe">
+                    <button
+                        onClick={() => setMobileTab('write')}
+                        className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'write' ? 'text-primary' : 'text-white/40'}`}
                     >
-                        <Background color="#151515" gap={20} variant={BackgroundVariant.Dots} size={1} />
-                        <Controls style={{
-                            backgroundColor: '#151515',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            fill: '#9aa0a6',
-                            marginBottom: '60px' // Space for bottom nav on mobile
-                        }} />
-                    </ReactFlow>
+                        <span className="text-xs font-bold uppercase tracking-widest">Write</span>
+                        <div className={`w-1 h-1 rounded-full ${mobileTab === 'write' ? 'bg-primary' : 'bg-transparent'}`} />
+                    </button>
+
+                    <div className="w-px h-8 bg-white/5" />
+
+                    <button
+                        onClick={() => {
+                            // Saving logic could go here
+                            window.location.href = '/';
+                        }}
+                        className="flex flex-col items-center gap-1 p-2 text-white/40"
+                    >
+                        <span className="text-xs font-bold uppercase tracking-widest">Home</span>
+                        <div className="w-1 h-1 rounded-full bg-transparent" />
+                    </button>
+
+                    <div className="w-px h-8 bg-white/5" />
+
+                    <button
+                        onClick={() => setMobileTab('map')}
+                        className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'map' ? 'text-primary' : 'text-white/40'}`}
+                    >
+                        <span className="text-xs font-bold uppercase tracking-widest">Flow</span>
+                        <div className={`w-1 h-1 rounded-full ${mobileTab === 'map' ? 'bg-primary' : 'bg-transparent'}`} />
+                    </button>
                 </div>
-
-                {/* Floating Command Dock */}
-                <div className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-50">
-                    <CommandDock onAddNode={handleAddNode} />
-                </div>
-            </div>
-
-            {/* Mobile Bottom Navigation */}
-            <div className="md:hidden fixed bottom-0 left-0 w-full h-16 bg-[#0b0b0b] border-t border-white/10 flex items-center justify-around z-50 pb-safe">
-                <button
-                    onClick={() => setMobileTab('write')}
-                    className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'write' ? 'text-primary' : 'text-white/40'}`}
-                >
-                    <span className="text-xs font-bold uppercase tracking-widest">Write</span>
-                    <div className={`w-1 h-1 rounded-full ${mobileTab === 'write' ? 'bg-primary' : 'bg-transparent'}`} />
-                </button>
-
-                <div className="w-px h-8 bg-white/5" />
-
-                <button
-                    onClick={() => {
-                        // Saving logic could go here
-                        window.location.href = '/';
-                    }}
-                    className="flex flex-col items-center gap-1 p-2 text-white/40"
-                >
-                    <span className="text-xs font-bold uppercase tracking-widest">Home</span>
-                    <div className="w-1 h-1 rounded-full bg-transparent" />
-                </button>
-
-                <div className="w-px h-8 bg-white/5" />
-
-                <button
-                    onClick={() => setMobileTab('map')}
-                    className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'map' ? 'text-primary' : 'text-white/40'}`}
-                >
-                    <span className="text-xs font-bold uppercase tracking-widest">Flow</span>
-                    <div className={`w-1 h-1 rounded-full ${mobileTab === 'map' ? 'bg-primary' : 'bg-transparent'}`} />
-                </button>
             </div>
         </div>
     );

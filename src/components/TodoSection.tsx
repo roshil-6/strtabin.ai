@@ -1,12 +1,11 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { ArrowLeft, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Trash2, CheckSquare, Square } from 'lucide-react';
 import { useState } from 'react';
-import Sidebar from './Sidebar';
+import ProjectHeader from './ProjectHeader';
 
 export default function TodoSection() {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const canvas = useStore(state => state.canvases[id || '']);
     const addTodo = useStore(state => state.addCanvasTodo);
     const toggleTodo = useStore(state => state.toggleCanvasTodo);
@@ -25,20 +24,11 @@ export default function TodoSection() {
     };
 
     return (
-        <div className="w-screen h-screen bg-[#0b0b0b] text-white flex">
-            {/* Sidebar Navigation */}
-            <Sidebar canvasId={id} />
+        <div className="w-screen h-screen bg-[#0b0b0b] text-white flex flex-col">
+            <ProjectHeader canvasId={id!} activeTab="tasks" />
 
-            <div className="flex-1 flex flex-col">
-                <div className="h-16 border-b border-white/5 flex items-center px-6 gap-4">
-                    <button
-                        onClick={() => navigate('/')}
-                        className="lg:hidden p-2 hover:bg-white/10 rounded-lg text-white/50 hover:text-white"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
-                    <h1 className="text-lg font-bold">To-Do List: <span className="text-orange-400">{canvas.title || 'Untitled'}</span></h1>
-                </div>
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Removed local header */}
 
                 <div className="flex-1 p-8 sm:p-12 w-full max-w-4xl mx-auto">
                     <form onSubmit={handleAdd} className="flex gap-4 mb-8">
@@ -66,8 +56,8 @@ export default function TodoSection() {
                             <div
                                 key={todo.id}
                                 className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${todo.completed
-                                        ? 'bg-[#151515]/50 border-white/5 opacity-50'
-                                        : 'bg-[#151515] border-white/10'
+                                    ? 'bg-[#151515]/50 border-white/5 opacity-50'
+                                    : 'bg-[#151515] border-white/10'
                                     }`}
                             >
                                 <button

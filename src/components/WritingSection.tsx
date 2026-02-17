@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Type } from 'lucide-react';
+import { Image as ImageIcon, GitBranch, Type, Bot } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface WritingSectionProps {
     canvasId: string;
@@ -8,6 +9,7 @@ interface WritingSectionProps {
 }
 
 export default function WritingSection({ canvasId }: WritingSectionProps) {
+    const navigate = useNavigate();
     const canvas = useStore(state => state.canvases[canvasId]);
     const updateCanvasWriting = useStore(state => state.updateCanvasWriting);
     const updateCanvasTitle = useStore(state => state.updateCanvasTitle);
@@ -103,6 +105,14 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     accept="image/*"
                     onChange={handleImageUpload}
                 />
+
+                <button
+                    onClick={() => navigate(`/strab/${canvasId}`)}
+                    className="p-2 hover:bg-indigo-500/20 hover:text-indigo-400 rounded-lg text-white/70 transition-colors ml-2"
+                    title="Ask STRAB AI"
+                >
+                    <Bot size={18} />
+                </button>
 
                 <div className="w-px h-4 bg-white/10 mx-1" />
 

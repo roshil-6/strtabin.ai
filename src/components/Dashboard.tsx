@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot } from 'lucide-react';
 import DashboardCalendar from './DashboardCalendar';
 
 export default function Dashboard() {
     const navigate = useNavigate();
     const canvases = useStore(state => state.canvases);
     const createCanvas = useStore(state => state.createCanvas);
-    const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar'>('strategy');
+    const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar' | 'strab'>('strategy');
 
     const handleCreate = () => {
         const id = createCanvas();
@@ -22,6 +22,7 @@ export default function Dashboard() {
         { id: 'todo', label: 'Task Lists', icon: ListTodo, color: 'text-orange-400' },
         { id: 'timeline', label: 'Timelines', icon: Clock, color: 'text-blue-400' },
         { id: 'calendar', label: 'Calendar', icon: Calendar, color: 'text-white' },
+        { id: 'strab', label: 'STRAB AI', icon: Bot, color: 'text-orange-500' },
     ];
 
     const getTargetRoute = (id: string) => {
@@ -29,6 +30,7 @@ export default function Dashboard() {
             case 'strategy': return `/strategy/${id}`;
             case 'todo': return `/todo/${id}`;
             case 'timeline': return `/timeline/${id}`;
+            case 'strab': return `/strab/${id}`;
             default: return `/strategy/${id}`;
         }
     };
@@ -38,6 +40,7 @@ export default function Dashboard() {
             case 'strategy': return Layout;
             case 'todo': return CheckSquare;
             case 'timeline': return Calendar;
+            case 'strab': return Bot;
             default: return Layout;
         }
     };
@@ -46,9 +49,14 @@ export default function Dashboard() {
         <div className="h-screen bg-[#080808] text-white p-4 md:p-8 overflow-y-auto overflow-x-hidden font-sans custom-scrollbar">
             {/* Header */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 border-b border-[#1a1a1a] pb-8">
-                <div>
-                    <h1 className="text-4xl font-black tracking-tight text-white mb-2">Strategy Box<span className="text-primary">.</span></h1>
-                    <p className="text-white/40 text-sm font-medium tracking-wide">Professional Workspace</p>
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 shadow-lg">
+                        <img src="/favicon.png" alt="Stratabin Logo" className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                        <h1 className="text-4xl font-black tracking-tight text-white mb-1">Stratabin<span className="text-primary">.</span></h1>
+                        <p className="text-white/40 text-sm font-medium tracking-wide">Professional Workspace</p>
+                    </div>
                 </div>
                 <button
                     onClick={handleCreate}
@@ -105,7 +113,8 @@ export default function Dashboard() {
                                 <p className="text-white/20 text-sm mb-6 line-clamp-2">
                                     {activeTab === 'strategy' ? 'Main strategy board and flowchart.' :
                                         activeTab === 'todo' ? `${p.todos?.length || 0} tasks pending.` :
-                                            'Project timeline and milestones.'}
+                                            activeTab === 'strab' ? 'AI-powered reports and insights.' :
+                                                'Project timeline and milestones.'}
                                 </p>
 
                                 <div className="flex items-center text-primary text-xs font-bold uppercase tracking-widest gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
