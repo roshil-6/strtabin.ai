@@ -21,10 +21,12 @@ app.use((req, res, next) => {
     next();
 });
 
-const ANTHROPIC_API_KEY = process.env.VITE_ANTHROPIC_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
 
 if (!ANTHROPIC_API_KEY) {
-    console.warn("⚠️  WARNING: VITE_ANTHROPIC_API_KEY is not set in .env file.");
+    console.warn("⚠️  CRITICAL WARNING: No API Key found! Checked 'ANTHROPIC_API_KEY' and 'VITE_ANTHROPIC_API_KEY'. Both are missing.");
+} else {
+    console.log("✅ API Key loaded successfully.");
 }
 
 const SYSTEM_PROMPT_BASE = `
