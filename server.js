@@ -99,7 +99,7 @@ ${projectContext ? JSON.stringify(projectContext, null, 2) : "No specific projec
                 "anthropic-version": "2023-06-01"
             },
             body: JSON.stringify({
-                model: "claude-3-5-sonnet-20240620", // Using stable Sonnet 3.5
+                model: "claude-3-sonnet-20240229", // Fallback to Claude 3.0 Sonnet for compatibility
                 max_tokens: 4096,
                 system: systemPrompt,
                 messages: messages
