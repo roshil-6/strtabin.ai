@@ -5,8 +5,12 @@ export interface ChatMessage {
 }
 
 export const sendStrabMessage = async (messages: ChatMessage[], projectContext: any) => {
+    // Use environment variable for deployment, fallback to localhost for local dev
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    console.log("[STRAB Service] Using API URL:", API_URL);
+
     try {
-        const response = await fetch('http://localhost:3001/api/chat', {
+        const response = await fetch(`${API_URL}/api/chat`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

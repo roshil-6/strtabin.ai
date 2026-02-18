@@ -6,10 +6,20 @@ import fetch from 'node-fetch'; // Ensure we have fetch if node is old, or use n
 dotenv.config();
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+app.get('/', (req, res) => {
+    res.send('STRAB Server is Running. Go to http://localhost:5173 to use the app.');
+});
+
+// Debug Middleware
+app.use((req, res, next) => {
+    console.log(`[DEBUG] ${new Date().toISOString()} ${req.method} ${req.url}`);
+    next();
+});
 
 const ANTHROPIC_API_KEY = process.env.VITE_ANTHROPIC_API_KEY;
 
@@ -87,7 +97,7 @@ ${projectContext ? JSON.stringify(projectContext, null, 2) : "No specific projec
                 "anthropic-version": "2023-06-01"
             },
             body: JSON.stringify({
-                model: "claude-3-5-sonnet-20241022", // Using a recent capable model
+                model: "claude-3-5-sonnet-20240620", // Using stable Sonnet 3.5
                 max_tokens: 4096,
                 system: systemPrompt,
                 messages: messages

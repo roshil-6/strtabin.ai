@@ -2,15 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { sendStrabMessage, type ChatMessage } from '../services/strabService';
-import { Bot, Send, Sparkles, BarChart3, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Bot, Send, Sparkles, BarChart3, AlertTriangle, ArrowLeft, Trash2 } from 'lucide-react';
 
 export default function StrabView() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const canvas = useStore(state => state.canvases[id || '']);
+    const addChatMessage = useStore(state => state.addChatMessage);
+    const clearChatHistory = useStore(state => state.clearChatHistory);
+    // Use stable selector to avoid infinite loop
+    const chatHistoryMap = useStore(state => state.chatHistory);
+    const chatHistory = chatHistoryMap[id || ''] || [];
 
     // State
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'chat' | 'reports'>('chat');
@@ -18,15 +22,13 @@ export default function StrabView() {
 
     // Initial Greeting & Context
     useEffect(() => {
-        if (messages.length === 0) {
-            setMessages([
-                {
-                    role: 'assistant',
-                    content: `I am STRAB. I have analyzed **${canvas?.name || 'this project'}**. Ready to assist with reports, insights, or strategy.`
-                }
-            ]);
+        if (chatHistory.length === 0) {
+            addChatMessage(id!, {
+                role: 'assistant',
+                content: `I am STRAB. I have analyzed **${canvas?.name || 'this project'}**. Ready to assist with reports, insights, or strategy.`
+            });
         }
-    }, [canvas]);
+    }, [canvas, id, chatHistory.length, addChatMessage]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,13 +36,13 @@ export default function StrabView() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [chatHistory]);
 
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        const newMessages = [...messages, { role: 'user', content: input } as ChatMessage];
-        setMessages(newMessages);
+        const userMsg = { role: 'user', content: input } as ChatMessage;
+        addChatMessage(id!, userMsg);
         setInput('');
         setIsLoading(true);
 
@@ -55,12 +57,12 @@ export default function StrabView() {
             writingContent: canvas?.writingContent
         };
 
-        // Filter out initial greeting if it wasn't from API (optional, but keep for history)
-        // API expects 'user' or 'assistant'.
+        // Prepare messages for API (include history)
+        const messagesForApi = [...chatHistory, userMsg];
 
-        const responseText = await sendStrabMessage(newMessages, projectContext);
+        const responseText = await sendStrabMessage(messagesForApi, projectContext);
 
-        setMessages(prev => [...prev, { role: 'assistant', content: responseText }]);
+        addChatMessage(id!, { role: 'assistant', content: responseText });
         setIsLoading(false);
     };
 
@@ -85,6 +87,13 @@ export default function StrabView() {
 
                 <div className="ml-auto flex bg-white/5 rounded-lg p-1">
                     <button
+                        onClick={() => clearChatHistory(id!)}
+                        className="px-3 py-1.5 rounded-md text-xs font-medium text-white/30 hover:text-red-400 hover:bg-white/5 transition-all mr-2"
+                        title="Clear Conversation"
+                    >
+                        <Trash2 size={14} />
+                    </button>
+                    <button
                         onClick={() => setActiveTab('chat')}
                         className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${activeTab === 'chat' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
                     >
@@ -106,7 +115,7 @@ export default function StrabView() {
                 {activeTab === 'chat' && (
                     <div className="flex-1 flex flex-col relative max-w-4xl mx-auto w-full">
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                            {messages.map((msg, idx) => (
+                            {chatHistory.map((msg, idx) => (
                                 <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                     <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-white/10' : 'bg-orange-500/20 text-orange-400'}`}>
                                         {msg.role === 'user' ? <div className="w-2 h-2 bg-white rounded-full" /> : <Sparkles size={14} />}

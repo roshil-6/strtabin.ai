@@ -151,6 +151,11 @@ export type RFState = {
     calendarEvents: Record<string, string[]>;
     addCalendarEvent: (date: string, event: string) => void;
     removeCalendarEvent: (date: string, index: number) => void;
+
+    // Chat History
+    chatHistory: Record<string, { role: 'user' | 'assistant'; content: string }[]>;
+    addChatMessage: (id: string, message: { role: 'user' | 'assistant'; content: string }) => void;
+    clearChatHistory: (id: string) => void;
 };
 
 const useStore = create<RFState>()(
@@ -163,6 +168,7 @@ const useStore = create<RFState>()(
             diagrams: [],
             timelines: {},
             calendarEvents: {},
+            chatHistory: {},
 
             initDefaultCanvas: () => {
                 const state = get();
@@ -564,13 +570,32 @@ const useStore = create<RFState>()(
                 set((state) => {
                     const currentEvents = state.calendarEvents[date] || [];
                     const newEvents = currentEvents.filter((_, i) => i !== index);
-                    // If empty, remove the key entirely or keep empty array? Keep empty for simplicity or remove.
                     return {
                         calendarEvents: {
                             ...state.calendarEvents,
                             [date]: newEvents
                         }
                     };
+                });
+            },
+
+            addChatMessage: (id, message) => {
+                set((state) => {
+                    const currentHistory = state.chatHistory[id] || [];
+                    return {
+                        chatHistory: {
+                            ...state.chatHistory,
+                            [id]: [...currentHistory, message]
+                        }
+                    };
+                });
+            },
+
+            clearChatHistory: (id) => {
+                set((state) => {
+                    const newHistory = { ...state.chatHistory };
+                    delete newHistory[id];
+                    return { chatHistory: newHistory };
                 });
             },
         }),
