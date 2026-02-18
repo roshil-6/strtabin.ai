@@ -5,7 +5,7 @@ export interface ChatMessage {
 }
 
 export const sendStrabMessage = async (messages: ChatMessage[], projectContext: any) => {
-    // Use environment variable for deployment, fallback to localhost for local dev
+    // Use environment variable for deployment (Render), fallback to localhost
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     console.log("[STRAB Service] Using API URL:", API_URL);
 
@@ -29,6 +29,6 @@ export const sendStrabMessage = async (messages: ChatMessage[], projectContext: 
         return data.content[0].text;
     } catch (error) {
         console.error("Failed to fetch STRAB response:", error);
-        return "I'm having trouble connecting to my neural core. Please ensure the backend server is running.";
+        return `I'm having trouble connecting to my neural core.\n\n[DEBUG INFO]\nTarget URL: ${API_URL}\nError: ${error instanceof Error ? error.message : String(error)}`;
     }
 };
