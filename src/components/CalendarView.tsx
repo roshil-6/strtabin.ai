@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, ArrowLeft } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import Sidebar from './Sidebar';
 
 export default function CalendarView() {
