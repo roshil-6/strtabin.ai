@@ -8,7 +8,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({
+    origin: '*', // Allow connections from any URL (Vercel, Localhost, etc.)
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'anthropic-version']
+}));
 app.use(express.json());
 
 app.get('/', (req, res) => {
