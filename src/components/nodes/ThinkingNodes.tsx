@@ -10,16 +10,24 @@ const NodeShell = ({ id, data, selected }: any) => {
         updateNodeData(id, { label: e.target.value });
     };
 
+    // Shared handle style - larger target area with a visible dot
+    const handleClass = `
+        !w-3.5 !h-3.5 !bg-[#333] !border-2 !border-[#555]
+        hover:!bg-primary hover:!border-primary hover:!scale-125
+        transition-all duration-150 cursor-crosshair
+        opacity-0 group-hover:opacity-100
+    `;
+
     return (
         <div className={`
-            relative group flex flex-col min-w-[220px] 
+            relative group flex flex-col min-w-[220px]
             bg-[#141414] border rounded-lg shadow-sm transition-all duration-200
             ${selected
-                ? 'border-primary shadow-sm'
-                : 'border-[#2a2a2a] hover:border-[#444]'
+                ? 'border-primary shadow-[0_0_0_1px_rgba(218,119,86,0.3)]'
+                : 'border-[#2a2a2a] hover:border-[#555]'
             }
         `}>
-            {/* Top Grip Area - Matte Black */}
+            {/* Top Grip Area */}
             <div className={`
                 h-7 rounded-t-lg border-b border-[#2a2a2a] flex items-center justify-center cursor-grab active:cursor-grabbing transition-colors
                 ${selected ? 'bg-primary/10' : 'bg-[#1a1a1a] hover:bg-[#222]'}
@@ -39,27 +47,48 @@ const NodeShell = ({ id, data, selected }: any) => {
                 />
             </div>
 
-            {/* Connection Handles - Minimal Dots on All Sides */}
+            {/* ── Connection Handles ─────────────────────────────────────────────── */}
+            {/* TOP — target, centered */}
             <Handle
                 type="target"
                 position={Position.Top}
-                className="!w-2 !h-2 !bg-[#444] !border-2 !border-[#141414] hover:!bg-primary transition-colors top-[-5px]"
+                id="top-target"
+                isConnectable
+                className={handleClass}
+                style={{ top: -7, left: '50%', transform: 'translateX(-50%)' }}
             />
+            {/* RIGHT — source */}
             <Handle
                 type="source"
                 position={Position.Right}
-                className="!w-2 !h-2 !bg-[#444] !border-2 !border-[#141414] hover:!bg-primary transition-colors right-[-5px]"
+                id="right-source"
+                isConnectable
+                className={handleClass}
+                style={{ right: -7, top: '50%', transform: 'translateY(-50%)' }}
             />
+            {/* BOTTOM — source */}
             <Handle
                 type="source"
                 position={Position.Bottom}
-                className="!w-2 !h-2 !bg-[#444] !border-2 !border-[#141414] hover:!bg-primary transition-colors bottom-[-5px]"
+                id="bottom-source"
+                isConnectable
+                className={handleClass}
+                style={{ bottom: -7, left: '50%', transform: 'translateX(-50%)' }}
             />
+            {/* LEFT — target */}
             <Handle
                 type="target"
                 position={Position.Left}
-                className="!w-2 !h-2 !bg-[#444] !border-2 !border-[#141414] hover:!bg-primary transition-colors left-[-5px]"
+                id="left-target"
+                isConnectable
+                className={handleClass}
+                style={{ left: -7, top: '50%', transform: 'translateY(-50%)' }}
             />
+
+            {/* Connection hint label (shows on hover) */}
+            <div className="absolute -bottom-5 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <span className="text-[9px] text-white/30 tracking-widest uppercase">drag handles to connect</span>
+            </div>
         </div>
     );
 };

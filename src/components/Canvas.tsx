@@ -229,6 +229,10 @@ function CanvasContent() {
                             fitViewOptions={{ minZoom: 0.5, maxZoom: 1.5, padding: 0.2 }}
                             colorMode="dark"
                             minZoom={0.2}
+                            connectionRadius={50}
+                            snapToGrid
+                            snapGrid={[10, 10]}
+                            connectionLineStyle={{ stroke: '#FF5F1F', strokeWidth: 2.5, strokeDasharray: '6 3' }}
                         >
                             <Background color="#151515" gap={20} variant={BackgroundVariant.Dots} size={1} />
                             <Controls style={{

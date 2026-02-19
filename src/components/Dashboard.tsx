@@ -46,7 +46,7 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="h-screen bg-[#080808] text-white p-4 md:p-8 overflow-y-auto overflow-x-hidden font-sans custom-scrollbar">
+        <div className="min-h-screen bg-[#080808] text-white p-4 md:p-8 overflow-y-auto overflow-x-hidden font-sans custom-scrollbar">
             {/* Header */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 border-b border-[#1a1a1a] pb-8">
                 <div className="flex items-center gap-4">
@@ -86,7 +86,7 @@ export default function Dashboard() {
 
             {/* Tab Content */}
             {activeTab === 'calendar' ? (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-6">
                     <DashboardCalendar />
                 </div>
             ) : (

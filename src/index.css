@@ -8,13 +8,16 @@
 }
 
 html,
-body,
-#root {
+body {
   height: 100%;
   width: 100%;
   margin: 0;
-  overflow: hidden;
-  /* Prevent scrolling outside canvas */
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  /* overflow managed per-page: Canvas uses overflow:hidden internally, Dashboard uses overflow-y-auto */
 }
 
 /* Custom scrollbar for panels if needed */

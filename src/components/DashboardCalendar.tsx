@@ -102,7 +102,7 @@ export default function DashboardCalendar() {
     };
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 h-full animate-in fade-in duration-500">
+        <div className="flex flex-col lg:flex-row gap-6 h-full animate-in fade-in duration-500 overflow-y-auto custom-scrollbar">
             {/* Main Calendar View */}
             <div className="flex-1 bg-[#141414] rounded-lg border border-[#2a2a2a] p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
@@ -138,7 +138,10 @@ export default function DashboardCalendar() {
                     <h3 className="text-lg font-bold text-white">Events</h3>
                     <p className="text-sm text-white/40">
                         {selectedDate
-                            ? new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+                            ? (() => {
+                                const [y, m, d] = selectedDate.split('-').map(Number);
+                                return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+                            })()
                             : 'Select a date to manage events'
                         }
                     </p>
