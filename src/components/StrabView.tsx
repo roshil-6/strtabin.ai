@@ -30,6 +30,35 @@ export default function StrabView() {
         }
     }, [canvas, id, chatHistory.length, addChatMessage]);
 
+    // Auto-prompt logic for Selection Follow-up
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('autoPrompt') === 'true' && !isLoading && chatHistory.length > 0) {
+            const lastMsg = chatHistory[chatHistory.length - 1];
+            if (lastMsg.role === 'user' && lastMsg.content.includes('Regarding this part:')) {
+                // Remove query param to avoid re-triggering
+                window.history.replaceState({}, '', window.location.pathname);
+                // Trigger AI response
+                const triggerAi = async () => {
+                    setIsLoading(true);
+                    const projectContext = {
+                        name: canvas?.name,
+                        nodes: canvas?.nodes.length,
+                        edges: canvas?.edges.length,
+                        todos: canvas?.todos,
+                        lastUpdated: new Date(canvas?.updatedAt || Date.now()).toISOString(),
+                        nodeLabels: canvas?.nodes.map(n => n.data.label),
+                        writingContent: canvas?.writingContent
+                    };
+                    const responseText = await sendStrabMessage(chatHistory, projectContext);
+                    addChatMessage(id!, { role: 'assistant', content: responseText });
+                    setIsLoading(false);
+                };
+                triggerAi();
+            }
+        }
+    }, [id, chatHistory, isLoading, canvas, addChatMessage]);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
@@ -52,14 +81,11 @@ export default function StrabView() {
             edges: canvas?.edges.length,
             todos: canvas?.todos,
             lastUpdated: new Date(canvas?.updatedAt || Date.now()).toISOString(),
-            // Add more deep context here (text content, node labels, etc)
             nodeLabels: canvas?.nodes.map(n => n.data.label),
             writingContent: canvas?.writingContent
         };
 
-        // Prepare messages for API (include history)
         const messagesForApi = [...chatHistory, userMsg];
-
         const responseText = await sendStrabMessage(messagesForApi, projectContext);
 
         addChatMessage(id!, { role: 'assistant', content: responseText });

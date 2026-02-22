@@ -27,6 +27,8 @@ export type CanvasData = {
     todos?: Array<{ id: string; text: string; completed: boolean }>; // Project specific to-dos
     linkedCanvases?: string[]; // IDs of linked canvases
     linkedTimelines?: string[]; // IDs of linked timelines
+    isPinned?: boolean; // Pin status
+    mergedCanvasIds?: string[]; // IDs of canvases that are part of this merged project
     updatedAt: number;
 };
 
@@ -146,11 +148,13 @@ export type RFState = {
     addNode: (node: Node) => void;
     addEdge: (edge: Edge) => void;
     deleteEdge: (id: string) => void;
+    togglePinCanvas: (id: string) => void;
+    mergeCanvases: (ids: string[], title: string) => string;
 
     // Global Calendar
-    calendarEvents: Record<string, string[]>;
-    addCalendarEvent: (date: string, event: string) => void;
-    removeCalendarEvent: (date: string, index: number) => void;
+    calendarEvents: Record<string, { id: string; time: string; task: string }[]>;
+    addCalendarEvent: (date: string, time: string, task: string) => void;
+    removeCalendarEvent: (date: string, eventId: string) => void;
 
     // Chat History
     chatHistory: Record<string, { role: 'user' | 'assistant'; content: string }[]>;
@@ -200,11 +204,48 @@ const useStore = create<RFState>()(
                 set((state) => {
                     const newCanvases = { ...state.canvases };
                     delete newCanvases[id];
+
+                    // If we deleted a canvas that was part of a merged project, it will just show as missing in that project.
+                    // If we deleted a merged project itself, just clear the currentCanvasId if needed.
+
                     return {
                         canvases: newCanvases,
                         currentCanvasId: state.currentCanvasId === id ? null : state.currentCanvasId,
                     };
                 });
+            },
+
+            togglePinCanvas: (id) => {
+                set((state) => {
+                    const canvas = state.canvases[id];
+                    if (!canvas) return state;
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [id]: { ...canvas, isPinned: !canvas.isPinned }
+                        }
+                    };
+                });
+            },
+
+            mergeCanvases: (ids, title) => {
+                const id = crypto.randomUUID();
+                const newCanvas: CanvasData = {
+                    id,
+                    name: title || 'Merged Project',
+                    nodes: [],
+                    edges: [],
+                    mergedCanvasIds: ids,
+                    updatedAt: Date.now(),
+                };
+
+                set((state) => ({
+                    canvases: { ...state.canvases, [id]: newCanvas },
+                    currentCanvasId: id,
+                    nodes: [],
+                    edges: [],
+                }));
+                return id;
             },
 
             setCurrentCanvas: (id) => {
@@ -554,22 +595,26 @@ const useStore = create<RFState>()(
                 });
             },
 
-            addCalendarEvent: (date, event) => {
+            addCalendarEvent: (date, time, task) => {
                 set((state) => {
                     const currentEvents = state.calendarEvents[date] || [];
+                    const newEvent = { id: crypto.randomUUID(), time, task };
+                    const newEvents = [...currentEvents, newEvent].sort((a, b) => {
+                        // Simple sort by time (assuming HH:mm format)
+                        return a.time.localeCompare(b.time);
+                    });
                     return {
                         calendarEvents: {
                             ...state.calendarEvents,
-                            [date]: [...currentEvents, event]
+                            [date]: newEvents
                         }
                     };
                 });
             },
-
-            removeCalendarEvent: (date, index) => {
+            removeCalendarEvent: (date, eventId) => {
                 set((state) => {
                     const currentEvents = state.calendarEvents[date] || [];
-                    const newEvents = currentEvents.filter((_, i) => i !== index);
+                    const newEvents = currentEvents.filter((e) => e.id !== eventId);
                     return {
                         calendarEvents: {
                             ...state.calendarEvents,

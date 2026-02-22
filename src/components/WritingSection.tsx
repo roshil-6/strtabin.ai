@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Type, Bot } from 'lucide-react';
+import { Image as ImageIcon, GitBranch, Type, Bot, MessageSquare, CornerDownRight, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface WritingSectionProps {
@@ -14,10 +14,17 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const updateCanvasWriting = useStore(state => state.updateCanvasWriting);
     const updateCanvasTitle = useStore(state => state.updateCanvasTitle);
     const addCanvasImage = useStore(state => state.addCanvasImage);
+    const addChatMessage = useStore(state => state.addChatMessage);
 
     const [title, setTitle] = useState(canvas?.title || '');
     const [content, setContent] = useState(canvas?.writingContent || '');
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Selection & Floating Menu State
+    const [selection, setSelection] = useState<{ text: string, x: number, y: number } | null>(null);
+    const [showReplyInput, setShowReplyInput] = useState(false);
+    const [replyText, setReplyText] = useState('');
 
     // Branch Modal State
     const [showBranchModal, setShowBranchModal] = useState(false);
@@ -54,6 +61,69 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    const handleTextSelection = () => {
+        if (!textareaRef.current) return;
+
+        const el = textareaRef.current;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const selectedText = el.value.substring(start, end);
+
+        if (selectedText.trim().length > 0) {
+            // Calculate coordinates using a temporary mirror div
+            const offset = el.getBoundingClientRect();
+            const { top, left } = offset;
+
+            // This is a simplified positioning estimate for the floating menu
+            // In a production environment, a more robust mirror-div approach would be used
+            // for perfect caret-position tracking.
+            const lines = el.value.substring(0, start).split('\n');
+            const row = lines.length;
+            const col = lines[lines.length - 1].length;
+
+            const charHeight = 28; // text-lg leading-relaxed approx
+            const charWidth = 10;
+
+            const menuX = left + Math.min(col * charWidth, el.clientWidth - 100);
+            const menuY = top + (row * charHeight) - el.scrollTop - 40;
+
+            setSelection({
+                text: selectedText,
+                x: menuX,
+                y: menuY
+            });
+        } else {
+            setSelection(null);
+            setShowReplyInput(false);
+        }
+    };
+
+    const handleReplySubmit = () => {
+        if (!replyText.trim() || !selection) return;
+
+        const replyBlock = `\n\n> [${selection.text}]\n${replyText}\n`;
+
+        const newContent = content + replyBlock;
+        setContent(newContent);
+        updateCanvasWriting(canvasId, newContent);
+
+        // Reset
+        setReplyText('');
+        setShowReplyInput(false);
+        setSelection(null);
+    };
+
+    const handleAskAI = () => {
+        if (!selection) return;
+        // Direct to chat with context
+        const contextMsg = {
+            role: 'user' as const,
+            content: `Regarding this part: "${selection.text}"\n\nI want to discuss: `
+        };
+        addChatMessage(canvasId, contextMsg);
+        navigate(`/strab/${canvasId}?autoPrompt=true`);
     };
 
     const handleCreateBranch = () => {
@@ -152,13 +222,82 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     )}
 
                     {/* Main Writing Area */}
-                    <textarea
-                        value={content}
-                        onChange={handleContentChange}
-                        placeholder="Start typing your thoughts..."
-                        className="w-full h-[60vh] bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/20 font-sans font-mono"
-                        spellCheck={false}
-                    />
+                    <div className="relative">
+                        <textarea
+                            ref={textareaRef}
+                            value={content}
+                            onChange={handleContentChange}
+                            onMouseUp={handleTextSelection}
+                            onKeyUp={handleTextSelection}
+                            placeholder="Start typing your thoughts..."
+                            className="w-full h-[60vh] bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/20 font-sans font-mono"
+                            spellCheck={false}
+                        />
+
+                        {/* Floating Selection Menu */}
+                        {selection && !showReplyInput && (
+                            <div
+                                className="fixed z-[100] flex items-center bg-[#1a1a1a]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-1.5 animate-in zoom-in-95 fade-in duration-200"
+                                style={{ top: selection.y, left: selection.x }}
+                            >
+                                <button
+                                    onClick={() => setShowReplyInput(true)}
+                                    className="flex items-center gap-2 px-4 py-2 hover:bg-white/5 rounded-xl text-xs font-bold text-white transition-all whitespace-nowrap"
+                                >
+                                    <MessageSquare size={14} className="text-primary" />
+                                    Self-Reply
+                                </button>
+                                <div className="w-px h-4 bg-white/10 mx-1" />
+                                <button
+                                    onClick={handleAskAI}
+                                    className="flex items-center gap-2 px-4 py-2 hover:bg-white/5 rounded-xl text-xs font-bold text-white transition-all whitespace-nowrap"
+                                >
+                                    <Bot size={14} className="text-orange-400" />
+                                    Ask STRAB
+                                </button>
+                                <div className="w-px h-4 bg-white/10 mx-1" />
+                                <button
+                                    onClick={() => setSelection(null)}
+                                    className="p-2 hover:bg-red-500/10 rounded-xl text-white/30 hover:text-red-400 transition-all"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Inline Reply Input */}
+                        {selection && showReplyInput && (
+                            <div
+                                className="fixed z-[100] w-72 bg-[#1a1a1a] border border-white/10 rounded-[24px] shadow-2xl p-5 animate-in slide-in-from-top-4 fade-in duration-300"
+                                style={{ top: selection.y, left: selection.x }}
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-[10px] uppercase font-black tracking-widest text-white/30">Continue Thought</span>
+                                    <button onClick={() => setShowReplyInput(false)} className="text-white/20 hover:text-white transition-colors">
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                                <div className="p-3 bg-white/5 border border-white/5 rounded-xl mb-4 text-[11px] text-white/40 italic line-clamp-2 leading-relaxed">
+                                    "{selection.text}"
+                                </div>
+                                <textarea
+                                    autoFocus
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    placeholder="Add your follow-up thoughts..."
+                                    className="w-full bg-[#111] border border-white/5 rounded-xl p-4 text-sm text-white focus:border-primary/50 outline-none transition-all resize-none h-24 mb-4 placeholder-white/10 leading-relaxed"
+                                />
+                                <button
+                                    onClick={handleReplySubmit}
+                                    disabled={!replyText.trim()}
+                                    className="w-full py-3 bg-primary text-black font-black text-xs rounded-xl hover:bg-white transition-all disabled:opacity-30 flex items-center justify-center gap-2 shadow-lg"
+                                >
+                                    <CornerDownRight size={14} />
+                                    Post Reply
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

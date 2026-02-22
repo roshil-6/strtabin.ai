@@ -18,7 +18,7 @@ import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import { Bot } from 'lucide-react';
+import { Bot, FileText } from 'lucide-react';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
 
@@ -33,13 +33,15 @@ const selector = (state: RFState) => ({
     createCanvas: state.createCanvas,
     initDefaultCanvas: state.initDefaultCanvas,
     updateNodeData: state.updateNodeData,
+    canvases: state.canvases,
+    currentCanvasId: state.currentCanvasId,
 });
 
 function CanvasContent() {
     const { id } = useParams<{ id: string }>();
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
-        addNode, setCurrentCanvas, initDefaultCanvas
+        addNode, setCurrentCanvas, initDefaultCanvas, canvases
     } = useStore(useShallow(selector));
     const { screenToFlowPosition } = useReactFlow();
     // const [mode, setMode] = useState<'canvas'>('canvas'); // Removed unused state
@@ -79,13 +81,22 @@ function CanvasContent() {
             // We need a way to force-create or just use the first available?
         }
     }, [activeCanvasId]);
-    // The above is tricky because createCanvas returns an ID.
-    // Let's implement a "ensureCanvas" in store or just handle it here:
-    // If we rely on 'default', we must create it manually.
 
-    // Better Fix:
-    // If we are on root, WritingSection 'default' will fail.
-    // Let's make WritingSection robust.
+    const currentCanvas = canvases[activeCanvasId];
+    const isMerged = !!currentCanvas?.mergedCanvasIds;
+    const [activeSubCanvasId, setActiveSubCanvasId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isMerged && currentCanvas.mergedCanvasIds && !activeSubCanvasId) {
+            setActiveSubCanvasId(currentCanvas.mergedCanvasIds[0]);
+        }
+    }, [isMerged, currentCanvas, activeSubCanvasId]);
+
+    useEffect(() => {
+        if (activeSubCanvasId) {
+            setCurrentCanvas(activeSubCanvasId);
+        }
+    }, [activeSubCanvasId, setCurrentCanvas]);
 
     // Handle Adding Nodes from Command Dock
     const handleAddNode = () => {
@@ -158,12 +169,43 @@ function CanvasContent() {
         <div className="w-screen h-screen bg-background text-white relative overflow-hidden flex flex-col md:flex-row">
 
             {/* Desktop Sidebar */}
-            <div className="hidden md:block h-full">
+            <div className={`hidden md:block h-full ${isMerged ? 'pt-12' : ''}`}>
                 <Sidebar canvasId={id || 'default'} />
             </div>
 
-            {/* Content Container - Adjusted top padding for header */}
-            <div className="flex-1 flex w-full h-full pt-16">
+            {/* Content Container - Adjusted top padding for header and tabs */}
+            <div className={`flex-1 flex w-full h-full ${isMerged ? 'pt-28' : 'pt-16'}`}>
+
+                {/* Merged Tabs Bar - Fixed at the very top for browser-like feel */}
+                {isMerged && currentCanvas.mergedCanvasIds && (
+                    <div className="absolute top-0 left-0 right-0 h-14 bg-[#080808] border-b border-white/10 flex items-center px-4 gap-1 z-[60] shadow-2xl">
+                        {currentCanvas.mergedCanvasIds.map((subId: string) => {
+                            const subCanvas = canvases[subId];
+                            const isActive = activeSubCanvasId === subId;
+                            return (
+                                <button
+                                    key={subId}
+                                    onClick={() => setActiveSubCanvasId(subId)}
+                                    className={`
+                                        flex items-center gap-2.5 px-4 h-10 rounded-xl transition-all border
+                                        ${isActive
+                                            ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_0_15px_rgba(218,119,86,0.1)]'
+                                            : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10 hover:text-white/60'
+                                        }
+                                    `}
+                                >
+                                    <FileText size={16} />
+                                    <span className="text-sm font-bold truncate max-w-[150px]">{subCanvas?.name || 'Sub Project'}</span>
+                                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
+                                </button>
+                            );
+                        })}
+                        <div className="flex-1" />
+                        <div className="px-3 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[10px] uppercase font-black tracking-widest text-orange-400">
+                            Merged Project View
+                        </div>
+                    </div>
+                )}
 
                 {/* Writing Section (Mobile: Toggleable, Desktop: 45%) */}
                 <div className={`
@@ -194,8 +236,8 @@ function CanvasContent() {
                 md:flex flex-1 h-full relative flex-col
             `}>
                     <div className="flex-1 w-full h-full relative">
-                        {/* Flow Top Bar */}
-                        <div className="absolute top-4 left-4 right-4 h-14 bg-[#1a1a1a]/80 backdrop-blur-md rounded-2xl border border-white/10 flex items-center px-4 z-40 justify-between">
+                        {/* Flow Top Bar - Lowered when tabs are present */}
+                        <div className={`absolute ${isMerged ? 'top-18' : 'top-4'} left-4 right-4 h-14 bg-[#1a1a1a]/80 backdrop-blur-md rounded-2xl border border-white/10 flex items-center px-4 z-40 justify-between transition-all`}>
                             <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full bg-green-500" />
                                 <span className="text-sm font-bold text-white/70">Flow Canvas</span>

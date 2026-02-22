@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Clock, FileText } from 'lucide-react';
 import useStore from '../store/useStore';
 
 export default function DashboardCalendar() {
@@ -7,6 +7,7 @@ export default function DashboardCalendar() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [newEventText, setNewEventText] = useState('');
+    const [newEventTime, setNewEventTime] = useState('09:00');
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -36,13 +37,13 @@ export default function DashboardCalendar() {
     };
 
     const handleAddEvent = () => {
-        if (!selectedDate || !newEventText.trim()) return;
-        addCalendarEvent(selectedDate, newEventText.trim());
+        if (!selectedDate || !newEventText.trim() || !newEventTime.trim()) return;
+        addCalendarEvent(selectedDate, newEventTime, newEventText.trim());
         setNewEventText('');
     };
 
-    const handleDeleteEvent = (dateKey: string, index: number) => {
-        removeCalendarEvent(dateKey, index);
+    const handleDeleteEvent = (dateKey: string, eventId: string) => {
+        removeCalendarEvent(dateKey, eventId);
     };
 
     const renderCalendarGrid = () => {
@@ -88,9 +89,10 @@ export default function DashboardCalendar() {
 
                     {/* Mini Event Preview */}
                     <div className="mt-2 space-y-1 overflow-hidden">
-                        {events.slice(0, 2).map((evt, i) => (
-                            <div key={i} className="text-[10px] text-white/70 truncate bg-[#222] px-1 rounded block">
-                                {evt}
+                        {events.slice(0, 2).map((evt) => (
+                            <div key={evt.id} className="text-[9px] text-white/70 truncate bg-white/5 border border-white/5 px-1.5 py-0.5 rounded flex items-center gap-1 backdrop-blur-sm">
+                                <span className="text-primary font-black opacity-80">{evt.time}</span>
+                                <span className="truncate opacity-60 font-medium">{evt.task}</span>
                             </div>
                         ))}
                     </div>
@@ -149,16 +151,28 @@ export default function DashboardCalendar() {
 
                 {selectedDate ? (
                     <>
-                        <div className="space-y-3 flex-1 overflow-y-auto min-h-[200px] mb-4 custom-scrollbar">
-                            {(calendarEvents[selectedDate] || []).map((evt, idx) => (
-                                <div key={idx} className="group flex items-start justify-between gap-2 p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded hover:border-primary/30 transition-colors">
-                                    <span className="text-sm text-white/90 leading-snug break-words">{evt}</span>
-                                    <button
-                                        onClick={() => handleDeleteEvent(selectedDate, idx)}
-                                        className="text-white/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                    >
-                                        <X size={14} />
-                                    </button>
+                        <div className="space-y-3 flex-1 overflow-y-auto min-h-[200px] mb-4 custom-scrollbar p-1">
+                            {(calendarEvents[selectedDate] || []).map((evt) => (
+                                <div key={evt.id} className="group flex flex-col gap-1.5 p-3.5 bg-white/5 border border-white/5 rounded-2xl hover:border-primary/30 transition-all shadow-lg backdrop-blur-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[9px] font-black text-primary bg-primary/20 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-primary/10">
+                                                <Clock size={10} />
+                                                {evt.time}
+                                            </span>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(218,119,86,0.4)]" />
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteEvent(selectedDate, evt.id)}
+                                            className="text-white/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1.5 hover:bg-red-500/10 rounded-lg"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                    <span className="text-sm text-white/90 leading-snug break-words px-1 flex items-start gap-2 font-medium">
+                                        <FileText size={14} className="mt-0.5 text-white/20" />
+                                        {evt.task}
+                                    </span>
                                 </div>
                             ))}
                             {(calendarEvents[selectedDate] || []).length === 0 && (
@@ -166,21 +180,37 @@ export default function DashboardCalendar() {
                             )}
                         </div>
 
-                        <div className="mt-auto">
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newEventText}
-                                    onChange={(e) => setNewEventText(e.target.value)}
-                                    placeholder="Add event..."
-                                    className="flex-1 bg-[#0b0b0b] border border-[#2a2a2a] rounded p-2 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors"
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddEvent()}
-                                />
+                        <div className="mt-auto p-4 bg-black/40 border border-white/5 rounded-2xl backdrop-blur-xl">
+                            <div className="flex flex-col gap-3">
+                                <div className="space-y-2">
+                                    <div className="relative group">
+                                        <Clock size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-primary transition-colors" />
+                                        <input
+                                            type="time"
+                                            value={newEventTime}
+                                            onChange={(e) => setNewEventTime(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-primary/50 transition-all"
+                                        />
+                                    </div>
+                                    <div className="relative group">
+                                        <FileText size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-primary transition-colors" />
+                                        <input
+                                            type="text"
+                                            value={newEventText}
+                                            onChange={(e) => setNewEventText(e.target.value)}
+                                            placeholder="Task details..."
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-primary/50 transition-all placeholder-white/20"
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddEvent()}
+                                        />
+                                    </div>
+                                </div>
                                 <button
                                     onClick={handleAddEvent}
-                                    className="p-2 bg-primary text-black rounded hover:bg-white transition-colors"
+                                    className="w-full py-2.5 bg-gradient-to-r from-primary to-[#ff9d7d] text-black text-xs font-black rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 disabled:opacity-20"
+                                    disabled={!selectedDate || !newEventText.trim() || !newEventTime.trim()}
                                 >
-                                    <Plus size={18} />
+                                    <Plus size={16} />
+                                    Add to Schedule
                                 </button>
                             </div>
                         </div>
