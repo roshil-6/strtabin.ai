@@ -55,10 +55,10 @@ const NodeShell = ({ id, data, selected }: any) => {
                 <GripHorizontal size={14} className={`transition-colors mx-auto ${selected ? 'text-primary' : 'text-white/20 group-hover:text-white/40'}`} />
                 <button
                     onClick={handleDelete}
-                    className="nodrag opacity-0 group-hover:opacity-100 p-0.5 rounded text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
+                    className="nodrag opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
                     title="Delete node"
                 >
-                    <Trash2 size={12} />
+                    <Trash2 size={16} />
                 </button>
             </div>
 
