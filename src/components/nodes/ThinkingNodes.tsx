@@ -1,13 +1,33 @@
 import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import useStore from '../../store/useStore';
-import { GripHorizontal } from 'lucide-react';
+import { GripHorizontal, FolderPlus, ExternalLink, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const NodeShell = ({ id, data, selected }: any) => {
-    const { updateNodeData } = useStore();
+    const { updateNodeData, convertNodeToProject, currentCanvasId, onNodesChange } = useStore();
+    const navigate = useNavigate();
+
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         updateNodeData(id, { label: e.target.value });
+    };
+
+    const handleDelete = () => {
+        onNodesChange([{ type: 'remove', id }]);
+    };
+
+    const handleProjectize = () => {
+        if (currentCanvasId) {
+            const subId = convertNodeToProject(currentCanvasId, id);
+            navigate(`/strategy/${subId}`);
+        }
+    };
+
+    const handleOpenProject = () => {
+        if (data.subCanvasId) {
+            navigate(`/strategy/${data.subCanvasId}`);
+        }
     };
 
     // Shared handle style - larger target area with a visible dot
@@ -29,10 +49,17 @@ const NodeShell = ({ id, data, selected }: any) => {
         `}>
             {/* Top Grip Area */}
             <div className={`
-                h-7 rounded-t-lg border-b border-[#2a2a2a] flex items-center justify-center cursor-grab active:cursor-grabbing transition-colors
+                h-7 rounded-t-lg border-b border-[#2a2a2a] flex items-center justify-between px-2 cursor-grab active:cursor-grabbing transition-colors
                 ${selected ? 'bg-primary/10' : 'bg-[#1a1a1a] hover:bg-[#222]'}
             `}>
-                <GripHorizontal size={14} className={`transition-colors ${selected ? 'text-primary' : 'text-white/20 group-hover:text-white/40'}`} />
+                <GripHorizontal size={14} className={`transition-colors mx-auto ${selected ? 'text-primary' : 'text-white/20 group-hover:text-white/40'}`} />
+                <button
+                    onClick={handleDelete}
+                    className="nodrag opacity-0 group-hover:opacity-100 p-0.5 rounded text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
+                    title="Delete node"
+                >
+                    <Trash2 size={12} />
+                </button>
             </div>
 
             {/* Content Area */}
@@ -45,6 +72,27 @@ const NodeShell = ({ id, data, selected }: any) => {
                     spellCheck={false}
                     onKeyDown={(e) => e.stopPropagation()}
                 />
+            </div>
+
+            {/* Project Integration Actions */}
+            <div className="px-4 pb-3 border-t border-white/5 bg-[#1a1a1a]/30 flex items-center justify-between">
+                {data.subCanvasId ? (
+                    <button
+                        onClick={handleOpenProject}
+                        className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-primary hover:text-white transition-colors"
+                    >
+                        <ExternalLink size={12} />
+                        Open Sub-Project
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleProjectize}
+                        className="opacity-0 group-hover:opacity-100 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-white/40 hover:text-primary transition-all"
+                    >
+                        <FolderPlus size={12} />
+                        Convert to Project
+                    </button>
+                )}
             </div>
 
             {/* ── Connection Handles ─────────────────────────────────────────────── */}

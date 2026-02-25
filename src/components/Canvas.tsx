@@ -14,11 +14,12 @@ import useStore, { type RFState } from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import TextNode from './nodes/TextNode';
 import ImageNode from './nodes/ImageNode';
+import SubProjectNode from './nodes/SubProjectNode';
 import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import { Bot, FileText } from 'lucide-react';
+import { Bot, FileText, Plus, Layers } from 'lucide-react';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
 
@@ -35,13 +36,16 @@ const selector = (state: RFState) => ({
     updateNodeData: state.updateNodeData,
     canvases: state.canvases,
     currentCanvasId: state.currentCanvasId,
+    addSubCanvasToMerged: state.addSubCanvasToMerged,
+    syncSubProjectNodes: state.syncSubProjectNodes,
 });
 
 function CanvasContent() {
     const { id } = useParams<{ id: string }>();
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
-        addNode, setCurrentCanvas, initDefaultCanvas, canvases
+        addNode, setCurrentCanvas, initDefaultCanvas, canvases,
+        addSubCanvasToMerged, syncSubProjectNodes
     } = useStore(useShallow(selector));
     const { screenToFlowPosition } = useReactFlow();
     // const [mode, setMode] = useState<'canvas'>('canvas'); // Removed unused state
@@ -51,6 +55,7 @@ function CanvasContent() {
     const nodeTypes = useMemo(() => ({
         text: TextNode,
         image: ImageNode,
+        subproject: SubProjectNode,
         default: IdeaNode, // Reusing the styled node for generic boxes
         question: QuestionNode,
         decision: DecisionNode,
@@ -87,16 +92,38 @@ function CanvasContent() {
     const [activeSubCanvasId, setActiveSubCanvasId] = useState<string | null>(null);
 
     useEffect(() => {
-        if (isMerged && currentCanvas.mergedCanvasIds && !activeSubCanvasId) {
-            setActiveSubCanvasId(currentCanvas.mergedCanvasIds[0]);
+        if (isMerged && id) {
+            syncSubProjectNodes(id);
         }
-    }, [isMerged, currentCanvas, activeSubCanvasId]);
+    }, [isMerged, id, syncSubProjectNodes]);
 
     useEffect(() => {
-        if (activeSubCanvasId) {
+        if (isMerged && activeSubCanvasId) {
             setCurrentCanvas(activeSubCanvasId);
+        } else if (id) {
+            setCurrentCanvas(id);
         }
-    }, [activeSubCanvasId, setCurrentCanvas]);
+    }, [activeSubCanvasId, id, setCurrentCanvas, isMerged]);
+
+    // Enhanced Nodes with Actions
+    const enhancedNodes = useMemo(() => {
+        return nodes.map(node => {
+            if (node.type === 'subproject') {
+                return {
+                    ...node,
+                    data: {
+                        ...node.data,
+                        onViewWorkflow: () => {
+                            if (node.data.linkedSubCanvasId) {
+                                setActiveSubCanvasId(node.data.linkedSubCanvasId);
+                            }
+                        }
+                    }
+                };
+            }
+            return node;
+        });
+    }, [nodes]);
 
     // Handle Adding Nodes from Command Dock
     const handleAddNode = () => {
@@ -179,6 +206,23 @@ function CanvasContent() {
                 {/* Merged Tabs Bar - Fixed at the very top for browser-like feel */}
                 {isMerged && currentCanvas.mergedCanvasIds && (
                     <div className="absolute top-0 left-0 right-0 h-14 bg-[#080808] border-b border-white/10 flex items-center px-4 gap-1 z-[60] shadow-2xl">
+                        {/* Master Workflow Tab */}
+                        <button
+                            onClick={() => setActiveSubCanvasId(null)}
+                            className={`
+                                flex items-center gap-2.5 px-4 h-10 rounded-xl transition-all border
+                                ${activeSubCanvasId === null
+                                    ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_0_15px_rgba(218,119,86,0.1)]'
+                                    : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10 hover:text-white/60'
+                                }
+                            `}
+                        >
+                            <Layers size={16} />
+                            <span className="text-sm font-black uppercase tracking-widest">Main Overview</span>
+                        </button>
+
+                        <div className="w-px h-6 bg-white/5 mx-2" />
+
                         {currentCanvas.mergedCanvasIds.map((subId: string) => {
                             const subCanvas = canvases[subId];
                             const isActive = activeSubCanvasId === subId;
@@ -200,6 +244,16 @@ function CanvasContent() {
                                 </button>
                             );
                         })}
+                        <button
+                            onClick={() => {
+                                const newId = addSubCanvasToMerged(activeCanvasId);
+                                setActiveSubCanvasId(newId);
+                            }}
+                            className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-dashed border-white/20 text-white/40 hover:bg-white/10 hover:border-white/40 hover:text-white transition-all ml-1"
+                            title="Add New Sequence"
+                        >
+                            <Plus size={18} />
+                        </button>
                         <div className="flex-1" />
                         <div className="px-3 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[10px] uppercase font-black tracking-widest text-orange-400">
                             Merged Project View
@@ -255,7 +309,7 @@ function CanvasContent() {
                         </div>
 
                         <ReactFlow
-                            nodes={nodes}
+                            nodes={enhancedNodes}
                             edges={edges}
                             onNodesChange={onNodesChange}
                             onEdgesChange={onEdgesChange}

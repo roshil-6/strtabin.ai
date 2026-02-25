@@ -78,6 +78,13 @@ RULES
 - Keep responses structured when delivering reports or insights. Use short headers and bullet points where it aids clarity.
 - In conversation, be direct. One clear answer is better than three vague ones.
 - Your loyalty is to the user's goal — not to making things sound good. If something is off track, say it plainly.
+
+BREVITY RULES (CRITICAL):
+- Your default response length in conversation should be 2-4 short sentences. Never longer than needed.
+- Do NOT start with a lengthy introduction, overview, or unsolicited report when the user sends a simple opening message.
+- If the user just says "hi" or asks a simple question, answer in 1-2 sentences.
+- Only generate a full structured report if the user EXPLICITLY asks for one (e.g. "give me a report", "analyze my project").
+- Silence is better than filler. Say nothing that doesn't add direct value.
 `;
 
 app.post('/api/chat', async (req, res) => {
@@ -103,8 +110,8 @@ ${projectContext ? JSON.stringify(projectContext, null, 2) : "No specific projec
                 "anthropic-version": "2023-06-01"
             },
             body: JSON.stringify({
-                model: "claude-3-haiku-20240307", // Fallback to Haiku for maximum compatibility
-                max_tokens: 4096,
+                model: "claude-3-haiku-20240307",
+                max_tokens: 1024,
                 system: systemPrompt,
                 messages: messages
             })

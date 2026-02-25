@@ -14,6 +14,7 @@ import {
     type OnConnect,
     MarkerType,
 } from '@xyflow/react';
+import { NotificationManager } from '../services/NotificationManager';
 
 export type CanvasData = {
     id: string;
@@ -160,6 +161,12 @@ export type RFState = {
     chatHistory: Record<string, { role: 'user' | 'assistant'; content: string }[]>;
     addChatMessage: (id: string, message: { role: 'user' | 'assistant'; content: string }) => void;
     clearChatHistory: (id: string) => void;
+
+    // Sub-Project & Merged Workflow
+    convertNodeToProject: (canvasId: string, nodeId: string) => string;
+    addSubCanvasToMerged: (mergedId: string) => string;
+    checkNotifications: () => void;
+    syncSubProjectNodes: (mergedId: string) => void;
 };
 
 const useStore = create<RFState>()(
@@ -599,6 +606,14 @@ const useStore = create<RFState>()(
                 set((state) => {
                     const currentEvents = state.calendarEvents[date] || [];
                     const newEvent = { id: crypto.randomUUID(), time, task };
+
+                    // Schedule notification
+                    NotificationManager.requestPermission().then(granted => {
+                        if (granted) {
+                            NotificationManager.scheduleNotification(task, time);
+                        }
+                    });
+
                     const newEvents = [...currentEvents, newEvent].sort((a, b) => {
                         // Simple sort by time (assuming HH:mm format)
                         return a.time.localeCompare(b.time);
@@ -641,6 +656,122 @@ const useStore = create<RFState>()(
                     const newHistory = { ...state.chatHistory };
                     delete newHistory[id];
                     return { chatHistory: newHistory };
+                });
+            },
+
+            convertNodeToProject: (canvasId, nodeId) => {
+                const subId = crypto.randomUUID();
+                const newCanvas: CanvasData = {
+                    id: subId,
+                    name: 'Sub-Project',
+                    nodes: [],
+                    edges: [],
+                    updatedAt: Date.now(),
+                };
+
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas) return {};
+
+                    const newNodes = canvas.nodes.map(n =>
+                        n.id === nodeId ? { ...n, data: { ...n.data, subCanvasId: subId } } : n
+                    );
+
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: { ...canvas, nodes: newNodes, updatedAt: Date.now() },
+                            [subId]: newCanvas
+                        },
+                        // If we are currently on this canvas, sync the nodes display
+                        nodes: state.currentCanvasId === canvasId ? newNodes : state.nodes
+                    };
+                });
+                return subId;
+            },
+
+            addSubCanvasToMerged: (mergedId) => {
+                const subId = crypto.randomUUID();
+                const newCanvas: CanvasData = {
+                    id: subId,
+                    name: 'New Sequence',
+                    nodes: [],
+                    edges: [],
+                    updatedAt: Date.now(),
+                };
+
+                set((state) => {
+                    const mergedCanvas = state.canvases[mergedId];
+                    if (!mergedCanvas) return {};
+
+                    const existingSubIds = mergedCanvas.mergedCanvasIds || [];
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [mergedId]: {
+                                ...mergedCanvas,
+                                mergedCanvasIds: [...existingSubIds, subId],
+                                updatedAt: Date.now()
+                            },
+                            [subId]: newCanvas
+                        }
+                    };
+                });
+                return subId;
+            },
+
+            checkNotifications: () => {
+                const state = get();
+                const today = new Date().toISOString().split('T')[0];
+                const todayEvents = state.calendarEvents[today] || [];
+
+                if (todayEvents.length > 0) {
+                    NotificationManager.requestPermission().then(granted => {
+                        if (granted) {
+                            todayEvents.forEach(event => {
+                                NotificationManager.scheduleNotification(event.task, event.time);
+                            });
+                        }
+                    });
+                }
+            },
+
+            syncSubProjectNodes: (mergedId) => {
+                set((state) => {
+                    const mergedCanvas = state.canvases[mergedId];
+                    if (!mergedCanvas || !mergedCanvas.mergedCanvasIds) return {};
+
+                    const currentNodes = mergedCanvas.nodes || [];
+                    const subCanvasIds = mergedCanvas.mergedCanvasIds;
+                    const newNodes = [...currentNodes];
+                    let changed = false;
+
+                    subCanvasIds.forEach((subId, index) => {
+                        const exists = currentNodes.some(n => n.data.linkedSubCanvasId === subId);
+                        if (!exists) {
+                            const subCanvas = state.canvases[subId];
+                            newNodes.push({
+                                id: `subproject-${subId}`,
+                                type: 'subproject',
+                                position: { x: 100 + (index * 250), y: 100 },
+                                data: {
+                                    label: subCanvas?.name || 'Sub-Project',
+                                    linkedSubCanvasId: subId
+                                },
+                            });
+                            changed = true;
+                        }
+                    });
+
+                    if (!changed) return {};
+
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [mergedId]: { ...mergedCanvas, nodes: newNodes, updatedAt: Date.now() }
+                        },
+                        nodes: state.currentCanvasId === mergedId ? newNodes : state.nodes
+                    };
                 });
             },
         }),
