@@ -115,7 +115,7 @@ function CanvasContent() {
                         ...node.data,
                         onViewWorkflow: () => {
                             if (node.data.linkedSubCanvasId) {
-                                setActiveSubCanvasId(node.data.linkedSubCanvasId);
+                                setActiveSubCanvasId(node.data.linkedSubCanvasId as string);
                             }
                         }
                     }
