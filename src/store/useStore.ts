@@ -29,6 +29,7 @@ export type CanvasData = {
     linkedCanvases?: string[]; // IDs of linked canvases
     linkedTimelines?: string[]; // IDs of linked timelines
     isPinned?: boolean; // Pin status
+    isCurrent?: boolean; // Current focus status
     mergedCanvasIds?: string[]; // IDs of canvases that are part of this merged project
     updatedAt: number;
 };
@@ -167,6 +168,7 @@ export type RFState = {
     addSubCanvasToMerged: (mergedId: string) => string;
     checkNotifications: () => void;
     syncSubProjectNodes: (mergedId: string) => void;
+    toggleCurrentProject: (id: string) => void;
 };
 
 const useStore = create<RFState>()(
@@ -771,6 +773,19 @@ const useStore = create<RFState>()(
                             [mergedId]: { ...mergedCanvas, nodes: newNodes, updatedAt: Date.now() }
                         },
                         nodes: state.currentCanvasId === mergedId ? newNodes : state.nodes
+                    };
+                });
+            },
+
+            toggleCurrentProject: (id) => {
+                set((state) => {
+                    const canvas = state.canvases[id];
+                    if (!canvas) return {};
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [id]: { ...canvas, isCurrent: !canvas.isCurrent, updatedAt: Date.now() }
+                        }
                     };
                 });
             },

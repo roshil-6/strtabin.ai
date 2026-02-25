@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap } from 'lucide-react';
 import DashboardCalendar from './DashboardCalendar';
 
 export default function Dashboard() {
@@ -10,6 +10,7 @@ export default function Dashboard() {
     const createCanvas = useStore(state => state.createCanvas);
     const deleteCanvas = useStore(state => state.deleteCanvas);
     const togglePinCanvas = useStore(state => state.togglePinCanvas);
+    const toggleCurrentProject = useStore(state => state.toggleCurrentProject);
     const mergeCanvases = useStore(state => state.mergeCanvases);
 
     const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar' | 'strab'>('strategy');
@@ -24,6 +25,11 @@ export default function Dashboard() {
     const handleTogglePin = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         togglePinCanvas(id);
+    };
+
+    const handleToggleCurrent = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        toggleCurrentProject(id);
     };
 
     const handleDelete = (e: React.MouseEvent, id: string) => {
@@ -53,8 +59,9 @@ export default function Dashboard() {
 
     const allCanvases = Object.values(canvases);
     const pinnedProjects = allCanvases.filter(p => p.isPinned);
+    const currentProjects = allCanvases.filter(p => p.isCurrent);
     const regularProjects = allCanvases.filter(p => !p.mergedCanvasIds);
-    const otherProjects = regularProjects.filter(p => !p.isPinned);
+    const otherProjects = regularProjects.filter(p => !p.isPinned && !p.isCurrent);
     const mergedProjects = allCanvases.filter(p => p.mergedCanvasIds);
 
     const tabs = [
@@ -186,6 +193,19 @@ export default function Dashboard() {
                         </section>
                     )}
 
+                    {/* Current Projects */}
+                    {currentProjects.length > 0 && activeTab === 'strategy' && (
+                        <section>
+                            <div className="flex items-center gap-2 mb-6">
+                                <Zap size={16} className="text-yellow-400 fill-yellow-400" />
+                                <h2 className="text-xs font-bold uppercase tracking-widest text-yellow-400">Current Projects</h2>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {currentProjects.map(p => renderProjectCard(p))}
+                            </div>
+                        </section>
+                    )}
+
                     {/* Merged Projects */}
                     {mergedProjects.length > 0 && activeTab === 'strategy' && (
                         <section>
@@ -208,7 +228,7 @@ export default function Dashboard() {
                             </div>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {(pinnedProjects.length > 0 && activeTab === 'strategy' ? otherProjects : regularProjects).map(p => renderProjectCard(p))}
+                            {(pinnedProjects.length > 0 || currentProjects.length > 0 ? otherProjects : regularProjects).map(p => renderProjectCard(p))}
 
                             {regularProjects.length === 0 && mergedProjects.length === 0 && (
                                 <div className="col-span-full py-20 border-2 border-dashed border-[#2a2a2a] rounded-xl flex flex-col items-center justify-center text-white/20">
@@ -256,14 +276,23 @@ export default function Dashboard() {
                 {!selectionMode && (
                     <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                         <button
+                            onClick={(e) => handleToggleCurrent(e, p.id)}
+                            className={`p-2 rounded-lg transition-colors ${p.isCurrent ? 'text-yellow-400 bg-yellow-500/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
+                            title={p.isCurrent ? "Remove from Current" : "Mark as Current"}
+                        >
+                            <Zap size={16} fill={p.isCurrent ? "currentColor" : "none"} />
+                        </button>
+                        <button
                             onClick={(e) => handleTogglePin(e, p.id)}
                             className={`p-2 rounded-lg transition-colors ${p.isPinned ? 'text-primary bg-primary/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
+                            title={p.isPinned ? "Unpin Project" : "Pin Project"}
                         >
                             <Star size={16} fill={p.isPinned ? "currentColor" : "none"} />
                         </button>
                         <button
                             onClick={(e) => handleDelete(e, p.id)}
                             className="p-2 rounded-lg text-white/20 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                            title="Delete Project"
                         >
                             <Trash2 size={16} />
                         </button>
