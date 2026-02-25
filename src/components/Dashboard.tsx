@@ -51,10 +51,11 @@ export default function Dashboard() {
         }
     };
 
-    const projects = Object.values(canvases).filter(p => !p.mergedCanvasIds);
-    const pinnedProjects = projects.filter(p => p.isPinned);
-    const otherProjects = projects.filter(p => !p.isPinned);
-    const mergedProjects = Object.values(canvases).filter(p => p.mergedCanvasIds);
+    const allCanvases = Object.values(canvases);
+    const pinnedProjects = allCanvases.filter(p => p.isPinned);
+    const regularProjects = allCanvases.filter(p => !p.mergedCanvasIds);
+    const otherProjects = regularProjects.filter(p => !p.isPinned);
+    const mergedProjects = allCanvases.filter(p => p.mergedCanvasIds);
 
     const tabs = [
         { id: 'strategy', label: 'Writing & Flow', icon: FileText, color: 'text-primary' },
@@ -207,9 +208,9 @@ export default function Dashboard() {
                             </div>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {(pinnedProjects.length > 0 && activeTab === 'strategy' ? otherProjects : projects).map(p => renderProjectCard(p))}
+                            {(pinnedProjects.length > 0 && activeTab === 'strategy' ? otherProjects : regularProjects).map(p => renderProjectCard(p))}
 
-                            {projects.length === 0 && mergedProjects.length === 0 && (
+                            {regularProjects.length === 0 && mergedProjects.length === 0 && (
                                 <div className="col-span-full py-20 border-2 border-dashed border-[#2a2a2a] rounded-xl flex flex-col items-center justify-center text-white/20">
                                     <FileText size={48} className="mb-4 opacity-20" />
                                     <p className="text-lg font-medium">No projects found.</p>
