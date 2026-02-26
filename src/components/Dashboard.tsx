@@ -181,7 +181,7 @@ export default function Dashboard() {
                     )}
 
                     {/* Pinned Projects */}
-                    {pinnedProjects.length > 0 && activeTab === 'strategy' && (
+                    {pinnedProjects.length > 0 && (
                         <section>
                             <div className="flex items-center gap-2 mb-6">
                                 <Star size={16} className="text-primary fill-primary" />
@@ -194,7 +194,7 @@ export default function Dashboard() {
                     )}
 
                     {/* Current Projects */}
-                    {currentProjects.length > 0 && activeTab === 'strategy' && (
+                    {currentProjects.length > 0 && (
                         <section>
                             <div className="flex items-center gap-2 mb-6">
                                 <Zap size={16} className="text-yellow-400 fill-yellow-400" />
@@ -207,7 +207,7 @@ export default function Dashboard() {
                     )}
 
                     {/* Merged Projects */}
-                    {mergedProjects.length > 0 && activeTab === 'strategy' && (
+                    {mergedProjects.length > 0 && (
                         <section>
                             <div className="flex items-center gap-2 mb-6">
                                 <GitMerge size={16} className="text-orange-400" />
@@ -221,10 +221,10 @@ export default function Dashboard() {
 
                     {/* All Projects / Other Projects */}
                     <section>
-                        {pinnedProjects.length > 0 && activeTab === 'strategy' && (
+                        {(pinnedProjects.length > 0 || currentProjects.length > 0 || mergedProjects.length > 0) && (
                             <div className="flex items-center gap-2 mb-6">
                                 <FileText size={16} className="text-white/30" />
-                                <h2 className="text-xs font-bold uppercase tracking-widest text-white/30">All Projects</h2>
+                                <h2 className="text-xs font-bold uppercase tracking-widest text-white/30">Other Projects</h2>
                             </div>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -749,19 +749,32 @@ const useStore = create<RFState>()(
                     let changed = false;
 
                     subCanvasIds.forEach((subId, index) => {
-                        const exists = currentNodes.some(n => n.data.linkedSubCanvasId === subId);
-                        if (!exists) {
-                            const subCanvas = state.canvases[subId];
+                        const nodeIndex = currentNodes.findIndex(n => n.data.linkedSubCanvasId === subId);
+                        const subCanvas = state.canvases[subId];
+                        const sourceName = subCanvas?.title || subCanvas?.name || 'Untitled Project';
+
+                        if (nodeIndex === -1) {
+                            // Add missing node
                             newNodes.push({
                                 id: `subproject-${subId}`,
                                 type: 'subproject',
                                 position: { x: 100 + (index * 250), y: 100 },
                                 data: {
-                                    label: subCanvas?.name || 'Sub-Project',
+                                    label: sourceName,
                                     linkedSubCanvasId: subId
                                 },
                             });
                             changed = true;
+                        } else {
+                            // Check if label needs update
+                            const node = currentNodes[nodeIndex];
+                            if (node.data.label !== sourceName) {
+                                newNodes[nodeIndex] = {
+                                    ...node,
+                                    data: { ...node.data, label: sourceName }
+                                };
+                                changed = true;
+                            }
                         }
                     });
 
