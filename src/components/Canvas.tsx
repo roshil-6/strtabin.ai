@@ -127,13 +127,13 @@ function CanvasContent() {
 
     // Handle Adding Nodes from Command Dock
     const handleAddNode = () => {
-        const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+        const position = screenToFlowPosition({ x: window.innerWidth * 0.725, y: window.innerHeight / 2 });
 
         const newNode: Node = {
             id: `node-${Date.now()}`,
             type: 'default',
             position: { x: position.x - 100, y: position.y - 50 },
-            data: { label: 'New Step' }, // Generic label
+            data: { label: '' },
         };
         addNode(newNode);
     };
@@ -152,7 +152,7 @@ function CanvasContent() {
                 id: `node-${Date.now()}`,
                 type: 'default',
                 position: flowPos,
-                data: { label: 'New Step' },
+                data: { label: '' },
             };
             addNode(newNode);
         }
@@ -270,12 +270,12 @@ function CanvasContent() {
                         canvasId={id || 'default'}
                         onBranch={() => {
                             if (nodes.length === 0) {
-                                const flowPos = screenToFlowPosition({ x: window.innerWidth * 0.75, y: window.innerHeight / 2 });
+                                const flowPos = screenToFlowPosition({ x: window.innerWidth * 0.725, y: window.innerHeight / 2 });
                                 addNode({
                                     id: `root-${Date.now()}`,
                                     type: 'default',
                                     position: flowPos,
-                                    data: { label: 'Core Concept' }
+                                    data: { label: '' }
                                 });
                             }
                             // On mobile, switch to map to see the result

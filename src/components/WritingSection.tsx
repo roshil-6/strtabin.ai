@@ -1,12 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Type, Bot, MessageSquare, CornerDownRight, X } from 'lucide-react';
+import { Image as ImageIcon, GitBranch, Type, Bot, MessageSquare, CornerDownRight, X, Layout, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface WritingSectionProps {
     canvasId: string;
     onBranch?: () => void;
 }
+
+type Section =
+    | { type: 'normal'; content: string; id: string }
+    | { type: 'split'; leftTitle: string; rightTitle: string; leftContent: string; rightContent: string; id: string };
+
+const SPLIT_START = "<<<SPLIT_SECTION_START>>>";
+const SPLIT_END = "<<<SPLIT_SECTION_END>>>";
+const SPLIT_SEP = "<<<SPLIT_SECTION_SEP>>>";
 
 export default function WritingSection({ canvasId }: WritingSectionProps) {
     const navigate = useNavigate();
@@ -17,12 +25,11 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const addChatMessage = useStore(state => state.addChatMessage);
 
     const [title, setTitle] = useState(canvas?.title || '');
-    const [content, setContent] = useState(canvas?.writingContent || '');
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const [sections, setSections] = useState<Section[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Selection & Floating Menu State
-    const [selection, setSelection] = useState<{ text: string, x: number, y: number } | null>(null);
+    const [selection, setSelection] = useState<{ text: string, x: number, y: number, sectionId: string, field?: string } | null>(null);
     const [showReplyInput, setShowReplyInput] = useState(false);
     const [replyText, setReplyText] = useState('');
 
@@ -35,9 +42,73 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     useEffect(() => {
         if (canvas) {
             setTitle(canvas.title || '');
-            setContent(canvas.writingContent || '');
+            const parsed = parseContent(canvas.writingContent || '');
+            setSections(parsed);
         }
     }, [canvas?.title, canvas?.writingContent]);
+
+    const parseContent = (raw: string): Section[] => {
+        if (!raw.includes(SPLIT_START)) {
+            return [{ type: 'normal', content: raw, id: 'init-1' }];
+        }
+
+        const result: Section[] = [];
+        let currentPos = 0;
+
+        while (true) {
+            const startIdx = raw.indexOf(SPLIT_START, currentPos);
+            if (startIdx === -1) {
+                const remaining = raw.substring(currentPos);
+                if (remaining.trim() || result.length === 0) {
+                    result.push({ type: 'normal', content: remaining, id: `norm-${currentPos}` });
+                }
+                break;
+            }
+
+            // Normal text before the split
+            const beforeSplit = raw.substring(currentPos, startIdx);
+            if (beforeSplit.trim()) {
+                result.push({ type: 'normal', content: beforeSplit, id: `norm-${currentPos}` });
+            }
+
+            const endIdx = raw.indexOf(SPLIT_END, startIdx);
+            if (endIdx === -1) {
+                // Malformed, treat as normal
+                result.push({ type: 'normal', content: raw.substring(startIdx), id: `norm-${startIdx}` });
+                break;
+            }
+
+            const splitBlock = raw.substring(startIdx + SPLIT_START.length, endIdx);
+            const [titles, contents] = splitBlock.split(SPLIT_SEP);
+            const [leftTitle, rightTitle] = (titles || '').split('|');
+            const [leftContent, rightContent] = (contents || '').split('|');
+
+            result.push({
+                type: 'split',
+                leftTitle: leftTitle || 'Topic A',
+                rightTitle: rightTitle || 'Topic B',
+                leftContent: leftContent || '',
+                rightContent: rightContent || '',
+                id: `split-${startIdx}`
+            });
+
+            currentPos = endIdx + SPLIT_END.length;
+        }
+
+        return result;
+    };
+
+    const serializeSections = (secs: Section[]): string => {
+        return secs.map(s => {
+            if (s.type === 'normal') return s.content;
+            return `${SPLIT_START}${s.leftTitle}|${s.rightTitle}${SPLIT_SEP}${s.leftContent}|${s.rightContent}${SPLIT_END}`;
+        }).join('\n');
+    };
+
+    const updateStore = (newSections: Section[]) => {
+        const serialized = serializeSections(newSections);
+        updateCanvasWriting(canvasId, serialized);
+    };
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newTitle = e.target.value;
@@ -45,10 +116,34 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         updateCanvasTitle(canvasId, newTitle);
     };
 
-    const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newContent = e.target.value;
-        setContent(newContent);
-        updateCanvasWriting(canvasId, newContent);
+    const handleSectionChange = (id: string, field: string, value: string) => {
+        const newSections = sections.map(s => {
+            if (s.id !== id) return s;
+            return { ...s, [field]: value };
+        });
+        setSections(newSections);
+        updateStore(newSections);
+    };
+
+    const addSplitSection = () => {
+        const newSection: Section = {
+            type: 'split',
+            leftTitle: '',
+            rightTitle: '',
+            leftContent: '',
+            rightContent: '',
+            id: `split-${Date.now()}`
+        };
+        const newSections = [...sections, newSection];
+        setSections(newSections);
+        updateStore(newSections);
+    };
+
+    const deleteSection = (id: string) => {
+        if (sections.length <= 1) return;
+        const newSections = sections.filter(s => s.id !== id);
+        setSections(newSections);
+        updateStore(newSections);
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,40 +158,26 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         }
     };
 
-    const handleTextSelection = () => {
-        if (!textareaRef.current) return;
-
-        const el = textareaRef.current;
-        const start = el.selectionStart;
-        const end = el.selectionEnd;
-        const selectedText = el.value.substring(start, end);
-
-        if (selectedText.trim().length > 0) {
-            // Calculate coordinates using a temporary mirror div
-            const offset = el.getBoundingClientRect();
-            const { top, left } = offset;
-
-            // This is a simplified positioning estimate for the floating menu
-            // In a production environment, a more robust mirror-div approach would be used
-            // for perfect caret-position tracking.
-            const lines = el.value.substring(0, start).split('\n');
-            const row = lines.length;
-            const col = lines[lines.length - 1].length;
-
-            const charHeight = 28; // text-lg leading-relaxed approx
-            const charWidth = 10;
-
-            const menuX = left + Math.min(col * charWidth, el.clientWidth - 100);
-            const menuY = top + (row * charHeight) - el.scrollTop - 40;
-
-            setSelection({
-                text: selectedText,
-                x: menuX,
-                y: menuY
-            });
-        } else {
+    const handleTextSelection = (sectionId: string, field?: string) => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
             setSelection(null);
             setShowReplyInput(false);
+            return;
+        }
+
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        const selectedText = selection.toString();
+
+        if (selectedText.trim().length > 0) {
+            setSelection({
+                text: selectedText,
+                x: rect.left,
+                y: rect.top - 50,
+                sectionId,
+                field
+            });
         }
     };
 
@@ -105,11 +186,18 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
         const replyBlock = `\n\n> [${selection.text}]\n${replyText}\n`;
 
-        const newContent = content + replyBlock;
-        setContent(newContent);
-        updateCanvasWriting(canvasId, newContent);
+        const newSections = sections.map(s => {
+            if (s.id !== selection.sectionId) return s;
+            if (s.type === 'normal') {
+                return { ...s, content: s.content + replyBlock };
+            } else {
+                const field = selection.field === 'left' ? 'leftContent' : 'rightContent';
+                return { ...s, [field]: (s as any)[field] + replyBlock };
+            }
+        });
 
-        // Reset
+        setSections(newSections);
+        updateStore(newSections);
         setReplyText('');
         setShowReplyInput(false);
         setSelection(null);
@@ -117,7 +205,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const handleAskAI = () => {
         if (!selection) return;
-        // Direct to chat with context
         const contextMsg = {
             role: 'user' as const,
             content: `Regarding this part: "${selection.text}"\n\nI want to discuss: `
@@ -128,11 +215,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const handleCreateBranch = () => {
         if (!branchTopic.trim()) return;
-
-        // Generate Text Structure
         const separator = "--------------------------------------------------";
         let treeBlock = `\n\n${separator}\nTOPIC: ${branchTopic.toUpperCase()}\n${separator}\n`;
-
         const activeBranches = branchItems.slice(0, branchCount);
         activeBranches.forEach((item, index) => {
             const isLast = index === activeBranches.length - 1;
@@ -141,12 +225,16 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         });
         treeBlock += `\n`;
 
-        // Append to content
-        const newContent = content + treeBlock;
-        setContent(newContent);
-        updateCanvasWriting(canvasId, newContent);
+        const newSections = [...sections];
+        const lastSection = newSections[newSections.length - 1];
+        if (lastSection && lastSection.type === 'normal') {
+            lastSection.content += treeBlock;
+        } else {
+            newSections.push({ type: 'normal', content: treeBlock, id: `norm-${Date.now()}` });
+        }
 
-        // Reset and Close
+        setSections(newSections);
+        updateStore(newSections);
         setShowBranchModal(false);
         setBranchTopic('');
         setBranchItems(['', '', '', '', '', '']);
@@ -155,7 +243,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     return (
         <div className="h-full w-full bg-[#0b0b0b] flex flex-col border-r border-white/5 relative">
             {/* Toolbar */}
-            <div className="h-14 border-b border-white/5 flex items-center px-4 gap-2 bg-[#0b0b0b]/50 backdrop-blur-sm">
+            <div className="h-14 border-b border-white/5 flex items-center px-4 gap-2 bg-[#0b0b0b]/50 backdrop-blur-sm sticky top-0 z-20">
                 <div className="flex items-center gap-2 mr-auto">
                     <Type size={18} className="text-primary" />
                     <span className="text-sm font-medium text-white/50">Writing Board</span>
@@ -187,6 +275,15 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 <div className="w-px h-4 bg-white/10 mx-1" />
 
                 <button
+                    onClick={addSplitSection}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border bg-white/5 text-white/70 hover:bg-white/10 border-white/10"
+                    title="Add Split Section"
+                >
+                    <Layout size={16} />
+                    <span className="text-xs font-bold">Split</span>
+                </button>
+
+                <button
                     onClick={() => setShowBranchModal(true)}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${showBranchModal
                         ? 'bg-primary text-black border-primary'
@@ -201,7 +298,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto p-5 md:p-12 custom-scrollbar">
-                <div className="max-w-3xl mx-auto space-y-8">
+                <div className="max-w-4xl mx-auto space-y-8 pb-32">
 
                     {/* Title Input */}
                     <input
@@ -221,83 +318,161 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         </div>
                     )}
 
-                    {/* Main Writing Area */}
-                    <div className="relative">
-                        <textarea
-                            ref={textareaRef}
-                            value={content}
-                            onChange={handleContentChange}
-                            onMouseUp={handleTextSelection}
-                            onKeyUp={handleTextSelection}
-                            placeholder="Start typing your thoughts..."
-                            className="w-full h-[60vh] bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/20 font-sans font-mono"
-                            spellCheck={false}
-                        />
+                    {/* Dynamic Sections */}
+                    <div className="space-y-12">
+                        {sections.map((section) => (
+                            <div key={section.id} className="relative group">
+                                {section.type === 'normal' ? (
+                                    <textarea
+                                        value={section.content}
+                                        onChange={(e) => handleSectionChange(section.id, 'content', e.target.value)}
+                                        onMouseUp={() => handleTextSelection(section.id)}
+                                        placeholder="Start typing your thoughts..."
+                                        className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/20 font-sans min-h-[200px]"
+                                        spellCheck={false}
+                                        rows={Math.max(10, section.content.split('\n').length)}
+                                    />
+                                ) : (
+                                    <div className="flex gap-8 group/split relative">
+                                        <div className="flex-1 space-y-4">
+                                            <input
+                                                type="text"
+                                                value={section.leftTitle}
+                                                onChange={(e) => handleSectionChange(section.id, 'leftTitle', e.target.value)}
+                                                placeholder="Topic A"
+                                                className="w-full bg-transparent text-xl font-bold text-primary placeholder-primary/20 outline-none"
+                                            />
+                                            <textarea
+                                                value={section.leftContent}
+                                                onChange={(e) => handleSectionChange(section.id, 'leftContent', e.target.value)}
+                                                onMouseUp={() => handleTextSelection(section.id, 'left')}
+                                                placeholder="Details..."
+                                                className="w-full bg-transparent text-base text-white/80 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[150px]"
+                                                spellCheck={false}
+                                                rows={Math.max(8, section.leftContent.split('\n').length)}
+                                            />
+                                        </div>
 
-                        {/* Floating Selection Menu */}
-                        {selection && !showReplyInput && (
-                            <div
-                                className="fixed z-[100] flex items-center bg-[#1a1a1a]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-1.5 animate-in zoom-in-95 fade-in duration-200"
-                                style={{ top: selection.y, left: selection.x }}
+                                        <div className="w-px bg-white/10 self-stretch relative">
+                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#111] border border-white/10 flex items-center justify-center opacity-0 group-hover/split:opacity-100 transition-opacity">
+                                                <Layout size={14} className="text-white/30" />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 space-y-4">
+                                            <input
+                                                type="text"
+                                                value={section.rightTitle}
+                                                onChange={(e) => handleSectionChange(section.id, 'rightTitle', e.target.value)}
+                                                placeholder="Topic B"
+                                                className="w-full bg-transparent text-xl font-bold text-primary placeholder-primary/20 outline-none"
+                                            />
+                                            <textarea
+                                                value={section.rightContent}
+                                                onChange={(e) => handleSectionChange(section.id, 'rightContent', e.target.value)}
+                                                onMouseUp={() => handleTextSelection(section.id, 'right')}
+                                                placeholder="Details..."
+                                                className="w-full bg-transparent text-base text-white/80 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[150px]"
+                                                spellCheck={false}
+                                                rows={Math.max(8, section.rightContent.split('\n').length)}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Section Controls */}
+                                <div className="absolute -left-12 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
+                                    <button
+                                        onClick={() => deleteSection(section.id)}
+                                        className="p-2 hover:bg-red-500/10 text-white/20 hover:text-red-500 rounded-lg transition-colors"
+                                        title="Remove Section"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Add Button at Bottom */}
+                    <div className="flex justify-center pt-8">
+                        <button
+                            onClick={() => {
+                                const newSec: Section = { type: 'normal', content: '', id: `norm-${Date.now()}` };
+                                const newSections = [...sections, newSec];
+                                setSections(newSections);
+                                updateStore(newSections);
+                            }}
+                            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/30 hover:bg-white/10 hover:text-white transition-all group"
+                        >
+                            <Plus size={18} className="group-hover:scale-125 transition-transform" />
+                            <span className="text-sm font-bold">New Section</span>
+                        </button>
+                    </div>
+
+                    {/* Floating Selection Menu */}
+                    {selection && !showReplyInput && (
+                        <div
+                            className="fixed z-[100] flex items-center bg-[#1a1a1a]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-1.5 animate-in zoom-in-95 fade-in duration-200"
+                            style={{ top: selection.y, left: selection.x }}
+                        >
+                            <button
+                                onClick={() => setShowReplyInput(true)}
+                                className="flex items-center gap-2 px-4 py-2 hover:bg-white/5 rounded-xl text-xs font-bold text-white transition-all whitespace-nowrap"
                             >
-                                <button
-                                    onClick={() => setShowReplyInput(true)}
-                                    className="flex items-center gap-2 px-4 py-2 hover:bg-white/5 rounded-xl text-xs font-bold text-white transition-all whitespace-nowrap"
-                                >
-                                    <MessageSquare size={14} className="text-primary" />
-                                    Self-Reply
-                                </button>
-                                <div className="w-px h-4 bg-white/10 mx-1" />
-                                <button
-                                    onClick={handleAskAI}
-                                    className="flex items-center gap-2 px-4 py-2 hover:bg-white/5 rounded-xl text-xs font-bold text-white transition-all whitespace-nowrap"
-                                >
-                                    <Bot size={14} className="text-orange-400" />
-                                    Ask STRAB
-                                </button>
-                                <div className="w-px h-4 bg-white/10 mx-1" />
-                                <button
-                                    onClick={() => setSelection(null)}
-                                    className="p-2 hover:bg-red-500/10 rounded-xl text-white/30 hover:text-red-400 transition-all"
-                                >
+                                <MessageSquare size={14} className="text-primary" />
+                                Self-Reply
+                            </button>
+                            <div className="w-px h-4 bg-white/10 mx-1" />
+                            <button
+                                onClick={handleAskAI}
+                                className="flex items-center gap-2 px-4 py-2 hover:bg-white/5 rounded-xl text-xs font-bold text-white transition-all whitespace-nowrap"
+                            >
+                                <Bot size={14} className="text-orange-400" />
+                                Ask STRAB
+                            </button>
+                            <div className="w-px h-4 bg-white/10 mx-1" />
+                            <button
+                                onClick={() => setSelection(null)}
+                                className="p-2 hover:bg-red-500/10 rounded-xl text-white/30 hover:text-red-400 transition-all"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Inline Reply Input */}
+                    {selection && showReplyInput && (
+                        <div
+                            className="fixed z-[100] w-72 bg-[#1a1a1a] border border-white/10 rounded-[24px] shadow-2xl p-5 animate-in slide-in-from-top-4 fade-in duration-300"
+                            style={{ top: selection.y, left: selection.x }}
+                        >
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-[10px] uppercase font-black tracking-widest text-white/30">Continue Thought</span>
+                                <button onClick={() => setShowReplyInput(false)} className="text-white/20 hover:text-white transition-colors">
                                     <X size={14} />
                                 </button>
                             </div>
-                        )}
-
-                        {/* Inline Reply Input */}
-                        {selection && showReplyInput && (
-                            <div
-                                className="fixed z-[100] w-72 bg-[#1a1a1a] border border-white/10 rounded-[24px] shadow-2xl p-5 animate-in slide-in-from-top-4 fade-in duration-300"
-                                style={{ top: selection.y, left: selection.x }}
-                            >
-                                <div className="flex items-center justify-between mb-3">
-                                    <span className="text-[10px] uppercase font-black tracking-widest text-white/30">Continue Thought</span>
-                                    <button onClick={() => setShowReplyInput(false)} className="text-white/20 hover:text-white transition-colors">
-                                        <X size={14} />
-                                    </button>
-                                </div>
-                                <div className="p-3 bg-white/5 border border-white/5 rounded-xl mb-4 text-[11px] text-white/40 italic line-clamp-2 leading-relaxed">
-                                    "{selection.text}"
-                                </div>
-                                <textarea
-                                    autoFocus
-                                    value={replyText}
-                                    onChange={(e) => setReplyText(e.target.value)}
-                                    placeholder="Add your follow-up thoughts..."
-                                    className="w-full bg-[#111] border border-white/5 rounded-xl p-4 text-sm text-white focus:border-primary/50 outline-none transition-all resize-none h-24 mb-4 placeholder-white/10 leading-relaxed"
-                                />
-                                <button
-                                    onClick={handleReplySubmit}
-                                    disabled={!replyText.trim()}
-                                    className="w-full py-3 bg-primary text-black font-black text-xs rounded-xl hover:bg-white transition-all disabled:opacity-30 flex items-center justify-center gap-2 shadow-lg"
-                                >
-                                    <CornerDownRight size={14} />
-                                    Post Reply
-                                </button>
+                            <div className="p-3 bg-white/5 border border-white/5 rounded-xl mb-4 text-[11px] text-white/40 italic line-clamp-2 leading-relaxed">
+                                "{selection.text}"
                             </div>
-                        )}
-                    </div>
+                            <textarea
+                                autoFocus
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder="Add your follow-up thoughts..."
+                                className="w-full bg-[#111] border border-white/5 rounded-xl p-4 text-sm text-white focus:border-primary/50 outline-none transition-all resize-none h-24 mb-4 placeholder-white/10 leading-relaxed"
+                            />
+                            <button
+                                onClick={handleReplySubmit}
+                                disabled={!replyText.trim()}
+                                className="w-full py-3 bg-primary text-black font-black text-xs rounded-xl hover:bg-white transition-all disabled:opacity-30 flex items-center justify-center gap-2 shadow-lg"
+                            >
+                                <CornerDownRight size={14} />
+                                Post Reply
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
