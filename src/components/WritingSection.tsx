@@ -85,8 +85,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
             result.push({
                 type: 'split',
-                leftTitle: leftTitle || 'Topic A',
-                rightTitle: rightTitle || 'Topic B',
+                leftTitle: leftTitle || '',
+                rightTitle: rightTitle || '',
                 leftContent: leftContent || '',
                 rightContent: rightContent || '',
                 id: `split-${startIdx}`
