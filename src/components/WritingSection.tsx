@@ -30,6 +30,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const [title, setTitle] = useState(canvas?.title || '');
     const [sections, setSections] = useState<Section[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const lastSerializedRef = useRef<string>("");
 
     // Selection & Floating Menu State
     const [selection, setSelection] = useState<{ text: string, x: number, y: number, sectionId: string, field?: string } | null>(null);
@@ -43,19 +44,26 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const [branchItems, setBranchItems] = useState<string[]>(['', '', '', '', '', '']);
 
     useEffect(() => {
-        if (canvas) {
-            setTitle(canvas.title || '');
-            const parsed = parseContent(canvas.writingContent || '');
+        if (!canvas) return;
+        setTitle(canvas.title || '');
 
-            // To avoid focus loss, we check if the serialized version of current local state 
-            // matches what's in the store. If they differ (e.g. initial load or external update), 
-            // we update the local sections.
-            const currentSerialized = serializeSections(sections);
-            if (canvas.writingContent !== currentSerialized) {
-                setSections(parsed);
-            }
+        // If the store content matches what we last serialized, we definitely don't need to re-parse
+        if (canvas.writingContent === lastSerializedRef.current) return;
+
+        const parsed = parseContent(canvas.writingContent || '');
+        setSections(parsed);
+
+        // IMPORTANT: Stabilize IDs!
+        // If the parsed version is different from the store (e.g. we just added IDs to legacy text),
+        // we MUST update the store immediately so subsequent renders don't generate new IDs.
+        const stabilized = serializeSections(parsed);
+        if (stabilized !== canvas.writingContent) {
+            lastSerializedRef.current = stabilized;
+            updateCanvasWriting(canvasId, stabilized);
+        } else {
+            lastSerializedRef.current = canvas.writingContent || "";
         }
-    }, [canvas?.title, canvas?.writingContent, sections]);
+    }, [canvas?.title, canvas?.writingContent]);
 
     const parseContent = (raw: string): Section[] => {
         const result: Section[] = [];
@@ -168,6 +176,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const updateStore = (newSections: Section[]) => {
         const serialized = serializeSections(newSections);
+        lastSerializedRef.current = serialized;
         updateCanvasWriting(canvasId, serialized);
     };
 
