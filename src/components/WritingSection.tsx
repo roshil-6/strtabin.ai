@@ -31,6 +31,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const [sections, setSections] = useState<Section[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const lastSerializedRef = useRef<string>("");
+    const lastKnownStoreContent = useRef<string>("");
 
     // Selection & Floating Menu State
     const [selection, setSelection] = useState<{ text: string, x: number, y: number, sectionId: string, field?: string } | null>(null);
@@ -47,41 +48,58 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         if (!canvas) return;
         setTitle(canvas.title || '');
 
-        // If the store content matches what we last serialized, we definitely don't need to re-parse
-        // BUT only if we already have some sections initialized!
-        if (sections.length > 0 && canvas.writingContent === lastSerializedRef.current) {
+        const storeContent = canvas.writingContent || "";
+
+        // Case 1: Store content matches our local "last seen" store state.
+        // This means no external changes have happened.
+        if (storeContent === lastKnownStoreContent.current) return;
+
+        // Case 2: Store content matches what we JUST SENT locally.
+        // We update our "last seen" tracker and return (state is already correct).
+        if (storeContent === lastSerializedRef.current) {
+            lastKnownStoreContent.current = storeContent;
             return;
         }
 
-        const parsed = parseContent(canvas.writingContent || '');
+        // Case 3: External update or initial load.
+        // Parse the content and sync local state.
+        console.log("[WritingSection] Syncing external change or initial load...");
+        const parsed = parseContent(storeContent);
         setSections(parsed);
+        lastKnownStoreContent.current = storeContent;
 
-        // IMPORTANT: Stabilize IDs!
+        // Stabilize if necessary (e.g. adding IDs to legacy text)
         const stabilized = serializeSections(parsed);
-        if (stabilized !== canvas.writingContent) {
+        if (stabilized !== storeContent) {
             lastSerializedRef.current = stabilized;
             updateCanvasWriting(canvasId, stabilized);
         } else {
-            lastSerializedRef.current = canvas.writingContent || "";
+            lastSerializedRef.current = storeContent;
         }
-    }, [canvas?.title, canvas?.writingContent]);
+    }, [canvasId, canvas?.title, canvas?.writingContent]);
 
     const parseContent = (raw: string): Section[] => {
-        const result: Section[] = [];
-        const blocks = raw.split(ID_START).filter(b => b.trim());
-
-        if (blocks.length === 0 && raw.trim() === "" && !raw.includes(SPLIT_START)) {
-            return [{ type: 'normal', content: '', id: crypto.randomUUID() }];
-        }
-
-        // Handle legacy content or content without IDs
         if (!raw.includes(ID_START)) {
             return parseLegacyContent(raw);
         }
 
-        blocks.forEach(block => {
+        const result: Section[] = [];
+        const parts = raw.split(ID_START);
+
+        // Leading text before any marker
+        if (parts[0].trim()) {
+            result.push({ type: 'normal', content: parts[0].trim(), id: crypto.randomUUID() });
+        }
+
+        for (let i = 1; i < parts.length; i++) {
+            const block = parts[i];
             const endIdIdx = block.indexOf(ID_END);
-            if (endIdIdx === -1) return;
+            if (endIdIdx === -1) {
+                if (block.trim()) {
+                    result.push({ type: 'normal', content: block.trim(), id: crypto.randomUUID() });
+                }
+                continue;
+            }
 
             const id = block.substring(0, endIdIdx);
             const content = block.substring(endIdIdx + ID_END.length);
@@ -91,29 +109,37 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 const endIdx = content.indexOf(SPLIT_END);
                 if (endIdx !== -1) {
                     const splitBlock = content.substring(startIdx + SPLIT_START.length, endIdx);
-                    const [titles, innerContents] = splitBlock.split(SPLIT_SEP);
-                    const [leftTitle, rightTitle] = (titles || '').split(ITEM_SEP);
-                    const [leftContent, rightContent] = (innerContents || '').split(ITEM_SEP);
+                    const [titlesSeg, innerContentsSeg] = splitBlock.split(SPLIT_SEP);
+                    const [leftT, rightT] = (titlesSeg || '').split(ITEM_SEP);
+                    const [leftC, rightC] = (innerContentsSeg || '').split(ITEM_SEP);
 
+                    const isTrulyEmpty = !(leftT || '').trim() && !(rightT || '').trim() && !(leftC || '').trim() && !(rightC || '').trim();
+
+                    if (!isTrulyEmpty || result.length === 0) {
+                        result.push({
+                            type: 'split',
+                            leftTitle: leftT || '',
+                            rightTitle: rightT || '',
+                            leftContent: leftC || '',
+                            rightContent: rightC || '',
+                            id
+                        });
+                    }
+                }
+            } else {
+                // Only push if content is not just the empty newline-padding 
+                // but keep it if it's the only section
+                if (content.trim() || result.length === 0) {
                     result.push({
-                        type: 'split',
-                        leftTitle: leftTitle || '',
-                        rightTitle: rightTitle || '',
-                        leftContent: leftContent || '',
-                        rightContent: rightContent || '',
+                        type: 'normal',
+                        content: content.trim(),
                         id
                     });
                 }
-            } else {
-                result.push({
-                    type: 'normal',
-                    content: content.trim(),
-                    id
-                });
             }
-        });
+        }
 
-        return result.length > 0 ? result : [{ type: 'normal', content: raw, id: crypto.randomUUID() }];
+        return result.length > 0 ? result : [{ type: 'normal', content: '', id: crypto.randomUUID() }];
     };
 
     const parseLegacyContent = (raw: string): Section[] => {
@@ -178,6 +204,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const updateStore = (newSections: Section[]) => {
         const serialized = serializeSections(newSections);
         lastSerializedRef.current = serialized;
+        lastKnownStoreContent.current = serialized;
         updateCanvasWriting(canvasId, serialized);
     };
 
@@ -225,6 +252,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         }
         setSections(newSections);
         updateStore(newSections);
+        console.log("[WritingSection] Deleted section", id, "New count:", newSections.length);
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -405,9 +433,16 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     )}
 
                     {/* Dynamic Sections */}
-                    <div className="space-y-12">
-                        {sections.map((section) => (
-                            <div key={section.id} className="relative group">
+                    <div className="space-y-16">
+                        {sections.map((section, index) => (
+                            <div
+                                key={section.id}
+                                className="relative group p-8 rounded-3xl border border-white/5 hover:border-white/10 transition-all bg-white/[0.01] hover:bg-white/[0.02]"
+                            >
+                                <div className="absolute -top-4 -left-4 w-8 h-8 rounded-full bg-[#111] border border-white/10 flex items-center justify-center text-[10px] font-bold text-white/20">
+                                    {index + 1}
+                                </div>
+
                                 {section.type === 'normal' ? (
                                     <textarea
                                         value={section.content}
@@ -415,9 +450,9 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         onMouseUp={(e) => handleTextSelection(e, section.id)}
                                         onKeyUp={(e) => handleTextSelection(e, section.id)}
                                         placeholder="Start typing your thoughts..."
-                                        className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/20 font-sans min-h-[200px]"
+                                        className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/20 font-sans min-h-[100px]"
                                         spellCheck={false}
-                                        rows={Math.max(10, section.content.split('\n').length)}
+                                        rows={Math.max(4, (section.content || '').split('\n').length)}
                                     />
                                 ) : (
                                     <div className="flex gap-8 group/split relative">
@@ -470,13 +505,13 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                 )}
 
                                 {/* Section Controls */}
-                                <div className="absolute -left-12 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
+                                <div className="absolute -left-16 top-8 opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-2 z-10 scale-90 group-hover:scale-100">
                                     <button
                                         onClick={() => deleteSection(section.id)}
-                                        className="p-2 hover:bg-red-500/10 text-white/20 hover:text-red-500 rounded-lg transition-colors"
+                                        className="p-3 bg-[#1a1a1a] border border-white/10 hover:bg-red-500/20 text-white/30 hover:text-red-400 rounded-2xl transition-all shadow-2xl active:scale-90"
                                         title="Remove Section"
                                     >
-                                        <Trash2 size={16} />
+                                        <Trash2 size={20} />
                                     </button>
                                 </div>
                             </div>
