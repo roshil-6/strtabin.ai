@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
 import { Image as ImageIcon, GitBranch, Type, Bot, MessageSquare, CornerDownRight, X, Layout, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
