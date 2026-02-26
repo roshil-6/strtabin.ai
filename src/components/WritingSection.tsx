@@ -48,14 +48,15 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         setTitle(canvas.title || '');
 
         // If the store content matches what we last serialized, we definitely don't need to re-parse
-        if (canvas.writingContent === lastSerializedRef.current) return;
+        // BUT only if we already have some sections initialized!
+        if (sections.length > 0 && canvas.writingContent === lastSerializedRef.current) {
+            return;
+        }
 
         const parsed = parseContent(canvas.writingContent || '');
         setSections(parsed);
 
         // IMPORTANT: Stabilize IDs!
-        // If the parsed version is different from the store (e.g. we just added IDs to legacy text),
-        // we MUST update the store immediately so subsequent renders don't generate new IDs.
         const stabilized = serializeSections(parsed);
         if (stabilized !== canvas.writingContent) {
             lastSerializedRef.current = stabilized;
@@ -207,6 +208,14 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         const newSections = [...sections, newSection];
         setSections(newSections);
         updateStore(newSections);
+
+        // Scroll to bottom so user sees the new section
+        setTimeout(() => {
+            const container = document.querySelector('.overflow-y-auto.custom-scrollbar');
+            if (container) {
+                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            }
+        }, 100);
     };
 
     const deleteSection = (id: string) => {
