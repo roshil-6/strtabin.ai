@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import useStore from '../store/useStore';
 import { Image as ImageIcon, GitBranch, Type, Bot, MessageSquare, CornerDownRight, X, Layout, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -12,9 +12,12 @@ type Section =
     | { type: 'normal'; content: string; id: string }
     | { type: 'split'; leftTitle: string; rightTitle: string; leftContent: string; rightContent: string; id: string };
 
+const ID_START = "<<<SECTION_ID:";
+const ID_END = ">>>";
 const SPLIT_START = "<<<SPLIT_SECTION_START>>>";
 const SPLIT_END = "<<<SPLIT_SECTION_END>>>";
 const SPLIT_SEP = "<<<SPLIT_SECTION_SEP>>>";
+const ITEM_SEP = "|||";
 
 export default function WritingSection({ canvasId }: WritingSectionProps) {
     const navigate = useNavigate();
@@ -43,13 +46,70 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         if (canvas) {
             setTitle(canvas.title || '');
             const parsed = parseContent(canvas.writingContent || '');
-            setSections(parsed);
+
+            // To avoid focus loss, we check if the serialized version of current local state 
+            // matches what's in the store. If they differ (e.g. initial load or external update), 
+            // we update the local sections.
+            const currentSerialized = serializeSections(sections);
+            if (canvas.writingContent !== currentSerialized) {
+                setSections(parsed);
+            }
         }
-    }, [canvas?.title, canvas?.writingContent]);
+    }, [canvas?.title, canvas?.writingContent, sections]);
 
     const parseContent = (raw: string): Section[] => {
+        const result: Section[] = [];
+        const blocks = raw.split(ID_START).filter(b => b.trim());
+
+        if (blocks.length === 0 && raw.trim() === "" && !raw.includes(SPLIT_START)) {
+            return [{ type: 'normal', content: '', id: crypto.randomUUID() }];
+        }
+
+        // Handle legacy content or content without IDs
+        if (!raw.includes(ID_START)) {
+            return parseLegacyContent(raw);
+        }
+
+        blocks.forEach(block => {
+            const endIdIdx = block.indexOf(ID_END);
+            if (endIdIdx === -1) return;
+
+            const id = block.substring(0, endIdIdx);
+            const content = block.substring(endIdIdx + ID_END.length);
+
+            if (content.includes(SPLIT_START)) {
+                const startIdx = content.indexOf(SPLIT_START);
+                const endIdx = content.indexOf(SPLIT_END);
+                if (endIdx !== -1) {
+                    const splitBlock = content.substring(startIdx + SPLIT_START.length, endIdx);
+                    const [titles, innerContents] = splitBlock.split(SPLIT_SEP);
+                    const [leftTitle, rightTitle] = (titles || '').split(ITEM_SEP);
+                    const [leftContent, rightContent] = (innerContents || '').split(ITEM_SEP);
+
+                    result.push({
+                        type: 'split',
+                        leftTitle: leftTitle || '',
+                        rightTitle: rightTitle || '',
+                        leftContent: leftContent || '',
+                        rightContent: rightContent || '',
+                        id
+                    });
+                }
+            } else {
+                result.push({
+                    type: 'normal',
+                    content: content.trim(),
+                    id
+                });
+            }
+        });
+
+        return result.length > 0 ? result : [{ type: 'normal', content: raw, id: crypto.randomUUID() }];
+    };
+
+    const parseLegacyContent = (raw: string): Section[] => {
         if (!raw.includes(SPLIT_START)) {
-            return [{ type: 'normal', content: raw, id: 'init-1' }];
+            return [{ type: 'normal', content: raw, id: crypto.randomUUID() }];
         }
 
         const result: Section[] = [];
@@ -60,21 +120,20 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             if (startIdx === -1) {
                 const remaining = raw.substring(currentPos);
                 if (remaining.trim() || result.length === 0) {
-                    result.push({ type: 'normal', content: remaining, id: `norm-${currentPos}` });
+                    result.push({ type: 'normal', content: remaining, id: crypto.randomUUID() });
                 }
                 break;
             }
 
-            // Normal text before the split
             const beforeSplit = raw.substring(currentPos, startIdx);
             if (beforeSplit.trim()) {
-                result.push({ type: 'normal', content: beforeSplit, id: `norm-${currentPos}` });
+                result.push({ type: 'normal', content: beforeSplit, id: crypto.randomUUID() });
             }
 
             const endIdx = raw.indexOf(SPLIT_END, startIdx);
             if (endIdx === -1) {
                 // Malformed, treat as normal
-                result.push({ type: 'normal', content: raw.substring(startIdx), id: `norm-${startIdx}` });
+                result.push({ type: 'normal', content: raw.substring(startIdx), id: crypto.randomUUID() });
                 break;
             }
 
@@ -89,7 +148,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 rightTitle: rightTitle || '',
                 leftContent: leftContent || '',
                 rightContent: rightContent || '',
-                id: `split-${startIdx}`
+                id: crypto.randomUUID()
             });
 
             currentPos = endIdx + SPLIT_END.length;
@@ -100,9 +159,11 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const serializeSections = (secs: Section[]): string => {
         return secs.map(s => {
-            if (s.type === 'normal') return s.content;
-            return `${SPLIT_START}${s.leftTitle}|${s.rightTitle}${SPLIT_SEP}${s.leftContent}|${s.rightContent}${SPLIT_END}`;
-        }).join('\n');
+            if (s.type === 'normal') {
+                return `${ID_START}${s.id}${ID_END}${s.content}`;
+            }
+            return `${ID_START}${s.id}${ID_END}${SPLIT_START}${s.leftTitle}${ITEM_SEP}${s.rightTitle}${SPLIT_SEP}${s.leftContent}${ITEM_SEP}${s.rightContent}${SPLIT_END}`;
+        }).join('\n\n');
     };
 
     const updateStore = (newSections: Section[]) => {
@@ -132,7 +193,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             rightTitle: '',
             leftContent: '',
             rightContent: '',
-            id: `split-${Date.now()}`
+            id: crypto.randomUUID()
         };
         const newSections = [...sections, newSection];
         setSections(newSections);
@@ -140,8 +201,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     };
 
     const deleteSection = (id: string) => {
-        if (sections.length <= 1) return;
         const newSections = sections.filter(s => s.id !== id);
+        if (newSections.length === 0) {
+            newSections.push({ type: 'normal', content: '', id: crypto.randomUUID() });
+        }
         setSections(newSections);
         updateStore(newSections);
     };
@@ -158,26 +221,31 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         }
     };
 
-    const handleTextSelection = (sectionId: string, field?: string) => {
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-            setSelection(null);
-            setShowReplyInput(false);
-            return;
-        }
-
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        const selectedText = selection.toString();
+    const handleTextSelection = (e: React.MouseEvent<HTMLTextAreaElement> | React.KeyboardEvent<HTMLTextAreaElement>, sectionId: string, field?: string) => {
+        const el = e.currentTarget;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const selectedText = el.value.substring(start, end);
 
         if (selectedText.trim().length > 0) {
+            const rect = el.getBoundingClientRect();
+            // Estimate position based on row/col
+            const lines = el.value.substring(0, start).split('\n');
+            const row = lines.length;
+            const col = lines[lines.length - 1].length;
+            const charHeight = 24; // Approximate line height
+            const charWidth = 8; // Approximate character width
+
             setSelection({
                 text: selectedText,
-                x: rect.left,
-                y: rect.top - 50,
+                x: rect.left + Math.min(col * charWidth, rect.width - 50), // Prevent menu from going off right edge
+                y: rect.top + (row * charHeight) - el.scrollTop - 40, // Position above the selected line
                 sectionId,
                 field
             });
+        } else {
+            setSelection(null);
+            setShowReplyInput(false);
         }
     };
 
@@ -230,7 +298,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         if (lastSection && lastSection.type === 'normal') {
             lastSection.content += treeBlock;
         } else {
-            newSections.push({ type: 'normal', content: treeBlock, id: `norm-${Date.now()}` });
+            newSections.push({ type: 'normal', content: treeBlock, id: crypto.randomUUID() });
         }
 
         setSections(newSections);
@@ -326,7 +394,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     <textarea
                                         value={section.content}
                                         onChange={(e) => handleSectionChange(section.id, 'content', e.target.value)}
-                                        onMouseUp={() => handleTextSelection(section.id)}
+                                        onMouseUp={(e) => handleTextSelection(e, section.id)}
+                                        onKeyUp={(e) => handleTextSelection(e, section.id)}
                                         placeholder="Start typing your thoughts..."
                                         className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/20 font-sans min-h-[200px]"
                                         spellCheck={false}
@@ -345,7 +414,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                             <textarea
                                                 value={section.leftContent}
                                                 onChange={(e) => handleSectionChange(section.id, 'leftContent', e.target.value)}
-                                                onMouseUp={() => handleTextSelection(section.id, 'left')}
+                                                onMouseUp={(e) => handleTextSelection(e, section.id, 'left')}
+                                                onKeyUp={(e) => handleTextSelection(e, section.id, 'left')}
                                                 placeholder="Details..."
                                                 className="w-full bg-transparent text-base text-white/80 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[150px]"
                                                 spellCheck={false}
@@ -370,7 +440,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                             <textarea
                                                 value={section.rightContent}
                                                 onChange={(e) => handleSectionChange(section.id, 'rightContent', e.target.value)}
-                                                onMouseUp={() => handleTextSelection(section.id, 'right')}
+                                                onMouseUp={(e) => handleTextSelection(e, section.id, 'right')}
+                                                onKeyUp={(e) => handleTextSelection(e, section.id, 'right')}
                                                 placeholder="Details..."
                                                 className="w-full bg-transparent text-base text-white/80 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[150px]"
                                                 spellCheck={false}
@@ -398,7 +469,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     <div className="flex justify-center pt-8">
                         <button
                             onClick={() => {
-                                const newSec: Section = { type: 'normal', content: '', id: `norm-${Date.now()}` };
+                                const newSec: Section = { type: 'normal', content: '', id: crypto.randomUUID() };
                                 const newSections = [...sections, newSec];
                                 setSections(newSections);
                                 updateStore(newSections);
