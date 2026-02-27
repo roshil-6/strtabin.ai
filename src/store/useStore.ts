@@ -24,6 +24,12 @@ export type Comment = {
     createdAt: number;
 };
 
+export type Folder = {
+    id: string;
+    name: string;
+    createdAt: number;
+};
+
 export type CanvasData = {
     id: string;
     name: string;
@@ -40,6 +46,7 @@ export type CanvasData = {
     isPinned?: boolean; // Pin status
     isCurrent?: boolean; // Current focus status
     mergedCanvasIds?: string[]; // IDs of canvases that are part of this merged project
+    folderId?: string | null; // Associated folder ID
     updatedAt: number;
 };
 
@@ -74,6 +81,7 @@ export type Diagram = {
     type: 'branch' | 'flowchart';
     sourceText: string;
     data: BranchData | FlowchartData;
+    folderId?: string | null;
     createdAt: number;
     updatedAt: number;
 };
@@ -112,6 +120,7 @@ export type Timeline = {
     lanes: TimelineLane[];
     items: TimelineItem[];
     linkedCanvases?: string[]; // IDs of linked strategy canvases
+    folderId?: string | null; // Associated folder ID
     createdAt: number;
     updatedAt: number;
 };
@@ -182,6 +191,15 @@ export type RFState = {
     checkNotifications: () => void;
     syncSubProjectNodes: (mergedId: string) => void;
     toggleCurrentProject: (id: string) => void;
+
+    // Folder Management
+    folders: Record<string, Folder>;
+    activeFolderId: string | null;
+    createFolder: (name: string) => void;
+    deleteFolder: (id: string) => void;
+    updateFolderName: (id: string, name: string) => void;
+    setActiveFolder: (id: string | null) => void;
+    moveItemToFolder: (itemId: string, type: 'canvas' | 'timeline' | 'diagram', folderId: string | null) => void;
 };
 
 const useStore = create<RFState>()(
@@ -195,6 +213,8 @@ const useStore = create<RFState>()(
             timelines: {},
             calendarEvents: {},
             chatHistory: {},
+            folders: {},
+            activeFolderId: null,
 
             initDefaultCanvas: () => {
                 const state = get();
@@ -205,11 +225,13 @@ const useStore = create<RFState>()(
 
             createCanvas: () => {
                 const id = crypto.randomUUID();
+                const folderId = get().activeFolderId;
                 const newCanvas: CanvasData = {
                     id,
                     name: 'Untitled Canvas',
                     nodes: [],
                     edges: [],
+                    folderId,
                     updatedAt: Date.now(),
                 };
 
@@ -252,12 +274,14 @@ const useStore = create<RFState>()(
 
             mergeCanvases: (ids, title) => {
                 const id = crypto.randomUUID();
+                const folderId = get().activeFolderId;
                 const newCanvas: CanvasData = {
                     id,
                     name: title || 'Merged Project',
                     nodes: [],
                     edges: [],
                     mergedCanvasIds: ids,
+                    folderId,
                     updatedAt: Date.now(),
                 };
 
@@ -404,12 +428,14 @@ const useStore = create<RFState>()(
 
             // Diagram Management
             createDiagram: (diagram) => {
+                const folderId = get().activeFolderId;
                 set((state) => ({
                     diagrams: [
                         ...state.diagrams,
                         {
                             ...diagram,
                             id: `diagram-${Date.now()}`,
+                            folderId,
                             createdAt: Date.now(),
                             updatedAt: Date.now(),
                         },
@@ -455,6 +481,7 @@ const useStore = create<RFState>()(
             // Timeline Management Implementation
             createTimeline: () => {
                 const id = crypto.randomUUID();
+                const folderId = get().activeFolderId;
                 const newTimeline: Timeline = {
                     id,
                     title: 'New Timeline',
@@ -462,6 +489,7 @@ const useStore = create<RFState>()(
                     endDate: Date.now() + 604800000,
                     lanes: [],
                     items: [],
+                    folderId,
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
                 };
@@ -676,11 +704,13 @@ const useStore = create<RFState>()(
 
             convertNodeToProject: (canvasId, nodeId) => {
                 const subId = crypto.randomUUID();
+                const folderId = get().activeFolderId;
                 const newCanvas: CanvasData = {
                     id: subId,
                     name: 'Sub-Project',
                     nodes: [],
                     edges: [],
+                    folderId,
                     updatedAt: Date.now(),
                 };
 
@@ -707,11 +737,13 @@ const useStore = create<RFState>()(
 
             addSubCanvasToMerged: (mergedId) => {
                 const subId = crypto.randomUUID();
+                const folderId = get().activeFolderId;
                 const newCanvas: CanvasData = {
                     id: subId,
                     name: 'New Sequence',
                     nodes: [],
                     edges: [],
+                    folderId,
                     updatedAt: Date.now(),
                 };
 
@@ -852,6 +884,99 @@ const useStore = create<RFState>()(
                             }
                         }
                     };
+                });
+            },
+
+            createFolder: (name) => {
+                const id = crypto.randomUUID();
+                const newFolder: Folder = {
+                    id,
+                    name,
+                    createdAt: Date.now(),
+                };
+                set((state) => ({
+                    folders: { ...state.folders, [id]: newFolder },
+                    activeFolderId: id, // switch to newly created folder
+                }));
+            },
+
+            deleteFolder: (id) => {
+                set((state) => {
+                    const newFolders = { ...state.folders };
+                    delete newFolders[id];
+
+                    // Move items in this folder to general (null) or delete them?
+                    // User said "folders will be having same features", usually implies projects are contained.
+                    // For safety, let's keep projects but reset their folderId to null (General).
+
+                    const newCanvases = { ...state.canvases };
+                    Object.keys(newCanvases).forEach(cid => {
+                        if (newCanvases[cid].folderId === id) {
+                            newCanvases[cid] = { ...newCanvases[cid], folderId: null };
+                        }
+                    });
+
+                    const newTimelines = { ...state.timelines };
+                    Object.keys(newTimelines).forEach(tid => {
+                        if (newTimelines[tid].folderId === id) {
+                            newTimelines[tid] = { ...newTimelines[tid], folderId: null };
+                        }
+                    });
+
+                    return {
+                        folders: newFolders,
+                        canvases: newCanvases,
+                        timelines: newTimelines,
+                        activeFolderId: state.activeFolderId === id ? null : state.activeFolderId,
+                    };
+                });
+            },
+
+            updateFolderName: (id, name) => {
+                set((state) => {
+                    const folder = state.folders[id];
+                    if (!folder) return {};
+                    return {
+                        folders: {
+                            ...state.folders,
+                            [id]: { ...folder, name }
+                        }
+                    };
+                });
+            },
+
+            setActiveFolder: (id) => {
+                set({ activeFolderId: id });
+            },
+
+            moveItemToFolder: (itemId, type, folderId) => {
+                set((state) => {
+                    if (type === 'canvas') {
+                        const canvas = state.canvases[itemId];
+                        if (!canvas) return {};
+                        return {
+                            canvases: {
+                                ...state.canvases,
+                                [itemId]: { ...canvas, folderId, updatedAt: Date.now() }
+                            }
+                        };
+                    } else if (type === 'timeline') {
+                        const timeline = state.timelines[itemId];
+                        if (!timeline) return {};
+                        return {
+                            timelines: {
+                                ...state.timelines,
+                                [itemId]: { ...timeline, folderId, updatedAt: Date.now() }
+                            }
+                        };
+                    } else if (type === 'diagram') {
+                        return {
+                            diagrams: state.diagrams.map(d =>
+                                d.id === itemId ? { ...d, folderId, updatedAt: Date.now() } : d
+                            )
+                        };
+                    }
+                    return {};
                 });
             },
         }),

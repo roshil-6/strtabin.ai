@@ -106,28 +106,28 @@ export default function StrabView() {
                         <Bot size={18} className="text-white" />
                     </div>
                     <div>
-                        <h1 className="font-bold text-lg leading-tight tracking-wide">STRAB <span className="text-white/30 font-normal">AI</span></h1>
-                        <p className="text-[10px] text-white/40 uppercase tracking-widest">Project Intelligence</p>
+                        <h1 className="font-bold text-sm md:text-lg leading-tight tracking-wide">STRAB <span className="text-white/30 font-normal">AI</span></h1>
+                        <p className="text-[9px] md:text-[10px] text-white/40 uppercase tracking-widest">Project Intelligence</p>
                     </div>
                 </div>
 
-                <div className="ml-auto flex bg-white/5 rounded-lg p-1">
+                <div className="ml-auto flex bg-white/5 rounded-lg p-1 overflow-x-auto custom-scrollbar-hide shrink-0">
                     <button
                         onClick={() => clearChatHistory(id!)}
-                        className="px-3 py-1.5 rounded-md text-xs font-medium text-white/30 hover:text-red-400 hover:bg-white/5 transition-all mr-2"
+                        className="px-3 py-1.5 rounded-md text-xs font-medium text-white/30 hover:text-red-400 hover:bg-white/5 transition-all mr-1 shrink-0"
                         title="Clear Conversation"
                     >
                         <Trash2 size={14} />
                     </button>
                     <button
                         onClick={() => setActiveTab('chat')}
-                        className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${activeTab === 'chat' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+                        className={`px-3 md:px-4 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${activeTab === 'chat' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
                     >
-                        Chat & Insights
+                        Chat
                     </button>
                     <button
                         onClick={() => setActiveTab('reports')}
-                        className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${activeTab === 'reports' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+                        className={`px-3 md:px-4 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${activeTab === 'reports' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
                     >
                         Reports
                     </button>
@@ -146,7 +146,7 @@ export default function StrabView() {
                                     <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-white/10' : 'bg-orange-500/20 text-orange-400'}`}>
                                         {msg.role === 'user' ? <div className="w-2 h-2 bg-white rounded-full" /> : <Sparkles size={14} />}
                                     </div>
-                                    <div className={`p-4 rounded-2xl max-w-[80%] text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-white/5 border border-white/10 text-white/90' : 'text-white/80'}`}>
+                                    <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[80%] text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-white/5 border border-white/10 text-white/90' : 'text-white/80'}`}>
                                         {msg.content}
                                     </div>
                                 </div>

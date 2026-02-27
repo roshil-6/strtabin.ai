@@ -40,7 +40,7 @@ export default function ProjectHeader({ canvasId, activeTab }: ProjectHeaderProp
             </div>
 
             {/* Center: Navigation Tabs */}
-            <nav className="flex items-center gap-1 bg-[#151515] p-1 rounded-lg border border-white/5">
+            <nav className="flex items-center gap-1 bg-[#151515] p-1 rounded-lg border border-white/5 overflow-x-auto custom-scrollbar-hide">
                 {tabs.map((tab) => {
                     const isActive = activeTab === tab.id;
                     return (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
     ReactFlow,
     Background,
@@ -20,7 +20,7 @@ import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import { Bot, FileText, Plus, Layers, Maximize } from 'lucide-react';
+import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout } from 'lucide-react';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
 
@@ -43,6 +43,7 @@ const selector = (state: RFState) => ({
 
 function CanvasContent() {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
         addNode, setCurrentCanvas, initDefaultCanvas, canvases,
@@ -336,7 +337,7 @@ function CanvasContent() {
                                 backgroundColor: '#151515',
                                 border: '1px solid rgba(255,255,255,0.1)',
                                 fill: '#9aa0a6',
-                                marginBottom: '60px' // Space for bottom nav on mobile
+                                marginBottom: '100px' // Space for expanded bottom nav on mobile
                             }} />
 
                             {/* Mobile-only Fit View Button */}
@@ -358,37 +359,54 @@ function CanvasContent() {
                     </div>
                 </div>
 
-                {/* Mobile Bottom Navigation */}
-                <div className="md:hidden fixed bottom-0 left-0 w-full h-16 bg-[#0b0b0b] border-t border-white/10 flex items-center justify-around z-50 pb-safe">
+                {/* Mobile Bottom Navigation - Expanded for all sections */}
+                <div className="md:hidden fixed bottom-0 left-0 w-full h-20 bg-[#0b0b0b] border-t border-white/10 flex items-center justify-between z-50 px-2 pb-safe">
                     <button
                         onClick={() => setMobileTab('write')}
-                        className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'write' ? 'text-primary' : 'text-white/40'}`}
+                        className={`flex flex-col items-center justify-center gap-1 w-14 ${mobileTab === 'write' ? 'text-primary' : 'text-white/40'}`}
                     >
-                        <span className="text-xs font-bold uppercase tracking-widest">Write</span>
-                        <div className={`w-1 h-1 rounded-full ${mobileTab === 'write' ? 'bg-primary' : 'bg-transparent'}`} />
+                        <FileText size={18} />
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Write</span>
                     </button>
-
-                    <div className="w-px h-8 bg-white/5" />
-
-                    <button
-                        onClick={() => {
-                            // Saving logic could go here
-                            window.location.href = '/';
-                        }}
-                        className="flex flex-col items-center gap-1 p-2 text-white/40"
-                    >
-                        <span className="text-xs font-bold uppercase tracking-widest">Home</span>
-                        <div className="w-1 h-1 rounded-full bg-transparent" />
-                    </button>
-
-                    <div className="w-px h-8 bg-white/5" />
 
                     <button
                         onClick={() => setMobileTab('map')}
-                        className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'map' ? 'text-primary' : 'text-white/40'}`}
+                        className={`flex flex-col items-center justify-center gap-1 w-14 ${mobileTab === 'map' ? 'text-primary' : 'text-white/40'}`}
                     >
-                        <span className="text-xs font-bold uppercase tracking-widest">Flow</span>
-                        <div className={`w-1 h-1 rounded-full ${mobileTab === 'map' ? 'bg-primary' : 'bg-transparent'}`} />
+                        <Layers size={18} />
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Flow</span>
+                    </button>
+
+                    <button
+                        onClick={() => navigate(`/todo/${id || 'default'}`)}
+                        className="flex flex-col items-center justify-center gap-1 w-14 text-white/40"
+                    >
+                        <CheckSquare size={18} />
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Tasks</span>
+                    </button>
+
+                    <button
+                        onClick={() => navigate(`/timeline/${id || 'default'}`)}
+                        className="flex flex-col items-center justify-center gap-1 w-14 text-white/40"
+                    >
+                        <Calendar size={18} />
+                        <span className="text-[10px] font-black uppercase tracking-tighter">TLine</span>
+                    </button>
+
+                    <button
+                        onClick={() => navigate(`/strab/${id || 'default'}`)}
+                        className="flex flex-col items-center justify-center gap-1 w-14 text-orange-400"
+                    >
+                        <Bot size={18} />
+                        <span className="text-[10px] font-black uppercase tracking-tighter">AI</span>
+                    </button>
+
+                    <button
+                        onClick={() => navigate('/')}
+                        className="flex flex-col items-center justify-center gap-1 w-14 text-white/40"
+                    >
+                        <Layout size={18} />
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Home</span>
                     </button>
                 </div>
             </div>

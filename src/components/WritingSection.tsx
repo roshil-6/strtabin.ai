@@ -477,7 +477,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                             rows={Math.max(4, (section.content || '').split('\n').length)}
                                         />
                                     ) : (
-                                        <div className="flex gap-8 group/split relative">
+                                        <div className="flex flex-col md:flex-row gap-8 group/split relative">
                                             <div className="flex-1 space-y-4">
                                                 <input
                                                     type="text"
@@ -498,11 +498,12 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                                 />
                                             </div>
 
-                                            <div className="w-px bg-white/10 self-stretch relative">
+                                            <div className="hidden md:block w-px bg-white/10 self-stretch relative">
                                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#111] border border-white/10 flex items-center justify-center opacity-0 group-hover/split:opacity-100 transition-opacity">
                                                     <Layout size={14} className="text-white/30" />
                                                 </div>
                                             </div>
+                                            <div className="md:hidden h-px bg-white/10 w-full my-4" />
 
                                             <div className="flex-1 space-y-4">
                                                 <input
@@ -559,8 +560,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         {/* Floating Selection Menu */}
                         {selection && !showReplyInput && !showCommentInput && (
                             <div
-                                className="fixed z-[100] flex items-center bg-[#1a1a1a]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-1.5 animate-in zoom-in-95 fade-in duration-200"
-                                style={{ top: selection.y, left: selection.x }}
+                                className="fixed z-[100] flex items-center bg-[#1a1a1a]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-1.5 animate-in zoom-in-95 fade-in duration-200 max-w-[90vw] overflow-x-auto custom-scrollbar-hide"
+                                style={{ top: selection.y, left: Math.max(10, Math.min(selection.x, window.innerWidth - 300)) }}
                             >
                                 <button
                                     onClick={() => setShowReplyInput(true)}
@@ -760,69 +761,76 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
             {/* Comments Panel */}
             {showCommentPanel && (
-                <div className="w-72 shrink-0 h-full border-l border-white/5 bg-[#0a0a0a] flex flex-col animate-in slide-in-from-right-4 duration-300">
-                    {/* Panel Header */}
-                    <div className="h-14 border-b border-white/5 flex items-center px-4 gap-3 shrink-0">
-                        <MessageCircle size={16} className="text-blue-400" />
-                        <span className="text-sm font-bold text-white/70">Comments</span>
-                        <span className="ml-auto text-[10px] font-black text-white/20 bg-white/5 px-2 py-1 rounded-full">
-                            {comments.length}
-                        </span>
-                        <button
-                            onClick={() => setShowCommentPanel(false)}
-                            className="p-1 hover:bg-white/10 rounded text-white/30 hover:text-white transition-colors"
-                        >
-                            <X size={14} />
-                        </button>
-                    </div>
+                <>
+                    {/* Backdrop for mobile */}
+                    <div
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-300"
+                        onClick={() => setShowCommentPanel(false)}
+                    />
+                    <div className="fixed md:relative right-0 top-0 w-80 md:w-72 shrink-0 h-full border-l border-white/5 bg-[#0a0a0a] flex flex-col z-50 animate-in slide-in-from-right-4 duration-300">
+                        {/* Panel Header */}
+                        <div className="h-14 border-b border-white/5 flex items-center px-4 gap-3 shrink-0">
+                            <MessageCircle size={16} className="text-blue-400" />
+                            <span className="text-sm font-bold text-white/70">Comments</span>
+                            <span className="ml-auto text-[10px] font-black text-white/20 bg-white/5 px-2 py-1 rounded-full">
+                                {comments.length}
+                            </span>
+                            <button
+                                onClick={() => setShowCommentPanel(false)}
+                                className="p-1 hover:bg-white/10 rounded text-white/30 hover:text-white transition-colors"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
 
-                    {/* Comments List */}
-                    <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-                        {comments.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full gap-4 text-center py-20">
-                                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/10 flex items-center justify-center">
-                                    <MessageCircle size={20} className="text-blue-400/40" />
+                        {/* Comments List */}
+                        <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+                            {comments.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full gap-4 text-center py-20">
+                                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/10 flex items-center justify-center">
+                                        <MessageCircle size={20} className="text-blue-400/40" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white/20">No comments yet</p>
+                                        <p className="text-xs text-white/10 mt-1">Select text and click "Comment" to add one</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-bold text-white/20">No comments yet</p>
-                                    <p className="text-xs text-white/10 mt-1">Select text and click "Comment" to add one</p>
-                                </div>
-                            </div>
-                        ) : (
-                            comments.map(comment => (
-                                <div
-                                    key={comment.id}
-                                    className="group p-3 rounded-2xl bg-[#111] border border-white/5 hover:border-blue-500/20 transition-all space-y-2"
-                                >
-                                    {/* Quoted Text */}
-                                    <div className="flex gap-2 p-2 bg-blue-500/5 border-l-2 border-blue-500/40 rounded-r-lg">
-                                        <Quote size={10} className="text-blue-400/50 shrink-0 mt-0.5" />
-                                        <p className="text-[10px] text-blue-300/50 italic leading-relaxed line-clamp-3">
-                                            {comment.quotedText}
+                            ) : (
+                                comments.map(comment => (
+                                    <div
+                                        key={comment.id}
+                                        className="group p-3 rounded-2xl bg-[#111] border border-white/5 hover:border-blue-500/20 transition-all space-y-2"
+                                    >
+                                        {/* Quoted Text */}
+                                        <div className="flex gap-2 p-2 bg-blue-500/5 border-l-2 border-blue-500/40 rounded-r-lg">
+                                            <Quote size={10} className="text-blue-400/50 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] text-blue-300/50 italic leading-relaxed line-clamp-3">
+                                                {comment.quotedText}
+                                            </p>
+                                        </div>
+                                        {/* Comment Body */}
+                                        <p className="text-xs text-white/70 leading-relaxed px-1">
+                                            {comment.body}
                                         </p>
+                                        {/* Footer */}
+                                        <div className="flex items-center justify-between pt-1">
+                                            <span className="text-[9px] text-white/20">
+                                                {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                            <button
+                                                onClick={() => deleteComment(canvasId, comment.id)}
+                                                className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                                                title="Delete comment"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    {/* Comment Body */}
-                                    <p className="text-xs text-white/70 leading-relaxed px-1">
-                                        {comment.body}
-                                    </p>
-                                    {/* Footer */}
-                                    <div className="flex items-center justify-between pt-1">
-                                        <span className="text-[9px] text-white/20">
-                                            {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                        <button
-                                            onClick={() => deleteComment(canvasId, comment.id)}
-                                            className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                                            title="Delete comment"
-                                        >
-                                            <Trash2 size={12} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
-                        )}
+                                ))
+                            )}
+                        </div>
                     </div>
-                </div>
+                </>
             )}
         </div>
     );

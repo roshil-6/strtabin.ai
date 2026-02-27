@@ -23,6 +23,7 @@ body {
 /* Custom scrollbar for panels if needed */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -36,4 +37,17 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+@layer utilities {
+  .custom-scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .custom-scrollbar-hide {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
 }
