@@ -139,10 +139,10 @@ export default function Dashboard() {
                 <div className="p-8">
                     <div className="flex items-center justify-between mb-10">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 shadow-lg shrink-0">
-                                <img src="/favicon.png" alt="Logo" className="w-7 h-7 object-contain" />
+                            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 shadow-lg shrink-0 overflow-hidden">
+                                <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain p-1.5" />
                             </div>
-                            <h1 className="text-2xl font-black tracking-tighter">Stratabin.</h1>
+                            <h1 className="text-3xl font-black tracking-tighter">Stratabin.</h1>
                         </div>
                         <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-white/40 hover:text-white">
                             <X size={20} />
