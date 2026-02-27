@@ -139,10 +139,13 @@ export default function Dashboard() {
                 <div className="p-8">
                     <div className="flex items-center justify-between mb-10">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 shadow-lg shrink-0 overflow-hidden">
-                                <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain p-1.5" />
+                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 shadow-xl shrink-0 overflow-hidden">
+                                <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain p-2" />
                             </div>
-                            <h1 className="text-3xl font-black tracking-tighter">Stratabin.</h1>
+                            <div>
+                                <h1 className="text-3xl font-black tracking-tighter leading-none">Stratabin<span className="text-orange-500">.</span></h1>
+                                <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mt-1.5 font-bold">Professional Workspace</p>
+                            </div>
                         </div>
                         <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-white/40 hover:text-white">
                             <X size={20} />
@@ -354,7 +357,7 @@ export default function Dashboard() {
                                 <section>
                                     <div className="flex items-center gap-3 mb-8 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                                        <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40">Composite Views</h2>
+                                        <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40">Merged Projects</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-4" />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
