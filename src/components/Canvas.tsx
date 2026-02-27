@@ -8,6 +8,7 @@ import {
     type Node,
     useReactFlow,
     ReactFlowProvider,
+    Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import useStore, { type RFState } from '../store/useStore';
@@ -19,7 +20,7 @@ import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import { Bot, FileText, Plus, Layers } from 'lucide-react';
+import { Bot, FileText, Plus, Layers, Maximize } from 'lucide-react';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
 
@@ -47,7 +48,7 @@ function CanvasContent() {
         addNode, setCurrentCanvas, initDefaultCanvas, canvases,
         addSubCanvasToMerged, syncSubProjectNodes
     } = useStore(useShallow(selector));
-    const { screenToFlowPosition } = useReactFlow();
+    const { screenToFlowPosition, fitView } = useReactFlow();
     // const [mode, setMode] = useState<'canvas'>('canvas'); // Removed unused state
 
     // Use standard TextNode or a specific FlowchartNode. For now, reusing IdeaNode structure but simplified could work,
@@ -322,9 +323,9 @@ function CanvasContent() {
                             edgeTypes={edgeTypes}
                             defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
                             fitView
-                            fitViewOptions={{ minZoom: 0.5, maxZoom: 1.5, padding: 0.2 }}
+                            fitViewOptions={{ minZoom: 0.1, maxZoom: 1.5, padding: 0.1 }}
                             colorMode="dark"
-                            minZoom={0.2}
+                            minZoom={0.05}
                             connectionRadius={50}
                             snapToGrid
                             snapGrid={[10, 10]}
@@ -337,6 +338,17 @@ function CanvasContent() {
                                 fill: '#9aa0a6',
                                 marginBottom: '60px' // Space for bottom nav on mobile
                             }} />
+
+                            {/* Mobile-only Fit View Button */}
+                            <Panel position="bottom-right" className="md:hidden pb-20 pr-4">
+                                <button
+                                    onClick={() => fitView({ duration: 800, padding: 0.2 })}
+                                    className="w-10 h-10 rounded-full bg-[#1a1a1a]/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 active:scale-95 transition-all shadow-xl"
+                                    title="Fit View"
+                                >
+                                    <Maximize size={18} />
+                                </button>
+                            </Panel>
                         </ReactFlow>
                     </div>
 

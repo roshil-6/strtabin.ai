@@ -40,7 +40,7 @@ const NodeShell = ({ id, data, selected }: any) => {
 
     return (
         <div className={`
-            relative group flex flex-col min-w-[220px]
+            relative group flex flex-col min-w-[140px] md:min-w-[220px]
             bg-[#141414] border rounded-lg shadow-sm transition-all duration-200
             ${selected
                 ? 'border-primary shadow-[0_0_0_1px_rgba(218,119,86,0.3)]'
@@ -49,23 +49,23 @@ const NodeShell = ({ id, data, selected }: any) => {
         `}>
             {/* Top Grip Area */}
             <div className={`
-                h-7 rounded-t-lg border-b border-[#2a2a2a] flex items-center justify-between px-2 cursor-grab active:cursor-grabbing transition-colors
+                h-5 md:h-7 rounded-t-lg border-b border-[#2a2a2a] flex items-center justify-between px-2 cursor-grab active:cursor-grabbing transition-colors
                 ${selected ? 'bg-primary/10' : 'bg-[#1a1a1a] hover:bg-[#222]'}
             `}>
                 <GripHorizontal size={14} className={`transition-colors mx-auto ${selected ? 'text-primary' : 'text-white/20 group-hover:text-white/40'}`} />
                 <button
                     onClick={handleDelete}
-                    className="nodrag opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
+                    className="nodrag opacity-0 group-hover:opacity-100 p-1 rounded text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
                     title="Delete node"
                 >
-                    <Trash2 size={16} />
+                    <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                 </button>
             </div>
 
             {/* Content Area */}
-            <div className="p-1 bg-[#141414] rounded-b-lg">
+            <div className="p-0.5 md:p-1 bg-[#141414] rounded-b-lg">
                 <textarea
-                    className="nodrag w-full bg-transparent text-white/90 text-sm p-3 outline-none resize-none leading-relaxed placeholder-white/20 min-h-[80px]"
+                    className="nodrag w-full bg-transparent text-white/90 text-xs md:text-sm p-2 md:p-3 outline-none resize-none leading-relaxed placeholder-white/20 min-h-[50px] md:min-h-[80px]"
                     value={(data?.label as string) || ''}
                     onChange={handleInputChange}
                     placeholder="Describe step..."
@@ -75,21 +75,21 @@ const NodeShell = ({ id, data, selected }: any) => {
             </div>
 
             {/* Project Integration Actions */}
-            <div className="px-4 pb-3 border-t border-white/5 bg-[#1a1a1a]/30 flex items-center justify-between">
+            <div className="px-2 md:px-4 pb-2 md:pb-3 border-t border-white/5 bg-[#1a1a1a]/30 flex items-center justify-between">
                 {data.subCanvasId ? (
                     <button
                         onClick={handleOpenProject}
-                        className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-primary hover:text-white transition-colors"
+                        className="flex items-center gap-1.5 md:gap-2 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-primary hover:text-white transition-colors"
                     >
-                        <ExternalLink size={12} />
+                        <ExternalLink className="w-2.5 h-2.5 md:w-3 md:h-3" />
                         Open Sub-Project
                     </button>
                 ) : (
                     <button
                         onClick={handleProjectize}
-                        className="opacity-0 group-hover:opacity-100 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-white/40 hover:text-primary transition-all"
+                        className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 md:gap-2 text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-white/40 hover:text-primary transition-all"
                     >
-                        <FolderPlus size={12} />
+                        <FolderPlus className="w-2.5 h-2.5 md:w-3 md:h-3" />
                         Convert to Project
                     </button>
                 )}

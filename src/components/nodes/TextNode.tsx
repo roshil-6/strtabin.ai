@@ -21,7 +21,7 @@ export default function TextNode({ id, data, selected }: NodeProps) {
 
     return (
         <div className={clsx(
-            "relative group min-w-[200px] transition-all duration-200",
+            "relative group min-w-[120px] md:min-w-[200px] transition-all duration-200",
             selected ? "ring-1 ring-primary/50" : ""
         )}>
             {/* Handles */}
@@ -32,14 +32,14 @@ export default function TextNode({ id, data, selected }: NodeProps) {
 
             {/* Content */}
             <div className={clsx(
-                "rounded-xl p-4 transition-colors",
+                "rounded-xl p-2 md:p-4 transition-colors",
                 selected || data.label ? "bg-[#151515]/50 hover:bg-[#151515]" : "bg-transparent hover:bg-[#151515]/30",
                 "border border-transparent",
                 selected && "border-white/10"
             )}>
                 <textarea
                     ref={textareaRef}
-                    className="w-full bg-transparent text-white outline-none resize-none overflow-hidden font-sans placeholder-white/20 text-lg leading-relaxed"
+                    className="w-full bg-transparent text-white outline-none resize-none overflow-hidden font-sans placeholder-white/20 text-sm md:text-lg leading-relaxed"
                     value={data.label as string}
                     onChange={onChange}
                     placeholder="Start writing..."
