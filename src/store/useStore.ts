@@ -16,6 +16,14 @@ import {
 } from '@xyflow/react';
 import { NotificationManager } from '../services/NotificationManager';
 
+export type Comment = {
+    id: string;
+    quotedText: string;
+    body: string;
+    sectionId: string;
+    createdAt: number;
+};
+
 export type CanvasData = {
     id: string;
     name: string;
@@ -26,6 +34,7 @@ export type CanvasData = {
     images?: string[]; // List of image URLs
     timelineContent?: string; // Manual timeline text
     todos?: Array<{ id: string; text: string; completed: boolean }>; // Project specific to-dos
+    comments?: Comment[]; // Inline comments
     linkedCanvases?: string[]; // IDs of linked canvases
     linkedTimelines?: string[]; // IDs of linked timelines
     isPinned?: boolean; // Pin status
@@ -162,6 +171,10 @@ export type RFState = {
     chatHistory: Record<string, { role: 'user' | 'assistant'; content: string }[]>;
     addChatMessage: (id: string, message: { role: 'user' | 'assistant'; content: string }) => void;
     clearChatHistory: (id: string) => void;
+
+    // Canvas Comments
+    addComment: (canvasId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => void;
+    deleteComment: (canvasId: string, commentId: string) => void;
 
     // Sub-Project & Merged Workflow
     convertNodeToProject: (canvasId: string, nodeId: string) => string;
@@ -798,6 +811,45 @@ const useStore = create<RFState>()(
                         canvases: {
                             ...state.canvases,
                             [id]: { ...canvas, isCurrent: !canvas.isCurrent, updatedAt: Date.now() }
+                        }
+                    };
+                });
+            },
+
+            addComment: (canvasId, comment) => {
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas) return {};
+                    const newComment = {
+                        ...comment,
+                        id: crypto.randomUUID(),
+                        createdAt: Date.now(),
+                    };
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: {
+                                ...canvas,
+                                comments: [...(canvas.comments || []), newComment],
+                                updatedAt: Date.now(),
+                            }
+                        }
+                    };
+                });
+            },
+
+            deleteComment: (canvasId, commentId) => {
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas) return {};
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: {
+                                ...canvas,
+                                comments: (canvas.comments || []).filter(c => c.id !== commentId),
+                                updatedAt: Date.now(),
+                            }
                         }
                     };
                 });
