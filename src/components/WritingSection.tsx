@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Type, Bot, MessageSquare, CornerDownRight, X, Layout, Plus, Trash2, MessageCircle, Quote } from 'lucide-react';
+import { Image as ImageIcon, GitBranch, Type, Bot, MessageSquare, CornerDownRight, X, Layout, Plus, Trash2, MessageCircle, Quote, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface WritingSectionProps {
@@ -48,6 +48,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const [branchTopic, setBranchTopic] = useState('');
     const [branchCount, setBranchCount] = useState(3);
     const [branchItems, setBranchItems] = useState<string[]>(['', '', '', '', '', '']);
+    const [isSeamless, setIsSeamless] = useState(false);
 
     useEffect(() => {
         if (!canvas) return;
@@ -430,6 +431,20 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         <GitBranch size={16} />
                         <span className="text-xs font-bold">Branch</span>
                     </button>
+
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+
+                    <button
+                        onClick={() => setIsSeamless(!isSeamless)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${isSeamless
+                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/20'
+                            : 'bg-white/5 text-white/70 hover:bg-white/10 border-white/10'
+                            }`}
+                        title={isSeamless ? "Disable Seamless Mode" : "Enable Seamless Mode"}
+                    >
+                        {isSeamless ? <EyeOff size={16} /> : <Eye size={16} />}
+                        <span className="text-xs font-bold">Seamless</span>
+                    </button>
                 </div>
 
                 {/* Content Area */}
@@ -455,15 +470,20 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         )}
 
                         {/* Dynamic Sections */}
-                        <div className="space-y-16">
+                        <div className={isSeamless ? "space-y-4" : "space-y-16"}>
                             {sections.map((section, index) => (
                                 <div
                                     key={section.id}
-                                    className="relative group p-8 rounded-3xl border border-white/5 hover:border-white/10 transition-all bg-white/[0.01] hover:bg-white/[0.02]"
+                                    className={`relative group transition-all ${isSeamless && section.type === 'normal'
+                                        ? 'p-0 bg-transparent border-none'
+                                        : 'p-8 rounded-3xl border border-white/5 hover:border-white/10 bg-white/[0.01] hover:bg-white/[0.02]'
+                                        }`}
                                 >
-                                    <div className="absolute -top-4 -left-4 w-8 h-8 rounded-full bg-[#111] border border-white/10 flex items-center justify-center text-[10px] font-bold text-white/20">
-                                        {index + 1}
-                                    </div>
+                                    {(!isSeamless || section.type === 'split') && (
+                                        <div className="absolute -top-4 -left-4 w-8 h-8 rounded-full bg-[#111] border border-white/10 flex items-center justify-center text-[10px] font-bold text-white/20">
+                                            {index + 1}
+                                        </div>
+                                    )}
 
                                     {section.type === 'normal' ? (
                                         <textarea
@@ -472,7 +492,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                             onMouseUp={(e) => handleTextSelection(e, section.id)}
                                             onKeyUp={(e) => handleTextSelection(e, section.id)}
                                             placeholder="Start typing your thoughts..."
-                                            className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/20 font-sans min-h-[100px]"
+                                            className={`w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/20 font-sans min-h-[100px] ${isSeamless ? 'px-0' : ''}`}
                                             spellCheck={false}
                                             rows={Math.max(4, (section.content || '').split('\n').length)}
                                         />
@@ -528,7 +548,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     )}
 
                                     {/* Section Controls */}
-                                    <div className="absolute -left-16 top-8 opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-2 z-10 scale-90 group-hover:scale-100">
+                                    <div className={`absolute -left-16 top-8 opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-2 z-10 scale-90 group-hover:scale-100 ${isSeamless && section.type === 'normal' ? '-left-12 top-0' : ''}`}>
                                         <button
                                             onClick={() => deleteSection(section.id)}
                                             className="p-3 bg-[#1a1a1a] border border-white/10 hover:bg-red-500/20 text-white/30 hover:text-red-400 rounded-2xl transition-all shadow-2xl active:scale-90"
