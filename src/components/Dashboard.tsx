@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut } from 'lucide-react';
 import DashboardCalendar from './DashboardCalendar';
 
 export default function Dashboard() {
@@ -18,6 +18,9 @@ export default function Dashboard() {
     const deleteFolder = useStore(state => state.deleteFolder);
     const setActiveFolder = useStore(state => state.setActiveFolder);
     const moveItemToFolder = useStore(state => state.moveItemToFolder);
+
+    const setAuthenticated = useStore(state => state.setAuthenticated);
+    const setPaid = useStore(state => state.setPaid);
 
     const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar' | 'strab'>('strategy');
     const [selectionMode, setSelectionMode] = useState(false);
@@ -139,8 +142,8 @@ export default function Dashboard() {
                 <div className="p-8">
                     <div className="flex items-center justify-between mb-10">
                         <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-white/[0.03] rounded-2xl flex items-center justify-center border border-white/10 shadow-xl shrink-0 overflow-hidden">
-                                <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain p-0 scale-[1.8]" />
+                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-white/10 shrink-0">
+                                <img src="/favicon.png" alt="Logo" className="w-6 h-6 object-contain" />
                             </div>
                             <div>
                                 <h1 className="text-3xl font-black tracking-tighter leading-none">Stratabin<span className="text-orange-500">.</span></h1>
@@ -209,14 +212,23 @@ export default function Dashboard() {
                 </div>
 
                 <div className="mt-auto p-6 border-t border-white/5 bg-white/[0.02]">
-                    <div className="flex items-center gap-3 text-white/30">
-                        <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold">
-                            AA
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-white/30">
+                            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold">
+                                AA
+                            </div>
+                            <div className="text-[11px]">
+                                <p className="text-white/60 font-bold leading-none mb-1">Abhinand Antony</p>
+                                <p className="opacity-50 tracking-wide">Standard Workspace</p>
+                            </div>
                         </div>
-                        <div className="text-[11px]">
-                            <p className="text-white/60 font-bold leading-none mb-1">Abhinand Antony</p>
-                            <p className="opacity-50 tracking-wide">Standard Workspace</p>
-                        </div>
+                        <button
+                            onClick={() => { setAuthenticated(false); setPaid(false); navigate('/'); }}
+                            className="p-2 hover:bg-red-500/10 text-white/20 hover:text-red-500 rounded-lg transition-colors"
+                            title="Sign Out"
+                        >
+                            <LogOut size={16} />
+                        </button>
                     </div>
                 </div>
             </aside>

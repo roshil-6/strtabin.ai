@@ -38,6 +38,7 @@ export type CanvasData = {
     writingContent?: string;
     title?: string; // Document title
     images?: string[]; // List of image URLs
+    pdfs?: Array<{ id: string; name: string; url: string }>; // List of PDFs
     timelineContent?: string; // Manual timeline text
     todos?: Array<{ id: string; text: string; completed: boolean }>; // Project specific to-dos
     comments?: Comment[]; // Inline comments
@@ -138,6 +139,9 @@ export type RFState = {
     updateCanvasWriting: (id: string, content: string) => void;
     updateCanvasTitle: (id: string, title: string) => void;
     addCanvasImage: (id: string, imageUrl: string) => void;
+    deleteCanvasImage: (id: string, index: number) => void;
+    addCanvasPdf: (id: string, pdf: { name: string; url: string }) => void;
+    deleteCanvasPdf: (id: string, pdfId: string) => void;
     updateCanvasTimeline: (id: string, content: string) => void;
     addCanvasTodo: (id: string, text: string) => void;
     toggleCanvasTodo: (id: string, todoId: string) => void;
@@ -200,6 +204,12 @@ export type RFState = {
     updateFolderName: (id: string, name: string) => void;
     setActiveFolder: (id: string | null) => void;
     moveItemToFolder: (itemId: string, type: 'canvas' | 'timeline' | 'diagram', folderId: string | null) => void;
+
+    // User & Subscription
+    isAuthenticated: boolean;
+    isPaid: boolean;
+    setAuthenticated: (status: boolean) => void;
+    setPaid: (status: boolean) => void;
 };
 
 const useStore = create<RFState>()(
@@ -215,6 +225,8 @@ const useStore = create<RFState>()(
             chatHistory: {},
             folders: {},
             activeFolderId: null,
+            isAuthenticated: false,
+            isPaid: false,
 
             initDefaultCanvas: () => {
                 const state = get();
@@ -366,6 +378,64 @@ const useStore = create<RFState>()(
                             [id]: {
                                 ...canvas,
                                 images: [...currentImages, imageUrl],
+                                updatedAt: Date.now()
+                            },
+                        },
+                    };
+                });
+            },
+
+            deleteCanvasImage: (id: string, index: number) => {
+                set((state) => {
+                    const canvas = state.canvases[id];
+                    if (!canvas) return state;
+                    const currentImages = canvas.images || [];
+                    const newImages = [...currentImages];
+                    newImages.splice(index, 1);
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [id]: {
+                                ...canvas,
+                                images: newImages,
+                                updatedAt: Date.now()
+                            },
+                        },
+                    };
+                });
+            },
+
+            addCanvasPdf: (id: string, pdf: { name: string; url: string }) => {
+                set((state) => {
+                    const canvas = state.canvases[id];
+                    if (!canvas) return state;
+                    const currentPdfs = canvas.pdfs || [];
+                    const newPdf = { ...pdf, id: crypto.randomUUID() };
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [id]: {
+                                ...canvas,
+                                pdfs: [...currentPdfs, newPdf],
+                                updatedAt: Date.now()
+                            },
+                        },
+                    };
+                });
+            },
+
+            deleteCanvasPdf: (id: string, pdfId: string) => {
+                set((state) => {
+                    const canvas = state.canvases[id];
+                    if (!canvas) return state;
+                    const currentPdfs = canvas.pdfs || [];
+                    const newPdfs = currentPdfs.filter(p => p.id !== pdfId);
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [id]: {
+                                ...canvas,
+                                pdfs: newPdfs,
                                 updatedAt: Date.now()
                             },
                         },
@@ -979,6 +1049,9 @@ const useStore = create<RFState>()(
                     return {};
                 });
             },
+
+            setAuthenticated: (status: boolean) => set({ isAuthenticated: status }),
+            setPaid: (status: boolean) => set({ isPaid: status }),
         }),
         {
             name: 'startergy-box-storage',

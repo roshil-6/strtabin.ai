@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X } from 'lucide-react';
+import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X, FileText, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface WritingSectionProps {
@@ -14,10 +14,14 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const updateCanvasWriting = useStore(state => state.updateCanvasWriting);
     const updateCanvasTitle = useStore(state => state.updateCanvasTitle);
     const addCanvasImage = useStore(state => state.addCanvasImage);
+    const deleteCanvasImage = useStore(state => state.deleteCanvasImage);
+    const addCanvasPdf = useStore(state => state.addCanvasPdf);
+    const deleteCanvasPdf = useStore(state => state.deleteCanvasPdf);
 
     const [title, setTitle] = useState(canvas?.title || '');
     const [content, setContent] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const pdfInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Branch state
@@ -61,6 +65,18 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             reader.onload = (event) => {
                 const imageUrl = event.target?.result as string;
                 addCanvasImage(canvasId, imageUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const pdfUrl = event.target?.result as string;
+                addCanvasPdf(canvasId, { name: file.name, url: pdfUrl });
             };
             reader.readAsDataURL(file);
         }
@@ -126,6 +142,21 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 />
 
                 <button
+                    onClick={() => pdfInputRef.current?.click()}
+                    className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
+                    title="Add PDF"
+                >
+                    <FileText size={18} />
+                </button>
+                <input
+                    type="file"
+                    ref={pdfInputRef}
+                    className="hidden"
+                    accept="application/pdf"
+                    onChange={handlePdfUpload}
+                />
+
+                <button
                     onClick={() => navigate(`/strab/${canvasId}`)}
                     className="p-2 hover:bg-indigo-500/20 hover:text-indigo-400 rounded-lg text-white/70 transition-colors ml-2"
                     title="Ask STRAB AI"
@@ -173,8 +204,46 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     {canvas?.images && canvas.images.length > 0 && (
                         <div className="grid grid-cols-2 gap-4">
                             {canvas.images.map((img, idx) => (
-                                <img key={idx} src={img} alt="Attached" className="w-full rounded-xl border border-white/10" />
+                                <div key={idx} className="relative group">
+                                    <img src={img} alt="Attached" className="w-full rounded-xl border border-white/10" />
+                                    <button
+                                        onClick={() => deleteCanvasImage(canvasId, idx)}
+                                        className="absolute top-2 right-2 p-1.5 bg-black/60 text-white/70 hover:text-red-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all backdrop-blur-md border border-white/10"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* PDF Gallery */}
+                    {canvas?.pdfs && canvas.pdfs.length > 0 && (
+                        <div className="space-y-3">
+                            <h4 className="text-xs font-bold text-white/20 uppercase tracking-wider">Attached Documents</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {canvas.pdfs.map((pdf) => (
+                                    <div key={pdf.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl group hover:bg-white/10 transition-colors">
+                                        <a
+                                            href={pdf.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-3 flex-1 min-w-0"
+                                        >
+                                            <div className="p-2 bg-red-500/10 rounded-lg text-red-400">
+                                                <FileText size={20} />
+                                            </div>
+                                            <span className="text-sm text-white/70 truncate group-hover:text-white transition-colors">{pdf.name}</span>
+                                        </a>
+                                        <button
+                                            onClick={() => deleteCanvasPdf(canvasId, pdf.id)}
+                                            className="p-1.5 text-white/20 hover:text-red-400 transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 
