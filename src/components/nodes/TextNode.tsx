@@ -32,19 +32,17 @@ export default function TextNode({ id, data, selected }: NodeProps) {
 
             {/* Content */}
             <div className={clsx(
-                "rounded-xl p-2 md:p-4 transition-colors",
-                selected || data.label ? "bg-[#151515]/50 hover:bg-[#151515]" : "bg-transparent hover:bg-[#151515]/30",
-                "border border-transparent",
-                selected && "border-white/10"
+                "p-1 md:p-2 transition-all duration-300",
+                selected ? "bg-white/5 ring-1 ring-white/10 rounded-lg" : "bg-transparent hover:bg-white/[0.02] rounded-lg"
             )}>
                 <textarea
                     ref={textareaRef}
-                    className="w-full bg-transparent text-white outline-none resize-none overflow-hidden font-sans placeholder-white/20 text-sm md:text-lg leading-relaxed"
+                    className="w-full bg-transparent text-white outline-none resize-none overflow-hidden font-sans placeholder-white/10 text-sm md:text-lg leading-relaxed"
                     value={data.label as string}
                     onChange={onChange}
                     placeholder="Start writing..."
                     rows={1}
-                    autoFocus={selected && data.label === 'New Idea'}
+                    autoFocus={selected || !data.label}
                 />
             </div>
         </div>

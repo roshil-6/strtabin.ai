@@ -128,12 +128,12 @@ function CanvasContent() {
     }, [nodes]);
 
     // Handle Adding Nodes from Command Dock
-    const handleAddNode = () => {
+    const handleAddNode = (type: 'default') => {
         const position = screenToFlowPosition({ x: window.innerWidth * 0.725, y: window.innerHeight / 2 });
 
         const newNode: Node = {
             id: `node-${Date.now()}`,
-            type: 'default',
+            type: type,
             position: { x: position.x - 100, y: position.y - 50 },
             data: { label: '' },
         };
@@ -152,7 +152,7 @@ function CanvasContent() {
             const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
             const newNode: Node = {
                 id: `node-${Date.now()}`,
-                type: 'default',
+                type: 'text',
                 position: flowPos,
                 data: { label: '' },
             };
@@ -275,7 +275,7 @@ function CanvasContent() {
                                 const flowPos = screenToFlowPosition({ x: window.innerWidth * 0.725, y: window.innerHeight / 2 });
                                 addNode({
                                     id: `root-${Date.now()}`,
-                                    type: 'default',
+                                    type: 'text',
                                     position: flowPos,
                                     data: { label: '' }
                                 });
