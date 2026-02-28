@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, Type, Bot } from 'lucide-react';
+import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface WritingSectionProps {
@@ -19,6 +19,12 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const [content, setContent] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Branch state
+    const [showBranchModal, setShowBranchModal] = useState(false);
+    const [branchTopic, setBranchTopic] = useState('');
+    const [branchCount, setBranchCount] = useState(3);
+    const [branchItems, setBranchItems] = useState(['', '', '', '', '', '']);
 
     // Sync with store
     useEffect(() => {
@@ -60,6 +66,33 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         }
     };
 
+    const insertSplitSeparator = () => {
+        const separator = "\n\n--- STRATEGY SPLIT ---\n\n";
+        const newContent = content + separator;
+        setContent(newContent);
+        updateCanvasWriting(canvasId, newContent);
+    };
+
+    const handleCreateBranch = () => {
+        if (!branchTopic.trim()) return;
+        const separator = "--------------------------------------------------";
+        let treeBlock = `\n\n${separator}\nTOPIC: ${branchTopic.toUpperCase()}\n${separator}\n`;
+        const activeBranches = branchItems.slice(0, branchCount);
+        activeBranches.forEach((item, index) => {
+            const isLast = index === activeBranches.length - 1;
+            const prefix = isLast ? "└──" : "├──";
+            treeBlock += `${prefix} ${item || `Branch ${index + 1}`}\n`;
+        });
+        treeBlock += `\n`;
+
+        const newContent = content + treeBlock;
+        setContent(newContent);
+        updateCanvasWriting(canvasId, newContent);
+        setShowBranchModal(false);
+        setBranchTopic('');
+        setBranchItems(['', '', '', '', '', '']);
+    };
+
     // Auto-resize textarea
     useEffect(() => {
         if (textareaRef.current) {
@@ -99,6 +132,29 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 >
                     <Bot size={18} />
                 </button>
+
+                <div className="w-px h-4 bg-white/10 mx-1" />
+
+                <button
+                    onClick={insertSplitSeparator}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border bg-white/5 text-white/70 hover:bg-white/10 border-white/10"
+                    title="Add Split Separator"
+                >
+                    <Layout size={16} />
+                    <span className="text-xs font-bold">Split</span>
+                </button>
+
+                <button
+                    onClick={() => setShowBranchModal(true)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${showBranchModal
+                        ? 'bg-primary text-black border-primary'
+                        : 'bg-primary/10 text-primary hover:bg-primary/20 border-primary/20'
+                        }`}
+                    title="Insert Text Branch"
+                >
+                    <GitBranch size={16} />
+                    <span className="text-xs font-bold">Branch</span>
+                </button>
             </div>
 
             {/* Content Area */}
@@ -133,6 +189,75 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     />
                 </div>
             </div>
+
+            {/* Branch Creation Modal */}
+            {showBranchModal && (
+                <div className="absolute top-16 right-4 w-80 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl p-5 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-white font-bold flex items-center gap-2">
+                            <GitBranch size={16} className="text-primary" />
+                            Insert Branch
+                        </h3>
+                        <button onClick={() => setShowBranchModal(false)} className="text-white/40 hover:text-white">
+                            <X size={16} />
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs uppercase font-bold text-white/40 mb-1">Topic Heading</label>
+                            <input
+                                autoFocus
+                                type="text"
+                                value={branchTopic}
+                                onChange={e => setBranchTopic(e.target.value)}
+                                placeholder="Core Topic..."
+                                className="w-full bg-[#111] border border-[#333] rounded p-2 text-white focus:border-primary/50 outline-none transition-colors"
+                            />
+                        </div>
+
+                        <div>
+                            <div className="flex justify-between text-xs uppercase font-bold text-white/40 mb-2">
+                                <span>Branches</span>
+                                <span>{branchCount}</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="1"
+                                max="6"
+                                value={branchCount}
+                                onChange={e => setBranchCount(Number(e.target.value))}
+                                className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-primary"
+                            />
+                        </div>
+
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                            {Array.from({ length: branchCount }).map((_, i) => (
+                                <input
+                                    key={i}
+                                    type="text"
+                                    value={branchItems[i]}
+                                    onChange={e => {
+                                        const newItems = [...branchItems];
+                                        newItems[i] = e.target.value;
+                                        setBranchItems(newItems);
+                                    }}
+                                    placeholder={`Branch ${i + 1}`}
+                                    className="w-full bg-[#111] border border-[#333] rounded p-2 text-sm text-white focus:border-primary/50 outline-none transition-colors"
+                                />
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={handleCreateBranch}
+                            disabled={!branchTopic.trim()}
+                            className="w-full py-2 bg-primary text-black font-bold rounded hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Insert into Text
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
