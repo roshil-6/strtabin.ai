@@ -139,8 +139,8 @@ export default function Dashboard() {
                 <div className="p-8">
                     <div className="flex items-center justify-between mb-10">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 shadow-xl shrink-0 overflow-hidden">
-                                <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain p-2" />
+                            <div className="w-12 h-12 bg-white/[0.03] rounded-2xl flex items-center justify-center border border-white/10 shadow-xl shrink-0 overflow-hidden">
+                                <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain p-0 scale-[1.65]" />
                             </div>
                             <div>
                                 <h1 className="text-3xl font-black tracking-tighter leading-none">Stratabin<span className="text-orange-500">.</span></h1>
