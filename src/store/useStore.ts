@@ -247,12 +247,12 @@ const useStore = create<RFState>()(
                 }
             },
 
-            createCanvas: () => {
+            createCanvas: (initialName?: string) => {
                 const id = crypto.randomUUID();
                 const folderId = get().activeFolderId;
                 const newCanvas: CanvasData = {
                     id,
-                    name: 'Untitled Canvas',
+                    name: initialName || 'New Project',
                     nodes: [],
                     edges: [],
                     folderId,

@@ -23,12 +23,13 @@ export default function StrabView() {
     // Initial Greeting & Context
     useEffect(() => {
         if (chatHistory.length === 0) {
+            const resolvedName = canvas?.name && canvas.name !== 'Untitled Canvas' ? canvas.name : 'this project';
             addChatMessage(id!, {
                 role: 'assistant',
-                content: `I am STRAB. I have analyzed **${canvas?.name || 'this project'}**. Ready to assist with reports, insights, or strategy.`
+                content: `I am STRAB. I have analyzed **${resolvedName}**. Ready to assist with reports, insights, or strategy.`
             });
         }
-    }, [canvas, id, chatHistory.length, addChatMessage]);
+    }, [canvas?.name, id, chatHistory.length, addChatMessage]);
 
     // Auto-prompt logic for Selection Follow-up
     useEffect(() => {
@@ -41,8 +42,9 @@ export default function StrabView() {
                 // Trigger AI response
                 const triggerAi = async () => {
                     setIsLoading(true);
+                    const resolvedName = canvas?.name && canvas.name !== 'Untitled Canvas' ? canvas.name : 'Project';
                     const projectContext = {
-                        name: canvas?.name,
+                        name: resolvedName,
                         nodes: canvas?.nodes.length,
                         edges: canvas?.edges.length,
                         todos: canvas?.todos,
@@ -75,8 +77,9 @@ export default function StrabView() {
         setInput('');
         setIsLoading(true);
 
+        const resolvedName = canvas?.name && canvas.name !== 'Untitled Canvas' ? canvas.name : 'Project';
         const projectContext = {
-            name: canvas?.name,
+            name: resolvedName,
             nodes: canvas?.nodes.length,
             edges: canvas?.edges.length,
             todos: canvas?.todos,

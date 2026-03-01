@@ -65,7 +65,7 @@ export default function Dashboard() {
 
     const handleMerge = () => {
         if (selectedIds.length === 2) {
-            const id = mergeCanvases(selectedIds, 'Merged Strategy');
+            const id = mergeCanvases(selectedIds, 'Merged Projects');
             setSelectionMode(false);
             setSelectedIds([]);
             navigate(`/strategy/${id}`);
