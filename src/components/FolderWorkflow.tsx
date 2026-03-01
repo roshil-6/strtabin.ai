@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
     ReactFlow,
@@ -6,21 +6,19 @@ import {
     Controls,
     BackgroundVariant,
     type Node,
-    useReactFlow,
     ReactFlowProvider,
     Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import useStore from '../store/useStore';
-import { ArrowLeft } from 'lucide-react';
-import ProjectNode from './nodes/ProjectNode';
+import { ArrowLeft, Plus } from 'lucide-react';
+import WorkflowStepNode from './nodes/WorkflowStepNode';
 import SmartEdge from './edges/SmartEdge';
 
 function WorkflowContent() {
     const navigate = useNavigate();
     const { folderId } = useParams<{ folderId: string }>();
     const store = useStore();
-    const { fitView } = useReactFlow();
 
     // Determine target folder ID (null for general projects)
     const targetFolderId = folderId === 'general' ? null : folderId;
@@ -32,7 +30,7 @@ function WorkflowContent() {
     }, [targetFolderId, store.folders]);
 
     const nodeTypes = useMemo(() => ({
-        project: ProjectNode,
+        step: WorkflowStepNode,
     }), []);
 
     const edgeTypes = useMemo(() => ({
@@ -43,58 +41,17 @@ function WorkflowContent() {
     const currentNodes = useMemo(() => store.projectMapNodes[folderId || 'general'] || [], [store.projectMapNodes, folderId]);
     const currentEdges = useMemo(() => store.projectMapEdges[folderId || 'general'] || [], [store.projectMapEdges, folderId]);
 
-    // Generate nodes on mount if they don't exist
-    useEffect(() => {
+    const handleAddStep = () => {
         const actualFolderIdStr = folderId || 'general';
-
-        // Find all canvases belonging to this folder
-        const folderCanvases = Object.values(store.canvases).filter(c =>
-            (targetFolderId === null && !c.folderId) || (c.folderId === targetFolderId)
-        );
-
-        // Check if we need to add nodes
-        const existingNodeIds = new Set(currentNodes.map(n => n.id));
-        const newNodes: Node[] = [];
-
-        let currentY = 100;
-
-        folderCanvases.forEach((c, idx) => {
-            if (!existingNodeIds.has(c.id)) {
-                newNodes.push({
-                    id: c.id,
-                    type: 'project',
-                    position: { x: 400 + (idx % 3) * 350, y: currentY + Math.floor(idx / 3) * 250 },
-                    data: {
-                        label: c.name || 'Untitled Canvas',
-                        targetProjectId: c.id
-                    }
-                });
-            }
-        });
-
-        if (newNodes.length > 0) {
-            // Add them
-            const combined = [...currentNodes, ...newNodes];
-            store.setProjectMapNodes(actualFolderIdStr, combined);
-            setTimeout(() => {
-                fitView({ duration: 800, padding: 0.2 });
-            }, 100);
-        }
-    }, [store.canvases, currentNodes.length, folderId, targetFolderId, store.setProjectMapNodes, fitView]);
-
-    // Enhance nodes with click handler
-    const enhancedNodes = useMemo(() => {
-        return currentNodes.map(node => ({
-            ...node,
-            data: {
-                ...node.data,
-                onOpenProject: () => {
-                    store.setActiveFolder(targetFolderId || null);
-                    navigate(`/strategy/${node.data.targetProjectId}`);
-                }
-            }
-        }));
-    }, [currentNodes, targetFolderId, store.setActiveFolder, navigate]);
+        const newNode: Node = {
+            id: `step-${Date.now()}`,
+            type: 'step',
+            position: { x: 400 + Math.random() * 100, y: 200 + Math.random() * 100 }, // Drop slightly offset to center
+            data: { label: 'New Workflow Step' }
+        };
+        const combined = [...currentNodes, newNode];
+        store.setProjectMapNodes(actualFolderIdStr, combined);
+    };
 
     // Curry the change handlers with the current folder ID
     const onNodesChange = (changes: any) => store.onProjectMapNodesChange(folderId || 'general', changes);
@@ -103,7 +60,7 @@ function WorkflowContent() {
 
     return (
         <ReactFlow
-            nodes={enhancedNodes}
+            nodes={currentNodes}
             edges={currentEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -115,7 +72,9 @@ function WorkflowContent() {
             className="bg-[#080808]"
         >
             <Background color="#333" gap={32} size={1} variant={BackgroundVariant.Dots} />
-            <Controls className="!bg-[#1a1a1a] !border-white/10 !fill-white" />
+
+            {/* Make Controls visible by fixing positioning and overriding parent styles */}
+            <Controls position="bottom-right" className="!bg-[#1a1a1a] !border-white/10 !fill-white mb-6 mr-6 shadow-xl" />
 
             <Panel position="top-left" className="m-6">
                 <button
@@ -132,11 +91,21 @@ function WorkflowContent() {
 
             <Panel position="top-center" className="m-6 bg-black/50 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-2xl shadow-2xl pointer-events-none">
                 <div className="text-center">
-                    <h1 className="text-2xl font-black text-white tracking-tighter mb-1">Project Map</h1>
+                    <h1 className="text-2xl font-black text-white tracking-tighter mb-1">{folderDetails.name} Workflow</h1>
                     <p className="text-xs text-white/40 uppercase tracking-widest font-bold">
-                        {folderDetails.name} Workflow
+                        Map out your folder structure
                     </p>
                 </div>
+            </Panel>
+
+            <Panel position="top-right" className="m-6 flex gap-3">
+                <button
+                    onClick={handleAddStep}
+                    className="flex items-center gap-2 bg-primary hover:bg-orange-500 text-black px-4 py-2.5 rounded-xl transition-all shadow-lg font-bold text-sm tracking-wide"
+                >
+                    <Plus size={18} />
+                    Add Box
+                </button>
             </Panel>
         </ReactFlow>
     );
