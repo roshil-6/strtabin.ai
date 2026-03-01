@@ -207,13 +207,13 @@ export type RFState = {
     setActiveFolder: (id: string | null) => void;
     moveItemToFolder: (itemId: string, type: 'canvas' | 'timeline' | 'diagram', folderId: string | null) => void;
 
-    // Folder Workflow State
-    folderNodes: Node[];
-    folderEdges: Edge[];
-    onFolderNodesChange: OnNodesChange;
-    onFolderEdgesChange: OnEdgesChange;
-    onFolderConnect: OnConnect;
-    setFolderNodes: (nodes: Node[]) => void;
+    // Project Map State
+    projectMapNodes: Record<string, Node[]>;
+    projectMapEdges: Record<string, Edge[]>;
+    onProjectMapNodesChange: (folderId: string, changes: NodeChange[]) => void;
+    onProjectMapEdgesChange: (folderId: string, changes: EdgeChange[]) => void;
+    onProjectMapConnect: (folderId: string, connection: Connection) => void;
+    setProjectMapNodes: (folderId: string, nodes: Node[]) => void;
 
     // User & Subscription
     isAuthenticated: boolean;
@@ -235,8 +235,8 @@ const useStore = create<RFState>()(
             chatHistory: {},
             folders: {},
             activeFolderId: null,
-            folderNodes: [],
-            folderEdges: [],
+            projectMapNodes: {},
+            projectMapEdges: {},
             isAuthenticated: false,
             isPaid: false,
 
@@ -660,35 +660,56 @@ const useStore = create<RFState>()(
                 });
             },
 
-            onFolderNodesChange: (changes: NodeChange[]) => {
-                set((state) => ({
-                    folderNodes: applyNodeChanges(changes, state.folderNodes),
-                }));
-            },
-
-            onFolderEdgesChange: (changes: EdgeChange[]) => {
-                set((state) => ({
-                    folderEdges: applyEdgeChanges(changes, state.folderEdges),
-                }));
-            },
-
-            onFolderConnect: (connection: Connection) => {
+            onProjectMapNodesChange: (folderId: string, changes: NodeChange[]) => {
                 set((state) => {
+                    const currentNodes = state.projectMapNodes[folderId] || [];
+                    return {
+                        projectMapNodes: {
+                            ...state.projectMapNodes,
+                            [folderId]: applyNodeChanges(changes, currentNodes)
+                        }
+                    };
+                });
+            },
+
+            onProjectMapEdgesChange: (folderId: string, changes: EdgeChange[]) => {
+                set((state) => {
+                    const currentEdges = state.projectMapEdges[folderId] || [];
+                    return {
+                        projectMapEdges: {
+                            ...state.projectMapEdges,
+                            [folderId]: applyEdgeChanges(changes, currentEdges)
+                        }
+                    };
+                });
+            },
+
+            onProjectMapConnect: (folderId: string, connection: Connection) => {
+                set((state) => {
+                    const currentEdges = state.projectMapEdges[folderId] || [];
                     const newEdge: Edge = {
                         ...connection,
-                        id: `folder-edge-${Date.now()}`,
+                        id: `project-edge-${Date.now()}`,
                         type: 'smart',
                         style: { stroke: '#DA7756', strokeWidth: 2 },
                         markerEnd: { type: MarkerType.ArrowClosed, color: '#DA7756' },
                     };
                     return {
-                        folderEdges: addEdge(newEdge, state.folderEdges),
+                        projectMapEdges: {
+                            ...state.projectMapEdges,
+                            [folderId]: addEdge(newEdge, currentEdges)
+                        }
                     };
                 });
             },
 
-            setFolderNodes: (nodes: Node[]) => {
-                set({ folderNodes: nodes });
+            setProjectMapNodes: (folderId: string, nodes: Node[]) => {
+                set((state) => ({
+                    projectMapNodes: {
+                        ...state.projectMapNodes,
+                        [folderId]: nodes
+                    }
+                }));
             },
 
             onNodesChange: (changes: NodeChange[]) => {

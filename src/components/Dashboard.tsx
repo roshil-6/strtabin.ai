@@ -161,14 +161,6 @@ export default function Dashboard() {
                         <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-white/20 mb-4 px-3">Workspaces</h2>
 
                         <button
-                            onClick={() => navigate('/folder-workflow')}
-                            className="w-full mb-4 flex items-center justify-center gap-2 px-3 py-3 rounded-xl bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-all shadow-[0_0_15px_rgba(249,115,22,0.1)] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] font-bold tracking-wide group"
-                        >
-                            <Network size={18} className="group-hover:scale-110 transition-transform" />
-                            Workspace Map
-                        </button>
-
-                        <button
                             onClick={() => { setActiveFolder(null); setIsSidebarOpen(false); }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${activeFolderId === null
                                 ? 'bg-white/10 text-primary'
@@ -269,6 +261,13 @@ export default function Dashboard() {
                         </div>
 
                         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                            <button
+                                onClick={() => navigate(`/folder-workflow/${activeFolderId || 'general'}`)}
+                                className="flex items-center justify-center gap-2 px-6 py-3 bg-[#1a1a1a] hover:bg-white/10 text-white/50 hover:text-white border border-white/10 hover:border-white/20 rounded-xl transition-all shadow-lg font-bold text-sm tracking-wide group shrink-0"
+                            >
+                                <Network size={18} className="group-hover:text-primary transition-colors" />
+                                Project Map
+                            </button>
                             {activeTab === 'strategy' && (
                                 <button
                                     onClick={() => {

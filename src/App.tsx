@@ -16,7 +16,7 @@ function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/folder-workflow" element={<FolderWorkflow />} />
+      <Route path="/folder-workflow/:folderId" element={<FolderWorkflow />} />
       <Route path="/strategy/:id" element={<Canvas />} />
       <Route path="/canvas/:id" element={<Canvas />} /> {/* Legacy support */}
       <Route path="/timeline/:id" element={<TimelineSection />} />
