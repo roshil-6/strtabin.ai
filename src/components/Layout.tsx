@@ -11,8 +11,8 @@ export default function Layout() {
             {/* Sidebar */}
             <nav className="w-16 flex flex-col items-center py-6 border-r border-white/10 space-y-8 z-50 bg-[#0b0b0b]">
                 {/* Logo Placeholder */}
-                <div className="w-10 h-10 bg-primary/20 rounded-lg shadow-[0_0_15px_rgba(0,255,0,0.2)] mb-4 border border-primary/50 flex items-center justify-center">
-                    <div className="w-6 h-6 border-2 border-primary rounded-sm" />
+                <div className="w-10 h-10 bg-white/10 rounded-lg shadow-[0_0_15px_rgba(255,255,255,0.1)] mb-4 border border-white/20 flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white rounded-sm" />
                 </div>
 
                 <NavLink

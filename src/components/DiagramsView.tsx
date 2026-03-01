@@ -57,14 +57,14 @@ export default function DiagramsView() {
                     <div className="flex items-center gap-2 bg-[#151515] rounded-lg p-1 border border-white/10">
                         <button
                             onClick={() => setFilter('all')}
-                            className={`px-4 py-2 rounded-md text-sm transition-all ${filter === 'all' ? 'bg-primary/20 text-primary' : 'text-secondary hover:text-white'
+                            className={`px-4 py-2 rounded-md text-sm transition-all ${filter === 'all' ? 'bg-white/10 text-primary' : 'text-secondary hover:text-white'
                                 }`}
                         >
                             All
                         </button>
                         <button
                             onClick={() => setFilter('branch')}
-                            className={`px-4 py-2 rounded-md text-sm transition-all flex items-center gap-2 ${filter === 'branch' ? 'bg-primary/20 text-primary' : 'text-secondary hover:text-white'
+                            className={`px-4 py-2 rounded-md text-sm transition-all flex items-center gap-2 ${filter === 'branch' ? 'bg-white/10 text-primary' : 'text-secondary hover:text-white'
                                 }`}
                         >
                             <GitBranch size={16} />
@@ -72,7 +72,7 @@ export default function DiagramsView() {
                         </button>
                         <button
                             onClick={() => setFilter('flowchart')}
-                            className={`px-4 py-2 rounded-md text-sm transition-all flex items-center gap-2 ${filter === 'flowchart' ? 'bg-primary/20 text-primary' : 'text-secondary hover:text-white'
+                            className={`px-4 py-2 rounded-md text-sm transition-all flex items-center gap-2 ${filter === 'flowchart' ? 'bg-white/10 text-primary' : 'text-secondary hover:text-white'
                                 }`}
                         >
                             <Workflow size={16} />
@@ -139,7 +139,7 @@ export default function DiagramsView() {
                                 {/* Actions */}
                                 <button
                                     onClick={() => console.log("View diagram", diagram.id)}
-                                    className="w-full px-4 py-2 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg text-primary text-sm font-medium transition-all flex items-center justify-center gap-2"
+                                    className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-primary text-sm font-medium transition-all flex items-center justify-center gap-2"
                                 >
                                     <Eye size={16} />
                                     View Diagram

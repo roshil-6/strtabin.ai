@@ -7,12 +7,12 @@ export const StartNode = memo(({ data, selected }: NodeProps) => (
     <div className={clsx(
         "px-6 py-3 rounded-full border-2 transition-all min-w-[120px] text-center font-medium",
         selected
-            ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(0,255,135,0.3)]"
+            ? "bg-white/10 border-white/50 text-primary shadow-[0_0_15px_rgba(255,255,255,0.2)]"
             : "bg-[#1a1a1a] border-white/20 text-white hover:border-white/40"
     )}>
-        <Handle type="source" position={Position.Bottom} className="!bg-primary/50" />
+        <Handle type="source" position={Position.Bottom} className="!bg-white/50" />
         {data.label as string}
-    </div>
+    </div >
 ));
 
 // Process Node (Rectangle)

@@ -131,17 +131,17 @@ export default function LandingPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#121212] text-white font-sans selection:bg-primary/30 relative overflow-hidden">
+        <div className="min-h-screen bg-[#121212] text-white font-sans selection:bg-white/20 relative overflow-hidden">
             <HexagonBackground />
 
             {/* Header */}
             <header className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#121212]/80 backdrop-blur-md">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-white/10">
-                            <img src="/favicon.png" alt="Logo" className="w-6 h-6 object-contain" />
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10">
+                            <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain" />
                         </div>
-                        <h1 className="text-2xl font-black tracking-tighter">Stratabin<span className="text-primary">.</span></h1>
+                        <h1 className="text-2xl font-black tracking-tighter text-white">Stratabin<span className="text-primary">.</span></h1>
                     </div>
                     <button
                         onClick={() => navigate('/dashboard')}
@@ -155,7 +155,16 @@ export default function LandingPage() {
             {/* Hero Section */}
             <section className="pt-40 pb-20 px-6 text-center">
                 <div className="max-w-4xl mx-auto">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    {/* Prominent Logo */}
+                    <div className="mb-12 flex justify-center animate-in fade-in zoom-in duration-1000">
+                        <div className="relative">
+                            <div className="relative w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center overflow-hidden shadow-2xl border-4 border-white/5">
+                                <img src="/favicon.png" alt="Stratabin Logo" className="w-full h-full object-contain" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-xs font-bold uppercase tracking-widest mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
                         <Zap size={14} />
                         Next-Gen Strategy Workspace
                     </div>
@@ -166,9 +175,9 @@ export default function LandingPage() {
 
                     {/* Student Highlight Tag */}
                     <div className="flex items-center justify-center gap-2 mb-10 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300">
-                        <div className="px-3 py-1 bg-primary/20 border border-primary/30 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                        <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
                             <Zap size={10} fill="currentColor" />
-                            For Students
+                            For Students & Professionals
                         </div>
                         <p className="text-sm font-medium text-white/60 italic">
                             Conquer complicated, scattered topics with ease.
@@ -192,10 +201,6 @@ export default function LandingPage() {
 
             {/* Pricing Section */}
             <section className="py-24 px-6 relative overflow-hidden">
-                {/* Background Blobs */}
-                <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-96 h-96 bg-orange-500/5 rounded-full blur-[120px] pointer-events-none" />
-
                 <div className="max-w-5xl mx-auto relative z-10">
                     <div className="text-center mb-16">
                         <h3 className="text-3xl font-black mb-4">Simple, transparent pricing</h3>
@@ -223,7 +228,7 @@ export default function LandingPage() {
                                     "Cloud Sync (Any device)"
                                 ].map((feature, i) => (
                                     <div key={i} className="flex items-center gap-3 text-sm font-medium text-white/60">
-                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0">
+                                        <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-primary shrink-0">
                                             <Check size={12} strokeWidth={3} />
                                         </div>
                                         {feature}
@@ -288,34 +293,34 @@ export default function LandingPage() {
             <section className="py-20 border-t border-white/5 bg-white/[0.01]">
                 <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {/* Student Specific Card */}
-                    <div className="flex flex-col gap-4 p-8 bg-white/[0.03] border border-white/5 rounded-3xl hover:border-primary/30 transition-all group">
-                        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-black transition-all">
+                    <div className="flex flex-col gap-4 p-8 bg-white/[0.03] border border-white/5 rounded-3xl hover:border-white/20 transition-all group">
+                        <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-primary group-hover:bg-white group-hover:text-black transition-all">
                             <Bot size={24} />
                         </div>
-                        <h5 className="text-lg font-bold text-primary">STRAB AI for Studies</h5>
+                        <h5 className="text-lg font-bold text-primary">STRAB AI for Studies & Work</h5>
                         <p className="text-white/40 text-sm leading-relaxed">
-                            Turn scattered research and complex topics into structured strategy flows. Perfect for organizing difficult subjects.
+                            Turn scattered research, complex topics, and professional meetings into structured strategy flows.
                         </p>
                     </div>
 
-                    <div className="flex flex-col gap-4 p-8 bg-white/[0.03] border border-white/5 rounded-3xl hover:border-primary/30 transition-all group">
-                        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                    <div className="flex flex-col gap-4 p-8 bg-white/[0.03] border border-white/5 rounded-3xl hover:border-white/20 transition-all group">
+                        <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-primary">
                             <Shield size={24} />
                         </div>
                         <h5 className="text-lg font-bold">Encrypted Workspace</h5>
                         <p className="text-white/20 text-sm leading-relaxed">Your strategies are yours. Securely synced and encrypted across all your devices.</p>
                     </div>
 
-                    <div className="flex flex-col gap-4 p-8 bg-white/[0.03] border border-white/5 rounded-3xl hover:border-primary/30 transition-all group">
-                        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                    <div className="flex flex-col gap-4 p-8 bg-white/[0.03] border border-white/5 rounded-3xl hover:border-white/20 transition-all group">
+                        <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-primary">
                             <Globe size={24} />
                         </div>
                         <h5 className="text-lg font-bold">Global Infrastructure</h5>
                         <p className="text-white/20 text-sm leading-relaxed">Powered by STRAB AI, running on global reliable infrastructure for zero downtime.</p>
                     </div>
 
-                    <div className="flex flex-col gap-4 p-8 bg-white/[0.03] border border-white/5 rounded-3xl hover:border-primary/30 transition-all group">
-                        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                    <div className="flex flex-col gap-4 p-8 bg-white/[0.03] border border-white/5 rounded-3xl hover:border-white/20 transition-all group">
+                        <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-primary">
                             <CreditCard size={24} />
                         </div>
                         <h5 className="text-lg font-bold">Razorpay Secured</h5>

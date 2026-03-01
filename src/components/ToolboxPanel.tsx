@@ -68,7 +68,7 @@ export default function ToolboxPanel({ }: ToolboxPanelProps) {
                         className="w-full group bg-[#1a1a1a] hover:bg-[#252525] border border-white/10 hover:border-primary/50 rounded-xl p-4 transition-all text-left"
                     >
                         <div className="flex items-start gap-3">
-                            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
                                 <GitBranch size={20} className="text-primary" />
                             </div>
                             <div className="flex-1">
@@ -83,7 +83,7 @@ export default function ToolboxPanel({ }: ToolboxPanelProps) {
                         className="w-full group bg-[#1a1a1a] hover:bg-[#252525] border border-white/10 hover:border-primary/50 rounded-xl p-4 transition-all text-left"
                     >
                         <div className="flex items-start gap-3">
-                            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
                                 <Workflow size={20} className="text-primary" />
                             </div>
                             <div className="flex-1">
@@ -197,7 +197,7 @@ export default function ToolboxPanel({ }: ToolboxPanelProps) {
 
                 <button
                     onClick={() => saveBranch(view === 'create-branch' ? 'branch' : 'flowchart')}
-                    className="w-full px-4 py-3 bg-primary/20 hover:bg-primary/30 border border-primary/50 rounded-lg text-primary font-medium transition-all"
+                    className="w-full px-4 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-primary font-medium transition-all"
                 >
                     Create {view === 'create-branch' ? 'Branch' : 'Flowchart'}
                 </button>
@@ -224,7 +224,7 @@ export default function ToolboxPanel({ }: ToolboxPanelProps) {
                 <div className="bg-[#1a1a1a] rounded-xl p-6 border border-white/10">
                     {/* Root Node */}
                     <div className="flex flex-col items-center">
-                        <div className="bg-primary/20 border border-primary/50 rounded-lg px-4 py-2 text-primary text-sm font-medium mb-6">
+                        <div className="bg-white/10 border border-white/10 rounded-lg px-4 py-2 text-primary text-sm font-medium mb-6">
                             {currentBranch.sourceText}
                         </div>
 
@@ -232,7 +232,7 @@ export default function ToolboxPanel({ }: ToolboxPanelProps) {
                         <div className="space-y-3 w-full">
                             {currentBranch.branches.map((branch, index) => (
                                 <div key={index} className="flex items-center gap-3">
-                                    <div className="w-8 h-px bg-primary/30"></div>
+                                    <div className="w-8 h-px bg-white/20"></div>
                                     <div className="flex-1 bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
                                         {branch || `Branch ${index + 1}`}
                                     </div>

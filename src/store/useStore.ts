@@ -38,7 +38,7 @@ export type CanvasData = {
     writingContent?: string;
     title?: string; // Document title
     images?: string[]; // List of image URLs
-    pdfs?: Array<{ id: string; name: string; url: string }>; // List of PDFs
+    attachments?: Array<{ id: string; name: string; url: string }>; // List of documents (PDF, Doc, etc)
     timelineContent?: string; // Manual timeline text
     todos?: Array<{ id: string; text: string; completed: boolean }>; // Project specific to-dos
     comments?: Comment[]; // Inline comments
@@ -133,6 +133,7 @@ export type RFState = {
     createCanvas: () => string;
     initDefaultCanvas: () => void;
     deleteCanvas: (id: string) => void;
+    duplicateCanvas: (id: string, targetFolderId: string | null) => void;
     setCurrentCanvas: (id: string) => void;
     updateCanvasName: (id: string, name: string) => void;
     updateNodeData: (id: string, data: any) => void;
@@ -140,8 +141,9 @@ export type RFState = {
     updateCanvasTitle: (id: string, title: string) => void;
     addCanvasImage: (id: string, imageUrl: string) => void;
     deleteCanvasImage: (id: string, index: number) => void;
-    addCanvasPdf: (id: string, pdf: { name: string; url: string }) => void;
-    deleteCanvasPdf: (id: string, pdfId: string) => void;
+    addCanvasDoc: (id: string, doc: { name: string; url: string }) => void;
+    deleteCanvasDoc: (id: string, docId: string) => void;
+    ensureCanvasExists: (id: string) => void;
     updateCanvasTimeline: (id: string, content: string) => void;
     addCanvasTodo: (id: string, text: string) => void;
     toggleCanvasTodo: (id: string, todoId: string) => void;
@@ -267,6 +269,27 @@ const useStore = create<RFState>()(
                     return {
                         canvases: newCanvases,
                         currentCanvasId: state.currentCanvasId === id ? null : state.currentCanvasId,
+                    };
+                });
+            },
+
+            duplicateCanvas: (id, targetFolderId) => {
+                set((state) => {
+                    const canvasToCopy = state.canvases[id];
+                    if (!canvasToCopy) return state;
+
+                    const newId = crypto.randomUUID();
+                    const newCanvas: CanvasData = {
+                        ...canvasToCopy,
+                        id: newId,
+                        name: `${canvasToCopy.name} (Copy)`,
+                        folderId: targetFolderId,
+                        updatedAt: Date.now()
+                    };
+
+                    return {
+                        ...state,
+                        canvases: { ...state.canvases, [newId]: newCanvas }
                     };
                 });
             },
@@ -405,18 +428,18 @@ const useStore = create<RFState>()(
                 });
             },
 
-            addCanvasPdf: (id: string, pdf: { name: string; url: string }) => {
+            addCanvasDoc: (id: string, doc: { name: string; url: string }) => {
                 set((state) => {
                     const canvas = state.canvases[id];
                     if (!canvas) return state;
-                    const currentPdfs = canvas.pdfs || [];
-                    const newPdf = { ...pdf, id: crypto.randomUUID() };
+                    const currentDocs = canvas.attachments || [];
+                    const newDoc = { ...doc, id: crypto.randomUUID() };
                     return {
                         canvases: {
                             ...state.canvases,
                             [id]: {
                                 ...canvas,
-                                pdfs: [...currentPdfs, newPdf],
+                                attachments: [...currentDocs, newDoc],
                                 updatedAt: Date.now()
                             },
                         },
@@ -424,23 +447,44 @@ const useStore = create<RFState>()(
                 });
             },
 
-            deleteCanvasPdf: (id: string, pdfId: string) => {
+            deleteCanvasDoc: (id: string, docId: string) => {
                 set((state) => {
                     const canvas = state.canvases[id];
                     if (!canvas) return state;
-                    const currentPdfs = canvas.pdfs || [];
-                    const newPdfs = currentPdfs.filter(p => p.id !== pdfId);
+                    const currentDocs = canvas.attachments || [];
+                    const newDocs = currentDocs.filter(p => p.id !== docId);
                     return {
                         canvases: {
                             ...state.canvases,
                             [id]: {
                                 ...canvas,
-                                pdfs: newPdfs,
+                                attachments: newDocs,
                                 updatedAt: Date.now()
                             },
                         },
                     };
                 });
+            },
+
+            ensureCanvasExists: (id: string) => {
+                const state = get();
+                if (state.canvases[id]) return;
+
+                const newCanvas: CanvasData = {
+                    id,
+                    name: 'Untitled Strategy',
+                    nodes: [],
+                    edges: [],
+                    folderId: state.activeFolderId,
+                    updatedAt: Date.now(),
+                    attachments: [],
+                    images: [],
+                    writingContent: ''
+                };
+
+                set((state) => ({
+                    canvases: { ...state.canvases, [id]: newCanvas }
+                }));
             },
 
             updateCanvasTimeline: (id, content) => {

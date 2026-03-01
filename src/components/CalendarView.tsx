@@ -136,7 +136,7 @@ export default function CalendarView() {
                                         onClick={() => handleDayClick(day)}
                                         className={`
                                             border-b border-r border-[#1e1e1e] p-2 cursor-pointer transition-colors relative
-                                            ${isSelected ? 'bg-primary/10 ring-1 ring-inset ring-primary/30' : 'hover:bg-[#1a1a1a]'}
+                                            ${isSelected ? 'bg-white/10 ring-1 ring-inset ring-white/20' : 'hover:bg-[#1a1a1a]'}
                                         `}
                                     >
                                         <div className="flex items-center justify-between mb-1">
@@ -147,7 +147,7 @@ export default function CalendarView() {
                                                 {day}
                                             </span>
                                             {dayEvents.length > 0 && (
-                                                <span className="text-[9px] text-primary font-bold bg-primary/10 rounded-full px-1">
+                                                <span className="text-[9px] text-primary font-bold bg-white/10 rounded-full px-1">
                                                     {dayEvents.length}
                                                 </span>
                                             )}
@@ -192,7 +192,7 @@ export default function CalendarView() {
                                         <div key={evt.id} className="group flex flex-col gap-1 p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl hover:border-primary/30 transition-all">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] font-black rounded-lg flex items-center gap-1 border border-primary/10">
+                                                    <div className="px-2 py-0.5 bg-white/10 text-primary text-[10px] font-black rounded-lg flex items-center gap-1 border border-white/10">
                                                         <Clock size={10} />
                                                         {evt.time}
                                                     </div>
@@ -277,7 +277,7 @@ export default function CalendarView() {
                         {/* Modal Header */}
                         <div className="p-6 pb-4 border-b border-white/5 flex items-center justify-between bg-[#1a1a1a]">
                             <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-primary/20 rounded-2xl">
+                                <div className="p-2.5 bg-white/10 rounded-2xl">
                                     <Calendar size={22} className="text-primary" />
                                 </div>
                                 <div>
@@ -300,7 +300,7 @@ export default function CalendarView() {
                                     <div key={evt.id} className="group flex flex-col gap-2 p-5 bg-white/5 border border-white/5 rounded-3xl hover:border-primary/30 transition-all shadow-xl">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <div className="px-3 py-1 bg-primary/20 text-primary text-[11px] font-black rounded-xl flex items-center gap-2 border border-primary/10">
+                                                <div className="px-3 py-1 bg-white/10 text-primary text-[11px] font-black rounded-xl flex items-center gap-2 border border-white/10">
                                                     <Clock size={12} />
                                                     {evt.time}
                                                 </div>

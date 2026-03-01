@@ -38,7 +38,7 @@ const SubProjectNode = ({ data, selected }: any) => {
                     onClick={() => {
                         if (data.onViewWorkflow) data.onViewWorkflow();
                     }}
-                    className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-primary/10 border border-primary/20 rounded-lg text-primary text-[10px] md:text-xs font-bold uppercase tracking-wider hover:bg-primary hover:text-black transition-all"
+                    className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-white/5 border border-white/20 rounded-lg text-primary text-[10px] md:text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-all"
                 >
                     <ExternalLink size={12} className="md:w-[14px] md:h-[14px]" />
                     View Workflow
@@ -46,7 +46,7 @@ const SubProjectNode = ({ data, selected }: any) => {
             </div>
 
             {/* Decoration */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[40px] rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 blur-[40px] rounded-full -translate-y-1/2 translate-x-1/2" />
 
             {/* ── Connection Handles ─────────────────────────────────────────────── */}
             <Handle type="target" position={Position.Top} className={handleClass} />

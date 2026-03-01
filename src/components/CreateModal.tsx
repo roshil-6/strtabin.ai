@@ -29,7 +29,7 @@ export default function CreateModal({ isOpen, onClose, onCreateCanvas, onCreateT
                         onClick={() => { onCreateCanvas(); onClose(); }}
                         className="group relative p-6 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/50 transition-all text-left"
                     >
-                        <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center mb-4 text-primary group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center mb-4 text-primary group-hover:scale-110 transition-transform">
                             <FileText size={24} />
                         </div>
                         <h3 className="text-xl font-semibold text-white mb-2">Strategy Canvas</h3>

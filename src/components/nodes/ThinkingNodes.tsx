@@ -50,7 +50,7 @@ const NodeShell = ({ id, data, selected }: any) => {
             {/* Top Grip Area */}
             <div className={`
                 h-5 md:h-7 rounded-t-lg border-b border-[#2a2a2a] flex items-center justify-between px-2 cursor-grab active:cursor-grabbing transition-colors
-                ${selected ? 'bg-primary/10' : 'bg-[#1a1a1a] hover:bg-[#222]'}
+                ${selected ? 'bg-white/10' : 'bg-[#1a1a1a] hover:bg-[#222]'}
             `}>
                 <GripHorizontal size={14} className={`transition-colors mx-auto ${selected ? 'text-primary' : 'text-white/20 group-hover:text-white/40'}`} />
                 <button

@@ -72,7 +72,7 @@ export default function TodoView() {
                         </select>
                         <button
                             onClick={addTask}
-                            className="px-6 py-3 bg-primary/20 hover:bg-primary/30 border border-primary/50 rounded-lg text-primary transition-all flex items-center gap-2"
+                            className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-primary transition-all flex items-center gap-2"
                         >
                             <Plus size={18} />
                             Add
@@ -97,8 +97,8 @@ export default function TodoView() {
                                     <button
                                         onClick={() => toggleTask(task.id)}
                                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${task.completed
-                                                ? 'bg-primary border-primary'
-                                                : 'border-white/30 hover:border-primary'
+                                            ? 'bg-primary border-primary'
+                                            : 'border-white/30 hover:border-primary'
                                             }`}
                                     >
                                         {task.completed && <Check size={14} className="text-black" />}

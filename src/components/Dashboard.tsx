@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy } from 'lucide-react';
 import DashboardCalendar from './DashboardCalendar';
 
 export default function Dashboard() {
@@ -18,6 +18,7 @@ export default function Dashboard() {
     const deleteFolder = useStore(state => state.deleteFolder);
     const setActiveFolder = useStore(state => state.setActiveFolder);
     const moveItemToFolder = useStore(state => state.moveItemToFolder);
+    const duplicateCanvas = useStore(state => state.duplicateCanvas);
 
     const setAuthenticated = useStore(state => state.setAuthenticated);
     const setPaid = useStore(state => state.setPaid);
@@ -28,6 +29,7 @@ export default function Dashboard() {
     const [showFolderModal, setShowFolderModal] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
     const [showMoveMenu, setShowMoveMenu] = useState<string | null>(null);
+    const [showDuplicateMenu, setShowDuplicateMenu] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const handleCreate = () => {
@@ -142,8 +144,8 @@ export default function Dashboard() {
                 <div className="p-8">
                     <div className="flex items-center justify-between mb-10">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-white/10 shrink-0">
-                                <img src="/favicon.png" alt="Logo" className="w-6 h-6 object-contain" />
+                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10 shrink-0">
+                                <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain" />
                             </div>
                             <div>
                                 <h1 className="text-3xl font-black tracking-tighter leading-none">Stratabin<span className="text-orange-500">.</span></h1>
@@ -161,7 +163,7 @@ export default function Dashboard() {
                         <button
                             onClick={() => { setActiveFolder(null); setIsSidebarOpen(false); }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${activeFolderId === null
-                                ? 'bg-primary/10 text-primary'
+                                ? 'bg-white/10 text-primary'
                                 : 'text-white/40 hover:bg-white/5 hover:text-white'
                                 }`}
                         >
@@ -186,7 +188,7 @@ export default function Dashboard() {
                                         key={folder.id}
                                         onClick={() => { setActiveFolder(folder.id); setIsSidebarOpen(false); }}
                                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${activeFolderId === folder.id
-                                            ? 'bg-primary/10 text-primary'
+                                            ? 'bg-white/10 text-primary'
                                             : 'text-white/40 hover:bg-white/5 hover:text-white'
                                             }`}
                                     >
@@ -414,8 +416,8 @@ export default function Dashboard() {
                     <div className="w-full max-w-md bg-[#111] border border-white/10 rounded-[32px] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
                         <div className="flex items-center justify-between mb-8">
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                                    <FolderPlus size={20} className="text-primary" />
+                                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                                    <FolderPlus size={20} className="text-white" />
                                 </div>
                                 <h3 className="text-xl font-black">Create Workspace</h3>
                             </div>
@@ -486,8 +488,39 @@ export default function Dashboard() {
                     <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto">
                         <div className="relative">
                             <button
-                                onClick={(e) => { e.stopPropagation(); setShowMoveMenu(showMoveMenu === p.id ? null : p.id); }}
-                                className={`p-2 rounded-lg transition-colors ${showMoveMenu === p.id ? 'text-primary bg-primary/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
+                                onClick={(e) => { e.stopPropagation(); setShowDuplicateMenu(showDuplicateMenu === p.id ? null : p.id); setShowMoveMenu(null); }}
+                                className={`p-2 rounded-lg transition-colors ${showDuplicateMenu === p.id ? 'text-primary bg-white/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
+                                title="Duplicate Project"
+                            >
+                                <Copy size={16} />
+                            </button>
+
+                            {showDuplicateMenu === p.id && (
+                                <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl py-2 z-50 animate-in slide-in-from-top-2 duration-200">
+                                    <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-primary border-b border-white/5 mb-1">Duplicate to...</p>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, null); setShowDuplicateMenu(null); }}
+                                        className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-white/60 hover:text-white`}
+                                    >
+                                        <Layout size={14} /> General Projects
+                                    </button>
+                                    {Object.values(folders).map(f => (
+                                        <button
+                                            key={f.id}
+                                            onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, f.id); setShowDuplicateMenu(null); }}
+                                            className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-white/60 hover:text-white`}
+                                        >
+                                            <Folder size={14} /> {f.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="relative">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowMoveMenu(showMoveMenu === p.id ? null : p.id); setShowDuplicateMenu(null); }}
+                                className={`p-2 rounded-lg transition-colors ${showMoveMenu === p.id ? 'text-primary bg-white/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
                                 title="Move to Workspace"
                             >
                                 <Folders size={16} />
@@ -523,7 +556,7 @@ export default function Dashboard() {
                         </button>
                         <button
                             onClick={(e) => handleTogglePin(e, p.id)}
-                            className={`p-2 rounded-lg transition-colors ${p.isPinned ? 'text-primary bg-primary/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
+                            className={`p-2 rounded-lg transition-colors ${p.isPinned ? 'text-primary bg-white/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
                             title={p.isPinned ? "Unpin Project" : "Pin Project"}
                         >
                             <Star size={16} fill={p.isPinned ? "currentColor" : "none"} />

@@ -156,7 +156,7 @@ export default function DashboardCalendar() {
                                 <div key={evt.id} className="group flex flex-col gap-1.5 p-3.5 bg-white/5 border border-white/5 rounded-2xl hover:border-primary/30 transition-all shadow-lg backdrop-blur-sm">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[9px] font-black text-primary bg-primary/20 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-primary/10">
+                                            <span className="text-[9px] font-black text-primary bg-white/10 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/10">
                                                 <Clock size={10} />
                                                 {evt.time}
                                             </span>

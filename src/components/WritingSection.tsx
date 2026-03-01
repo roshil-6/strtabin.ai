@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X, FileText, Trash2 } from 'lucide-react';
+import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X, FileText, Trash2, File } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface WritingSectionProps {
@@ -15,13 +15,13 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const updateCanvasTitle = useStore(state => state.updateCanvasTitle);
     const addCanvasImage = useStore(state => state.addCanvasImage);
     const deleteCanvasImage = useStore(state => state.deleteCanvasImage);
-    const addCanvasPdf = useStore(state => state.addCanvasPdf);
-    const deleteCanvasPdf = useStore(state => state.deleteCanvasPdf);
+    const addCanvasDoc = useStore(state => state.addCanvasDoc);
+    const deleteCanvasDoc = useStore(state => state.deleteCanvasDoc);
 
     const [title, setTitle] = useState(canvas?.title || '');
     const [content, setContent] = useState('');
+    const imageInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const pdfInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Branch state
@@ -35,14 +35,19 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         if (!canvas) return;
         setTitle(canvas.title || '');
 
-        let storeContent = canvas.writingContent || "";
+        const storeContent = canvas.writingContent || "";
 
-        // Strip section markers if they exist to provide a clean writing experience
-        if (storeContent.includes("<<<SECTION_ID:")) {
-            const stripped = storeContent.replace(/<<<SECTION_ID:[^>]+>>>/g, '').replace(/<<<SPLIT_SECTION_(START|END|SEP)>>>/g, '\n').trim();
-            setContent(stripped);
-        } else {
-            setContent(storeContent);
+        // Only update local state if the store content has changed externally
+        // (i.e., not from this component's own typing updates)
+        // We use a simple check: if the lengths are different or it's a first load
+        if (storeContent !== content && (content === '' || Math.abs(storeContent.length - content.length) > 10)) {
+            // Strip section markers if they exist to provide a clean writing experience
+            if (storeContent.includes("<<<SECTION_ID:")) {
+                const stripped = storeContent.replace(/<<<SECTION_ID:[^>]+>>>/g, '').replace(/<<<SPLIT_SECTION_(START|END|SEP)>>>/g, '\n').trim();
+                setContent(stripped);
+            } else {
+                setContent(storeContent);
+            }
         }
     }, [canvasId, canvas?.writingContent, canvas?.title]);
 
@@ -70,13 +75,13 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         }
     };
 
-    const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                const pdfUrl = event.target?.result as string;
-                addCanvasPdf(canvasId, { name: file.name, url: pdfUrl });
+                const fileUrl = event.target?.result as string;
+                addCanvasDoc(canvasId, { name: file.name, url: fileUrl });
             };
             reader.readAsDataURL(file);
         }
@@ -127,7 +132,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 </div>
 
                 <button
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => imageInputRef.current?.click()}
                     className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
                     title="Add Image"
                 >
@@ -135,25 +140,25 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 </button>
                 <input
                     type="file"
-                    ref={fileInputRef}
+                    ref={imageInputRef}
                     className="hidden"
                     accept="image/*"
                     onChange={handleImageUpload}
                 />
 
                 <button
-                    onClick={() => pdfInputRef.current?.click()}
+                    onClick={() => fileInputRef.current?.click()}
                     className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
-                    title="Add PDF"
+                    title="Add Attachment"
                 >
-                    <FileText size={18} />
+                    <File size={18} />
                 </button>
                 <input
                     type="file"
-                    ref={pdfInputRef}
+                    ref={fileInputRef}
                     className="hidden"
-                    accept="application/pdf"
-                    onChange={handlePdfUpload}
+                    accept="*"
+                    onChange={handleFileUpload}
                 />
 
                 <button
@@ -179,7 +184,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     onClick={() => setShowBranchModal(true)}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${showBranchModal
                         ? 'bg-primary text-black border-primary'
-                        : 'bg-primary/10 text-primary hover:bg-primary/20 border-primary/20'
+                        : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white border-white/10'
                         }`}
                     title="Insert Text Branch"
                 >
@@ -217,26 +222,27 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         </div>
                     )}
 
-                    {/* PDF Gallery */}
-                    {canvas?.pdfs && canvas.pdfs.length > 0 && (
+                    {/* Attachments Gallery */}
+                    {canvas?.attachments && canvas.attachments.length > 0 && (
                         <div className="space-y-3">
-                            <h4 className="text-xs font-bold text-white/20 uppercase tracking-wider">Attached Documents</h4>
+                            <h4 className="text-xs font-bold text-white/20 uppercase tracking-wider">Attachments</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {canvas.pdfs.map((pdf) => (
-                                    <div key={pdf.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl group hover:bg-white/10 transition-colors">
+                                {canvas.attachments.map((doc) => (
+                                    <div key={doc.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl group hover:bg-white/10 transition-colors">
                                         <a
-                                            href={pdf.url}
+                                            href={doc.url}
+                                            download={doc.name}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="flex items-center gap-3 flex-1 min-w-0"
                                         >
-                                            <div className="p-2 bg-red-500/10 rounded-lg text-red-400">
-                                                <FileText size={20} />
+                                            <div className={`p-2 rounded-lg ${doc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                                {doc.name.toLowerCase().endsWith('.pdf') ? <FileText size={20} /> : <File size={20} />}
                                             </div>
-                                            <span className="text-sm text-white/70 truncate group-hover:text-white transition-colors">{pdf.name}</span>
+                                            <span className="text-sm text-white/70 truncate group-hover:text-white transition-colors">{doc.name}</span>
                                         </a>
                                         <button
-                                            onClick={() => deleteCanvasPdf(canvasId, pdf.id)}
+                                            onClick={() => deleteCanvasDoc(canvasId, doc.id)}
                                             className="p-1.5 text-white/20 hover:text-red-400 transition-colors"
                                         >
                                             <Trash2 size={16} />

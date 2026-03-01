@@ -24,22 +24,6 @@ import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout } 
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
 
-const selector = (state: RFState) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    onNodesChange: state.onNodesChange,
-    onEdgesChange: state.onEdgesChange,
-    onConnect: state.onConnect,
-    addNode: state.addNode,
-    setCurrentCanvas: state.setCurrentCanvas,
-    createCanvas: state.createCanvas,
-    initDefaultCanvas: state.initDefaultCanvas,
-    updateNodeData: state.updateNodeData,
-    canvases: state.canvases,
-    currentCanvasId: state.currentCanvasId,
-    addSubCanvasToMerged: state.addSubCanvasToMerged,
-    syncSubProjectNodes: state.syncSubProjectNodes,
-});
 
 function CanvasContent() {
     const { id } = useParams<{ id: string }>();
@@ -47,18 +31,28 @@ function CanvasContent() {
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
         addNode, setCurrentCanvas, initDefaultCanvas, canvases,
-        addSubCanvasToMerged, syncSubProjectNodes
-    } = useStore(useShallow(selector));
+        addSubCanvasToMerged, syncSubProjectNodes, ensureCanvasExists
+    } = useStore(useShallow((state: RFState) => ({
+        nodes: state.nodes,
+        edges: state.edges,
+        onNodesChange: state.onNodesChange,
+        onEdgesChange: state.onEdgesChange,
+        onConnect: state.onConnect,
+        addNode: state.addNode,
+        setCurrentCanvas: state.setCurrentCanvas,
+        initDefaultCanvas: state.initDefaultCanvas,
+        canvases: state.canvases,
+        addSubCanvasToMerged: state.addSubCanvasToMerged,
+        syncSubProjectNodes: state.syncSubProjectNodes,
+        ensureCanvasExists: state.ensureCanvasExists,
+    })));
     const { screenToFlowPosition, fitView } = useReactFlow();
-    // const [mode, setMode] = useState<'canvas'>('canvas'); // Removed unused state
 
-    // Use standard TextNode or a specific FlowchartNode. For now, reusing IdeaNode structure but simplified could work,
-    // or just TextNode. Let's use IdeaNode but call it "Box" in UI.
     const nodeTypes = useMemo(() => ({
         text: TextNode,
         image: ImageNode,
         subproject: SubProjectNode,
-        default: IdeaNode, // Reusing the styled node for generic boxes
+        default: IdeaNode,
         question: QuestionNode,
         decision: DecisionNode,
     }), []);
@@ -69,25 +63,16 @@ function CanvasContent() {
 
     useEffect(() => {
         if (id) {
+            ensureCanvasExists(id);
             setCurrentCanvas(id);
         } else {
-            // Initialize default canvas if we are on the root route
             initDefaultCanvas();
             setCurrentCanvas('default');
         }
-    }, [id, setCurrentCanvas, initDefaultCanvas]);
+    }, [id, setCurrentCanvas, initDefaultCanvas, ensureCanvasExists]);
 
     // Ensure we have a valid canvas ID for operations
     const activeCanvasId = id || 'default';
-
-    // Quick fix: If activeCanvasId is 'default', ensure it exists in store
-    useEffect(() => {
-        const state = useStore.getState();
-        if (!state.canvases[activeCanvasId]) {
-            state.createCanvas(); // This creates a random ID, doesn't help 'default'
-            // We need a way to force-create or just use the first available?
-        }
-    }, [activeCanvasId]);
 
     const currentCanvas = canvases[activeCanvasId];
     const isMerged = !!currentCanvas?.mergedCanvasIds;
@@ -214,7 +199,7 @@ function CanvasContent() {
                             className={`
                                 flex items-center gap-2.5 px-4 h-10 rounded-xl transition-all border
                                 ${activeSubCanvasId === null
-                                    ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_0_15px_rgba(218,119,86,0.1)]'
+                                    ? 'bg-white/10 border-white/20 text-primary shadow-[0_0_15px_rgba(255,255,255,0.1)]'
                                     : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10 hover:text-white/60'
                                 }
                             `}
@@ -235,7 +220,7 @@ function CanvasContent() {
                                     className={`
                                         flex items-center gap-2.5 px-4 h-10 rounded-xl transition-all border
                                         ${isActive
-                                            ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_0_15px_rgba(218,119,86,0.1)]'
+                                            ? 'bg-white/10 border-white/20 text-primary shadow-[0_0_15px_rgba(255,255,255,0.1)]'
                                             : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10 hover:text-white/60'
                                         }
                                     `}
