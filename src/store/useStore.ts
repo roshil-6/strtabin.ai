@@ -207,6 +207,14 @@ export type RFState = {
     setActiveFolder: (id: string | null) => void;
     moveItemToFolder: (itemId: string, type: 'canvas' | 'timeline' | 'diagram', folderId: string | null) => void;
 
+    // Folder Workflow State
+    folderNodes: Node[];
+    folderEdges: Edge[];
+    onFolderNodesChange: OnNodesChange;
+    onFolderEdgesChange: OnEdgesChange;
+    onFolderConnect: OnConnect;
+    setFolderNodes: (nodes: Node[]) => void;
+
     // User & Subscription
     isAuthenticated: boolean;
     isPaid: boolean;
@@ -227,6 +235,8 @@ const useStore = create<RFState>()(
             chatHistory: {},
             folders: {},
             activeFolderId: null,
+            folderNodes: [],
+            folderEdges: [],
             isAuthenticated: false,
             isPaid: false,
 
@@ -648,6 +658,37 @@ const useStore = create<RFState>()(
                         }
                     };
                 });
+            },
+
+            onFolderNodesChange: (changes: NodeChange[]) => {
+                set((state) => ({
+                    folderNodes: applyNodeChanges(changes, state.folderNodes),
+                }));
+            },
+
+            onFolderEdgesChange: (changes: EdgeChange[]) => {
+                set((state) => ({
+                    folderEdges: applyEdgeChanges(changes, state.folderEdges),
+                }));
+            },
+
+            onFolderConnect: (connection: Connection) => {
+                set((state) => {
+                    const newEdge: Edge = {
+                        ...connection,
+                        id: `folder-edge-${Date.now()}`,
+                        type: 'smart',
+                        style: { stroke: '#DA7756', strokeWidth: 2 },
+                        markerEnd: { type: MarkerType.ArrowClosed, color: '#DA7756' },
+                    };
+                    return {
+                        folderEdges: addEdge(newEdge, state.folderEdges),
+                    };
+                });
+            },
+
+            setFolderNodes: (nodes: Node[]) => {
+                set({ folderNodes: nodes });
             },
 
             onNodesChange: (changes: NodeChange[]) => {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network } from 'lucide-react';
 import DashboardCalendar from './DashboardCalendar';
 
 export default function Dashboard() {
@@ -159,6 +159,14 @@ export default function Dashboard() {
 
                     <div className="space-y-1">
                         <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-white/20 mb-4 px-3">Workspaces</h2>
+
+                        <button
+                            onClick={() => navigate('/folder-workflow')}
+                            className="w-full mb-4 flex items-center justify-center gap-2 px-3 py-3 rounded-xl bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition-all shadow-[0_0_15px_rgba(249,115,22,0.1)] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] font-bold tracking-wide group"
+                        >
+                            <Network size={18} className="group-hover:scale-110 transition-transform" />
+                            Workspace Map
+                        </button>
 
                         <button
                             onClick={() => { setActiveFolder(null); setIsSidebarOpen(false); }}
