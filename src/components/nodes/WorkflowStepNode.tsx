@@ -58,10 +58,10 @@ export const WorkflowStepNode = memo(({ id, data, selected }: any) => {
             <Handle type="target" position={Position.Left} id="left" className="!w-3 !h-3 !bg-white/50 !border-none" />
 
             <div className={`
-                p-4 rounded-xl border flex flex-col gap-2 backdrop-blur-xl transition-all
+                p-4 rounded-xl border flex flex-col gap-2 transition-all
                 ${selected
-                    ? 'bg-white/10 border-primary text-white shadow-[0_0_20px_rgba(218,119,86,0.2)] scale-105'
-                    : 'bg-[#1a1a1a]/80 border-white/20 text-white/80 hover:bg-[#222]/80 hover:border-white/40 shadow-lg'
+                    ? 'bg-[#1a1a1a] border-primary text-white shadow-[0_0_20px_rgba(218,119,86,0.3)] scale-105'
+                    : 'bg-[#111] border-[#333] text-white/80 hover:bg-[#1a1a1a] hover:border-white/40 shadow-lg'
                 }
             `}>
 
@@ -85,14 +85,14 @@ export const WorkflowStepNode = memo(({ id, data, selected }: any) => {
                         onChange={(e) => setLabel(e.target.value)}
                         onBlur={handleBlur}
                         onKeyDown={handleKeyDown}
-                        className="w-full bg-black/50 border border-primary/50 rounded p-2 text-sm text-white font-bold text-center outline-none focus:border-primary"
+                        className="w-full bg-[#0a0a0a] border border-primary/50 rounded p-2 text-sm text-white font-bold text-center outline-none focus:border-primary"
                     />
                 ) : (
                     <div
                         onClick={() => setIsEditing(true)}
                         className="w-full p-2 text-sm text-white font-bold text-center cursor-text break-words select-none"
                     >
-                        {label}
+                        {label || 'New Step'}
                     </div>
                 )}
             </div>

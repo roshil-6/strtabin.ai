@@ -73,8 +73,8 @@ function WorkflowContent() {
         >
             <Background color="#333" gap={32} size={1} variant={BackgroundVariant.Dots} />
 
-            {/* Make Controls visible by fixing positioning and overriding parent styles */}
-            <Controls position="bottom-right" className="!bg-[#1a1a1a] !border-white/10 !fill-white mb-6 mr-6 shadow-xl" />
+            {/* Make Controls visible by passing custom tailwind style classes, overriding their default white boxes so they look good on dark theme */}
+            <Controls position="bottom-right" className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-2xl mb-6 mr-6 [&>button]:bg-[#1a1a1a] [&>button]:border-white/10 [&>button]:text-white [&>button:hover]:bg-white/10" />
 
             <Panel position="top-left" className="m-6">
                 <button
