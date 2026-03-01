@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Calendar, CheckSquare, Home, ArrowLeft } from 'lucide-react';
+import { Layout, Calendar, CheckSquare, Home } from 'lucide-react';
 
 export default function Sidebar({ canvasId }: { canvasId?: string }) {
     const navigate = useNavigate();
