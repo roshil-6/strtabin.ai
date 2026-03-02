@@ -120,7 +120,7 @@ export default function LandingPage() {
         }, 1500);
     };
 
-    const handlePayment = (plan: 'monthly' | 'yearly') => {
+    const handlePayment = (plan: 'monthly' | 'yearly' | 'lifetime') => {
         setLoading(true);
         console.log(`Processing ${plan} payment...`);
         // Simulate Razorpay
@@ -201,72 +201,50 @@ export default function LandingPage() {
 
             {/* Pricing Section */}
             <section className="py-24 px-6 relative overflow-hidden">
-                <div className="max-w-5xl mx-auto relative z-10">
+                <div className="max-w-3xl mx-auto relative z-10">
                     <div className="text-center mb-16">
-                        <h3 className="text-3xl font-black mb-4">Simple, transparent pricing</h3>
-                        <p className="text-white/40">Choose the plan that fits your strategy.</p>
+                        <h3 className="text-3xl font-black mb-4">Simple, one-time pricing</h3>
+                        <p className="text-white/40">Pay once. Use forever. No subscriptions, no surprises.</p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                        {/* Monthly Plan */}
-                        <div className="group bg-white/[0.03] border border-white/5 rounded-[32px] p-10 hover:border-primary/50 transition-all hover:bg-white/[0.05]">
-                            <div className="mb-8">
-                                <h4 className="text-white/40 font-bold uppercase tracking-widest text-xs mb-4">Monthly Plan</h4>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-5xl font-black text-white">₹39</span>
-                                    <span className="text-white/20 font-bold">/ month</span>
-                                </div>
-                                <p className="text-white/40 text-sm mt-2">Perfect for creators getting started.</p>
-                            </div>
+                    <div className="group relative bg-[#141414] border border-primary/30 rounded-[32px] p-10 md:p-14 shadow-2xl overflow-hidden">
+                        {/* Background glow */}
+                        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent pointer-events-none" />
 
-                            <div className="space-y-4 mb-10">
-                                {[
-                                    "Unlimited Strategy Canvases",
-                                    "STRAB AI Intelligence",
-                                    "Visual ASCII Branching",
-                                    "Razorpay Secured Payments",
-                                    "Cloud Sync (Any device)"
-                                ].map((feature, i) => (
-                                    <div key={i} className="flex items-center gap-3 text-sm font-medium text-white/60">
-                                        <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-primary shrink-0">
-                                            <Check size={12} strokeWidth={3} />
-                                        </div>
-                                        {feature}
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button
-                                onClick={() => handlePayment('monthly')}
-                                className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
-                            >
-                                <CreditCard size={18} />
-                                Start Monthly
-                            </button>
+                        <div className="absolute top-6 right-6 px-3 py-1 bg-primary text-black text-[10px] font-black uppercase tracking-widest rounded-full">
+                            One-Time
                         </div>
 
-                        {/* Yearly Plan */}
-                        <div className="group relative bg-[#141414] border border-primary/30 rounded-[32px] p-10 shadow-2xl overflow-hidden">
-                            <div className="absolute top-6 right-6 px-3 py-1 bg-primary text-black text-[10px] font-black uppercase tracking-widest rounded-full">
-                                Best Value
-                            </div>
-
-                            <div className="mb-8">
-                                <h4 className="text-primary font-bold uppercase tracking-widest text-xs mb-4">Yearly Plan</h4>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-5xl font-black text-white">₹399</span>
-                                    <span className="text-white/20 font-bold">/ year</span>
+                        <div className="mb-10 flex flex-col md:flex-row md:items-center md:gap-12">
+                            <div>
+                                <h4 className="text-primary font-bold uppercase tracking-widest text-xs mb-4">Full Access — Lifetime</h4>
+                                <div className="flex items-baseline gap-3 mb-2">
+                                    <span className="text-6xl font-black text-white">₹64</span>
+                                    <div className="flex flex-col">
+                                        <span className="text-white/20 font-bold text-sm">India</span>
+                                        <span className="text-white/40 text-xs">One-time payment</span>
+                                    </div>
                                 </div>
-                                <p className="text-white/40 text-sm mt-2 text-primary/60">Save 15% with yearly billing.</p>
+                                <div className="flex items-baseline gap-3 mt-4">
+                                    <span className="text-3xl font-black text-white/60">$2</span>
+                                    <div className="flex flex-col">
+                                        <span className="text-white/20 font-bold text-sm">International</span>
+                                        <span className="text-white/40 text-xs">USD, one-time</span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="space-y-4 mb-10">
+                            <div className="hidden md:block w-px h-32 bg-white/10 shrink-0" />
+
+                            <div className="space-y-4 mt-8 md:mt-0 flex-1">
                                 {[
-                                    "Everything in Monthly",
-                                    "Priority STRAB AI access",
-                                    "Future Tool Beta Access",
-                                    "Exclusive Premium Themes",
-                                    "Dedicated Support"
+                                    "Unlimited Strategy Canvases",
+                                    "STRAB AI Intelligence — Full Access",
+                                    "Folder Workflow Maps",
+                                    "Writing, Tasks & Calendar",
+                                    "Install on Phone (PWA)",
+                                    "All Future Updates Included",
+                                    "Cloud Sync across devices",
                                 ].map((feature, i) => (
                                     <div key={i} className="flex items-center gap-3 text-sm font-medium text-white/80">
                                         <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-black shrink-0">
@@ -276,15 +254,19 @@ export default function LandingPage() {
                                     </div>
                                 ))}
                             </div>
-
-                            <button
-                                onClick={() => handlePayment('yearly')}
-                                className="w-full py-4 bg-primary text-black rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white transition-all shadow-[0_10px_30px_rgba(218,119,86,0.3)] flex items-center justify-center gap-2"
-                            >
-                                <Zap size={18} fill="currentColor" />
-                                Start Yearly
-                            </button>
                         </div>
+
+                        <button
+                            onClick={() => handlePayment('lifetime')}
+                            className="w-full py-5 bg-primary text-black rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-white transition-all shadow-[0_10px_40px_rgba(218,119,86,0.4)] flex items-center justify-center gap-3"
+                        >
+                            <Zap size={20} fill="currentColor" />
+                            Get Full Access — ₹64 / $2
+                        </button>
+
+                        <p className="text-center text-white/20 text-xs mt-5">
+                            Secured by Razorpay · No recurring charges · Cancel anytime
+                        </p>
                     </div>
                 </div>
             </section>

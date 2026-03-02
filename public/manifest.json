@@ -1,0 +1,31 @@
+{
+    "name": "Stratabin AI",
+    "short_name": "Stratabin",
+    "description": "Your AI-powered strategy workspace. Think, plan, and execute with STRAB AI.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#080808",
+    "theme_color": "#da7756",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/favicon.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/favicon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "productivity",
+        "business",
+        "utilities"
+    ],
+    "lang": "en",
+    "screenshots": []
+}
