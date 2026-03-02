@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X, FileText, Trash2, File } from 'lucide-react';
+import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X, FileText, Trash2, File, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import mammoth from 'mammoth';
 
 interface WritingSectionProps {
     canvasId: string;
@@ -60,7 +61,36 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             URL.revokeObjectURL(previewDoc.url);
         }
         setPreviewDoc(null);
+        setDocxHtml('');
     };
+
+    // Mammoth DOCX parsing
+    const [docxHtml, setDocxHtml] = useState<string>('');
+    const [isRenderingDocx, setIsRenderingDocx] = useState(false);
+
+    useEffect(() => {
+        const parseDocx = async () => {
+            if (!previewDoc || !previewDoc.name.toLowerCase().endsWith('.docx')) {
+                setDocxHtml('');
+                return;
+            }
+
+            setIsRenderingDocx(true);
+            try {
+                const response = await fetch(previewDoc.url);
+                const arrayBuffer = await response.arrayBuffer();
+                const result = await mammoth.convertToHtml({ arrayBuffer });
+                setDocxHtml(result.value);
+            } catch (error) {
+                console.error("Error parsing DOCX:", error);
+                setDocxHtml('<div class="text-red-400 p-4">Failed to render document preview.</div>');
+            } finally {
+                setIsRenderingDocx(false);
+            }
+        };
+
+        parseDocx();
+    }, [previewDoc]);
 
     // Sync with store
     useEffect(() => {
@@ -391,11 +421,35 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         </div>
 
                         {/* Viewer Body */}
-                        <div className="flex-1 bg-white relative">
+                        <div className="flex-1 bg-white relative overflow-hidden">
                             {previewDoc.name.toLowerCase().endsWith('.pdf') ? (
                                 <iframe
                                     src={`${previewDoc.url}#toolbar=0`}
                                     className="w-full h-full border-none"
+                                    title={previewDoc.name}
+                                />
+                            ) : previewDoc.name.toLowerCase().endsWith('.docx') ? (
+                                <div className="w-full h-full overflow-y-auto bg-white p-8 md:p-16 text-black custom-scrollbar">
+                                    {isRenderingDocx ? (
+                                        <div className="flex flex-col items-center justify-center h-full text-black/50 gap-4">
+                                            <Loader2 size={32} className="animate-spin" />
+                                            <span className="font-bold">Rendering Document...</span>
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className="max-w-4xl mx-auto prose prose-neutral prose-headings:font-black prose-p:leading-relaxed"
+                                            dangerouslySetInnerHTML={{ __html: docxHtml }}
+                                        />
+                                    )}
+                                </div>
+                            ) : previewDoc.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] p-8">
+                                    <img src={previewDoc.url} alt={previewDoc.name} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+                                </div>
+                            ) : previewDoc.name.toLowerCase().endsWith('.txt') ? (
+                                <iframe
+                                    src={previewDoc.url}
+                                    className="w-full h-full border-none bg-white p-8"
                                     title={previewDoc.name}
                                 />
                             ) : (
@@ -403,7 +457,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     <File size={64} className="text-white/20 mb-6" />
                                     <h2 className="text-xl font-black mb-2">No Native Preview Available</h2>
                                     <p className="text-sm text-white/40 max-w-sm leading-relaxed mb-8">
-                                        Browsers cannot securely render this file format visually without downloading it first.
+                                        Browsers cannot securely render older <b>.doc</b> or binary file formats visually without downloading them first. Please download the file to view it.
                                     </p>
                                     <a
                                         href={previewDoc.url}
