@@ -30,6 +30,38 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const [branchCount, setBranchCount] = useState(3);
     const [branchItems, setBranchItems] = useState(['', '', '', '', '', '']);
 
+    // Document Preview state
+    const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string } | null>(null);
+
+    const openPreview = (doc: { url: string; name: string }) => {
+        if (doc.url.startsWith('data:')) {
+            try {
+                const arr = doc.url.split(',');
+                const mime = arr[0].match(/:(.*?);/)?.[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                const blob = new Blob([u8arr], { type: mime as string });
+                const blobUrl = URL.createObjectURL(blob);
+                setPreviewDoc({ url: blobUrl, name: doc.name });
+                return;
+            } catch (e) {
+                console.error("Failed to convert data URL to Blob", e);
+            }
+        }
+        setPreviewDoc(doc);
+    };
+
+    const closePreview = () => {
+        if (previewDoc?.url.startsWith('blob:')) {
+            URL.revokeObjectURL(previewDoc.url);
+        }
+        setPreviewDoc(null);
+    };
+
     // Sync with store
     useEffect(() => {
         if (!canvas) return;
@@ -229,18 +261,15 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {canvas.attachments.map((doc) => (
                                     <div key={doc.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl group hover:bg-white/10 transition-colors">
-                                        <a
-                                            href={doc.url}
-                                            download={doc.name}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-3 flex-1 min-w-0"
+                                        <button
+                                            onClick={() => openPreview(doc)}
+                                            className="flex items-center gap-3 flex-1 min-w-0 text-left"
                                         >
                                             <div className={`p-2 rounded-lg ${doc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
                                                 {doc.name.toLowerCase().endsWith('.pdf') ? <FileText size={20} /> : <File size={20} />}
                                             </div>
                                             <span className="text-sm text-white/70 truncate group-hover:text-white transition-colors">{doc.name}</span>
-                                        </a>
+                                        </button>
                                         <button
                                             onClick={() => deleteCanvasDoc(canvasId, doc.id)}
                                             className="p-1.5 text-white/20 hover:text-red-400 transition-colors"
@@ -330,6 +359,62 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         >
                             Insert into Text
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Document Preview Modal */}
+            {previewDoc && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-12 animate-in fade-in duration-300">
+                    <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={closePreview} />
+                    <div className="relative w-full h-full max-w-6xl bg-[#0a0a0a] border border-white/10 rounded-2xl md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+                        {/* Header */}
+                        <div className="flex-shrink-0 p-4 border-b border-white/5 flex items-center justify-between bg-[#0f0f0f]">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${previewDoc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                    {previewDoc.name.toLowerCase().endsWith('.pdf') ? <FileText size={20} /> : <File size={20} />}
+                                </div>
+                                <h3 className="text-sm font-bold text-white truncate max-w-[200px] md:max-w-md">{previewDoc.name}</h3>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={previewDoc.url}
+                                    download={previewDoc.name}
+                                    className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors text-xs font-bold flex items-center gap-2"
+                                >
+                                    Download Original
+                                </a>
+                                <button onClick={closePreview} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Viewer Body */}
+                        <div className="flex-1 bg-white relative">
+                            {previewDoc.name.toLowerCase().endsWith('.pdf') ? (
+                                <iframe
+                                    src={`${previewDoc.url}#toolbar=0`}
+                                    className="w-full h-full border-none"
+                                    title={previewDoc.name}
+                                />
+                            ) : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111] text-white p-6 text-center">
+                                    <File size={64} className="text-white/20 mb-6" />
+                                    <h2 className="text-xl font-black mb-2">No Native Preview Available</h2>
+                                    <p className="text-sm text-white/40 max-w-sm leading-relaxed mb-8">
+                                        Browsers cannot securely render this file format visually without downloading it first.
+                                    </p>
+                                    <a
+                                        href={previewDoc.url}
+                                        download={previewDoc.name}
+                                        className="px-6 py-3 bg-white text-black font-black uppercase tracking-widest text-xs rounded-xl hover:bg-white/90 transition-all"
+                                    >
+                                        Download to View
+                                    </a>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
