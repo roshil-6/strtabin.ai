@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Calendar, CheckSquare, Home } from 'lucide-react';
+import { Layout, Calendar, CheckSquare, Home, Clock, CheckCircle2 } from 'lucide-react';
 
 export default function Sidebar({ canvasId }: { canvasId?: string }) {
     const navigate = useNavigate();
@@ -15,9 +15,9 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
             {/* Home Button */}
             <button
                 onClick={() => navigate('/dashboard')}
-                className="group relative p-3 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-black transition-all shadow-[0_0_15px_rgba(218,119,86,0.15)] hover:shadow-[0_0_20px_rgba(218,119,86,0.3)]"
+                className="group relative p-3 rounded-xl bg-white/5 text-white/40 hover:text-white transition-all border border-white/5 hover:border-white/10"
             >
-                <Home size={20} className="group-hover:scale-110 transition-transform" />
+                <Home size={20} className="group-hover:scale-105 transition-transform" />
                 {/* Tooltip */}
                 <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#1a1a1a] border border-white/10 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
                     General Projects
@@ -47,7 +47,29 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                         }`}
                     title="Timeline"
                 >
+                    <Clock size={20} />
+                </button>
+
+                <button
+                    onClick={() => navigate('/calendar')}
+                    className={`p-3 rounded-xl transition-all border ${isActive('/calendar') && !location.search.includes('mode=week')
+                        ? 'bg-white text-black border-white'
+                        : 'text-white/30 border-transparent hover:text-white hover:bg-white/5'
+                        }`}
+                    title="Strategic Calendar"
+                >
                     <Calendar size={20} />
+                </button>
+
+                <button
+                    onClick={() => navigate('/calendar?mode=week')}
+                    className={`p-3 rounded-xl transition-all border ${location.search.includes('mode=week')
+                        ? 'bg-white text-black border-white'
+                        : 'text-white/30 border-transparent hover:text-white hover:bg-white/5'
+                        }`}
+                    title="General Weekly Planner"
+                >
+                    <CheckCircle2 size={20} />
                 </button>
 
                 <button

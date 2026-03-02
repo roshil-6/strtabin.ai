@@ -178,8 +178,9 @@ export type RFState = {
     mergeCanvases: (ids: string[], title: string) => string;
 
     // Global Calendar
-    calendarEvents: Record<string, { id: string; time: string; task: string }[]>;
+    calendarEvents: Record<string, { id: string; time: string; task: string; completed?: boolean }[]>;
     addCalendarEvent: (date: string, time: string, task: string) => void;
+    toggleCalendarEvent: (date: string, eventId: string) => void;
     removeCalendarEvent: (date: string, eventId: string) => void;
 
     // Chat History
@@ -824,7 +825,7 @@ const useStore = create<RFState>()(
             addCalendarEvent: (date, time, task) => {
                 set((state) => {
                     const currentEvents = state.calendarEvents[date] || [];
-                    const newEvent = { id: crypto.randomUUID(), time, task };
+                    const newEvent = { id: crypto.randomUUID(), time, task, completed: false };
 
                     // Schedule notification
                     NotificationManager.requestPermission().then(granted => {
@@ -837,6 +838,20 @@ const useStore = create<RFState>()(
                         // Simple sort by time (assuming HH:mm format)
                         return a.time.localeCompare(b.time);
                     });
+                    return {
+                        calendarEvents: {
+                            ...state.calendarEvents,
+                            [date]: newEvents
+                        }
+                    };
+                });
+            },
+            toggleCalendarEvent: (date, eventId) => {
+                set((state) => {
+                    const currentEvents = state.calendarEvents[date] || [];
+                    const newEvents = currentEvents.map(e =>
+                        e.id === eventId ? { ...e, completed: !e.completed } : e
+                    );
                     return {
                         calendarEvents: {
                             ...state.calendarEvents,

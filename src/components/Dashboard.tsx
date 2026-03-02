@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network } from 'lucide-react';
-import DashboardCalendar from './DashboardCalendar';
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -23,7 +22,7 @@ export default function Dashboard() {
     const setAuthenticated = useStore(state => state.setAuthenticated);
     const setPaid = useStore(state => state.setPaid);
 
-    const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar' | 'strab'>('strategy');
+    const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab'>('strategy');
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [showFolderModal, setShowFolderModal] = useState(false);
@@ -102,7 +101,8 @@ export default function Dashboard() {
         { id: 'strategy', label: 'Writing & Flow', icon: FileText, color: 'text-primary' },
         { id: 'todo', label: 'Task Lists', icon: ListTodo, color: 'text-orange-400' },
         { id: 'timeline', label: 'Timelines', icon: Clock, color: 'text-blue-400' },
-        { id: 'calendar', label: 'Calendar', icon: Calendar, color: 'text-white' },
+        { id: 'calendar', label: 'Strategic Calendar', icon: Calendar, color: 'text-white' },
+        { id: 'planner', label: 'Project Weekly Planner', icon: CheckCircle2, color: 'text-orange-500' },
         { id: 'strab', label: 'STRAB AI', icon: Bot, color: 'text-orange-500' },
     ];
 
@@ -111,6 +111,8 @@ export default function Dashboard() {
             case 'strategy': return `/strategy/${id}`;
             case 'todo': return `/todo/${id}`;
             case 'timeline': return `/timeline/${id}`;
+            case 'calendar': return `/calendar/${id}`;
+            case 'planner': return `/calendar/${id}?mode=week`;
             case 'strab': return `/strab/${id}`;
             default: return `/strategy/${id}`;
         }
@@ -120,7 +122,8 @@ export default function Dashboard() {
         switch (activeTab) {
             case 'strategy': return Layout;
             case 'todo': return CheckSquare;
-            case 'timeline': return Calendar;
+            case 'calendar': return Calendar;
+            case 'planner': return CheckCircle2;
             case 'strab': return Bot;
             default: return Layout;
         }
@@ -144,7 +147,7 @@ export default function Dashboard() {
                 <div className="p-8">
                     <div className="flex items-center justify-between mb-10">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10 shrink-0">
+                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
                                 <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain" />
                             </div>
                             <div>
@@ -263,7 +266,7 @@ export default function Dashboard() {
                         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
                             <button
                                 onClick={() => navigate(`/folder-workflow/${activeFolderId || 'general'}`)}
-                                className="flex items-center justify-center gap-2 px-6 py-3 bg-[#1a1a1a] hover:bg-white/10 text-white/50 hover:text-white border border-white/10 hover:border-white/20 rounded-xl transition-all shadow-lg font-bold text-sm tracking-wide group shrink-0"
+                                className="flex items-center justify-center gap-2 px-6 py-3 bg-[#111] hover:bg-white/5 text-white/40 hover:text-white border border-white/10 rounded-xl transition-all font-bold text-sm tracking-wide group shrink-0"
                             >
                                 <Network size={18} className="group-hover:text-primary transition-colors" />
                                 Project Map
@@ -285,7 +288,7 @@ export default function Dashboard() {
                             )}
                             <button
                                 onClick={handleCreate}
-                                className="flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white transition-all shadow-[0_10px_40px_-10px_rgba(218,119,86,0.3)]"
+                                className="flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white/90 transition-all border border-white/10"
                             >
                                 <Plus size={18} strokeWidth={3} />
                                 New Project
@@ -315,8 +318,43 @@ export default function Dashboard() {
 
                     {/* Tab Content */}
                     {activeTab === 'calendar' ? (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-6">
-                            <DashboardCalendar />
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 space-y-8">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
+                                <div>
+                                    <h2 className="text-2xl font-black text-white">Calendar Hub</h2>
+                                    <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-bold">Select views</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Strategic Calendar Option */}
+                                <div
+                                    onClick={() => navigate('/calendar')}
+                                    className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-white/20 transition-all cursor-pointer hover:bg-white/[0.02]"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                        <Calendar size={24} className="text-white" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-white mb-2">Strategic Calendar</h3>
+                                    <p className="text-sm text-white/40 leading-relaxed font-bold">
+                                        Global month-view roadmap and long-term planning across all scopes.
+                                    </p>
+                                </div>
+
+                                {/* General Weekly Planner Option */}
+                                <div
+                                    onClick={() => navigate('/calendar?mode=week')}
+                                    className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-orange-500/50 transition-all cursor-pointer hover:bg-orange-500/[0.02]"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                        <CheckCircle2 size={24} className="text-orange-500" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-white mb-2">General Weekly Planner</h3>
+                                    <p className="text-sm text-white/40 leading-relaxed font-bold">
+                                        7-day focused tactical execution and day-by-day task lists.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -472,8 +510,8 @@ export default function Dashboard() {
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
                 className={`
-                    group relative bg-[#141414] p-8 rounded-lg border transition-all cursor-pointer hover:-translate-y-1
-                    ${isSelected ? 'border-orange-500 ring-1 ring-orange-500 shadow-[0_0_30px_rgba(249,115,22,0.15)]' : 'border-[#2a2a2a] hover:border-primary/50'}
+                    group relative bg-[#0f0f0f] p-8 rounded-xl border transition-all cursor-pointer hover:bg-white/[0.02]
+                    ${isSelected ? 'border-orange-500 ring-1 ring-orange-500' : 'border-white/5 hover:border-white/20'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40 animate-pulse' : 'opacity-100'}
                 `}
             >
