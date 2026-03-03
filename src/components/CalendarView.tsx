@@ -142,7 +142,7 @@ export default function CalendarView() {
                     className={`flex items-center gap-3 p-3 lg:px-4 lg:py-3 rounded-xl transition-all group ${viewMode === 'week' ? 'bg-white/10 text-white border border-white/10' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}
                 >
                     <CheckCircle2 size={20} className={viewMode === 'week' ? '' : 'group-hover:scale-105 transition-transform'} />
-                    <span className="hidden lg:block text-xs font-black uppercase tracking-wider">General Weekly Planner</span>
+                    <span className="hidden lg:block text-xs font-black uppercase tracking-wider">{id ? 'Project Weekly Planner' : 'General Weekly Planner'}</span>
                 </button>
 
                 <div className="mt-auto pb-8 flex flex-col items-center">
