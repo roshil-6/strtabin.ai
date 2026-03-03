@@ -179,9 +179,10 @@ export type RFState = {
 
     // Global Calendar
     calendarEvents: Record<string, { id: string; time: string; task: string; completed?: boolean }[]>;
-    addCalendarEvent: (date: string, time: string, task: string) => void;
-    toggleCalendarEvent: (date: string, eventId: string) => void;
-    removeCalendarEvent: (date: string, eventId: string) => void;
+    projectCalendarEvents: Record<string, Record<string, { id: string; time: string; task: string; completed?: boolean }[]>>;
+    addCalendarEvent: (date: string, time: string, task: string, canvasId?: string) => void;
+    toggleCalendarEvent: (date: string, eventId: string, canvasId?: string) => void;
+    removeCalendarEvent: (date: string, eventId: string, canvasId?: string) => void;
 
     // Chat History
     chatHistory: Record<string, { role: 'user' | 'assistant'; content: string }[]>;
@@ -233,6 +234,7 @@ const useStore = create<RFState>()(
             diagrams: [],
             timelines: {},
             calendarEvents: {},
+            projectCalendarEvents: {},
             chatHistory: {},
             folders: {},
             activeFolderId: null,
@@ -274,11 +276,15 @@ const useStore = create<RFState>()(
                     const newCanvases = { ...state.canvases };
                     delete newCanvases[id];
 
+                    const newProjectCalendarEvents = { ...state.projectCalendarEvents };
+                    delete newProjectCalendarEvents[id];
+
                     // If we deleted a canvas that was part of a merged project, it will just show as missing in that project.
                     // If we deleted a merged project itself, just clear the currentCanvasId if needed.
 
                     return {
                         canvases: newCanvases,
+                        projectCalendarEvents: newProjectCalendarEvents,
                         currentCanvasId: state.currentCanvasId === id ? null : state.currentCanvasId,
                     };
                 });
@@ -822,54 +828,91 @@ const useStore = create<RFState>()(
                 });
             },
 
-            addCalendarEvent: (date, time, task) => {
+            addCalendarEvent: (date, time, task, canvasId) => {
                 set((state) => {
-                    const currentEvents = state.calendarEvents[date] || [];
                     const newEvent = { id: crypto.randomUUID(), time, task, completed: false };
 
-                    // Schedule notification
-                    NotificationManager.requestPermission().then(granted => {
-                        if (granted) {
-                            NotificationManager.scheduleNotification(task, time);
-                        }
-                    });
+                    // Schedule notification (only for global events realistically, but let's keep it here)
+                    if (!canvasId) {
+                        NotificationManager.requestPermission().then(granted => {
+                            if (granted) {
+                                NotificationManager.scheduleNotification(task, time);
+                            }
+                        });
+                    }
 
-                    const newEvents = [...currentEvents, newEvent].sort((a, b) => {
-                        // Simple sort by time (assuming HH:mm format)
-                        return a.time.localeCompare(b.time);
-                    });
-                    return {
-                        calendarEvents: {
-                            ...state.calendarEvents,
-                            [date]: newEvents
-                        }
-                    };
+                    if (canvasId) {
+                        const projectEvents = state.projectCalendarEvents[canvasId] || {};
+                        const currentEvents = projectEvents[date] || [];
+                        const newEvents = [...currentEvents, newEvent].sort((a, b) => a.time.localeCompare(b.time));
+                        return {
+                            projectCalendarEvents: {
+                                ...state.projectCalendarEvents,
+                                [canvasId]: { ...projectEvents, [date]: newEvents }
+                            }
+                        };
+                    } else {
+                        const currentEvents = state.calendarEvents[date] || [];
+                        const newEvents = [...currentEvents, newEvent].sort((a, b) => a.time.localeCompare(b.time));
+                        return {
+                            calendarEvents: {
+                                ...state.calendarEvents,
+                                [date]: newEvents
+                            }
+                        };
+                    }
                 });
             },
-            toggleCalendarEvent: (date, eventId) => {
+            toggleCalendarEvent: (date, eventId, canvasId) => {
                 set((state) => {
-                    const currentEvents = state.calendarEvents[date] || [];
-                    const newEvents = currentEvents.map(e =>
-                        e.id === eventId ? { ...e, completed: !e.completed } : e
-                    );
-                    return {
-                        calendarEvents: {
-                            ...state.calendarEvents,
-                            [date]: newEvents
-                        }
-                    };
+                    if (canvasId) {
+                        const projectEvents = state.projectCalendarEvents[canvasId] || {};
+                        const currentEvents = projectEvents[date] || [];
+                        const newEvents = currentEvents.map(e =>
+                            e.id === eventId ? { ...e, completed: !e.completed } : e
+                        );
+                        return {
+                            projectCalendarEvents: {
+                                ...state.projectCalendarEvents,
+                                [canvasId]: { ...projectEvents, [date]: newEvents }
+                            }
+                        };
+                    } else {
+                        const currentEvents = state.calendarEvents[date] || [];
+                        const newEvents = currentEvents.map(e =>
+                            e.id === eventId ? { ...e, completed: !e.completed } : e
+                        );
+                        return {
+                            calendarEvents: {
+                                ...state.calendarEvents,
+                                [date]: newEvents
+                            }
+                        };
+                    }
                 });
             },
-            removeCalendarEvent: (date, eventId) => {
+            removeCalendarEvent: (date, eventId, canvasId) => {
                 set((state) => {
-                    const currentEvents = state.calendarEvents[date] || [];
-                    const newEvents = currentEvents.filter((e) => e.id !== eventId);
-                    return {
-                        calendarEvents: {
-                            ...state.calendarEvents,
-                            [date]: newEvents
-                        }
-                    };
+                    if (canvasId) {
+                        const projectEvents = state.projectCalendarEvents[canvasId] || {};
+                        const currentEvents = projectEvents[date] || [];
+                        const newEvents = currentEvents.filter((e) => e.id !== eventId);
+                        return {
+                            projectCalendarEvents: {
+                                ...state.projectCalendarEvents,
+                                [canvasId]: { ...projectEvents, [date]: newEvents }
+                            }
+                        };
+                    } else {
+                        const currentEvents = state.calendarEvents[date] || [];
+                        const newEvents = currentEvents.filter((e) => e.id !== eventId);
+                        return {
+                            calendarEvents: {
+                                ...state.calendarEvents,
+                                [date]: newEvents
+                            }
+                        };
+                    }
                 });
             },
 

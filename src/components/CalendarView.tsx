@@ -6,7 +6,8 @@ import useStore from '../store/useStore';
 
 export default function CalendarView() {
     const { id } = useParams<{ id: string }>();
-    const { calendarEvents, addCalendarEvent, removeCalendarEvent, toggleCalendarEvent } = useStore();
+    const { calendarEvents, projectCalendarEvents, addCalendarEvent, removeCalendarEvent, toggleCalendarEvent } = useStore();
+    const activeCalendarEvents = id ? (projectCalendarEvents[id] || {}) : calendarEvents;
     const [viewMode, setViewMode] = useState<'month' | 'week'>(
         (new URLSearchParams(window.location.search).get('mode') === 'week') ? 'week' : 'month'
     );
@@ -88,7 +89,7 @@ export default function CalendarView() {
         // If no time is provided, use a default like "All Day" or let the store handle an empty time string
         const finalTime = newEventTime.trim() || "All Day";
 
-        addCalendarEvent(selectedDateKey, finalTime, newEventTitle.trim());
+        addCalendarEvent(selectedDateKey, finalTime, newEventTitle.trim(), id);
         setNewEventTitle('');
         setNewEventTime('');
         timeInputRef.current?.focus();
@@ -103,7 +104,7 @@ export default function CalendarView() {
         })()
         : null;
 
-    const selectedEvents = selectedDateKey ? (calendarEvents[selectedDateKey] || []) : [];
+    const selectedEvents = selectedDateKey ? (activeCalendarEvents[selectedDateKey] || []) : [];
 
     useEffect(() => {
         if (selectedDateKey) inputRef.current?.focus();
@@ -214,7 +215,7 @@ export default function CalendarView() {
                                     {Array.from({ length: daysInMonth }).map((_, i) => {
                                         const day = i + 1;
                                         const key = formatKey(year, month, day);
-                                        const dayEvents = calendarEvents[key] || [];
+                                        const dayEvents = activeCalendarEvents[key] || [];
                                         const isToday = key === todayKey;
                                         const isSelected = key === selectedDateKey;
 
@@ -248,7 +249,7 @@ export default function CalendarView() {
                                                             key={evt.id}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                toggleCalendarEvent(key, evt.id);
+                                                                toggleCalendarEvent(key, evt.id, id);
                                                             }}
                                                             className={`text-[9px] font-bold truncate bg-white/5 px-2 py-1 rounded-md flex items-center gap-2 leading-none transition-all border border-white/5 hover:border-white/10 ${evt.completed ? 'opacity-20' : 'text-white/40'}`}
                                                         >
@@ -270,7 +271,7 @@ export default function CalendarView() {
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-white/5 overflow-y-auto md:overflow-hidden custom-scrollbar">
                                 {weekDays.map((date, i) => {
                                     const key = dateToKey(date);
-                                    const dayEvents = calendarEvents[key] || [];
+                                    const dayEvents = activeCalendarEvents[key] || [];
                                     const isToday = key === todayKey;
                                     const isSelected = key === selectedDateKey;
 
@@ -296,7 +297,7 @@ export default function CalendarView() {
                                                         key={evt.id}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            toggleCalendarEvent(key, evt.id);
+                                                            toggleCalendarEvent(key, evt.id, id);
                                                         }}
                                                         className={`p-4 rounded-xl flex flex-col gap-2 transition-all border ${evt.completed ? 'bg-white/5 border-white/5 opacity-20' : 'bg-white/10 border-white/5 hover:border-white/20'}`}
                                                     >
@@ -363,7 +364,7 @@ export default function CalendarView() {
                                             <div className="flex items-center justify-between">
                                                 <div
                                                     className="flex items-center gap-3 cursor-pointer"
-                                                    onClick={() => toggleCalendarEvent(selectedDateKey, evt.id)}
+                                                    onClick={() => toggleCalendarEvent(selectedDateKey, evt.id, id)}
                                                 >
                                                     {evt.completed ? (
                                                         <CheckCircle2 size={18} className="text-white/40" />
@@ -376,7 +377,7 @@ export default function CalendarView() {
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => removeCalendarEvent(selectedDateKey, evt.id)}
+                                                    onClick={() => removeCalendarEvent(selectedDateKey, evt.id, id)}
                                                     className="text-white/10 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-2 hover:bg-red-500/10 rounded-xl"
                                                 >
                                                     <Trash2 size={16} />
@@ -384,7 +385,7 @@ export default function CalendarView() {
                                             </div>
                                             <span
                                                 className={`text-sm leading-relaxed font-bold tracking-tight px-1 flex items-start gap-3 cursor-pointer ${evt.completed ? 'line-through text-white/20' : 'text-white/90'}`}
-                                                onClick={() => toggleCalendarEvent(selectedDateKey, evt.id)}
+                                                onClick={() => toggleCalendarEvent(selectedDateKey, evt.id, id)}
                                             >
                                                 <FileText size={18} className="mt-0.5 text-white/20 flex-shrink-0" />
                                                 {evt.task}
@@ -484,7 +485,7 @@ export default function CalendarView() {
                                         <div className="flex items-center justify-between">
                                             <div
                                                 className="flex items-center gap-2 cursor-pointer"
-                                                onClick={() => toggleCalendarEvent(selectedDateKey, evt.id)}
+                                                onClick={() => toggleCalendarEvent(selectedDateKey, evt.id, id)}
                                             >
                                                 {evt.completed ? (
                                                     <CheckCircle2 size={24} className="text-white/40" />
@@ -497,7 +498,7 @@ export default function CalendarView() {
                                                 </div>
                                             </div>
                                             <button
-                                                onClick={() => removeCalendarEvent(selectedDateKey, evt.id)}
+                                                onClick={() => removeCalendarEvent(selectedDateKey, evt.id, id)}
                                                 className="p-2.5 hover:bg-red-500/10 text-white/10 hover:text-red-500 rounded-2xl transition-all"
                                             >
                                                 <Trash2 size={18} />
@@ -505,7 +506,7 @@ export default function CalendarView() {
                                         </div>
                                         <span
                                             className={`text-lg font-bold leading-tight flex items-start gap-3 cursor-pointer ${evt.completed ? 'line-through text-white/30' : 'text-white/90'}`}
-                                            onClick={() => toggleCalendarEvent(selectedDateKey, evt.id)}
+                                            onClick={() => toggleCalendarEvent(selectedDateKey, evt.id, id)}
                                         >
                                             <FileText size={20} className="mt-0.5 text-white/20" />
                                             {evt.task}
