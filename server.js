@@ -98,6 +98,30 @@ app.post('/api/chat', async (req, res) => {
         const systemPrompt = `
 ${SYSTEM_PROMPT_BASE}
 
+---
+
+INTERACTIVE QUESTIONS (CRITICAL INSTRUCTION):
+If the user provides an ambiguous request, a vague idea, or a problem without enough context, you MUST NOT just ask a plain text question. Instead, you MUST provide an array of selectable, structural answers for them to click on to clarify their intent, along with a text box for custom input. 
+
+To do this, you MUST format your exact response as a valid JSON block enclosed in \`\`\`json tags. 
+DO NOT output normal text if you are asking a clarifying question.
+
+The JSON format MUST be exactly:
+\`\`\`json
+{
+  "type": "clarification",
+  "question": "Your clearly stated clarifying question here?",
+  "options": [
+    "Selectable Option 1 (e.g., Target audience is Enterprise)",
+    "Selectable Option 2 (e.g., Target audience is SMB)",
+    "Selectable Option 3 (e.g., Target audience is Consumers)"
+  ],
+  "allowCustomText": true
+}
+\`\`\`
+
+If you have enough information to answer the user directly, just respond with normal markdown text. ONLY use the JSON format when you need the user to make a choice or clarify their direction.
+
 ACTIVE PROJECT CONTEXT:
 ${projectContext ? JSON.stringify(projectContext, null, 2) : "No specific project context provided."}
 `;

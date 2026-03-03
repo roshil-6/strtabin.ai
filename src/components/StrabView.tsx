@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { sendStrabMessage, type ChatMessage } from '../services/strabService';
-import { Bot, Send, Sparkles, BarChart3, AlertTriangle, ArrowLeft, Trash2 } from 'lucide-react';
+import { Network, Send, Sparkles, BarChart3, AlertTriangle, ArrowLeft, Trash2 } from 'lucide-react';
 
 export default function StrabView() {
     const { id } = useParams<{ id: string }>();
@@ -95,6 +95,31 @@ export default function StrabView() {
         setIsLoading(false);
     };
 
+    const handleOptionSelect = async (option: string) => {
+        if (!option.trim()) return;
+
+        const userMsg = { role: 'user', content: option } as ChatMessage;
+        addChatMessage(id!, userMsg);
+        setIsLoading(true);
+
+        const resolvedName = canvas?.name && canvas.name !== 'Untitled Canvas' ? canvas.name : 'Project';
+        const projectContext = {
+            name: resolvedName,
+            nodes: canvas?.nodes.length,
+            edges: canvas?.edges.length,
+            todos: canvas?.todos,
+            lastUpdated: new Date(canvas?.updatedAt || Date.now()).toISOString(),
+            nodeLabels: canvas?.nodes.map(n => n.data.label),
+            writingContent: canvas?.writingContent
+        };
+
+        const messagesForApi = [...chatHistory, userMsg];
+        const responseText = await sendStrabMessage(messagesForApi, projectContext);
+
+        addChatMessage(id!, { role: 'assistant', content: responseText });
+        setIsLoading(false);
+    };
+
     if (!canvas) return <div className="p-10 text-white">Project not found.</div>;
 
     return (
@@ -105,8 +130,8 @@ export default function StrabView() {
                     <ArrowLeft size={20} />
                 </button>
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-[0_0_15px_rgba(249,115,22,0.3)]">
-                        <Bot size={18} className="text-white" />
+                    <div className="w-8 h-8 rounded-lg bg-[#111] border border-white/10 flex items-center justify-center">
+                        <Network size={16} className="text-white/80" />
                     </div>
                     <div>
                         <h1 className="font-bold text-sm md:text-lg leading-tight tracking-wide">STRAB <span className="text-white/30 font-normal">AI</span></h1>
@@ -144,20 +169,56 @@ export default function StrabView() {
                 {activeTab === 'chat' && (
                     <div className="flex-1 flex flex-col relative max-w-4xl mx-auto w-full">
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                            {chatHistory.map((msg, idx) => (
-                                <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                                    <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-white/10' : 'bg-orange-500/20 text-orange-400'}`}>
-                                        {msg.role === 'user' ? <div className="w-2 h-2 bg-white rounded-full" /> : <Sparkles size={14} />}
+                            {chatHistory.map((msg, idx) => {
+                                // Try to parse as JSON clarification
+                                let isInteractive = false;
+                                let parsedJson = null;
+                                if (msg.role === 'assistant' && msg.content.includes('```json')) {
+                                    try {
+                                        const jsonStr = msg.content.split('```json')[1].split('```')[0].trim();
+                                        parsedJson = JSON.parse(jsonStr);
+                                        if (parsedJson?.type === 'clarification' && Array.isArray(parsedJson?.options)) {
+                                            isInteractive = true;
+                                        }
+                                    } catch (e) {
+                                        // Not valid JSON, render normally
+                                    }
+                                }
+
+                                return (
+                                    <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-white/10' : 'bg-[#151515] border border-white/5 text-white/80'}`}>
+                                            {msg.role === 'user' ? <div className="w-2 h-2 bg-white rounded-full" /> : <Network size={14} />}
+                                        </div>
+                                        <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[80%] text-sm leading-relaxed ${msg.role === 'user' ? 'bg-[#151515] border border-white/5 text-white/90' : 'text-white/80'}`}>
+                                            {isInteractive ? (
+                                                <div className="space-y-4">
+                                                    <div className="font-medium text-white text-base">
+                                                        {parsedJson.question}
+                                                    </div>
+                                                    <div className="flex flex-col gap-2">
+                                                        {parsedJson.options.map((opt: string, i: number) => (
+                                                            <button
+                                                                key={i}
+                                                                onClick={() => handleOptionSelect(opt)}
+                                                                className="text-left px-4 py-3 rounded-xl bg-[#1a1a1a] border border-white/5 hover:border-white/20 hover:bg-[#222] transition-colors text-white/80 hover:text-white"
+                                                            >
+                                                                {opt}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="whitespace-pre-wrap">{msg.content.replace(/```json[\s\S]*```/, '')}</div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[80%] text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-white/5 border border-white/10 text-white/90' : 'text-white/80'}`}>
-                                        {msg.content}
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                             {isLoading && (
                                 <div className="flex gap-4">
-                                    <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-orange-500/20 text-orange-400">
-                                        <Sparkles size={14} />
+                                    <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-[#151515] border border-white/5 text-white/80">
+                                        <Network size={14} />
                                     </div>
                                     <div className="p-4 text-white/30 text-sm animate-pulse">Thinking...</div>
                                 </div>
