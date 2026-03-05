@@ -19,7 +19,6 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     const { getAccessStatus, startTrial, trialStartedAt, setPaidUser } = useStore();
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
-    const navigate = useNavigate();
 
     useEffect(() => {
         if (!user) return;
