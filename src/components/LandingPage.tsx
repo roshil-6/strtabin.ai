@@ -166,12 +166,7 @@ export default function LandingPage() {
                         >
                             How it Works
                         </button>
-                        <button
-                            onClick={() => navigate('/dashboard')}
-                            className="text-sm font-bold text-white/40 hover:text-white transition-colors"
-                        >
-                            Demo Access
-                        </button>
+
                     </div>
                 </div>
             </header>
