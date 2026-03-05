@@ -21,9 +21,17 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const [title, setTitle] = useState(canvas?.title || '');
     const [content, setContent] = useState('');
+    const [isSplitMode, setIsSplitMode] = useState(false);
+    const [contentA, setContentA] = useState('');
+    const [contentB, setContentB] = useState('');
+    const [headingA, setHeadingA] = useState('Heading A');
+    const [headingB, setHeadingB] = useState('Heading B');
+
     const imageInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const textareaARef = useRef<HTMLTextAreaElement>(null);
+    const textareaBRef = useRef<HTMLTextAreaElement>(null);
 
     // Branch state
     const [showBranchModal, setShowBranchModal] = useState(false);
@@ -99,16 +107,32 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
         const storeContent = canvas.writingContent || "";
 
-        // Only update local state if the store content has changed externally
-        // (i.e., not from this component's own typing updates)
-        // We use a simple check: if the lengths are different or it's a first load
-        if (storeContent !== content && (content === '' || Math.abs(storeContent.length - content.length) > 10)) {
-            // Strip section markers if they exist to provide a clean writing experience
-            if (storeContent.includes("<<<SECTION_ID:")) {
-                const stripped = storeContent.replace(/<<<SECTION_ID:[^>]+>>>/g, '').replace(/<<<SPLIT_SECTION_(START|END|SEP)>>>/g, '\n').trim();
+        if (storeContent.includes("<<<SPLIT_SECTION_START>>>")) {
+            setIsSplitMode(true);
+            const startMatch = storeContent.match(/<<<SPLIT_SECTION_START>>>/);
+            const sepMatch = storeContent.match(/<<<SPLIT_SECTION_SEP>>>/);
+            const endMatch = storeContent.match(/<<<SPLIT_SECTION_END>>>/);
+
+            if (startMatch && sepMatch && endMatch) {
+                const partA = storeContent.substring(startMatch.index! + startMatch[0].length, sepMatch.index!);
+                const partB = storeContent.substring(sepMatch.index! + sepMatch[0].length, endMatch.index!);
+
+                // Parse headings
+                const hAMatch = partA.match(/<<<HEADING_A:(.*?)>>>/);
+                const hBMatch = partB.match(/<<<HEADING_B:(.*?)>>>/);
+
+                setHeadingA(hAMatch ? hAMatch[1] : 'Heading A');
+                setHeadingB(hBMatch ? hBMatch[1] : 'Heading B');
+
+                setContentA(partA.replace(/<<<HEADING_A:.*?>>>/g, '').trim());
+                setContentB(partB.replace(/<<<HEADING_B:.*?>>>/g, '').trim());
+            }
+        } else {
+            setIsSplitMode(false);
+            if (storeContent !== content && (content === '' || Math.abs(storeContent.length - content.length) > 10)) {
+                // Strip metadata markers only when loading existing content
+                const stripped = storeContent.replace(/<<<SECTION_ID:[^>]+>>>/g, '').trim();
                 setContent(stripped);
-            } else {
-                setContent(storeContent);
             }
         }
     }, [canvasId, canvas?.writingContent, canvas?.title]);
@@ -123,6 +147,38 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         const newContent = e.target.value;
         setContent(newContent);
         updateCanvasWriting(canvasId, newContent);
+    };
+
+    const handleSplitContentChange = (side: 'A' | 'B', val: string) => {
+        let newContentA = contentA;
+        let newContentB = contentB;
+
+        if (side === 'A') {
+            newContentA = val;
+            setContentA(val);
+        } else {
+            newContentB = val;
+            setContentB(val);
+        }
+
+        const merged = `<<<SPLIT_SECTION_START>>>\n<<<HEADING_A:${headingA}>>>\n${newContentA}\n<<<SPLIT_SECTION_SEP>>>\n<<<HEADING_B:${headingB}>>>\n${newContentB}\n<<<SPLIT_SECTION_END>>>`;
+        updateCanvasWriting(canvasId, merged);
+    };
+
+    const handleHeadingChange = (side: 'A' | 'B', val: string) => {
+        let newHA = headingA;
+        let newHB = headingB;
+
+        if (side === 'A') {
+            newHA = val;
+            setHeadingA(val);
+        } else {
+            newHB = val;
+            setHeadingB(val);
+        }
+
+        const merged = `<<<SPLIT_SECTION_START>>>\n<<<HEADING_A:${newHA}>>>\n${contentA}\n<<<SPLIT_SECTION_SEP>>>\n<<<HEADING_B:${newHB}>>>\n${contentB}\n<<<SPLIT_SECTION_END>>>`;
+        updateCanvasWriting(canvasId, merged);
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,10 +206,20 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     };
 
     const insertSplitSeparator = () => {
-        const separator = "\n\n--- STRATEGY SPLIT ---\n\n";
-        const newContent = content + separator;
-        setContent(newContent);
-        updateCanvasWriting(canvasId, newContent);
+        if (isSplitMode) {
+            setIsSplitMode(false);
+            const merged = `${contentA}\n\n${contentB}`.trim();
+            setContent(merged);
+            updateCanvasWriting(canvasId, merged);
+        } else {
+            setIsSplitMode(true);
+            const merged = `<<<SPLIT_SECTION_START>>>\n<<<HEADING_A:Heading A>>>\n${content}\n<<<SPLIT_SECTION_SEP>>>\n<<<HEADING_B:Heading B>>>\n\n<<<SPLIT_SECTION_END>>>`;
+            setContentA(content);
+            setContentB('');
+            setHeadingA('Heading A');
+            setHeadingB('Heading B');
+            updateCanvasWriting(canvasId, merged);
+        }
     };
 
     const handleCreateBranch = () => {
@@ -168,21 +234,33 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         });
         treeBlock += `\n`;
 
-        const newContent = content + treeBlock;
-        setContent(newContent);
-        updateCanvasWriting(canvasId, newContent);
+        if (isSplitMode) {
+            handleSplitContentChange('A', contentA + treeBlock);
+        } else {
+            const newContent = content + treeBlock;
+            setContent(newContent);
+            updateCanvasWriting(canvasId, newContent);
+        }
         setShowBranchModal(false);
         setBranchTopic('');
         setBranchItems(['', '', '', '', '', '']);
     };
 
-    // Auto-resize textarea
+    // Auto-resize textareas
     useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height = Math.max(500, textareaRef.current.scrollHeight) + 'px';
+        const resize = (ref: React.RefObject<HTMLTextAreaElement>) => {
+            if (ref.current) {
+                ref.current.style.height = 'auto';
+                ref.current.style.height = Math.max(500, ref.current.scrollHeight) + 'px';
+            }
+        };
+        if (isSplitMode) {
+            resize(textareaARef);
+            resize(textareaBRef);
+        } else {
+            resize(textareaRef);
         }
-    }, [content]);
+    }, [content, contentA, contentB, isSplitMode]);
 
     return (
         <div className="h-full w-full bg-[#0b0b0b] flex flex-col border-r border-white/5 relative">
@@ -193,53 +271,43 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     <span className="text-sm font-medium text-white/50">Writing Canvas</span>
                 </div>
 
-                <button
-                    onClick={() => imageInputRef.current?.click()}
-                    className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
-                    title="Add Image"
-                >
-                    <ImageIcon size={18} />
-                </button>
-                <input
-                    type="file"
-                    ref={imageInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                />
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => imageInputRef.current?.click()}
+                        className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
+                        title="Add Image"
+                    >
+                        <ImageIcon size={18} />
+                    </button>
+                    <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
-                    title="Add Attachment"
-                >
-                    <File size={18} />
-                </button>
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="*"
-                    onChange={handleFileUpload}
-                />
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
+                        title="Add Attachment"
+                    >
+                        <File size={18} />
+                    </button>
+                    <input type="file" ref={fileInputRef} className="hidden" accept="*" onChange={handleFileUpload} />
 
-                <button
-                    onClick={() => navigate(`/strab/${canvasId}`)}
-                    className="p-2 hover:bg-indigo-500/20 hover:text-indigo-400 rounded-lg text-white/70 transition-colors ml-2"
-                    title="Ask STRAB AI"
-                >
-                    <Bot size={18} />
-                </button>
+                    <button
+                        onClick={() => navigate(`/strab/${canvasId}`)}
+                        className="p-2 hover:bg-indigo-500/20 hover:text-indigo-400 rounded-lg text-white/70 transition-colors ml-2"
+                        title="Ask STRAB AI"
+                    >
+                        <Bot size={18} />
+                    </button>
+                </div>
 
                 <div className="w-px h-4 bg-white/10 mx-1" />
 
                 <button
                     onClick={insertSplitSeparator}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border bg-white/5 text-white/70 hover:bg-white/10 border-white/10"
-                    title="Add Split Separator"
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${isSplitMode ? 'bg-primary/20 text-primary border-primary/50' : 'bg-white/5 text-white/70 hover:bg-white/10 border-white/10'}`}
+                    title={isSplitMode ? "Merge Sections" : "Split Section"}
                 >
                     <Layout size={16} />
-                    <span className="text-xs font-bold">Split</span>
+                    <span className="text-xs font-bold">{isSplitMode ? 'Merge' : 'Split'}</span>
                 </button>
 
                 <button
@@ -256,20 +324,22 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-5 md:p-12 custom-scrollbar">
-                <div className="max-w-4xl mx-auto space-y-8 pb-32">
-                    {/* Title Input */}
-                    <input
-                        type="text"
-                        value={title}
-                        onChange={handleTitleChange}
-                        placeholder="Untitled Strategy"
-                        className="w-full bg-transparent text-4xl font-bold text-white placeholder-white/20 outline-none leading-tight"
-                    />
+            <div className="flex-1 overflow-y-auto p-5 md:p-8 custom-scrollbar">
+                <div className={`mx-auto pb-32 ${isSplitMode ? 'max-w-none' : 'max-w-4xl'}`}>
+                    {/* Title Input - Only in main view */}
+                    {!isSplitMode && (
+                        <input
+                            type="text"
+                            value={title}
+                            onChange={handleTitleChange}
+                            placeholder="Untitled Strategy"
+                            className="w-full bg-transparent text-4xl font-bold text-white placeholder-white/20 outline-none leading-tight mb-8"
+                        />
+                    )}
 
                     {/* Image Gallery */}
-                    {canvas?.images && canvas.images.length > 0 && (
-                        <div className="grid grid-cols-2 gap-4">
+                    {canvas?.images && canvas.images.length > 0 && !isSplitMode && (
+                        <div className="grid grid-cols-2 gap-4 mb-8">
                             {canvas.images.map((img, idx) => (
                                 <div key={idx} className="relative group">
                                     <img src={img} alt="Attached" className="w-full rounded-xl border border-white/10" />
@@ -285,8 +355,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     )}
 
                     {/* Attachments Gallery */}
-                    {canvas?.attachments && canvas.attachments.length > 0 && (
-                        <div className="space-y-3">
+                    {canvas?.attachments && canvas.attachments.length > 0 && !isSplitMode && (
+                        <div className="space-y-3 mb-8">
                             <h4 className="text-xs font-bold text-white/20 uppercase tracking-wider">Attachments</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {canvas.attachments.map((doc) => (
@@ -312,15 +382,58 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         </div>
                     )}
 
-                    {/* Single Large Textarea */}
-                    <textarea
-                        ref={textareaRef}
-                        value={content}
-                        onChange={handleContentChange}
-                        placeholder="Start simple, write everything here..."
-                        className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
-                        spellCheck={false}
-                    />
+                    {isSplitMode ? (
+                        <div className="flex flex-col lg:flex-row gap-0 h-full border border-white/5 rounded-2xl bg-white/[0.02] overflow-hidden">
+                            {/* Section A */}
+                            <div className="flex-1 flex flex-col gap-4 p-6 lg:border-r border-white/10">
+                                <input
+                                    type="text"
+                                    value={headingA}
+                                    onChange={(e) => handleHeadingChange('A', e.target.value)}
+                                    placeholder="Heading A"
+                                    className="bg-transparent text-xl font-black text-primary placeholder-primary/20 outline-none uppercase tracking-wider"
+                                />
+                                <div className="h-px bg-white/10 w-12" />
+                                <textarea
+                                    ref={textareaARef}
+                                    value={contentA}
+                                    onChange={(e) => handleSplitContentChange('A', e.target.value)}
+                                    placeholder="Section A content..."
+                                    className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
+                                    spellCheck={false}
+                                />
+                            </div>
+
+                            {/* Section B */}
+                            <div className="flex-1 flex flex-col gap-4 p-6">
+                                <input
+                                    type="text"
+                                    value={headingB}
+                                    onChange={(e) => handleHeadingChange('B', e.target.value)}
+                                    placeholder="Heading B"
+                                    className="bg-transparent text-xl font-black text-primary placeholder-primary/20 outline-none uppercase tracking-wider"
+                                />
+                                <div className="h-px bg-white/10 w-12" />
+                                <textarea
+                                    ref={textareaBRef}
+                                    value={contentB}
+                                    onChange={(e) => handleSplitContentChange('B', e.target.value)}
+                                    placeholder="Section B content..."
+                                    className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
+                                    spellCheck={false}
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <textarea
+                            ref={textareaRef}
+                            value={content}
+                            onChange={handleContentChange}
+                            placeholder="Start simple, write everything here..."
+                            className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
+                            spellCheck={false}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -398,7 +511,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-12 animate-in fade-in duration-300">
                     <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={closePreview} />
                     <div className="relative w-full h-full max-w-6xl bg-[#0a0a0a] border border-white/10 rounded-2xl md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
-                        {/* Header */}
                         <div className="flex-shrink-0 p-4 border-b border-white/5 flex items-center justify-between bg-[#0f0f0f]">
                             <div className="flex items-center gap-3">
                                 <div className={`p-2 rounded-lg ${previewDoc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
@@ -420,7 +532,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                             </div>
                         </div>
 
-                        {/* Viewer Body */}
                         <div className="flex-1 bg-white relative overflow-hidden">
                             {previewDoc.name.toLowerCase().endsWith('.pdf') ? (
                                 <iframe
