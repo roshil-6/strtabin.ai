@@ -222,6 +222,13 @@ export type RFState = {
     isPaid: boolean;
     setAuthenticated: (status: boolean) => void;
     setPaid: (status: boolean) => void;
+
+    // Trial & Access
+    trialStartedAt: Record<string, number>; // userId -> timestamp
+    paidUsers: Record<string, boolean>; // userId -> paid
+    startTrial: (userId: string) => void;
+    setPaidUser: (userId: string) => void;
+    getAccessStatus: (userId: string) => 'trial' | 'expired' | 'paid';
 };
 
 const useStore = create<RFState>()(
@@ -242,6 +249,31 @@ const useStore = create<RFState>()(
             projectMapEdges: {},
             isAuthenticated: false,
             isPaid: false,
+            trialStartedAt: {},
+            paidUsers: {},
+
+            startTrial: (userId: string) => {
+                set((state) => {
+                    if (state.trialStartedAt[userId]) return state; // already started
+                    return { trialStartedAt: { ...state.trialStartedAt, [userId]: Date.now() } };
+                });
+            },
+
+            setPaidUser: (userId: string) => {
+                set((state) => ({
+                    paidUsers: { ...state.paidUsers, [userId]: true }
+                }));
+            },
+
+            getAccessStatus: (userId: string) => {
+                const state = get();
+                if (state.paidUsers[userId]) return 'paid';
+                const trialStart = state.trialStartedAt[userId];
+                if (!trialStart) return 'trial'; // hasn't started yet, we'll start it
+                const elapsed = Date.now() - trialStart;
+                const ONE_DAY = 24 * 60 * 60 * 1000;
+                return elapsed < ONE_DAY ? 'trial' : 'expired';
+            },
 
             initDefaultCanvas: () => {
                 const state = get();

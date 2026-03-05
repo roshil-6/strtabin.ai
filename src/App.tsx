@@ -9,23 +9,25 @@ import CalendarView from './components/CalendarView';
 import LandingPage from './components/LandingPage';
 import FolderWorkflow from './components/FolderWorkflow';
 import AuthGate from './components/AuthGate';
+import PaywallGate from './components/PaywallGate';
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
-      <Route path="/dashboard" element={<AuthGate><Dashboard /></AuthGate>} />
-      <Route path="/folder-workflow/:folderId" element={<AuthGate><FolderWorkflow /></AuthGate>} />
-      <Route path="/strategy/:id" element={<AuthGate><Canvas /></AuthGate>} />
-      <Route path="/canvas/:id" element={<AuthGate><Canvas /></AuthGate>} />
-      <Route path="/timeline/:id" element={<AuthGate><TimelineSection /></AuthGate>} />
-      <Route path="/todo/:id" element={<AuthGate><TodoSection /></AuthGate>} />
-      <Route path="/calendar/:id" element={<AuthGate><CalendarView /></AuthGate>} />
-      <Route path="/calendar" element={<AuthGate><CalendarView /></AuthGate>} />
-      <Route path="/strab/:id" element={<AuthGate><StrabView /></AuthGate>} />
+      <Route path="/dashboard" element={<AuthGate><PaywallGate><Dashboard /></PaywallGate></AuthGate>} />
+      <Route path="/folder-workflow/:folderId" element={<AuthGate><PaywallGate><FolderWorkflow /></PaywallGate></AuthGate>} />
+      <Route path="/strategy/:id" element={<AuthGate><PaywallGate><Canvas /></PaywallGate></AuthGate>} />
+      <Route path="/canvas/:id" element={<AuthGate><PaywallGate><Canvas /></PaywallGate></AuthGate>} />
+      <Route path="/timeline/:id" element={<AuthGate><PaywallGate><TimelineSection /></PaywallGate></AuthGate>} />
+      <Route path="/todo/:id" element={<AuthGate><PaywallGate><TodoSection /></PaywallGate></AuthGate>} />
+      <Route path="/calendar/:id" element={<AuthGate><PaywallGate><CalendarView /></PaywallGate></AuthGate>} />
+      <Route path="/calendar" element={<AuthGate><PaywallGate><CalendarView /></PaywallGate></AuthGate>} />
+      <Route path="/strab/:id" element={<AuthGate><PaywallGate><StrabView /></PaywallGate></AuthGate>} />
     </Routes>
   );
 }
 
 export default App;
+
