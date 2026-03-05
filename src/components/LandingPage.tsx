@@ -107,7 +107,7 @@ const HexagonBackground = () => {
 
 export default function LandingPage() {
     const navigate = useNavigate();
-    const { isSignedIn } = useAuth();
+    const { isSignedIn, isLoaded: authLoaded } = useAuth();
     const { signIn, isLoaded } = useSignIn();
     const [loading, setLoading] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
@@ -115,10 +115,10 @@ export default function LandingPage() {
 
     // If user is already signed in, redirect to dashboard
     useEffect(() => {
-        if (isSignedIn) {
+        if (authLoaded && isSignedIn) {
             navigate('/dashboard', { replace: true });
         }
-    }, [isSignedIn, navigate]);
+    }, [authLoaded, isSignedIn, navigate]);
 
     const handleGoogleLogin = async () => {
         if (!isLoaded || !signIn) return;
@@ -208,15 +208,31 @@ export default function LandingPage() {
                         Simplified for speed, powered by STRAB AI.
                     </p>
 
-                    <button
-                        onClick={handleGoogleLogin}
-                        disabled={loading || !isLoaded}
-                        className="group relative flex items-center gap-3 px-8 py-4 bg-white text-black font-black rounded-2xl hover:bg-primary hover:text-white transition-all shadow-[0_4px_30px_rgba(255,255,255,0.1)] active:scale-95 mx-auto disabled:opacity-50"
-                    >
-                        <Chrome size={20} />
-                        {loading ? 'Redirecting...' : 'Get Started with Google'}
-                        <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                    </button>
+                    {!isLoaded ? (
+                        <div className="flex items-center justify-center gap-3 px-8 py-4 bg-white/5 border border-white/10 rounded-2xl animate-pulse mx-auto w-fit">
+                            <div className="w-5 h-5 border-2 border-white/10 border-t-white rounded-full animate-spin" />
+                            <span className="text-sm font-bold text-white/40 uppercase tracking-widest">Checking access...</span>
+                        </div>
+                    ) : isSignedIn ? (
+                        <button
+                            onClick={() => navigate('/dashboard')}
+                            className="group relative flex items-center gap-3 px-8 py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_4px_30px_rgba(255,119,86,0.3)] active:scale-95 mx-auto"
+                        >
+                            <Zap size={20} fill="currentColor" />
+                            Go to Dashboard
+                            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleGoogleLogin}
+                            disabled={loading}
+                            className="group relative flex items-center gap-3 px-8 py-4 bg-white text-black font-black rounded-2xl hover:bg-primary hover:text-white transition-all shadow-[0_4px_30px_rgba(255,255,255,0.1)] active:scale-95 mx-auto disabled:opacity-50"
+                        >
+                            <Chrome size={20} />
+                            {loading ? 'Connecting to Google...' : 'Get Started with Google'}
+                            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    )}
                     {authError && (
                         <p className="mt-4 text-red-400 text-sm font-bold text-center">{authError}</p>
                     )}

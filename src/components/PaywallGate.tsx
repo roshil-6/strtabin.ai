@@ -123,6 +123,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                         onClick={() => {
                             if (user) {
                                 setPaidUser(user.id);
+                                setStatus('paid'); // Instant update for better UX
                             }
                         }}
                         className="text-xs text-white/20 hover:text-white/50 transition-colors py-2 font-bold"

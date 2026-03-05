@@ -8,6 +8,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (isLoaded && !isSignedIn) {
+            console.log('User not signed in, redirecting to home...');
             navigate('/', { replace: true });
         }
     }, [isLoaded, isSignedIn, navigate]);
