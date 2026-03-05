@@ -1,9 +1,12 @@
 import { StrictMode, Component, type ErrorInfo, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { ClerkProvider } from '@clerk/clerk-react'
 import './index.css'
 import App from './App'
 import useStore from './store/useStore'
+
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 // Register Service Worker for better background notification reliability
 if ('serviceWorker' in navigator) {
@@ -50,9 +53,11 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ClerkProvider>
     </ErrorBoundary>
   </StrictMode>,
 )

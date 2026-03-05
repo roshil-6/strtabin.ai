@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import { useClerk, useUser } from '@clerk/clerk-react';
 import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network } from 'lucide-react';
 
 export default function Dashboard() {
@@ -19,8 +20,8 @@ export default function Dashboard() {
     const moveItemToFolder = useStore(state => state.moveItemToFolder);
     const duplicateCanvas = useStore(state => state.duplicateCanvas);
 
-    const setAuthenticated = useStore(state => state.setAuthenticated);
-    const setPaid = useStore(state => state.setPaid);
+    const { signOut } = useClerk();
+    const { user } = useUser();
 
     const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab'>('strategy');
     const [selectionMode, setSelectionMode] = useState(false);
@@ -219,16 +220,20 @@ export default function Dashboard() {
                 <div className="mt-auto p-6 border-t border-white/5 bg-white/[0.02]">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 text-white/30">
-                            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold">
-                                AA
-                            </div>
+                            {user?.imageUrl ? (
+                                <img src={user.imageUrl} alt={user.fullName || 'User'} className="w-8 h-8 rounded-full border border-white/10 object-cover" />
+                            ) : (
+                                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold">
+                                    {user?.firstName?.[0] || 'U'}
+                                </div>
+                            )}
                             <div className="text-[11px]">
-                                <p className="text-white/60 font-bold leading-none mb-1">Abhinand Antony</p>
-                                <p className="opacity-50 tracking-wide">Standard Workspace</p>
+                                <p className="text-white/60 font-bold leading-none mb-1">{user?.fullName || user?.firstName || 'User'}</p>
+                                <p className="opacity-50 tracking-wide">{user?.primaryEmailAddress?.emailAddress || 'Signed in'}</p>
                             </div>
                         </div>
                         <button
-                            onClick={() => { setAuthenticated(false); setPaid(false); navigate('/'); }}
+                            onClick={() => signOut({ redirectUrl: '/' })}
                             className="p-2 hover:bg-red-500/10 text-white/20 hover:text-red-500 rounded-lg transition-colors"
                             title="Sign Out"
                         >

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useStore from '../store/useStore';
+import { useSignIn, useAuth } from '@clerk/clerk-react';
 import { Check, Zap, ArrowRight, Chrome, Bot, X, Compass, Target, Rocket } from 'lucide-react';
 
 const HexagonBackground = () => {
@@ -107,18 +107,33 @@ const HexagonBackground = () => {
 
 export default function LandingPage() {
     const navigate = useNavigate();
-    const setAuthenticated = useStore(state => state.setAuthenticated);
-    const setPaid = useStore(state => state.setPaid);
+    const { isSignedIn } = useAuth();
+    const { signIn, isLoaded } = useSignIn();
     const [loading, setLoading] = useState(false);
+    const [authError, setAuthError] = useState<string | null>(null);
     const [showHowTo, setShowHowTo] = useState(false);
 
-    const handleGoogleLogin = () => {
+    // If user is already signed in, redirect to dashboard
+    useEffect(() => {
+        if (isSignedIn) {
+            navigate('/dashboard', { replace: true });
+        }
+    }, [isSignedIn, navigate]);
+
+    const handleGoogleLogin = async () => {
+        if (!isLoaded || !signIn) return;
         setLoading(true);
-        // Simulate Google Auth
-        setTimeout(() => {
-            setAuthenticated(true);
+        setAuthError(null);
+        try {
+            await signIn.authenticateWithRedirect({
+                strategy: 'oauth_google',
+                redirectUrl: '/sso-callback',
+                redirectUrlComplete: '/dashboard',
+            });
+        } catch (err: any) {
+            setAuthError('Sign-in failed. Please try again.');
             setLoading(false);
-        }, 1500);
+        }
     };
 
     const handlePayment = (plan: 'monthly' | 'yearly' | 'lifetime') => {
@@ -126,7 +141,6 @@ export default function LandingPage() {
         console.log(`Processing ${plan} payment...`);
         // Simulate Razorpay
         setTimeout(() => {
-            setPaid(true);
             navigate('/dashboard');
         }, 2000);
     };
@@ -195,12 +209,16 @@ export default function LandingPage() {
 
                     <button
                         onClick={handleGoogleLogin}
-                        className="group relative flex items-center gap-3 px-8 py-4 bg-white text-black font-black rounded-2xl hover:bg-primary hover:text-white transition-all shadow-[0_4px_30px_rgba(255,255,255,0.1)] active:scale-95 mx-auto"
+                        disabled={loading || !isLoaded}
+                        className="group relative flex items-center gap-3 px-8 py-4 bg-white text-black font-black rounded-2xl hover:bg-primary hover:text-white transition-all shadow-[0_4px_30px_rgba(255,255,255,0.1)] active:scale-95 mx-auto disabled:opacity-50"
                     >
                         <Chrome size={20} />
-                        Get Started with Google
+                        {loading ? 'Redirecting...' : 'Get Started with Google'}
                         <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </button>
+                    {authError && (
+                        <p className="mt-4 text-red-400 text-sm font-bold text-center">{authError}</p>
+                    )}
                 </div>
             </section>
 
