@@ -485,7 +485,7 @@ export default function Dashboard() {
                                     value={newFolderName}
                                     onChange={e => setNewFolderName(e.target.value)}
                                     placeholder="Enter folder name..."
-                                    className="w-full bg-[#080808] border border-white/5 rounded-2xl p-5 text-white focus:border-primary/50 outline-none transition-all placeholder-white/10"
+                                    className="w-full bg-[#080808] border border-white/5 rounded-2xl p-5 text-base text-white focus:border-primary/50 outline-none transition-all placeholder-white/10"
                                     onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
                                 />
                             </div>

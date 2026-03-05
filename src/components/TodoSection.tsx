@@ -37,7 +37,7 @@ export default function TodoSection() {
                             value={newTodo}
                             onChange={(e) => setNewTodo(e.target.value)}
                             placeholder="Add a new task..."
-                            className="flex-1 bg-[#151515] border border-white/10 rounded-xl px-6 py-4 outline-none focus:border-orange-400/50 transition-colors placeholder-white/20"
+                            className="flex-1 bg-[#151515] border border-white/10 rounded-xl px-6 py-4 text-base outline-none focus:border-orange-400/50 transition-colors placeholder-white/20"
                         />
                         <button
                             type="submit"

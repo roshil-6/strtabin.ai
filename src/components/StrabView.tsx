@@ -235,7 +235,7 @@ export default function StrabView() {
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                                     placeholder="Ask STRAB about your project..."
-                                    className="w-full bg-[#151515] border border-white/10 rounded-xl py-3.5 pl-4 pr-12 text-sm text-white focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 outline-none transition-all"
+                                    className="w-full bg-[#151515] border border-white/10 rounded-xl py-4 pl-4 pr-12 text-base text-white focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 outline-none transition-all"
                                 />
                                 <button
                                     onClick={handleSend}

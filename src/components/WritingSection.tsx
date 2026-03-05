@@ -391,7 +391,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     value={headingA}
                                     onChange={(e) => handleHeadingChange('A', e.target.value)}
                                     placeholder="Heading A"
-                                    className="bg-transparent text-xl font-black text-primary placeholder-primary/20 outline-none uppercase tracking-wider"
+                                    className="bg-transparent text-lg md:text-xl font-black text-primary placeholder-primary/20 outline-none uppercase tracking-wider"
                                 />
                                 <div className="h-px bg-white/10 w-12" />
                                 <textarea
@@ -399,7 +399,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     value={contentA}
                                     onChange={(e) => handleSplitContentChange('A', e.target.value)}
                                     placeholder="Section A content..."
-                                    className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
+                                    className="w-full bg-transparent text-base md:text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
                                     spellCheck={false}
                                 />
                             </div>
@@ -411,7 +411,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     value={headingB}
                                     onChange={(e) => handleHeadingChange('B', e.target.value)}
                                     placeholder="Heading B"
-                                    className="bg-transparent text-xl font-black text-primary placeholder-primary/20 outline-none uppercase tracking-wider"
+                                    className="bg-transparent text-lg md:text-xl font-black text-primary placeholder-primary/20 outline-none uppercase tracking-wider"
                                 />
                                 <div className="h-px bg-white/10 w-12" />
                                 <textarea
@@ -419,7 +419,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     value={contentB}
                                     onChange={(e) => handleSplitContentChange('B', e.target.value)}
                                     placeholder="Section B content..."
-                                    className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
+                                    className="w-full bg-transparent text-base md:text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
                                     spellCheck={false}
                                 />
                             </div>
@@ -430,7 +430,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                             value={content}
                             onChange={handleContentChange}
                             placeholder="Start simple, write everything here..."
-                            className="w-full bg-transparent text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
+                            className="w-full bg-transparent text-base md:text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
                             spellCheck={false}
                         />
                     )}
@@ -459,7 +459,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                 value={branchTopic}
                                 onChange={e => setBranchTopic(e.target.value)}
                                 placeholder="Core Topic..."
-                                className="w-full bg-[#111] border border-[#333] rounded p-2 text-white focus:border-primary/50 outline-none transition-colors"
+                                className="w-full bg-[#111] border border-[#333] rounded p-3 text-base text-white focus:border-primary/50 outline-none transition-colors"
                             />
                         </div>
 
@@ -490,7 +490,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         setBranchItems(newItems);
                                     }}
                                     placeholder={`Branch ${i + 1}`}
-                                    className="w-full bg-[#111] border border-[#333] rounded p-2 text-sm text-white focus:border-primary/50 outline-none transition-colors"
+                                    className="w-full bg-[#111] border border-[#333] rounded p-3 text-base text-white focus:border-primary/50 outline-none transition-colors"
                                 />
                             ))}
                         </div>
