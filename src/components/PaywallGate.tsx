@@ -51,15 +51,31 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
         return (
             <>
                 {status === 'trial' && (
-                    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-[#111] border border-white/10 rounded-2xl shadow-2xl backdrop-blur-sm">
-                        <Clock size={14} className="text-primary shrink-0" />
-                        <span className="text-xs font-black text-white/60">Free trial expires in <span className="text-primary">{formatTimeLeft(timeLeft)}</span></span>
-                        <button
-                            onClick={() => window.open(RAZORPAY_LINK, '_blank')}
-                            className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-primary text-black rounded-xl hover:bg-white transition-all"
-                        >
-                            Upgrade
-                        </button>
+                    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-4 px-4 py-3 bg-[#111] border border-white/10 rounded-2xl shadow-2xl backdrop-blur-sm">
+                        <div className="flex items-center gap-3">
+                            <Clock size={14} className="text-primary shrink-0" />
+                            <span className="text-xs font-black text-white/60">Free trial expires in <span className="text-primary">{formatTimeLeft(timeLeft)}</span></span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => {
+                                    if (user) {
+                                        setPaidUser(user.id);
+                                        setStatus('paid');
+                                    }
+                                }}
+                                className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 text-white/40 hover:text-white transition-all"
+                                title="Already paid? Click to unlock"
+                            >
+                                Already Paid?
+                            </button>
+                            <button
+                                onClick={() => window.open(RAZORPAY_LINK, '_blank')}
+                                className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-primary text-black rounded-xl hover:bg-white transition-all"
+                            >
+                                Upgrade
+                            </button>
+                        </div>
                     </div>
                 )}
                 {children}
