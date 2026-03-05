@@ -127,11 +127,12 @@ export default function LandingPage() {
         try {
             await signIn.authenticateWithRedirect({
                 strategy: 'oauth_google',
-                redirectUrl: '/sso-callback',
-                redirectUrlComplete: '/dashboard',
+                redirectUrl: `${window.location.origin}/sso-callback`,
+                redirectUrlComplete: `${window.location.origin}/dashboard`,
             });
         } catch (err: any) {
-            setAuthError('Sign-in failed. Please try again.');
+            console.error('Sign-in error:', err);
+            setAuthError(err?.errors?.[0]?.longMessage || 'Sign-in failed. Please try again.');
             setLoading(false);
         }
     };
