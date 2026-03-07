@@ -45,11 +45,11 @@ app.use(helmet({
     }
 }));
 
-// ─── CORS — strict, no no-origin bypass ───────────────────────────────────
+// ─── CORS ─────────────────────────────────────────────────────────────────
 app.use(cors({
     origin: (origin, callback) => {
-        // Block requests with no origin (e.g. curl, automated scripts)
-        if (!origin) return callback(new Error('Origin required'));
+        // Allow server-to-server requests and health checks (no Origin header)
+        if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
             return callback(null, true);
         }
