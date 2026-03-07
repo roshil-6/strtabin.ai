@@ -261,6 +261,14 @@ function CanvasContent() {
 
 
     const [mobileTab, setMobileTab] = useState<'write' | 'map'>('write');
+    // Track mobile state so we can conditionally unmount ReactFlow when not in map tab
+    // (prevents React Flow's global keydown handlers from intercepting Space in inputs)
+    const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handler, { passive: true });
+        return () => window.removeEventListener('resize', handler);
+    }, []);
 
     return (
         <div className="w-screen h-screen bg-background text-white relative overflow-hidden flex flex-col md:flex-row">
@@ -359,8 +367,10 @@ function CanvasContent() {
                 ${mobileTab === 'map' ? 'flex' : 'hidden'} 
                 md:flex flex-1 h-full relative flex-col
             `}>
-                    <div className="flex-1 w-full h-full relative">
-                        {/* Flow Top Bar - Lowered when tabs are present */}
+                    {/* touch-action:none lets React Flow own all touch events (pinch zoom, drag pan)
+                        without the browser intercepting them to zoom the page */}
+                    <div className="flex-1 w-full h-full relative" style={{ touchAction: 'none' }}>
+                        {/* Flow Top Bar */}
                         <div className={`absolute ${isMerged ? 'top-18' : 'top-4'} left-4 right-4 h-14 bg-[#1a1a1a]/80 backdrop-blur-md rounded-2xl border border-white/10 flex items-center px-4 z-40 justify-between transition-all`}>
                             <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -391,7 +401,10 @@ function CanvasContent() {
                             </div>
                         </div>
 
-                        <ReactFlow
+                        {/* On mobile: only mount ReactFlow when the map tab is active.
+                            This prevents React Flow's global keydown handlers (Space = pan)
+                            from intercepting key events in the Write section's inputs. */}
+                        {(!isMobile || mobileTab === 'map') && <ReactFlow
                             nodes={enhancedNodes}
                             edges={edges}
                             onNodesChange={onNodesChange}
@@ -405,13 +418,24 @@ function CanvasContent() {
                             edgeTypes={edgeTypes}
                             defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
                             fitView
-                            fitViewOptions={{ minZoom: 0.1, maxZoom: 1.5, padding: 0.1 }}
+                            fitViewOptions={{ minZoom: 0.3, maxZoom: 1.5, padding: 0.15 }}
                             colorMode="dark"
-                            minZoom={0.05}
+                            minZoom={0.2}
+                            maxZoom={2}
                             connectionRadius={50}
                             snapToGrid
                             snapGrid={[10, 10]}
                             connectionLineStyle={{ stroke: '#FF5F1F', strokeWidth: 2.5, strokeDasharray: '6 3' }}
+                            // Bound the canvas — prevents infinite scroll in any direction
+                            translateExtent={[[-4000, -4000], [4000, 4000]]}
+                            // Touch behaviour: pinch-to-zoom nodes, single-finger drag to pan
+                            // zoomOnScroll false on mobile (use pinch only); true on desktop
+                            zoomOnPinch={true}
+                            zoomOnScroll={!isMobile}
+                            panOnScroll={false}
+                            panOnDrag={true}
+                            // preventScrolling true = stops body from scrolling when pointer is over canvas
+                            preventScrolling={true}
                         >
                             <Background color="#151515" gap={20} variant={BackgroundVariant.Dots} size={1} />
                             <Controls style={{
@@ -422,16 +446,17 @@ function CanvasContent() {
                             }} />
 
                             {/* Mobile-only Fit View Button */}
-                            <Panel position="bottom-right" className="md:hidden pb-20 pr-4">
+                            <Panel position="bottom-right" className="md:hidden pb-24 pr-4">
                                 <button
-                                    onClick={() => fitView({ duration: 800, padding: 0.2 })}
-                                    className="w-10 h-10 rounded-full bg-[#1a1a1a]/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 active:scale-95 transition-all shadow-xl"
+                                    onClick={() => fitView({ duration: 600, padding: 0.2 })}
+                                    className="w-12 h-12 rounded-full bg-[#1a1a1a]/90 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 active:scale-95 transition-all shadow-xl"
                                     title="Fit View"
+                                    aria-label="Fit all nodes in view"
                                 >
-                                    <Maximize size={18} />
+                                    <Maximize size={20} />
                                 </button>
                             </Panel>
-                        </ReactFlow>
+                        </ReactFlow>}
                     </div>
 
                     {/* Floating Command Dock */}
