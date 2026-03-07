@@ -12,17 +12,23 @@
     "start:server": "node server.js"
   },
   "dependencies": {
+    "@clerk/backend": "^3.0.1",
     "@clerk/clerk-react": "^5.61.3",
+    "@types/dompurify": "^3.0.5",
     "@xyflow/react": "^12.10.0",
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
+    "dompurify": "^3.3.2",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.3.0",
+    "helmet": "^8.1.0",
     "lucide-react": "^0.564.0",
     "mammoth": "^1.11.0",
     "node-fetch": "^3.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.13.0",
     "tailwind-merge": "^3.4.1",
     "zustand": "^5.0.11"

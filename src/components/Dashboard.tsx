@@ -1,24 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil } from 'lucide-react';
+import type { CanvasData } from '../store/useStore';
 
 export default function Dashboard() {
     const navigate = useNavigate();
-    const canvases = useStore(state => state.canvases);
-    const createCanvas = useStore(state => state.createCanvas);
-    const deleteCanvas = useStore(state => state.deleteCanvas);
-    const togglePinCanvas = useStore(state => state.togglePinCanvas);
-    const toggleCurrentProject = useStore(state => state.toggleCurrentProject);
-    const mergeCanvases = useStore(state => state.mergeCanvases);
-    const folders = useStore(state => state.folders);
-    const activeFolderId = useStore(state => state.activeFolderId);
-    const createFolder = useStore(state => state.createFolder);
-    const deleteFolder = useStore(state => state.deleteFolder);
-    const setActiveFolder = useStore(state => state.setActiveFolder);
-    const moveItemToFolder = useStore(state => state.moveItemToFolder);
-    const duplicateCanvas = useStore(state => state.duplicateCanvas);
+    const {
+        canvases, createCanvas, deleteCanvas, togglePinCanvas, toggleCurrentProject,
+        mergeCanvases, folders, activeFolderId, createFolder, deleteFolder,
+        setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName,
+    } = useStore(useShallow(state => ({
+        canvases: state.canvases,
+        createCanvas: state.createCanvas,
+        deleteCanvas: state.deleteCanvas,
+        togglePinCanvas: state.togglePinCanvas,
+        toggleCurrentProject: state.toggleCurrentProject,
+        mergeCanvases: state.mergeCanvases,
+        folders: state.folders,
+        activeFolderId: state.activeFolderId,
+        createFolder: state.createFolder,
+        deleteFolder: state.deleteFolder,
+        setActiveFolder: state.setActiveFolder,
+        moveItemToFolder: state.moveItemToFolder,
+        duplicateCanvas: state.duplicateCanvas,
+        updateCanvasName: state.updateCanvasName,
+    })));
 
     const { signOut } = useClerk();
     const { user } = useUser();
@@ -31,6 +41,13 @@ export default function Dashboard() {
     const [showMoveMenu, setShowMoveMenu] = useState<string | null>(null);
     const [showDuplicateMenu, setShowDuplicateMenu] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [renamingId, setRenamingId] = useState<string | null>(null);
+    const [renameValue, setRenameValue] = useState('');
+
+    useEffect(() => {
+        document.title = 'Dashboard | Stratabin';
+        return () => { document.title = 'Stratabin AI — Strategy Workspace'; };
+    }, []);
 
     const handleCreate = () => {
         const id = createCanvas();
@@ -47,11 +64,28 @@ export default function Dashboard() {
         toggleCurrentProject(id);
     };
 
-    const handleDelete = (e: React.MouseEvent, id: string) => {
+    const handleDelete = (e: React.MouseEvent, canvasId: string) => {
         e.stopPropagation();
-        if (confirm('Are you sure you want to delete this project?')) {
-            deleteCanvas(id);
-        }
+        toast((t) => (
+            <div className="flex flex-col gap-3">
+                <p className="text-sm font-bold">Delete this project?</p>
+                <p className="text-xs text-white/50">This action cannot be undone.</p>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => { deleteCanvas(canvasId); toast.dismiss(t.id); }}
+                        className="flex-1 py-1.5 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 transition-all"
+                    >
+                        Delete
+                    </button>
+                    <button
+                        onClick={() => toast.dismiss(t.id)}
+                        className="flex-1 py-1.5 bg-white/10 text-white text-xs font-bold rounded-lg hover:bg-white/20 transition-all"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        ), { duration: 8000 });
     };
 
     const handleSelect = (e: React.MouseEvent, id: string) => {
@@ -70,6 +104,20 @@ export default function Dashboard() {
             setSelectedIds([]);
             navigate(`/strategy/${id}`);
         }
+    };
+
+    const handleStartRename = (e: React.MouseEvent, id: string, currentName: string) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setRenamingId(id);
+        setRenameValue(currentName || '');
+    };
+
+    const handleRenameCommit = (id: string) => {
+        const trimmed = renameValue.trim();
+        if (trimmed) updateCanvasName(id, trimmed);
+        setRenamingId(null);
+        setRenameValue('');
     };
 
     const handleCreateFolder = () => {
@@ -123,6 +171,7 @@ export default function Dashboard() {
         switch (activeTab) {
             case 'strategy': return Layout;
             case 'todo': return CheckSquare;
+            case 'timeline': return Clock;
             case 'calendar': return Calendar;
             case 'planner': return CheckCircle2;
             case 'strab': return Bot;
@@ -198,10 +247,23 @@ export default function Dashboard() {
                                     >
                                         <Folder size={18} className={activeFolderId === folder.id ? 'text-primary fill-primary/20' : 'text-white/20 group-hover:text-white'} />
                                         <span className="font-bold text-sm truncate flex-1 text-left">{folder.name}</span>
-                                        <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); if (confirm('Delete this folder? Projects will move to General.')) deleteFolder(folder.id); }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toast((t) => (
+                                                        <div className="flex flex-col gap-3">
+                                                            <p className="text-sm font-bold">Delete folder?</p>
+                                                            <p className="text-xs text-white/50">Projects will move to General.</p>
+                                                            <div className="flex gap-2">
+                                                                <button onClick={() => { deleteFolder(folder.id); toast.dismiss(t.id); }} className="flex-1 py-1.5 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 transition-all">Delete</button>
+                                                                <button onClick={() => toast.dismiss(t.id)} className="flex-1 py-1.5 bg-white/10 text-white text-xs font-bold rounded-lg hover:bg-white/20 transition-all">Cancel</button>
+                                                            </div>
+                                                        </div>
+                                                    ), { duration: 8000 });
+                                                }}
                                                 className="p-1 hover:text-red-400"
+                                                aria-label="Delete folder"
                                             >
                                                 <Trash2 size={12} />
                                             </button>
@@ -306,7 +368,7 @@ export default function Dashboard() {
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
+                                onClick={() => setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab')}
                                 className={`group flex items-center gap-3 pb-4 relative transition-all min-w-max ${activeTab === tab.id
                                     ? 'text-white'
                                     : 'text-white/40 hover:text-white/70'
@@ -365,22 +427,22 @@ export default function Dashboard() {
                         <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
-                                    <div className="bg-[#1a1a1a] border border-orange-500/30 rounded-2xl p-4 shadow-2xl flex items-center gap-6 backdrop-blur-xl">
+                                    <div className="bg-[#1a1a1a] border border-orange-500/30 rounded-2xl p-4 shadow-2xl flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
                                         <div className="flex flex-col">
-                                            <span className="text-white font-bold text-sm">Selection Mode</span>
-                                            <span className="text-white/40 text-xs">{selectedIds.length}/2 projects selected</span>
+                                            <span className="text-white font-bold text-sm">Select 2 Projects</span>
+                                            <span className="text-white/40 text-xs">{selectedIds.length}/2 selected</span>
                                         </div>
                                         <button
                                             disabled={selectedIds.length < 2}
                                             onClick={handleMerge}
-                                            className="px-6 py-2 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-400 disabled:opacity-30 disabled:grayscale transition-all flex items-center gap-2"
+                                            className="px-5 py-2.5 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-400 disabled:opacity-30 disabled:grayscale transition-all flex items-center gap-2 text-sm"
                                         >
-                                            <GitMerge size={18} />
-                                            Merge to New Project
+                                            <GitMerge size={16} />
+                                            Merge
                                         </button>
                                         <button
                                             onClick={() => setSelectionMode(false)}
-                                            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white"
+                                            className="p-2.5 hover:bg-white/5 rounded-xl transition-colors text-white/40 hover:text-white ml-auto"
                                         >
                                             <X size={20} />
                                         </button>
@@ -483,8 +545,10 @@ export default function Dashboard() {
                                     autoFocus
                                     type="text"
                                     value={newFolderName}
-                                    onChange={e => setNewFolderName(e.target.value)}
+                                    onChange={e => setNewFolderName(e.target.value.slice(0, 100))}
                                     placeholder="Enter folder name..."
+                                    maxLength={100}
+                                    aria-label="Folder name"
                                     className="w-full bg-[#080808] border border-white/5 rounded-2xl p-5 text-base text-white focus:border-primary/50 outline-none transition-all placeholder-white/10"
                                     onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
                                 />
@@ -505,7 +569,7 @@ export default function Dashboard() {
         </div>
     );
 
-    function renderProjectCard(p: any) {
+    function renderProjectCard(p: CanvasData) {
         const Icon = getActiveIcon();
         const isSelected = selectedIds.includes(p.id);
         const isMerged = !!p.mergedCanvasIds;
@@ -533,9 +597,9 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* Card Actions (Hidden in Selection Mode) */}
+                {/* Card Actions — always visible on mobile, hover-reveal on desktop */}
                 {!selectionMode && (
-                    <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all pointer-events-auto">
+                    <div className="absolute top-4 right-4 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all pointer-events-auto">
                         <div className="relative">
                             <button
                                 onClick={(e) => { e.stopPropagation(); setShowDuplicateMenu(showDuplicateMenu === p.id ? null : p.id); setShowMoveMenu(null); }}
@@ -612,6 +676,14 @@ export default function Dashboard() {
                             <Star size={16} fill={p.isPinned ? "currentColor" : "none"} />
                         </button>
                         <button
+                            onClick={(e) => handleStartRename(e, p.id, p.name || p.title || '')}
+                            className="p-2 rounded-lg text-white/20 hover:text-primary hover:bg-white/5 transition-colors"
+                            title="Rename Project"
+                            aria-label="Rename project"
+                        >
+                            <Pencil size={16} />
+                        </button>
+                        <button
                             onClick={(e) => handleDelete(e, p.id)}
                             className="p-2 rounded-lg text-white/20 hover:text-red-500 hover:bg-red-500/10 transition-colors"
                             title="Delete Project"
@@ -634,9 +706,33 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-white mb-2 truncate">{p.title || p.name || 'Untitled Project'}</h3>
+                {renamingId === p.id ? (
+                    <input
+                        autoFocus
+                        type="text"
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value.slice(0, 80))}
+                        onBlur={() => handleRenameCommit(p.id)}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') { e.preventDefault(); handleRenameCommit(p.id); }
+                            if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); }
+                        }}
+                        onClick={e => e.stopPropagation()}
+                        className="text-xl font-bold text-white mb-2 w-full bg-transparent border-b border-primary/60 outline-none pb-0.5 placeholder-white/20"
+                        placeholder="Project name..."
+                        aria-label="Rename project"
+                    />
+                ) : (
+                    <h3
+                        className="text-xl font-bold text-white mb-2 truncate cursor-text group/title flex items-center gap-2"
+                        onDoubleClick={e => handleStartRename(e, p.id, p.name || p.title || '')}
+                        title="Double-click to rename"
+                    >
+                        <span className="truncate">{p.title || p.name || 'Untitled Project'}</span>
+                    </h3>
+                )}
                 <p className="text-white/20 text-sm mb-6 line-clamp-2">
-                    {isMerged ? `Contains ${p.mergedCanvasIds.length} strategy canvases.` :
+                    {isMerged ? `Contains ${p.mergedCanvasIds?.length ?? 0} strategy canvases.` :
                         activeTab === 'strategy' ? 'Main strategy board and flowchart.' :
                             activeTab === 'todo' ? `${p.todos?.length || 0} tasks pending.` :
                                 activeTab === 'strab' ? 'AI-powered reports and insights.' :

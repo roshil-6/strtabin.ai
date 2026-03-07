@@ -1,109 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSignIn, useAuth } from '@clerk/clerk-react';
 import { Check, Zap, ArrowRight, Chrome, Bot, X, Compass, Target, Rocket } from 'lucide-react';
-
-const HexagonBackground = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const mouseRef = useRef({ x: 0, y: 0 });
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        let animationFrameId: number;
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-
-        const resize = () => {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-        };
-
-        window.addEventListener('resize', resize);
-        resize();
-
-        const hexSize = 40;
-        const hexHeight = hexSize * 2;
-        const hexWidth = Math.sqrt(3) * hexSize;
-        const vertDist = hexHeight * 0.75;
-        const horizDist = hexWidth;
-
-        const drawHexagon = (x: number, y: number, opacity: number) => {
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                const angle = (Math.PI / 3) * i + Math.PI / 6;
-                const hX = x + hexSize * Math.cos(angle);
-                const hY = y + hexSize * Math.sin(angle);
-                if (i === 0) ctx.moveTo(hX, hY);
-                else ctx.lineTo(hX, hY);
-            }
-            ctx.closePath();
-            ctx.strokeStyle = `rgba(218, 119, 86, ${opacity})`;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        };
-
-        const render = () => {
-            ctx.clearRect(0, 0, width, height);
-
-            const cols = Math.ceil(width / horizDist) + 1;
-            const rows = Math.ceil(height / vertDist) + 1;
-
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    let x = c * horizDist;
-                    let y = r * vertDist;
-                    if (r % 2 === 1) x += horizDist / 2;
-
-                    const dx = x - mouseRef.current.x;
-                    const dy = y - mouseRef.current.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    const maxDist = 250;
-                    let opacity = 0.03; // Base subtle opacity
-
-                    if (dist < maxDist) {
-                        const effect = 1 - dist / maxDist;
-                        opacity = 0.03 + 0.15 * effect; // Reactive glow
-                    }
-
-                    drawHexagon(x, y, opacity);
-                }
-            }
-            animationFrameId = requestAnimationFrame(render);
-        };
-
-        const handleMouseMove = (e: MouseEvent) => {
-            mouseRef.current = { x: e.clientX, y: e.clientY };
-        };
-
-        const handleTouchMove = (e: TouchEvent) => {
-            if (e.touches[0]) {
-                mouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
-        };
-
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('touchmove', handleTouchMove);
-
-        render();
-
-        return () => {
-            window.removeEventListener('resize', resize);
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('touchmove', handleTouchMove);
-            cancelAnimationFrame(animationFrameId);
-        };
-    }, []);
-
-    return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" />;
-};
+import { RAZORPAY_LINK } from '../constants';
+import HexagonBackground from './HexagonBackground';
 
 export default function LandingPage() {
     const navigate = useNavigate();
@@ -130,20 +30,15 @@ export default function LandingPage() {
                 redirectUrl: `${window.location.origin}/sso-callback`,
                 redirectUrlComplete: `${window.location.origin}/dashboard`,
             });
-        } catch (err: any) {
-            console.error('Sign-in error:', err);
-            setAuthError(err?.errors?.[0]?.longMessage || 'Sign-in failed. Please try again.');
+        } catch (err: unknown) {
+            const clerkErr = err as { errors?: Array<{ longMessage?: string }> };
+            setAuthError(clerkErr?.errors?.[0]?.longMessage || 'Sign-in failed. Please try again.');
             setLoading(false);
         }
     };
 
-    const handlePayment = (plan: 'monthly' | 'yearly' | 'lifetime') => {
-        setLoading(true);
-        console.log(`Processing ${plan} payment...`);
-        // Simulate Razorpay
-        setTimeout(() => {
-            navigate('/dashboard');
-        }, 2000);
+    const handlePayment = () => {
+        window.open(RAZORPAY_LINK, '_blank');
     };
 
     return (
@@ -159,14 +54,13 @@ export default function LandingPage() {
                         </div>
                         <h1 className="text-2xl font-black tracking-tighter text-white">Stratabin<span className="text-primary">.</span></h1>
                     </div>
-                    <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-4">
                         <button
                             onClick={() => setShowHowTo(true)}
-                            className="text-sm font-bold text-white/40 hover:text-white transition-colors"
+                            className="text-sm font-bold text-white/40 hover:text-white transition-colors px-4 py-2.5 rounded-xl hover:bg-white/5 min-h-[44px] flex items-center"
                         >
                             How it Works
                         </button>
-
                     </div>
                 </div>
             </header>
@@ -187,7 +81,7 @@ export default function LandingPage() {
                         <Zap size={14} />
                         Next-Gen Strategy Workspace
                     </div>
-                    <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                    <h2 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter leading-tight mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 break-words">
                         Map your vision. <br />
                         <span className="text-white/40">Execute with clarity.</span>
                     </h2>
@@ -296,7 +190,6 @@ export default function LandingPage() {
                                     "Writing, Tasks & Calendar",
                                     "Install on Phone (PWA)",
                                     "All Future Updates Included",
-                                    "Cloud Sync across devices",
                                 ].map((feature, i) => (
                                     <div key={i} className="flex items-center gap-3 text-sm font-medium text-white/80">
                                         <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-black shrink-0">
@@ -309,7 +202,7 @@ export default function LandingPage() {
                         </div>
 
                         <button
-                            onClick={() => handlePayment('lifetime')}
+                            onClick={() => handlePayment()}
                             className="w-full py-5 bg-primary text-black rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-white transition-all shadow-[0_10px_40px_rgba(218,119,86,0.2)] flex items-center justify-center gap-3"
                         >
                             <Zap size={20} fill="currentColor" />
@@ -433,11 +326,10 @@ export default function LandingPage() {
                                         { name: "Folder Workspaces", desc: "Create unlimited custom folders to segment your professional and personal life." },
                                         { name: "STRAB Intelligence", desc: "Our house-built AI provides context-aware insights on your strategy flows." },
                                         { name: "PWA Mobile", desc: "Install Stratabin on your iOS or Android device for native-like performance." },
-                                        { name: "Global Cloud Sync", desc: "All your data is securely synced and available on any browser, anywhere." },
                                         { name: "Interactive Canvas", desc: "High-performance drag and drop canvas for lightning fast mapping." },
-                                        { name: "Writing Mode", desc: "Distraction-free markdown editor for deep thought and documentation." },
-                                        { name: "Timeline Mapping", desc: "Visual gantt-style timelines to track project milestones and deadlines." },
-                                        { name: "Task Ecosystem", desc: "Deeply integrated todo lists that link directly to your strategy nodes." }
+                                        { name: "Writing Mode", desc: "Distraction-free writing editor for deep thought and long-form documentation." },
+                                        { name: "Timeline Mapping", desc: "Plan and structure project milestones and deadlines in a dedicated timeline view." },
+                                        { name: "Task Ecosystem", desc: "Deeply integrated todo lists tied to each of your strategy projects." }
                                     ].map((feat, i) => (
                                         <div key={i} className="p-8 bg-black/20 border border-white/5 rounded-3xl hover:bg-black/40 transition-all">
                                             <h5 className="text-primary font-black text-sm uppercase tracking-[0.2em] mb-3">{feat.name}</h5>

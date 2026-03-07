@@ -1,6 +1,7 @@
 import { useAuth } from '@clerk/clerk-react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { serverWarmup } from '../services/serverWarmup';
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
     const { isLoaded, isSignedIn } = useAuth();
@@ -8,8 +9,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (isLoaded && !isSignedIn) {
-            console.log('User not signed in, redirecting to home...');
             navigate('/', { replace: true });
+            serverWarmup.reset();
+        }
+        // Start warming up the backend the moment the user is authenticated
+        if (isLoaded && isSignedIn) {
+            serverWarmup.start();
         }
     }, [isLoaded, isSignedIn, navigate]);
 
@@ -27,7 +32,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         );
     }
 
-    if (!isSignedIn) return null;
+    // Keep the spinner visible during the one-frame gap before navigate() fires
+    if (!isSignedIn) return (
+        <div className="w-screen h-screen bg-[#0a0a0a] flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin" />
+        </div>
+    );
 
     return <>{children}</>;
 }

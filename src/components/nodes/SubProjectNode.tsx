@@ -1,8 +1,15 @@
 import { memo } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { ExternalLink, Layers } from 'lucide-react';
 
-const SubProjectNode = ({ data, selected }: any) => {
+interface SubProjectData extends Record<string, unknown> {
+    label: string;
+    canvasId?: string;
+    linkedSubCanvasId?: string;
+    onViewWorkflow?: () => void;
+}
+
+const SubProjectNode = ({ data, selected }: NodeProps<Node<SubProjectData>>) => {
     // Shared handle style
     const handleClass = `
         !w-3 !h-3 !bg-[#444] !border-2 !border-[#666]

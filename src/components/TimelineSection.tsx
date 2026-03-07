@@ -3,6 +3,7 @@ import useStore from '../store/useStore';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
+import MobileNav from './MobileNav';
 
 export default function TimelineSection() {
     const { id } = useParams<{ id: string }>();
@@ -15,7 +16,14 @@ export default function TimelineSection() {
         if (canvas) {
             setContent(canvas.timelineContent || '');
         }
-    }, [canvas]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canvas?.timelineContent]);
+
+    useEffect(() => {
+        if (canvas?.name) {
+            document.title = `Timeline — ${canvas.name} | Stratabin`;
+        }
+    }, [canvas?.name]);
 
     if (!canvas) return <div className="p-8 text-white">Project not found</div>;
 
@@ -27,31 +35,42 @@ export default function TimelineSection() {
 
     return (
         <div className="w-screen h-screen bg-[#0b0b0b] text-white flex">
-            {/* Sidebar Navigation */}
+            {/* Desktop sidebar — hidden on mobile */}
             <Sidebar canvasId={id} />
 
-            <div className="flex-1 flex flex-col">
-                <div className="h-16 border-b border-white/5 flex items-center px-6 gap-4">
+            <div className="flex-1 flex flex-col min-w-0">
+                {/* Header */}
+                <div className="h-16 border-b border-white/5 flex items-center px-4 md:px-6 gap-3 shrink-0">
                     <button
-                        onClick={() => navigate('/')}
-                        className="lg:hidden p-2 hover:bg-white/10 rounded-lg text-white/50 hover:text-white"
+                        onClick={() => navigate('/dashboard')}
+                        className="md:hidden p-2.5 -ml-1 rounded-xl text-white/50 hover:text-white hover:bg-white/5 transition-all"
+                        aria-label="Back to dashboard"
                     >
                         <ArrowLeft size={20} />
                     </button>
-                    <h1 className="text-lg font-bold">Set Timeline: <span className="text-primary">{canvas.title || 'Untitled'}</span></h1>
+                    <div className="min-w-0">
+                        <h1 className="text-base md:text-lg font-bold truncate">
+                            Timeline
+                            <span className="text-primary ml-2 font-bold">{canvas.name || canvas.title || 'Untitled'}</span>
+                        </h1>
+                    </div>
                 </div>
 
-                <div className="flex-1 p-8 sm:p-12 w-full max-w-5xl mx-auto">
-                    <p className="text-white/40 mb-4 text-sm uppercase tracking-wider font-medium">Timeline Plan</p>
+                {/* Content — scrollable, with padding for mobile nav */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-12 pb-24 md:pb-12 w-full max-w-5xl mx-auto">
+                    <p className="text-white/40 mb-4 text-xs uppercase tracking-widest font-black">Timeline Plan</p>
                     <textarea
                         value={content}
                         onChange={handleChange}
-                        placeholder="Type your timeline here (e.g., Phase 1: Research - Jan 1st...)"
-                        className="w-full h-[70vh] bg-[#151515] rounded-xl border border-white/10 p-6 text-lg leading-relaxed outline-none focus:border-primary/50 transition-colors resize-none placeholder-white/20"
+                        placeholder="Type your timeline here (e.g., Phase 1: Research — Jan 1st to Jan 15th...)"
+                        className="w-full bg-[#151515] rounded-xl border border-white/10 p-5 text-base md:text-lg leading-relaxed outline-none focus:border-primary/50 transition-colors resize-none placeholder-white/20"
+                        style={{ minHeight: 'calc(100vh - 14rem)' }}
                         spellCheck={false}
                     />
                 </div>
             </div>
+
+            {id && <MobileNav canvasId={id} />}
         </div>
     );
 }

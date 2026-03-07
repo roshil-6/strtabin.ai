@@ -1,10 +1,16 @@
 import { memo } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import useStore from '../../store/useStore';
 import { GripHorizontal, FolderPlus, ExternalLink, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const NodeShell = ({ id, data, selected }: any) => {
+interface ThinkingNodeData extends Record<string, unknown> {
+    label: string;
+}
+
+type ThinkingNodeProps = NodeProps<Node<ThinkingNodeData>>;
+
+const NodeShell = ({ id, data, selected }: ThinkingNodeProps) => {
     const { updateNodeData, convertNodeToProject, currentCanvasId, onNodesChange } = useStore();
     const navigate = useNavigate();
 

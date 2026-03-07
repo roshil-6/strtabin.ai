@@ -24,8 +24,9 @@ export default function ProjectHeader({ canvasId, activeTab }: ProjectHeaderProp
             {/* Left: Back & Title */}
             <div className="flex items-center gap-4 mr-8">
                 <button
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate('/dashboard')}
                     className="p-2 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors"
+                    aria-label="Back to dashboard"
                 >
                     <ArrowLeft size={20} />
                 </button>

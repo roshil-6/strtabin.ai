@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import useStore from '../store/useStore';
 import { Zap, Clock, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
-
-const RAZORPAY_LINK = 'https://rzp.io/rzp/vxWpvWM';
-const ONE_DAY = 24 * 60 * 60 * 1000;
+import { RAZORPAY_LINK, ONE_DAY } from '../constants';
 
 function formatTimeLeft(ms: number): string {
     const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -19,29 +17,33 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     const { getAccessStatus, startTrial, trialStartedAt, setPaidUser } = useStore();
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
+    const rafRef = useRef<number | null>(null);
 
     useEffect(() => {
         if (!user) return;
-
         const userId = user.id;
-
-        // Start trial on first sign-in
         startTrial(userId);
 
-        const checkStatus = () => {
+        const tick = () => {
             const s = getAccessStatus(userId);
             setStatus(s);
             if (s === 'trial') {
                 const started = trialStartedAt[userId];
-                if (started) {
-                    setTimeLeft(ONE_DAY - (Date.now() - started));
-                }
+                if (started) setTimeLeft(Math.max(0, ONE_DAY - (Date.now() - started)));
+                // Only re-schedule at 1-second intervals, not every animation frame
+                setTimeout(() => {
+                    rafRef.current = requestAnimationFrame(tick);
+                }, 1000);
             }
+            // If expired or paid, we stop updating
         };
 
-        checkStatus();
-        const interval = setInterval(checkStatus, 1000);
-        return () => clearInterval(interval);
+        rafRef.current = requestAnimationFrame(tick);
+        return () => {
+            if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+        };
+    // getAccessStatus and startTrial are store actions — stable references
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, trialStartedAt]);
 
     if (status === 'loading') return null;
@@ -51,10 +53,10 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
         return (
             <>
                 {status === 'trial' && (
-                    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-4 px-4 py-3 bg-[#111] border border-white/10 rounded-2xl shadow-2xl backdrop-blur-sm">
-                        <div className="flex items-center gap-3">
+                    <div className="fixed bottom-20 md:bottom-4 right-4 z-50 flex flex-wrap items-center gap-3 px-4 py-3 bg-[#111] border border-white/10 rounded-2xl shadow-2xl backdrop-blur-sm max-w-[calc(100vw-2rem)]">
+                        <div className="flex items-center gap-2">
                             <Clock size={14} className="text-primary shrink-0" />
-                            <span className="text-xs font-black text-white/60">Free trial expires in <span className="text-primary">{formatTimeLeft(timeLeft)}</span></span>
+                            <span className="text-xs font-black text-white/60">Trial: <span className="text-primary">{formatTimeLeft(timeLeft)}</span></span>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
@@ -64,14 +66,14 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                                         setStatus('paid');
                                     }
                                 }}
-                                className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 text-white/40 hover:text-white transition-all"
+                                className="text-xs font-black uppercase tracking-wider px-3 py-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all min-h-[36px]"
                                 title="Already paid? Click to unlock"
                             >
                                 Already Paid?
                             </button>
                             <button
                                 onClick={() => window.open(RAZORPAY_LINK, '_blank')}
-                                className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-primary text-black rounded-xl hover:bg-white transition-all"
+                                className="text-xs font-black uppercase tracking-wider px-4 py-2 bg-primary text-black rounded-xl hover:bg-white transition-all min-h-[36px]"
                             >
                                 Upgrade
                             </button>

@@ -6,6 +6,9 @@ import {
     Controls,
     BackgroundVariant,
     type Node,
+    type NodeChange,
+    type EdgeChange,
+    type Connection,
     ReactFlowProvider,
     Panel,
 } from '@xyflow/react';
@@ -54,9 +57,9 @@ function WorkflowContent() {
     };
 
     // Curry the change handlers with the current folder ID
-    const onNodesChange = (changes: any) => store.onProjectMapNodesChange(folderId || 'general', changes);
-    const onEdgesChange = (changes: any) => store.onProjectMapEdgesChange(folderId || 'general', changes);
-    const onConnect = (connection: any) => store.onProjectMapConnect(folderId || 'general', connection);
+    const onNodesChange = (changes: NodeChange[]) => store.onProjectMapNodesChange(folderId || 'general', changes);
+    const onEdgesChange = (changes: EdgeChange[]) => store.onProjectMapEdgesChange(folderId || 'general', changes);
+    const onConnect = (connection: Connection) => store.onProjectMapConnect(folderId || 'general', connection);
 
     return (
         <ReactFlow

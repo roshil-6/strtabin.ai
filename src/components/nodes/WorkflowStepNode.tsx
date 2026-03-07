@@ -1,10 +1,16 @@
 import { memo, useState } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import useStore from '../../store/useStore';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 
-export const WorkflowStepNode = memo(({ id, data, selected }: any) => {
+interface WorkflowStepData extends Record<string, unknown> {
+    label: string;
+    description?: string;
+    status?: 'pending' | 'active' | 'done';
+}
+
+export const WorkflowStepNode = memo(({ id, data, selected }: NodeProps<Node<WorkflowStepData>>) => {
     const store = useStore();
     const { folderId } = useParams<{ folderId: string }>();
     const [isEditing, setIsEditing] = useState(false);

@@ -10,6 +10,7 @@ import LandingPage from './components/LandingPage';
 import FolderWorkflow from './components/FolderWorkflow';
 import AuthGate from './components/AuthGate';
 import PaywallGate from './components/PaywallGate';
+import NotFoundPage from './components/NotFoundPage';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
       <Route path="/calendar/:id" element={<AuthGate><PaywallGate><CalendarView /></PaywallGate></AuthGate>} />
       <Route path="/calendar" element={<AuthGate><PaywallGate><CalendarView /></PaywallGate></AuthGate>} />
       <Route path="/strab/:id" element={<AuthGate><PaywallGate><StrabView /></PaywallGate></AuthGate>} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

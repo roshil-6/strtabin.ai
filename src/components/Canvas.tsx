@@ -20,7 +20,8 @@ import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout } from 'lucide-react';
+import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen } from 'lucide-react';
+import toast from 'react-hot-toast';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
 
@@ -71,6 +72,12 @@ function CanvasContent() {
         }
     }, [id, setCurrentCanvas, initDefaultCanvas, ensureCanvasExists]);
 
+    // Update page title
+    useEffect(() => {
+        const name = canvases[id || '']?.name;
+        document.title = name ? `${name} | Stratabin` : 'Stratabin AI — Strategy Workspace';
+    }, [id, canvases]);
+
     // Ensure we have a valid canvas ID for operations
     const activeCanvasId = id || 'default';
 
@@ -101,7 +108,10 @@ function CanvasContent() {
                     data: {
                         ...node.data,
                         onViewWorkflow: () => {
-                            if (node.data.linkedSubCanvasId) {
+                            // Folder-mapped nodes navigate directly to the project
+                            if (node.data.navigateTo) {
+                                navigate(node.data.navigateTo as string);
+                            } else if (node.data.linkedSubCanvasId) {
                                 setActiveSubCanvasId(node.data.linkedSubCanvasId as string);
                             }
                         }
@@ -110,7 +120,7 @@ function CanvasContent() {
             }
             return node;
         });
-    }, [nodes]);
+    }, [nodes, navigate]);
 
     // Handle Adding Nodes from Command Dock
     const handleAddNode = (type: 'default') => {
@@ -128,7 +138,75 @@ function CanvasContent() {
     // Selector needs to be updated to include createCanvas and updateNodeData
     // ... (Use a more complete selector or individual hooks if needed, but for now assuming selector provides these)
 
-    const onNodeDoubleClick = useCallback((_event: React.MouseEvent, _node: Node) => {
+    // Auto-populate the canvas with subproject nodes for every other canvas in the same folder
+    const handleAutoMapFolder = useCallback(() => {
+        const canvas = canvases[activeCanvasId];
+        if (!canvas?.folderId) {
+            toast.error('This project is not in a folder. Move it to a folder first.');
+            return;
+        }
+
+        const siblings = Object.values(canvases).filter(
+            c => c.folderId === canvas.folderId && c.id !== activeCanvasId
+        );
+
+        if (siblings.length === 0) {
+            toast.error('No other projects found in this folder.');
+            return;
+        }
+
+        // Skip canvases that are already represented as subproject nodes
+        const existingLinkedIds = new Set(
+            nodes
+                .filter(n => n.type === 'subproject')
+                .map(n => n.data.linkedSubCanvasId as string)
+                .filter(Boolean)
+        );
+
+        const newSiblings = siblings.filter(s => !existingLinkedIds.has(s.id));
+
+        if (newSiblings.length === 0) {
+            toast.success('All folder projects are already on this canvas.');
+            return;
+        }
+
+        const COLS = 3;
+        const NODE_W = 300;
+        const NODE_H = 160;
+        const GAP_X = 60;
+        const GAP_Y = 60;
+
+        // Place nodes to the right of any existing nodes, or centred at origin
+        const baseX = nodes.length > 0
+            ? Math.max(...nodes.map(n => n.position.x + (n.measured?.width ?? NODE_W))) + 80
+            : -(Math.min(newSiblings.length, COLS) * (NODE_W + GAP_X)) / 2;
+        const baseY = nodes.length > 0
+            ? Math.min(...nodes.map(n => n.position.y))
+            : -(Math.ceil(newSiblings.length / COLS) * (NODE_H + GAP_Y)) / 2;
+
+        newSiblings.forEach((sibling, i) => {
+            const col = i % COLS;
+            const row = Math.floor(i / COLS);
+            addNode({
+                id: `folder-node-${sibling.id}`,
+                type: 'subproject',
+                position: {
+                    x: baseX + col * (NODE_W + GAP_X),
+                    y: baseY + row * (NODE_H + GAP_Y),
+                },
+                data: {
+                    label: sibling.name || 'Untitled Project',
+                    linkedSubCanvasId: sibling.id,
+                    navigateTo: `/strategy/${sibling.id}`,
+                },
+            });
+        });
+
+        setTimeout(() => fitView({ duration: 600, padding: 0.2 }), 80);
+        toast.success(`Mapped ${newSiblings.length} project${newSiblings.length !== 1 ? 's' : ''} from folder`);
+    }, [activeCanvasId, canvases, nodes, addNode, fitView]);
+
+    const onNodeDoubleClick = useCallback(() => {
         // Double click navigation disabled
     }, []);
 
@@ -167,6 +245,11 @@ function CanvasContent() {
                             data: { imgUrl: imageUrl, label: file.name },
                         };
                         addNode(newNode);
+                    };
+                    reader.onerror = () => {
+                        import('react-hot-toast').then(({ default: toast }) => {
+                            toast.error('Failed to read image file. Please try again.');
+                        });
                     };
                     reader.readAsDataURL(file);
                 }
@@ -285,9 +368,22 @@ function CanvasContent() {
                             </div>
 
                             <div className="flex items-center gap-2">
+                                {/* Only show Map Folder button when canvas is in a folder */}
+                                {canvases[activeCanvasId]?.folderId && (
+                                    <button
+                                        onClick={handleAutoMapFolder}
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white transition-all"
+                                        aria-label="Auto-map folder projects"
+                                        title="Add boxes for all other projects in this folder"
+                                    >
+                                        <FolderOpen size={16} />
+                                        <span className="text-xs font-bold hidden sm:inline">Map Folder</span>
+                                    </button>
+                                )}
                                 <button
-                                    onClick={() => window.location.href = `/strab/${id || 'default'}`}
+                                    onClick={() => navigate(`/strab/${id || 'default'}`)}
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 transition-all"
+                                    aria-label="Open STRAB AI"
                                 >
                                     <Bot size={16} />
                                     <span className="text-xs font-bold">Ask STRAB</span>

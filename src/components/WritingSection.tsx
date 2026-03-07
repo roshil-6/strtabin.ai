@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
 import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X, FileText, Trash2, File, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import mammoth from 'mammoth';
+import DOMPurify from 'dompurify';
 
 interface WritingSectionProps {
     canvasId: string;
@@ -32,6 +32,17 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const textareaARef = useRef<HTMLTextAreaElement>(null);
     const textareaBRef = useRef<HTMLTextAreaElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Save indicator
+    const [savedIndicator, setSavedIndicator] = useState(false);
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const triggerSaveIndicator = () => {
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        setSavedIndicator(true);
+        saveTimerRef.current = setTimeout(() => setSavedIndicator(false), 2000);
+    };
 
     // Branch state
     const [showBranchModal, setShowBranchModal] = useState(false);
@@ -57,8 +68,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 const blobUrl = URL.createObjectURL(blob);
                 setPreviewDoc({ url: blobUrl, name: doc.name });
                 return;
-            } catch (e) {
-                console.error("Failed to convert data URL to Blob", e);
+            } catch {
+                // Fall through to setPreviewDoc with original url
             }
         }
         setPreviewDoc(doc);
@@ -87,10 +98,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             try {
                 const response = await fetch(previewDoc.url);
                 const arrayBuffer = await response.arrayBuffer();
+                const { default: mammoth } = await import('mammoth');
                 const result = await mammoth.convertToHtml({ arrayBuffer });
                 setDocxHtml(result.value);
-            } catch (error) {
-                console.error("Error parsing DOCX:", error);
+            } catch {
                 setDocxHtml('<div class="text-red-400 p-4">Failed to render document preview.</div>');
             } finally {
                 setIsRenderingDocx(false);
@@ -109,32 +120,34 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
         if (storeContent.includes("<<<SPLIT_SECTION_START>>>")) {
             setIsSplitMode(true);
-            const startMatch = storeContent.match(/<<<SPLIT_SECTION_START>>>/);
+
+            const startIdx = storeContent.indexOf("<<<SPLIT_SECTION_START>>>");
+            // Main content is everything before the split marker
+            const mainPart = storeContent.substring(0, startIdx).trim();
+            setContent(mainPart);
+
             const sepMatch = storeContent.match(/<<<SPLIT_SECTION_SEP>>>/);
             const endMatch = storeContent.match(/<<<SPLIT_SECTION_END>>>/);
+            const startMatch = storeContent.match(/<<<SPLIT_SECTION_START>>>/);
 
             if (startMatch && sepMatch && endMatch) {
-                const partA = storeContent.substring(startMatch.index! + startMatch[0].length, sepMatch.index!);
+                const partA = storeContent.substring(startIdx + startMatch[0].length, sepMatch.index!);
                 const partB = storeContent.substring(sepMatch.index! + sepMatch[0].length, endMatch.index!);
 
-                // Parse headings
                 const hAMatch = partA.match(/<<<HEADING_A:(.*?)>>>/);
                 const hBMatch = partB.match(/<<<HEADING_B:(.*?)>>>/);
 
-                setHeadingA(hAMatch ? hAMatch[1] : 'Heading A');
-                setHeadingB(hBMatch ? hBMatch[1] : 'Heading B');
-
+                setHeadingA(hAMatch ? hAMatch[1] : 'Column A');
+                setHeadingB(hBMatch ? hBMatch[1] : 'Column B');
                 setContentA(partA.replace(/<<<HEADING_A:.*?>>>/g, '').trim());
                 setContentB(partB.replace(/<<<HEADING_B:.*?>>>/g, '').trim());
             }
         } else {
             setIsSplitMode(false);
-            if (storeContent !== content && (content === '' || Math.abs(storeContent.length - content.length) > 10)) {
-                // Strip metadata markers only when loading existing content
-                const stripped = storeContent.replace(/<<<SECTION_ID:[^>]+>>>/g, '').trim();
-                setContent(stripped);
-            }
+            const stripped = storeContent.replace(/<<<SECTION_ID:[^>]+>>>/g, '').trim();
+            setContent(stripped);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canvasId, canvas?.writingContent, canvas?.title]);
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,42 +156,35 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         updateCanvasTitle(canvasId, newTitle);
     };
 
+    const buildStorageString = (
+        main: string, ca: string, cb: string, ha: string, hb: string, splitActive: boolean
+    ) => {
+        if (splitActive) {
+            return `${main}\n<<<SPLIT_SECTION_START>>>\n<<<HEADING_A:${ha}>>>\n${ca}\n<<<SPLIT_SECTION_SEP>>>\n<<<HEADING_B:${hb}>>>\n${cb}\n<<<SPLIT_SECTION_END>>>`;
+        }
+        return main;
+    };
+
     const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newContent = e.target.value;
         setContent(newContent);
-        updateCanvasWriting(canvasId, newContent);
+        updateCanvasWriting(canvasId, buildStorageString(newContent, contentA, contentB, headingA, headingB, isSplitMode));
+        triggerSaveIndicator();
     };
 
     const handleSplitContentChange = (side: 'A' | 'B', val: string) => {
-        let newContentA = contentA;
-        let newContentB = contentB;
-
-        if (side === 'A') {
-            newContentA = val;
-            setContentA(val);
-        } else {
-            newContentB = val;
-            setContentB(val);
-        }
-
-        const merged = `<<<SPLIT_SECTION_START>>>\n<<<HEADING_A:${headingA}>>>\n${newContentA}\n<<<SPLIT_SECTION_SEP>>>\n<<<HEADING_B:${headingB}>>>\n${newContentB}\n<<<SPLIT_SECTION_END>>>`;
-        updateCanvasWriting(canvasId, merged);
+        const newCA = side === 'A' ? val : contentA;
+        const newCB = side === 'B' ? val : contentB;
+        if (side === 'A') setContentA(val); else setContentB(val);
+        updateCanvasWriting(canvasId, buildStorageString(content, newCA, newCB, headingA, headingB, true));
+        triggerSaveIndicator();
     };
 
     const handleHeadingChange = (side: 'A' | 'B', val: string) => {
-        let newHA = headingA;
-        let newHB = headingB;
-
-        if (side === 'A') {
-            newHA = val;
-            setHeadingA(val);
-        } else {
-            newHB = val;
-            setHeadingB(val);
-        }
-
-        const merged = `<<<SPLIT_SECTION_START>>>\n<<<HEADING_A:${newHA}>>>\n${contentA}\n<<<SPLIT_SECTION_SEP>>>\n<<<HEADING_B:${newHB}>>>\n${contentB}\n<<<SPLIT_SECTION_END>>>`;
-        updateCanvasWriting(canvasId, merged);
+        const newHA = side === 'A' ? val : headingA;
+        const newHB = side === 'B' ? val : headingB;
+        if (side === 'A') setHeadingA(val); else setHeadingB(val);
+        updateCanvasWriting(canvasId, buildStorageString(content, contentA, contentB, newHA, newHB, true));
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,18 +213,13 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const insertSplitSeparator = () => {
         if (isSplitMode) {
+            // Remove split section — persist only main content, columns preserved in local state
             setIsSplitMode(false);
-            const merged = `${contentA}\n\n${contentB}`.trim();
-            setContent(merged);
-            updateCanvasWriting(canvasId, merged);
+            updateCanvasWriting(canvasId, content);
         } else {
+            // Show two-column split section below main content
             setIsSplitMode(true);
-            const merged = `<<<SPLIT_SECTION_START>>>\n<<<HEADING_A:Heading A>>>\n${content}\n<<<SPLIT_SECTION_SEP>>>\n<<<HEADING_B:Heading B>>>\n\n<<<SPLIT_SECTION_END>>>`;
-            setContentA(content);
-            setContentB('');
-            setHeadingA('Heading A');
-            setHeadingB('Heading B');
-            updateCanvasWriting(canvasId, merged);
+            updateCanvasWriting(canvasId, buildStorageString(content, contentA, contentB, headingA, headingB, true));
         }
     };
 
@@ -246,20 +247,27 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         setBranchItems(['', '', '', '', '', '']);
     };
 
-    // Auto-resize textareas
+    // Auto-resize textareas — saves/restores scroll position to prevent jump-to-top on Enter
     useEffect(() => {
+        const scrollEl = scrollContainerRef.current;
+        const savedScrollTop = scrollEl?.scrollTop ?? 0;
+
         const resize = (ref: React.RefObject<HTMLTextAreaElement>) => {
-            if (ref.current) {
-                ref.current.style.height = 'auto';
-                ref.current.style.height = Math.max(500, ref.current.scrollHeight) + 'px';
-            }
+            const el = ref.current;
+            if (!el) return;
+            el.style.height = 'auto';
+            el.style.height = Math.max(500, el.scrollHeight) + 'px';
         };
+
         if (isSplitMode) {
             resize(textareaARef);
             resize(textareaBRef);
         } else {
             resize(textareaRef);
         }
+
+        // Restore scroll position synchronously after height is applied
+        if (scrollEl) scrollEl.scrollTop = savedScrollTop;
     }, [content, contentA, contentB, isSplitMode]);
 
     return (
@@ -269,12 +277,17 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 <div className="flex items-center gap-2 mr-auto">
                     <Type size={18} className="text-primary" />
                     <span className="text-sm font-medium text-white/50">Writing Canvas</span>
+                    {savedIndicator && (
+                        <span className="text-[10px] font-bold text-green-400/80 uppercase tracking-widest animate-in fade-in duration-300">
+                            Saved
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-1">
                     <button
                         onClick={() => imageInputRef.current?.click()}
-                        className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
+                        className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 hover:text-white transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
                         title="Add Image"
                     >
                         <ImageIcon size={18} />
@@ -283,7 +296,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-2 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
+                        className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 hover:text-white transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
                         title="Add Attachment"
                     >
                         <File size={18} />
@@ -292,60 +305,61 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
                     <button
                         onClick={() => navigate(`/strab/${canvasId}`)}
-                        className="p-2 hover:bg-indigo-500/20 hover:text-indigo-400 rounded-lg text-white/70 transition-colors ml-2"
+                        className="p-2.5 hover:bg-indigo-500/20 hover:text-indigo-400 rounded-xl text-white/70 transition-colors ml-1 min-w-[40px] min-h-[40px] flex items-center justify-center"
                         title="Ask STRAB AI"
                     >
                         <Bot size={18} />
                     </button>
                 </div>
 
-                <div className="w-px h-4 bg-white/10 mx-1" />
+                <div className="w-px h-5 bg-white/10 mx-1 hidden sm:block" />
 
-                <button
-                    onClick={insertSplitSeparator}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${isSplitMode ? 'bg-primary/20 text-primary border-primary/50' : 'bg-white/5 text-white/70 hover:bg-white/10 border-white/10'}`}
-                    title={isSplitMode ? "Merge Sections" : "Split Section"}
-                >
-                    <Layout size={16} />
-                    <span className="text-xs font-bold">{isSplitMode ? 'Merge' : 'Split'}</span>
-                </button>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={insertSplitSeparator}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all border min-h-[40px] ${isSplitMode ? 'bg-primary/20 text-primary border-primary/50' : 'bg-white/5 text-white/60 hover:bg-white/10 border-white/10'}`}
+                        title={isSplitMode ? "Remove Split Section" : "Add Split Section Below"}
+                    >
+                        <Layout size={15} />
+                        <span className="text-xs font-bold hidden sm:inline">Split</span>
+                    </button>
 
-                <button
-                    onClick={() => setShowBranchModal(true)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${showBranchModal
-                        ? 'bg-primary text-black border-primary'
-                        : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white border-white/10'
-                        }`}
-                    title="Insert Text Branch"
-                >
-                    <GitBranch size={16} />
-                    <span className="text-xs font-bold">Branch</span>
-                </button>
+                    <button
+                        onClick={() => setShowBranchModal(true)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all border min-h-[40px] ${showBranchModal
+                            ? 'bg-primary text-black border-primary'
+                            : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white border-white/10'
+                            }`}
+                        title="Insert Text Branch"
+                    >
+                        <GitBranch size={15} />
+                        <span className="text-xs font-bold hidden sm:inline">Branch</span>
+                    </button>
+                </div>
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-5 md:p-8 custom-scrollbar">
-                <div className={`mx-auto pb-32 ${isSplitMode ? 'max-w-none' : 'max-w-4xl'}`}>
-                    {/* Title Input - Only in main view */}
-                    {!isSplitMode && (
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={handleTitleChange}
-                            placeholder="Untitled Strategy"
-                            className="w-full bg-transparent text-4xl font-bold text-white placeholder-white/20 outline-none leading-tight mb-8"
-                        />
-                    )}
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-5 md:p-8 custom-scrollbar">
+                <div className="mx-auto max-w-4xl pb-32">
+
+                    {/* Title */}
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={handleTitleChange}
+                        placeholder="Untitled Strategy"
+                        className="w-full bg-transparent text-4xl font-bold text-white placeholder-white/20 outline-none leading-tight mb-8"
+                    />
 
                     {/* Image Gallery */}
-                    {canvas?.images && canvas.images.length > 0 && !isSplitMode && (
+                    {canvas?.images && canvas.images.length > 0 && (
                         <div className="grid grid-cols-2 gap-4 mb-8">
                             {canvas.images.map((img, idx) => (
                                 <div key={idx} className="relative group">
                                     <img src={img} alt="Attached" className="w-full rounded-xl border border-white/10" />
                                     <button
                                         onClick={() => deleteCanvasImage(canvasId, idx)}
-                                        className="absolute top-2 right-2 p-1.5 bg-black/60 text-white/70 hover:text-red-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all backdrop-blur-md border border-white/10"
+                                        className="absolute top-2 right-2 p-2.5 bg-black/60 text-white/70 hover:text-red-400 rounded-xl opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all backdrop-blur-md border border-white/10"
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -355,7 +369,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     )}
 
                     {/* Attachments Gallery */}
-                    {canvas?.attachments && canvas.attachments.length > 0 && !isSplitMode && (
+                    {canvas?.attachments && canvas.attachments.length > 0 && (
                         <div className="space-y-3 mb-8">
                             <h4 className="text-xs font-bold text-white/20 uppercase tracking-wider">Attachments</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -372,7 +386,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         </button>
                                         <button
                                             onClick={() => deleteCanvasDoc(canvasId, doc.id)}
-                                            className="p-1.5 text-white/20 hover:text-red-400 transition-colors"
+                                            className="p-2.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
                                         >
                                             <Trash2 size={16} />
                                         </button>
@@ -382,57 +396,77 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         </div>
                     )}
 
-                    {isSplitMode ? (
-                        <div className="flex flex-col lg:flex-row gap-0 h-full border border-white/5 rounded-2xl bg-white/[0.02] overflow-hidden">
-                            {/* Section A */}
-                            <div className="flex-1 flex flex-col gap-4 p-6 lg:border-r border-white/10">
-                                <input
-                                    type="text"
-                                    value={headingA}
-                                    onChange={(e) => handleHeadingChange('A', e.target.value)}
-                                    placeholder="Heading A"
-                                    className="bg-transparent text-lg md:text-xl font-black text-primary placeholder-primary/20 outline-none uppercase tracking-wider"
-                                />
-                                <div className="h-px bg-white/10 w-12" />
-                                <textarea
-                                    ref={textareaARef}
-                                    value={contentA}
-                                    onChange={(e) => handleSplitContentChange('A', e.target.value)}
-                                    placeholder="Section A content..."
-                                    className="w-full bg-transparent text-base md:text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
-                                    spellCheck={false}
-                                />
+                    {/* Main Writing Textarea — always visible */}
+                    <textarea
+                        ref={textareaRef}
+                        value={content}
+                        onChange={handleContentChange}
+                        placeholder="Start simple, write everything here..."
+                        className="w-full bg-transparent text-base md:text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[200px]"
+                        spellCheck={false}
+                    />
+
+                    {/* Two-Column Split Section — appears below main content when active */}
+                    {isSplitMode && (
+                        <div className="mt-8 border border-white/10 rounded-2xl bg-white/[0.02] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            {/* Split header */}
+                            <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-white/[0.02]">
+                                <div className="flex items-center gap-2 text-white/30">
+                                    <Layout size={14} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Split Section</span>
+                                </div>
+                                <button
+                                    onClick={insertSplitSeparator}
+                                    className="text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
+                                    title="Remove split section"
+                                >
+                                    Remove
+                                </button>
                             </div>
 
-                            {/* Section B */}
-                            <div className="flex-1 flex flex-col gap-4 p-6">
-                                <input
-                                    type="text"
-                                    value={headingB}
-                                    onChange={(e) => handleHeadingChange('B', e.target.value)}
-                                    placeholder="Heading B"
-                                    className="bg-transparent text-lg md:text-xl font-black text-primary placeholder-primary/20 outline-none uppercase tracking-wider"
-                                />
-                                <div className="h-px bg-white/10 w-12" />
-                                <textarea
-                                    ref={textareaBRef}
-                                    value={contentB}
-                                    onChange={(e) => handleSplitContentChange('B', e.target.value)}
-                                    placeholder="Section B content..."
-                                    className="w-full bg-transparent text-base md:text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
-                                    spellCheck={false}
-                                />
+                            {/* Two columns */}
+                            <div className="flex flex-col lg:flex-row">
+                                {/* Column A */}
+                                <div className="flex-1 flex flex-col gap-3 p-5 lg:border-r border-white/10">
+                                    <input
+                                        type="text"
+                                        value={headingA}
+                                        onChange={(e) => handleHeadingChange('A', e.target.value)}
+                                        placeholder="Column A heading"
+                                        className="bg-transparent text-base font-black text-primary placeholder-primary/30 outline-none uppercase tracking-wider"
+                                    />
+                                    <div className="h-px bg-white/5 w-8" />
+                                    <textarea
+                                        ref={textareaARef}
+                                        value={contentA}
+                                        onChange={(e) => handleSplitContentChange('A', e.target.value)}
+                                        placeholder="Write in column A..."
+                                        className="w-full bg-transparent text-base text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[220px]"
+                                        spellCheck={false}
+                                    />
+                                </div>
+
+                                {/* Column B */}
+                                <div className="flex-1 flex flex-col gap-3 p-5">
+                                    <input
+                                        type="text"
+                                        value={headingB}
+                                        onChange={(e) => handleHeadingChange('B', e.target.value)}
+                                        placeholder="Column B heading"
+                                        className="bg-transparent text-base font-black text-primary placeholder-primary/30 outline-none uppercase tracking-wider"
+                                    />
+                                    <div className="h-px bg-white/5 w-8" />
+                                    <textarea
+                                        ref={textareaBRef}
+                                        value={contentB}
+                                        onChange={(e) => handleSplitContentChange('B', e.target.value)}
+                                        placeholder="Write in column B..."
+                                        className="w-full bg-transparent text-base text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[220px]"
+                                        spellCheck={false}
+                                    />
+                                </div>
                             </div>
                         </div>
-                    ) : (
-                        <textarea
-                            ref={textareaRef}
-                            value={content}
-                            onChange={handleContentChange}
-                            placeholder="Start simple, write everything here..."
-                            className="w-full bg-transparent text-base md:text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[500px]"
-                            spellCheck={false}
-                        />
                     )}
                 </div>
             </div>
@@ -457,8 +491,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                 autoFocus
                                 type="text"
                                 value={branchTopic}
-                                onChange={e => setBranchTopic(e.target.value)}
+                                onChange={e => setBranchTopic(e.target.value.slice(0, 100))}
                                 placeholder="Core Topic..."
+                                maxLength={100}
+                                aria-label="Branch topic"
                                 className="w-full bg-[#111] border border-[#333] rounded p-3 text-base text-white focus:border-primary/50 outline-none transition-colors"
                             />
                         </div>
@@ -549,7 +585,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     ) : (
                                         <div
                                             className="max-w-4xl mx-auto prose prose-neutral prose-headings:font-black prose-p:leading-relaxed"
-                                            dangerouslySetInnerHTML={{ __html: docxHtml }}
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(docxHtml) }}
                                         />
                                     )}
                                 </div>
