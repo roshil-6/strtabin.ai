@@ -38,29 +38,53 @@ class ServerWarmup {
     }
 
     private async ping(attempts = 0) {
-        const MAX_ATTEMPTS = 22; // ~90 s at 4 s intervals
-        const RETRY_MS = 4000;
+        const MAX_ATTEMPTS = 12; // ~90s with backoff below
+        const RETRY_MS = Math.min(3000 + attempts * 1000, 10000);
 
-        try {
-            const res = await fetch(`${API_BASE_URL}/health`, {
-                method: 'GET',
-                signal: AbortSignal.timeout(5000),
-            });
-            if (res.ok) {
-                this.markReady();
-                return;
-            }
-        } catch {
-            // server still sleeping — retry
+        const isReachable = await this.checkReachable();
+        if (isReachable) {
+            this.markReady();
+            return;
         }
 
         if (attempts < MAX_ATTEMPTS) {
             setTimeout(() => this.ping(attempts + 1), RETRY_MS);
+            return;
         }
-        // If we exhausted attempts, we mark ready anyway so the UI isn't stuck forever
-        if (attempts >= MAX_ATTEMPTS) {
-            this.markReady();
+
+        // Never block the app forever on warmup failures.
+        this.markReady();
+    }
+
+    /**
+     * Consider backend "reachable" if:
+     * - /health returns 2xx (ideal path), OR
+     * - / returns any non-5xx status (older backends may not expose /health)
+     */
+    private async checkReachable() {
+        try {
+            const healthRes = await fetch(`${API_BASE_URL}/health`, {
+                method: 'GET',
+                signal: AbortSignal.timeout(5000),
+            });
+            if (healthRes.ok) return true;
+            // 401/403/404 means server responded; only route/auth is different
+            if (healthRes.status > 0 && healthRes.status < 500) return true;
+        } catch {
+            // Continue to root fallback
         }
+
+        try {
+            const rootRes = await fetch(`${API_BASE_URL}/`, {
+                method: 'GET',
+                signal: AbortSignal.timeout(5000),
+            });
+            if (rootRes.status > 0 && rootRes.status < 500) return true;
+        } catch {
+            // unreachable
+        }
+
+        return false;
     }
 
     private markReady() {
@@ -70,7 +94,7 @@ class ServerWarmup {
         this.listeners = [];
         // Keep the server warm with a ping every 10 min
         this.keepAliveTimer = setInterval(() => {
-            fetch(`${API_BASE_URL}/health`, { method: 'GET' }).catch(() => {});
+            this.checkReachable().catch(() => {});
         }, 10 * 60 * 1000);
     }
 
