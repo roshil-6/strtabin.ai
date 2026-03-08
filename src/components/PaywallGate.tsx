@@ -3,6 +3,7 @@ import { useUser } from '@clerk/clerk-react';
 import useStore from '../store/useStore';
 import { Zap, Clock, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
 import { RAZORPAY_LINK, ONE_DAY } from '../constants';
+import toast from 'react-hot-toast';
 
 function formatTimeLeft(ms: number): string {
     const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -18,13 +19,27 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
     const rafRef = useRef<number | null>(null);
+    const paidFromClerk = Boolean(
+        user?.publicMetadata?.isPaid === true ||
+        user?.publicMetadata?.paid === true ||
+        user?.publicMetadata?.hasPaidAccess === true
+    );
 
     useEffect(() => {
         if (!user) return;
         const userId = user.id;
-        startTrial(userId);
+        if (!paidFromClerk) {
+            startTrial(userId);
+        } else {
+            // Cache verified paid status locally once Clerk confirms it.
+            setPaidUser(userId);
+        }
 
         const tick = () => {
+            if (paidFromClerk) {
+                setStatus('paid');
+                return;
+            }
             const s = getAccessStatus(userId);
             setStatus(s);
             if (s === 'trial') {
@@ -44,7 +59,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
         };
     // getAccessStatus and startTrial are store actions — stable references
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, trialStartedAt]);
+    }, [user, trialStartedAt, paidFromClerk, setPaidUser]);
 
     if (status === 'loading') return null;
 
@@ -62,14 +77,19 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                             <button
                                 onClick={() => {
                                     if (user) {
-                                        setPaidUser(user.id);
-                                        setStatus('paid');
+                                        if (paidFromClerk) {
+                                            setPaidUser(user.id);
+                                            setStatus('paid');
+                                            toast.success('Payment verified. Full access unlocked.');
+                                        } else {
+                                            toast.error('Payment not verified yet. Please wait 1-2 minutes and refresh.');
+                                        }
                                     }
                                 }}
                                 className="text-xs font-black uppercase tracking-wider px-3 py-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all min-h-[36px]"
-                                title="Already paid? Click to unlock"
+                                title="Refresh paid status"
                             >
-                                Already Paid?
+                                Refresh Status
                             </button>
                             <button
                                 onClick={() => window.open(RAZORPAY_LINK, '_blank')}
@@ -140,13 +160,18 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                     <button
                         onClick={() => {
                             if (user) {
-                                setPaidUser(user.id);
-                                setStatus('paid'); // Instant update for better UX
+                                if (paidFromClerk) {
+                                    setPaidUser(user.id);
+                                    setStatus('paid');
+                                    toast.success('Payment verified. Full access unlocked.');
+                                } else {
+                                    toast.error('Payment is not verified yet. Please retry after confirmation.');
+                                }
                             }
                         }}
                         className="text-xs text-white/20 hover:text-white/50 transition-colors py-2 font-bold"
                     >
-                        I've already paid — confirm access
+                        I have paid — verify and refresh access
                     </button>
                 </div>
             </div>
