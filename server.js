@@ -32,11 +32,20 @@ const allowedOrigins = process.env.ALLOWED_ORIGIN
 
 const app = express();
 
+// ─── Health + Root routes — registered BEFORE all middleware ──────────────
+// These must be open to any origin (warm-up pings, uptime monitors, etc.)
+app.get('/', (_req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.json({ status: 'STRAB Server is running.' });
+});
+app.get('/health', (_req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.json({ status: 'ok' });
+});
+
 // ─── Security Headers (helmet) ────────────────────────────────────────────
 app.use(helmet({
-    crossOriginEmbedderPolicy: false, // needed for some browsers with embedded content
-    // This is a cross-origin API server — CORP must be cross-origin so that
-    // the frontend can fetch() the health endpoint (including with no-cors mode).
+    crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     contentSecurityPolicy: {
         directives: {
@@ -51,9 +60,14 @@ app.use(helmet({
 // ─── CORS ─────────────────────────────────────────────────────────────────
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow server-to-server requests and health checks (no Origin header)
+        // Allow server-to-server requests (no Origin header)
         if (!origin) return callback(null, true);
+        // Allow explicitly configured origins
         if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            return callback(null, true);
+        }
+        // Allow all Vercel deployment URLs (preview + production)
+        if (origin.endsWith('.vercel.app')) {
             return callback(null, true);
         }
         callback(new Error(`CORS: origin ${origin} not allowed`));
@@ -237,15 +251,7 @@ BREVITY RULES (CRITICAL)
 `;
 
 // ─── Routes ───────────────────────────────────────────────────────────────
-app.get('/', (_req, res) => {
-    res.json({ status: 'STRAB Server is running.' });
-});
-
-// Health endpoint — publicly accessible, no CORS restriction (used for warm-up pings)
-app.get('/health', (_req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.json({ status: 'ok' });
-});
+// NOTE: / and /health are registered before middleware at the top of this file.
 
 app.post('/api/chat', aiLimiter, requireAuth, async (req, res) => {
     try {
