@@ -271,69 +271,66 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     }, [content, contentA, contentB, isSplitMode]);
 
     return (
-        <div className="h-full w-full bg-[#0b0b0b] flex flex-col border-r border-white/5 relative">
+        <div className="h-full w-full bg-[#0a0a0a] flex flex-col border-r border-white/[0.05] relative">
             {/* Toolbar */}
-            <div className="h-14 border-b border-white/5 flex items-center px-4 gap-2 bg-[#0b0b0b]/50 backdrop-blur-sm sticky top-0 z-20">
-                <div className="flex items-center gap-2 mr-auto">
-                    <Type size={18} className="text-primary" />
-                    <span className="text-sm font-medium text-white/50">Writing Canvas</span>
+            <div className="h-12 md:h-14 border-b border-white/[0.05] flex items-center px-3 md:px-4 gap-1.5 bg-[#0a0a0a]/90 backdrop-blur-xl sticky top-0 z-20">
+                <div className="flex items-center gap-1.5 mr-auto min-w-0">
+                    <Type size={15} className="text-primary shrink-0" />
+                    <span className="text-xs font-medium text-white/40 hidden sm:block">Writing</span>
                     {savedIndicator && (
-                        <span className="text-[10px] font-bold text-green-400/80 uppercase tracking-widest animate-in fade-in duration-300">
-                            Saved
+                        <span className="text-[10px] font-semibold text-green-400/70 animate-in fade-in duration-300">
+                            ✓ Saved
                         </span>
                     )}
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                     <button
                         onClick={() => imageInputRef.current?.click()}
-                        className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 hover:text-white transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
+                        className="p-2.5 hover:bg-white/8 rounded-xl text-white/40 hover:text-white active:scale-95 transition-all flex items-center justify-center"
                         title="Add Image"
                     >
-                        <ImageIcon size={18} />
+                        <ImageIcon size={16} />
                     </button>
                     <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 hover:text-white transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
+                        className="p-2.5 hover:bg-white/8 rounded-xl text-white/40 hover:text-white active:scale-95 transition-all flex items-center justify-center"
                         title="Add Attachment"
                     >
-                        <File size={18} />
+                        <File size={16} />
                     </button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="*" onChange={handleFileUpload} />
 
                     <button
                         onClick={() => navigate(`/strab/${canvasId}`)}
-                        className="p-2.5 hover:bg-indigo-500/20 hover:text-indigo-400 rounded-xl text-white/70 transition-colors ml-1 min-w-[40px] min-h-[40px] flex items-center justify-center"
+                        className="p-2.5 hover:bg-primary/10 hover:text-primary rounded-xl text-white/40 active:scale-95 transition-all flex items-center justify-center"
                         title="Ask STRAB AI"
                     >
-                        <Bot size={18} />
+                        <Bot size={16} />
                     </button>
                 </div>
 
-                <div className="w-px h-5 bg-white/10 mx-1 hidden sm:block" />
+                <div className="w-px h-4 bg-white/[0.08] mx-1" />
 
                 <div className="flex items-center gap-1">
                     <button
                         onClick={insertSplitSeparator}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all border min-h-[40px] ${isSplitMode ? 'bg-primary/20 text-primary border-primary/50' : 'bg-white/5 text-white/60 hover:bg-white/10 border-white/10'}`}
-                        title={isSplitMode ? "Remove Split Section" : "Add Split Section Below"}
+                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 ${isSplitMode ? 'bg-primary/15 text-primary' : 'text-white/40 hover:text-white hover:bg-white/8'}`}
+                        title={isSplitMode ? "Remove Split" : "Split View"}
                     >
-                        <Layout size={15} />
-                        <span className="text-xs font-bold hidden sm:inline">Split</span>
+                        <Layout size={14} />
+                        <span className="hidden sm:inline">Split</span>
                     </button>
 
                     <button
                         onClick={() => setShowBranchModal(true)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all border min-h-[40px] ${showBranchModal
-                            ? 'bg-primary text-black border-primary'
-                            : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white border-white/10'
-                            }`}
-                        title="Insert Text Branch"
+                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 ${showBranchModal ? 'bg-primary/15 text-primary' : 'text-white/40 hover:text-white hover:bg-white/8'}`}
+                        title="Insert Branch"
                     >
-                        <GitBranch size={15} />
-                        <span className="text-xs font-bold hidden sm:inline">Branch</span>
+                        <GitBranch size={14} />
+                        <span className="hidden sm:inline">Branch</span>
                     </button>
                 </div>
             </div>

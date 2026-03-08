@@ -469,56 +469,39 @@ function CanvasContent() {
                     </div>
                 </div>
 
-                {/* Mobile Bottom Navigation - Expanded for all sections */}
-                <div className="md:hidden fixed bottom-0 left-0 w-full h-20 bg-[#0b0b0b] border-t border-white/10 flex items-center justify-between z-50 px-2 pb-safe">
-                    <button
-                        onClick={() => setMobileTab('write')}
-                        className={`flex flex-col items-center justify-center gap-1 w-14 ${mobileTab === 'write' ? 'text-primary' : 'text-white/40'}`}
-                    >
-                        <FileText size={18} />
-                        <span className="text-[10px] font-black uppercase tracking-tighter">Write</span>
-                    </button>
-
-                    <button
-                        onClick={() => setMobileTab('map')}
-                        className={`flex flex-col items-center justify-center gap-1 w-14 ${mobileTab === 'map' ? 'text-primary' : 'text-white/40'}`}
-                    >
-                        <Layers size={18} />
-                        <span className="text-[10px] font-black uppercase tracking-tighter">Flow</span>
-                    </button>
-
-                    <button
-                        onClick={() => navigate(`/todo/${id || 'default'}`)}
-                        className="flex flex-col items-center justify-center gap-1 w-14 text-white/40"
-                    >
-                        <CheckSquare size={18} />
-                        <span className="text-[10px] font-black uppercase tracking-tighter">Tasks</span>
-                    </button>
-
-                    <button
-                        onClick={() => navigate(`/timeline/${id || 'default'}`)}
-                        className="flex flex-col items-center justify-center gap-1 w-14 text-white/40"
-                    >
-                        <Calendar size={18} />
-                        <span className="text-[10px] font-black uppercase tracking-tighter">TLine</span>
-                    </button>
-
-                    <button
-                        onClick={() => navigate(`/strab/${id || 'default'}`)}
-                        className="flex flex-col items-center justify-center gap-1 w-14 text-orange-400"
-                    >
-                        <Bot size={18} />
-                        <span className="text-[10px] font-black uppercase tracking-tighter">AI</span>
-                    </button>
-
-                    <button
-                        onClick={() => navigate('/')}
-                        className="flex flex-col items-center justify-center gap-1 w-14 text-white/40"
-                    >
-                        <Layout size={18} />
-                        <span className="text-[10px] font-black uppercase tracking-tighter">Home</span>
-                    </button>
-                </div>
+                {/* Mobile Bottom Navigation */}
+                <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/98 backdrop-blur-2xl border-t border-white/[0.06]" aria-label="Canvas navigation">
+                    <div className="flex items-stretch h-[60px]">
+                        {[
+                            { label: 'Write', icon: FileText, action: () => setMobileTab('write'),            active: mobileTab === 'write' },
+                            { label: 'Flow',  icon: Layers,   action: () => setMobileTab('map'),              active: mobileTab === 'map'   },
+                            { label: 'Tasks', icon: CheckSquare, action: () => navigate(`/todo/${id || 'default'}`),     active: false },
+                            { label: 'Cal',   icon: Calendar, action: () => navigate(`/calendar/${id || 'default'}`),   active: false },
+                            { label: 'AI',    icon: Bot,      action: () => navigate(`/strab/${id || 'default'}`),      active: false, highlight: true },
+                            { label: 'Home',  icon: Layout,   action: () => navigate('/dashboard'),                     active: false },
+                        ].map(({ label, icon: Icon, action, active, highlight }) => (
+                            <button
+                                key={label}
+                                onClick={action}
+                                className="flex-1 flex flex-col items-center justify-center gap-[5px] min-w-0 relative active:opacity-60 transition-opacity"
+                                aria-label={label}
+                            >
+                                <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-[2px] rounded-b-full transition-all duration-300 ${active ? 'w-6 bg-primary' : 'w-0'}`} />
+                                <div className={`rounded-xl p-1.5 transition-all duration-200 ${active ? 'bg-white/8' : ''}`}>
+                                    <Icon
+                                        size={18}
+                                        strokeWidth={active ? 2.5 : 1.5}
+                                        className={`transition-colors ${active ? 'text-white' : highlight ? 'text-primary/70' : 'text-white/30'}`}
+                                    />
+                                </div>
+                                <span className={`text-[9px] font-semibold tracking-wide leading-none ${active ? 'text-white/80' : highlight ? 'text-primary/60' : 'text-white/25'}`}>
+                                    {label}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                    <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} className="bg-[#0a0a0a]/98" />
+                </nav>
             </div>
         </div>
     );

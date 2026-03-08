@@ -159,24 +159,44 @@ export default function CalendarView() {
 
             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
                 {/* Header */}
-                <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-4 md:pb-5">
-                    {/* Mobile: view toggle tabs */}
-                    <div className="flex md:hidden items-center gap-2 mb-4">
-                        <button
-                            onClick={() => navigate(id ? `/calendar/${id}` : '/calendar')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${viewMode === 'month' ? 'bg-white/10 text-white border border-white/10' : 'text-white/30 border border-white/5'}`}
-                        >
-                            <Calendar size={14} /> Calendar
-                        </button>
-                        <button
-                            onClick={() => navigate(id ? `/calendar/${id}?mode=week` : '/calendar?mode=week')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${viewMode === 'week' ? 'bg-white/10 text-white border border-white/10' : 'text-white/30 border border-white/5'}`}
-                        >
-                            <CheckCircle2 size={14} /> Weekly
-                        </button>
+                <div className="flex-shrink-0 px-3 md:px-6 pt-3 md:pt-6 pb-3 md:pb-5">
+                    {/* Mobile: compact single-row header with view toggle + nav */}
+                    <div className="flex items-center gap-2 md:hidden mb-3">
+                        {/* View toggle pill */}
+                        <div className="flex bg-white/[0.06] rounded-lg p-0.5 shrink-0">
+                            <button
+                                onClick={() => navigate(id ? `/calendar/${id}` : '/calendar')}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'month' ? 'bg-white/10 text-white' : 'text-white/35'}`}
+                            >
+                                <Calendar size={13} /> Month
+                            </button>
+                            <button
+                                onClick={() => navigate(id ? `/calendar/${id}?mode=week` : '/calendar?mode=week')}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'week' ? 'bg-white/10 text-white' : 'text-white/35'}`}
+                            >
+                                <CheckCircle2 size={13} /> Week
+                            </button>
+                        </div>
+
+                        {/* Month/week navigator */}
+                        <div className="flex items-center gap-0.5 ml-auto bg-[#111]/60 border border-white/[0.07] rounded-xl p-1">
+                            <button onClick={previousMonth} className="p-1.5 hover:bg-white/5 rounded-lg text-white/40 hover:text-white active:scale-90 transition-all">
+                                <ChevronLeft size={15} />
+                            </button>
+                            <span className="text-xs font-bold text-white/80 px-1.5 whitespace-nowrap">
+                                {viewMode === 'month'
+                                    ? `${monthNames[month].slice(0, 3)} ${year}`
+                                    : `${weekDays[0].getDate()} — ${weekDays[6].getDate()} ${monthNames[weekDays[6].getMonth()].slice(0, 3)}`
+                                }
+                            </span>
+                            <button onClick={nextMonth} className="p-1.5 hover:bg-white/5 rounded-lg text-white/40 hover:text-white active:scale-90 transition-all">
+                                <ChevronRight size={15} />
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3">
+                    {/* Desktop header */}
+                    <div className="hidden md:flex items-center justify-between gap-3">
                         <div className="min-w-0">
                             <h1 className="text-xl md:text-3xl font-black tracking-tighter text-white uppercase truncate">
                                 {viewMode === 'month' ? 'Calendar' : 'Weekly Planner'}
