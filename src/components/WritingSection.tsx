@@ -34,6 +34,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const textareaBRef = useRef<HTMLTextAreaElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+    // Debounce refs — local state updates instantly, store persists after 600ms idle
+    const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
     // Branch state
     const [showBranchModal, setShowBranchModal] = useState(false);
@@ -144,7 +148,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newTitle = e.target.value;
         setTitle(newTitle);
-        updateCanvasTitle(canvasId, newTitle);
+        if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+        titleDebounceRef.current = setTimeout(() => {
+            updateCanvasTitle(canvasId, newTitle);
+        }, 600);
     };
 
     const buildStorageString = (
@@ -158,22 +165,31 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newContent = e.target.value;
-        setContent(newContent);
-        updateCanvasWriting(canvasId, buildStorageString(newContent, contentA, contentB, headingA, headingB, isSplitMode));
+        setContent(newContent); // instant UI update
+        if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
+        writeDebounceRef.current = setTimeout(() => {
+            updateCanvasWriting(canvasId, buildStorageString(newContent, contentA, contentB, headingA, headingB, isSplitMode));
+        }, 600);
     };
 
     const handleSplitContentChange = (side: 'A' | 'B', val: string) => {
         const newCA = side === 'A' ? val : contentA;
         const newCB = side === 'B' ? val : contentB;
         if (side === 'A') setContentA(val); else setContentB(val);
-        updateCanvasWriting(canvasId, buildStorageString(content, newCA, newCB, headingA, headingB, true));
+        if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
+        writeDebounceRef.current = setTimeout(() => {
+            updateCanvasWriting(canvasId, buildStorageString(content, newCA, newCB, headingA, headingB, true));
+        }, 600);
     };
 
     const handleHeadingChange = (side: 'A' | 'B', val: string) => {
         const newHA = side === 'A' ? val : headingA;
         const newHB = side === 'B' ? val : headingB;
         if (side === 'A') setHeadingA(val); else setHeadingB(val);
-        updateCanvasWriting(canvasId, buildStorageString(content, contentA, contentB, newHA, newHB, true));
+        if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
+        writeDebounceRef.current = setTimeout(() => {
+            updateCanvasWriting(canvasId, buildStorageString(content, contentA, contentB, newHA, newHB, true));
+        }, 600);
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
