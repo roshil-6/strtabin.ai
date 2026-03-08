@@ -437,10 +437,9 @@ function CanvasContent() {
                             panOnScroll={false}
                             panOnDrag={true}
                             preventScrolling={true}
-                            // Disable space-for-pan and selection shortcuts so spacebar
-                            // always reaches textarea/input elements inside nodes
+                            // Disable space-for-pan so spacebar always reaches
+                            // textarea/input elements inside nodes
                             panActivationKeyCode={null}
-                            selectionKeyCode={null}
                             disableKeyboardA11y={isMobile}
                         >
                             <Background color="#151515" gap={20} variant={BackgroundVariant.Dots} size={1} />

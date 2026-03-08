@@ -328,7 +328,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         type="text"
                         value={title}
                         onChange={handleTitleChange}
-                        onKeyDown={(e) => e.stopPropagation()}
                         placeholder="Untitled Strategy"
                         className="w-full bg-transparent text-4xl font-bold text-white placeholder-white/20 outline-none leading-tight mb-8"
                     />
@@ -383,7 +382,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         ref={textareaRef}
                         value={content}
                         onChange={handleContentChange}
-                        onKeyDown={(e) => e.stopPropagation()}
                         placeholder="Start simple, write everything here..."
                         className="w-full bg-transparent text-base md:text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[200px]"
                         spellCheck={false}
@@ -415,7 +413,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         type="text"
                                         value={headingA}
                                         onChange={(e) => handleHeadingChange('A', e.target.value)}
-                                        onKeyDown={(e) => e.stopPropagation()}
                                         placeholder="Column A heading"
                                         className="bg-transparent text-base font-black text-primary placeholder-primary/30 outline-none uppercase tracking-wider"
                                     />
@@ -424,7 +421,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         ref={textareaARef}
                                         value={contentA}
                                         onChange={(e) => handleSplitContentChange('A', e.target.value)}
-                                        onKeyDown={(e) => e.stopPropagation()}
                                         placeholder="Write in column A..."
                                         className="w-full bg-transparent text-base text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[220px]"
                                         spellCheck={false}
@@ -437,7 +433,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         type="text"
                                         value={headingB}
                                         onChange={(e) => handleHeadingChange('B', e.target.value)}
-                                        onKeyDown={(e) => e.stopPropagation()}
                                         placeholder="Column B heading"
                                         className="bg-transparent text-base font-black text-primary placeholder-primary/30 outline-none uppercase tracking-wider"
                                     />
@@ -446,7 +441,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         ref={textareaBRef}
                                         value={contentB}
                                         onChange={(e) => handleSplitContentChange('B', e.target.value)}
-                                        onKeyDown={(e) => e.stopPropagation()}
                                         placeholder="Write in column B..."
                                         className="w-full bg-transparent text-base text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[220px]"
                                         spellCheck={false}
