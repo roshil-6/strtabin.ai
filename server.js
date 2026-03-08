@@ -35,6 +35,9 @@ const app = express();
 // ─── Security Headers (helmet) ────────────────────────────────────────────
 app.use(helmet({
     crossOriginEmbedderPolicy: false, // needed for some browsers with embedded content
+    // This is a cross-origin API server — CORP must be cross-origin so that
+    // the frontend can fetch() the health endpoint (including with no-cors mode).
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],

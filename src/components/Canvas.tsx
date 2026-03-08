@@ -431,16 +431,15 @@ function CanvasContent() {
                             snapToGrid
                             snapGrid={[10, 10]}
                             connectionLineStyle={{ stroke: '#FF5F1F', strokeWidth: 2.5, strokeDasharray: '6 3' }}
-                            // Bound the canvas — prevents infinite scroll in any direction
                             translateExtent={[[-4000, -4000], [4000, 4000]]}
-                            // Touch behaviour: pinch-to-zoom nodes, single-finger drag to pan
-                            // zoomOnScroll false on mobile (use pinch only); true on desktop
                             zoomOnPinch={true}
                             zoomOnScroll={!isMobile}
                             panOnScroll={false}
                             panOnDrag={true}
-                            // preventScrolling true = stops body from scrolling when pointer is over canvas
                             preventScrolling={true}
+                            // Disable ReactFlow's keyboard shortcuts on mobile — prevents Space
+                            // (pan-mode shortcut) from being captured when typing in overlaid inputs
+                            disableKeyboardA11y={isMobile}
                         >
                             <Background color="#151515" gap={20} variant={BackgroundVariant.Dots} size={1} />
                             <Controls style={{

@@ -34,44 +34,40 @@ class ServerWarmup {
     start() {
         if (this.started) return;
         this.started = true;
-        this.ping();
-    }
-
-    private async ping(attempts = 0) {
-        const MAX_ATTEMPTS = 12; // ~90s with backoff below
-        const RETRY_MS = Math.min(3000 + attempts * 1000, 10000);
-
-        const isReachable = await this.checkReachable();
-        if (isReachable) {
-            this.markReady();
-            return;
-        }
-
-        if (attempts < MAX_ATTEMPTS) {
-            setTimeout(() => this.ping(attempts + 1), RETRY_MS);
-            return;
-        }
-
-        // Never block the app forever on warmup failures.
+        // Mark ready immediately so the UI is never blocked.
+        // Then silently warm the server in the background.
         this.markReady();
+        this.warmInBackground();
     }
 
     /**
-     * Ping the backend using no-cors mode so CORS headers never block the check.
-     * With no-cors, the response is opaque (can't read status/body), but
-     * if fetch() resolves without throwing the server is alive.
+     * Silent background warm-up — pings the server up to 8 times with
+     * exponential backoff until it responds. Never touches UI state.
+     */
+    private async warmInBackground(attempts = 0) {
+        const MAX_ATTEMPTS = 8;
+        const RETRY_MS = Math.min(4000 + attempts * 2000, 15000);
+
+        const ok = await this.checkReachable();
+        if (ok || attempts >= MAX_ATTEMPTS) return;
+
+        setTimeout(() => this.warmInBackground(attempts + 1), RETRY_MS);
+    }
+
+    /**
+     * Ping the health endpoint.  With the CORP header fixed on the server
+     * (crossOriginResourcePolicy: cross-origin via Helmet), this plain fetch
+     * now resolves normally.  Fallback: treat any non-connection error as alive.
      */
     private async checkReachable() {
         try {
-            await fetch(`${API_BASE_URL}/health`, {
+            const res = await fetch(`${API_BASE_URL}/health`, {
                 method: 'GET',
-                mode: 'no-cors',          // bypasses CORS — response is opaque but fetch won't throw
-                signal: AbortSignal.timeout(6000),
+                signal: AbortSignal.timeout(8000),
             });
-            // fetch resolved = server responded = it's up
-            return true;
+            // Any non-5xx response means the server is up
+            return res.status < 500;
         } catch {
-            // Timeout or unreachable — server still sleeping
             return false;
         }
     }

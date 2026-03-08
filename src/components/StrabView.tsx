@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
 import { sendStrabMessage, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
-import { Network, Send, Sparkles, ArrowLeft, Trash2, Wifi } from 'lucide-react';
+import { Network, Send, Sparkles, ArrowLeft, Trash2 } from 'lucide-react';
 import MobileNav from './MobileNav';
 
 export default function StrabView() {
@@ -21,8 +21,6 @@ export default function StrabView() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'chat' | 'reports'>('chat');
-    const [serverReady, setServerReady] = useState(serverWarmup.isReady);
-    const [warmupSeconds, setWarmupSeconds] = useState(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const resolvedName = canvas?.name && canvas.name !== 'Untitled Canvas' ? canvas.name : 'Project';
@@ -103,24 +101,9 @@ export default function StrabView() {
         document.title = `STRAB — ${resolvedName} | Stratabin`;
     }, [resolvedName]);
 
-    // Subscribe to server warmup state and show elapsed time while waiting
+    // Kick off background server warm-up (non-blocking — UI is never gated on this)
     useEffect(() => {
-        serverWarmup.start(); // idempotent — safe to call again
-        if (serverWarmup.isReady) {
-            setServerReady(true);
-            return;
-        }
-        const unsub = serverWarmup.onReady(() => setServerReady(true));
-
-        // Tick a seconds counter so the user can see progress
-        const timer = setInterval(() => {
-            setWarmupSeconds(s => s + 1);
-        }, 1000);
-
-        return () => {
-            unsub();
-            clearInterval(timer);
-        };
+        serverWarmup.start();
     }, []);
 
     // Initial Greeting — reads store state directly to avoid stale closure duplicates
@@ -295,32 +278,6 @@ export default function StrabView() {
                 {/* Chat View */}
                 {activeTab === 'chat' && (
                     <div className="flex-1 flex flex-col relative max-w-4xl mx-auto w-full">
-
-                        {/* Server warm-up banner — shown only while server is starting */}
-                        {!serverReady && (
-                            <div className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl bg-orange-500/5 border border-orange-500/20 animate-in fade-in duration-500">
-                                <div className="relative shrink-0">
-                                    <Wifi size={16} className="text-orange-400" />
-                                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-orange-500 animate-ping" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold text-white/80">Connecting to AI server…</p>
-                                    <p className="text-[10px] text-white/40 mt-0.5">
-                                        The server wakes up after inactivity — usually ready in 20–40s
-                                        {warmupSeconds > 0 && <span className="text-orange-400/70 ml-1">({warmupSeconds}s)</span>}
-                                    </p>
-                                </div>
-                                <div className="shrink-0 flex gap-0.5">
-                                    {[0, 1, 2].map(i => (
-                                        <div
-                                            key={i}
-                                            className="w-1.5 h-4 rounded-full bg-orange-500/30 animate-pulse"
-                                            style={{ animationDelay: `${i * 200}ms`, animationDuration: '1s' }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
 
                         <div
                             className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 custom-scrollbar"
