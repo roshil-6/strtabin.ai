@@ -118,8 +118,9 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
             const startIdx = storeContent.indexOf("<<<SPLIT_SECTION_START>>>");
             // Main content is everything before the split marker
-            const mainPart = storeContent.substring(0, startIdx).trim();
-            setContent(mainPart);
+            const mainPart = storeContent.substring(0, startIdx);
+            // Keep user spaces intact; only remove the single delimiter newline we inject before split marker.
+            setContent(mainPart.endsWith('\n') ? mainPart.slice(0, -1) : mainPart);
 
             const sepMatch = storeContent.match(/<<<SPLIT_SECTION_SEP>>>/);
             const endMatch = storeContent.match(/<<<SPLIT_SECTION_END>>>/);
@@ -134,12 +135,20 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
                 setHeadingA(hAMatch ? hAMatch[1] : 'Column A');
                 setHeadingB(hBMatch ? hBMatch[1] : 'Column B');
-                setContentA(partA.replace(/<<<HEADING_A:.*?>>>/g, '').trim());
-                setContentB(partB.replace(/<<<HEADING_B:.*?>>>/g, '').trim());
+                const sectionA = partA
+                    .replace(/<<<HEADING_A:.*?>>>/g, '')
+                    .replace(/^\n/, '')
+                    .replace(/\n$/, '');
+                const sectionB = partB
+                    .replace(/<<<HEADING_B:.*?>>>/g, '')
+                    .replace(/^\n/, '')
+                    .replace(/\n$/, '');
+                setContentA(sectionA);
+                setContentB(sectionB);
             }
         } else {
             setIsSplitMode(false);
-            const stripped = storeContent.replace(/<<<SECTION_ID:[^>]+>>>/g, '').trim();
+            const stripped = storeContent.replace(/<<<SECTION_ID:[^>]+>>>/g, '');
             setContent(stripped);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
