@@ -437,8 +437,10 @@ function CanvasContent() {
                             panOnScroll={false}
                             panOnDrag={true}
                             preventScrolling={true}
-                            // Disable ReactFlow's keyboard shortcuts on mobile — prevents Space
-                            // (pan-mode shortcut) from being captured when typing in overlaid inputs
+                            // Disable space-for-pan and selection shortcuts so spacebar
+                            // always reaches textarea/input elements inside nodes
+                            panActivationKeyCode={null}
+                            selectionKeyCode={null}
                             disableKeyboardA11y={isMobile}
                         >
                             <Background color="#151515" gap={20} variant={BackgroundVariant.Dots} size={1} />
