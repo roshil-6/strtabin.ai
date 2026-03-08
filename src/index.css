@@ -14,6 +14,33 @@ body {
   margin: 0;
 }
 
+/*
+ * Mobile typing fix:
+ * touch-action:manipulation prevents double-tap-to-zoom on interactive elements
+ * without blocking normal keyboard input (unlike user-scalable=no which breaks
+ * the spacebar on Android by treating it as a scroll gesture).
+ */
+input,
+textarea,
+select,
+button,
+a {
+  touch-action: manipulation;
+}
+
+/*
+ * Prevent iOS Safari from zooming into focused inputs.
+ * All inputs must render at ≥16px; smaller font sizes trigger auto-zoom.
+ * (Individual components should already use text-base / 16px or larger.)
+ */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
+
 #root {
   height: 100%;
   width: 100%;

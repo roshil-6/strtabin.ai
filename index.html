@@ -9,8 +9,10 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="canonical" href="https://stratabin.com" />
 
-  <!-- Viewport — zoom locked at page level; canvas handles its own pinch-zoom via touch-action:none -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- Viewport: standard responsive scaling.
+       Zoom prevention per-section: inputs use touch-action:manipulation (no double-tap zoom),
+       canvas uses touch-action:none on its container so ReactFlow owns pinch-zoom. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#da7756" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
