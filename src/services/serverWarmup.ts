@@ -57,34 +57,23 @@ class ServerWarmup {
     }
 
     /**
-     * Consider backend "reachable" if:
-     * - /health returns 2xx (ideal path), OR
-     * - / returns any non-5xx status (older backends may not expose /health)
+     * Ping the backend using no-cors mode so CORS headers never block the check.
+     * With no-cors, the response is opaque (can't read status/body), but
+     * if fetch() resolves without throwing the server is alive.
      */
     private async checkReachable() {
         try {
-            const healthRes = await fetch(`${API_BASE_URL}/health`, {
+            await fetch(`${API_BASE_URL}/health`, {
                 method: 'GET',
-                signal: AbortSignal.timeout(5000),
+                mode: 'no-cors',          // bypasses CORS — response is opaque but fetch won't throw
+                signal: AbortSignal.timeout(6000),
             });
-            if (healthRes.ok) return true;
-            // 401/403/404 means server responded; only route/auth is different
-            if (healthRes.status > 0 && healthRes.status < 500) return true;
+            // fetch resolved = server responded = it's up
+            return true;
         } catch {
-            // Continue to root fallback
+            // Timeout or unreachable — server still sleeping
+            return false;
         }
-
-        try {
-            const rootRes = await fetch(`${API_BASE_URL}/`, {
-                method: 'GET',
-                signal: AbortSignal.timeout(5000),
-            });
-            if (rootRes.status > 0 && rootRes.status < 500) return true;
-        } catch {
-            // unreachable
-        }
-
-        return false;
     }
 
     private markReady() {

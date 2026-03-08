@@ -238,7 +238,9 @@ app.get('/', (_req, res) => {
     res.json({ status: 'STRAB Server is running.' });
 });
 
+// Health endpoint — publicly accessible, no CORS restriction (used for warm-up pings)
 app.get('/health', (_req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.json({ status: 'ok' });
 });
 

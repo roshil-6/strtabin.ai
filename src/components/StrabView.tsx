@@ -405,19 +405,18 @@ export default function StrabView() {
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && !isLoading && serverReady && handleSend()}
-                                    placeholder={serverReady ? "Ask STRAB about your project…" : "Waiting for server to start…"}
-                                    disabled={!serverReady}
-                                    className="w-full bg-[#151515] border border-white/10 rounded-xl py-4 pl-4 pr-14 text-base text-white focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 outline-none transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                    onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSend()}
+                                    placeholder="Ask STRAB about your project…"
+                                    className="w-full bg-[#151515] border border-white/10 rounded-xl py-4 pl-4 pr-14 text-base text-white focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 outline-none transition-all"
                                     aria-label="Message STRAB"
                                 />
                                 <button
                                     onClick={handleSend}
-                                    disabled={!input.trim() || isLoading || !serverReady}
+                                    disabled={!input.trim() || isLoading}
                                     className="absolute right-2 top-1/2 -translate-y-1/2 p-3 text-orange-400 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg"
                                     aria-label="Send message"
                                 >
-                                    {!serverReady
+                                    {isLoading
                                         ? <div className="w-[18px] h-[18px] border-2 border-orange-400/30 border-t-orange-400 rounded-full animate-spin" />
                                         : <Send size={18} />
                                     }
