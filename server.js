@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
+import crypto from 'crypto';
 import { createClerkClient } from '@clerk/backend';
 
 dotenv.config();
@@ -11,6 +12,7 @@ dotenv.config();
 // ─── Startup Validation ────────────────────────────────────────────────────
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CLERK_SECRET_KEY  = process.env.CLERK_SECRET_KEY;
+const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 const PORT = process.env.PORT || 3001;
 
 if (!ANTHROPIC_API_KEY) {
@@ -18,6 +20,9 @@ if (!ANTHROPIC_API_KEY) {
 }
 if (!CLERK_SECRET_KEY) {
     console.warn('⚠️  WARNING: CLERK_SECRET_KEY is not set. Token verification is disabled.');
+}
+if (!RAZORPAY_WEBHOOK_SECRET) {
+    console.warn('⚠️  WARNING: RAZORPAY_WEBHOOK_SECRET is not set. Payment webhook verification is disabled.');
 }
 
 // ─── Clerk Client (for token verification) ────────────────────────────────
@@ -41,6 +46,83 @@ app.get('/', (_req, res) => {
 app.get('/health', (_req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.json({ status: 'ok' });
+});
+
+// Razorpay webhook (raw body required for HMAC verification)
+app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json', limit: '200kb' }), async (req, res) => {
+    if (!RAZORPAY_WEBHOOK_SECRET || !clerk) {
+        return res.status(503).json({ error: 'Payment verification is not configured.' });
+    }
+
+    try {
+        const signature = req.headers['x-razorpay-signature'];
+        if (!signature || typeof signature !== 'string') {
+            return res.status(400).json({ error: 'Missing webhook signature.' });
+        }
+
+        const expected = crypto
+            .createHmac('sha256', RAZORPAY_WEBHOOK_SECRET)
+            .update(req.body)
+            .digest('hex');
+
+        const sigBuf = Buffer.from(signature, 'utf8');
+        const expectedBuf = Buffer.from(expected, 'utf8');
+        if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+            return res.status(401).json({ error: 'Invalid webhook signature.' });
+        }
+
+        const payload = JSON.parse(req.body.toString('utf8'));
+        const eventName = String(payload?.event || '');
+
+        // Only process successful payment events.
+        const supportedEvents = new Set(['payment.captured', 'order.paid', 'payment_link.paid']);
+        if (!supportedEvents.has(eventName)) {
+            return res.status(200).json({ ok: true, ignored: true, event: eventName });
+        }
+
+        const payment =
+            payload?.payload?.payment?.entity ||
+            payload?.payload?.order?.entity?.payments?.[0] ||
+            null;
+
+        const notes = payment?.notes && typeof payment.notes === 'object' ? payment.notes : {};
+        const clerkUserId = typeof notes.clerkUserId === 'string'
+            ? notes.clerkUserId
+            : (typeof notes.clerk_user_id === 'string' ? notes.clerk_user_id : '');
+        const payerEmail = typeof payment?.email === 'string'
+            ? payment.email
+            : (typeof notes.email === 'string' ? notes.email : '');
+
+        let resolvedUserId = clerkUserId;
+        if (!resolvedUserId && payerEmail) {
+            const users = await clerk.users.getUserList({ emailAddress: [payerEmail], limit: 1 });
+            resolvedUserId = users?.data?.[0]?.id || '';
+        }
+
+        if (!resolvedUserId) {
+            return res.status(202).json({
+                ok: true,
+                warning: 'Payment received but no Clerk user could be resolved. Include notes.clerkUserId in Razorpay payments.',
+            });
+        }
+
+        await clerk.users.updateUserMetadata(resolvedUserId, {
+            publicMetadata: {
+                isPaid: true,
+                paid: true,
+                hasPaidAccess: true,
+                paidAt: new Date().toISOString(),
+                paymentProvider: 'razorpay',
+                lastPaymentEvent: eventName,
+                lastPaymentId: typeof payment?.id === 'string' ? payment.id : undefined,
+            },
+        });
+
+        return res.status(200).json({ ok: true, userId: resolvedUserId });
+    } catch (error) {
+        console.error('Payment webhook error:', error);
+        return res.status(500).json({ error: 'Webhook processing failed.' });
+    }
 });
 
 // ─── Security Headers (helmet) ────────────────────────────────────────────

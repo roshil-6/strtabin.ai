@@ -18,6 +18,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     const { getAccessStatus, startTrial, trialStartedAt, setPaidUser } = useStore();
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
+    const [isRefreshingPayment, setIsRefreshingPayment] = useState(false);
     const rafRef = useRef<number | null>(null);
     const paidFromClerk = Boolean(
         user?.publicMetadata?.isPaid === true ||
@@ -61,6 +62,30 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, trialStartedAt, paidFromClerk, setPaidUser]);
 
+    const refreshPaymentStatus = async () => {
+        if (!user) return;
+        setIsRefreshingPayment(true);
+        try {
+            await user.reload();
+            const refreshedPaid = Boolean(
+                user.publicMetadata?.isPaid === true ||
+                user.publicMetadata?.paid === true ||
+                user.publicMetadata?.hasPaidAccess === true
+            );
+            if (refreshedPaid) {
+                setPaidUser(user.id);
+                setStatus('paid');
+                toast.success('Payment verified. Full access unlocked.');
+            } else {
+                toast.error('Payment not verified yet. Please wait 1-2 minutes and retry.');
+            }
+        } catch {
+            toast.error('Could not refresh payment status. Please try again.');
+        } finally {
+            setIsRefreshingPayment(false);
+        }
+    };
+
     if (status === 'loading') return null;
 
     // Full access: trial or paid
@@ -75,21 +100,12 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                         </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => {
-                                    if (user) {
-                                        if (paidFromClerk) {
-                                            setPaidUser(user.id);
-                                            setStatus('paid');
-                                            toast.success('Payment verified. Full access unlocked.');
-                                        } else {
-                                            toast.error('Payment not verified yet. Please wait 1-2 minutes and refresh.');
-                                        }
-                                    }
-                                }}
+                                onClick={refreshPaymentStatus}
                                 className="text-xs font-black uppercase tracking-wider px-3 py-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all min-h-[36px]"
                                 title="Refresh paid status"
+                                disabled={isRefreshingPayment}
                             >
-                                Refresh Status
+                                {isRefreshingPayment ? 'Checking...' : 'Refresh Status'}
                             </button>
                             <button
                                 onClick={() => window.open(RAZORPAY_LINK, '_blank')}
@@ -158,20 +174,11 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
 
                     {/* After payment confirmation */}
                     <button
-                        onClick={() => {
-                            if (user) {
-                                if (paidFromClerk) {
-                                    setPaidUser(user.id);
-                                    setStatus('paid');
-                                    toast.success('Payment verified. Full access unlocked.');
-                                } else {
-                                    toast.error('Payment is not verified yet. Please retry after confirmation.');
-                                }
-                            }
-                        }}
+                        onClick={refreshPaymentStatus}
                         className="text-xs text-white/20 hover:text-white/50 transition-colors py-2 font-bold"
+                        disabled={isRefreshingPayment}
                     >
-                        I have paid — verify and refresh access
+                        {isRefreshingPayment ? 'Verifying payment...' : 'I have paid — verify and refresh access'}
                     </button>
                 </div>
             </div>
