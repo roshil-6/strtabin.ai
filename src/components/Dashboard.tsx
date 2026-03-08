@@ -336,34 +336,37 @@ export default function Dashboard() {
                             </button>
                         </div>
 
-                        {/* Secondary actions — hidden on mobile by default, shown in a scrollable row */}
-                        <div className="hidden md:flex flex-row items-center gap-3 mt-6">
-                        
+                        {/* Secondary actions row — visible on all screen sizes */}
+                        <div className="flex flex-row items-center gap-2 mt-3 md:mt-6">
+
                             <button
                                 onClick={() => navigate(`/folder-workflow/${activeFolderId || 'general'}`)}
-                                className="flex items-center justify-center gap-2 px-6 py-3 bg-[#111] hover:bg-white/5 text-white/40 hover:text-white border border-white/10 rounded-xl transition-all font-bold text-sm tracking-wide group shrink-0"
+                                className="flex items-center gap-1.5 px-3 py-2 md:px-6 md:py-3 bg-[#111] text-white/50 hover:text-white border border-white/[0.08] rounded-xl active:scale-95 transition-all font-semibold text-xs md:text-sm group shrink-0"
                             >
-                                <Network size={18} className="group-hover:text-primary transition-colors" />
-                                Project Map
+                                <Network size={15} className="group-hover:text-primary transition-colors" />
+                                <span>Project Map</span>
                             </button>
+
                             {activeTab === 'strategy' && (
                                 <button
                                     onClick={() => {
                                         setSelectionMode(!selectionMode);
                                         setSelectedIds([]);
                                     }}
-                                    className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all border ${selectionMode
+                                    className={`flex items-center gap-1.5 px-3 py-2 md:px-6 md:py-3 rounded-xl font-semibold text-xs md:text-sm active:scale-95 transition-all border shrink-0 ${selectionMode
                                         ? 'bg-orange-500/20 text-orange-400 border-orange-500/50'
-                                        : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
+                                        : 'bg-white/5 text-white/50 border-white/[0.08] hover:text-white hover:bg-white/10'
                                         }`}
                                 >
-                                    <GitMerge size={20} />
-                                    {selectionMode ? 'Cancel Merge' : 'Merge Projects'}
+                                    <GitMerge size={15} />
+                                    <span>{selectionMode ? 'Cancel' : 'Merge'}</span>
                                 </button>
                             )}
+
+                            {/* New Project — desktop only (mobile has it inline in the title row) */}
                             <button
                                 onClick={handleCreate}
-                                className="flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white/90 transition-all border border-white/10"
+                                className="hidden md:flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white/90 transition-all border border-white/10 ml-auto"
                             >
                                 <Plus size={18} strokeWidth={3} />
                                 New Project
