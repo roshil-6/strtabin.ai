@@ -340,7 +340,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
             {/* Content Area */}
             <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-5 md:p-8 custom-scrollbar">
-                <div className="mx-auto max-w-4xl pb-32">
+                <div className="mx-auto max-w-4xl pb-8">
 
                     {/* Title */}
                     <input

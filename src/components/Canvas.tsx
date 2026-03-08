@@ -278,8 +278,13 @@ function CanvasContent() {
                 <Sidebar canvasId={id || 'default'} />
             </div>
 
-            {/* Content Container - Adjusted top padding for header and tabs */}
-            <div className={`flex-1 flex w-full h-full ${isMerged ? 'pt-28' : 'pt-16'}`}>
+            {/* Content Container
+                On mobile: height stops at the bottom nav (80px) so nothing is ever hidden behind it.
+                On desktop: full height as before. */}
+            <div
+                className={`flex-1 flex w-full ${isMerged ? 'pt-28' : 'pt-16'}`}
+                style={{ height: isMobile ? 'calc(100% - 80px)' : '100%' }}
+            >
 
                 {/* Merged Tabs Bar - Fixed at the very top for browser-like feel */}
                 {isMerged && currentCanvas.mergedCanvasIds && (
@@ -442,11 +447,11 @@ function CanvasContent() {
                                 backgroundColor: '#151515',
                                 border: '1px solid rgba(255,255,255,0.1)',
                                 fill: '#9aa0a6',
-                                marginBottom: '100px' // Space for expanded bottom nav on mobile
+                                marginBottom: '60px',
                             }} />
 
                             {/* Mobile-only Fit View Button */}
-                            <Panel position="bottom-right" className="md:hidden pb-24 pr-4">
+                            <Panel position="bottom-right" className="md:hidden pb-4 pr-4">
                                 <button
                                     onClick={() => fitView({ duration: 600, padding: 0.2 })}
                                     className="w-12 h-12 rounded-full bg-[#1a1a1a]/90 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 active:scale-95 transition-all shadow-xl"
@@ -460,7 +465,7 @@ function CanvasContent() {
                     </div>
 
                     {/* Floating Command Dock */}
-                    <div className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-50">
+                    <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-50">
                         <CommandDock onAddNode={handleAddNode} />
                     </div>
                 </div>
