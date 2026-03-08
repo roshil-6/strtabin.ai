@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X, FileText, Trash2, File, Loader2 } from 'lucide-react';
+import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X, FileText, Trash2, File, Loader2, CalendarDays, Pin, PinOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 
@@ -18,6 +18,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const deleteCanvasImage = useStore(state => state.deleteCanvasImage);
     const addCanvasDoc = useStore(state => state.addCanvasDoc);
     const deleteCanvasDoc = useStore(state => state.deleteCanvasDoc);
+    const addCalendarEvent = useStore(state => state.addCalendarEvent);
+    const toggleWritingPinnedCalendarEvent = useStore(state => state.toggleWritingPinnedCalendarEvent);
+    const projectCalendarEvents = useStore(state => state.projectCalendarEvents[canvasId] || {});
+    const writingPinnedKeys = useStore(state => state.writingPinnedCalendarEventKeys[canvasId] || []);
 
     const [title, setTitle] = useState(canvas?.title || '');
     const [content, setContent] = useState('');
@@ -26,6 +30,9 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const [contentB, setContentB] = useState('');
     const [headingA, setHeadingA] = useState('Heading A');
     const [headingB, setHeadingB] = useState('Heading B');
+    const [quickTask, setQuickTask] = useState('');
+    const [quickDate, setQuickDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [quickTime, setQuickTime] = useState('');
 
     const imageInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -289,6 +296,29 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         setBranchItems(['', '', '', '', '', '']);
     };
 
+    const flatProjectEvents = Object.entries(projectCalendarEvents)
+        .flatMap(([date, events]) =>
+            events.map(event => ({ ...event, date, pinKey: `${date}::${event.id}` }))
+        )
+        .sort((a, b) => `${a.date} ${a.time || '99:99'}`.localeCompare(`${b.date} ${b.time || '99:99'}`));
+    const pinnedKeySet = new Set(writingPinnedKeys);
+    const pinnedEvents = flatProjectEvents.filter(e => pinnedKeySet.has(e.pinKey));
+    const recentEvents = flatProjectEvents.slice(0, 8);
+
+    const formatDisplayDate = (dateKey: string) => {
+        const date = new Date(`${dateKey}T00:00:00`);
+        if (Number.isNaN(date.getTime())) return dateKey;
+        return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
+    };
+
+    const handleQuickAddTask = () => {
+        const task = quickTask.trim();
+        if (!task || !quickDate) return;
+        addCalendarEvent(quickDate, quickTime || 'All Day', task, canvasId);
+        setQuickTask('');
+        setQuickTime('');
+    };
+
     // Auto-resize textareas — saves/restores scroll position to prevent jump-to-top on Enter
     useEffect(() => {
         const scrollEl = scrollContainerRef.current;
@@ -384,6 +414,90 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         placeholder="Untitled Strategy"
                         className="w-full bg-transparent text-4xl font-bold text-white placeholder-white/20 outline-none leading-tight mb-8"
                     />
+
+                    {/* Writing Planner: quick date-task add + pinned calendar tasks */}
+                    <div className="mb-8 border border-white/10 bg-white/[0.02] rounded-2xl p-4 md:p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                            <CalendarDays size={15} className="text-primary" />
+                            <h4 className="text-xs font-black uppercase tracking-widest text-white/50">Writing Planner</h4>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_auto] gap-2 mb-4">
+                            <input
+                                type="text"
+                                value={quickTask}
+                                onChange={(e) => setQuickTask(e.target.value)}
+                                placeholder="Add important task..."
+                                className="bg-[#111] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-primary/40"
+                            />
+                            <input
+                                type="date"
+                                value={quickDate}
+                                onChange={(e) => setQuickDate(e.target.value)}
+                                className="bg-[#111] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-primary/40"
+                            />
+                            <input
+                                type="time"
+                                value={quickTime}
+                                onChange={(e) => setQuickTime(e.target.value)}
+                                className="bg-[#111] border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-primary/40"
+                            />
+                            <button
+                                onClick={handleQuickAddTask}
+                                disabled={!quickTask.trim() || !quickDate}
+                                className="px-4 py-2 rounded-xl bg-primary text-black text-xs font-black uppercase tracking-wider disabled:opacity-30"
+                            >
+                                Add
+                            </button>
+                        </div>
+
+                        {pinnedEvents.length > 0 && (
+                            <div className="mb-3">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-white/30 mb-2">Pinned in Writing</p>
+                                <div className="space-y-2">
+                                    {pinnedEvents.map((event) => (
+                                        <div key={event.pinKey} className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/10">
+                                            <span className="text-[11px] font-bold text-primary min-w-[64px]">{formatDisplayDate(event.date)}</span>
+                                            <span className="text-[11px] text-white/40 min-w-[62px]">{event.time || 'All Day'}</span>
+                                            <span className={`text-sm flex-1 ${event.completed ? 'text-white/35 line-through' : 'text-white/80'}`}>{event.task}</span>
+                                            <button
+                                                onClick={() => toggleWritingPinnedCalendarEvent(canvasId, event.date, event.id)}
+                                                className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                                                title="Unpin from writing"
+                                            >
+                                                <PinOff size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {recentEvents.length > 0 && (
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-white/30 mb-2">Pin from project calendar</p>
+                                <div className="space-y-2 max-h-44 overflow-y-auto custom-scrollbar pr-1">
+                                    {recentEvents.map((event) => {
+                                        const pinned = pinnedKeySet.has(event.pinKey);
+                                        return (
+                                            <div key={event.pinKey} className="flex items-center gap-2 p-2 rounded-lg border border-white/10 bg-[#0f0f0f]">
+                                                <span className="text-[10px] text-white/35 min-w-[58px]">{formatDisplayDate(event.date)}</span>
+                                                <span className="text-[10px] text-white/30 min-w-[58px]">{event.time || 'All Day'}</span>
+                                                <span className={`text-xs flex-1 ${event.completed ? 'text-white/30 line-through' : 'text-white/70'}`}>{event.task}</span>
+                                                <button
+                                                    onClick={() => toggleWritingPinnedCalendarEvent(canvasId, event.date, event.id)}
+                                                    className={`p-1.5 rounded-md transition-colors ${pinned ? 'text-primary bg-primary/10' : 'text-white/35 hover:text-primary hover:bg-primary/10'}`}
+                                                    title={pinned ? 'Unpin' : 'Pin to writing'}
+                                                >
+                                                    <Pin size={13} />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Image Gallery */}
                     {canvas?.images && canvas.images.length > 0 && (

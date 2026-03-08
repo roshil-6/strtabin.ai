@@ -115,6 +115,13 @@ export type TimelineItem = {
     linkedCanvasId?: string; // Deep link to a strategy canvas
 };
 
+export type CalendarEvent = {
+    id: string;
+    time: string;
+    task: string;
+    completed?: boolean;
+};
+
 export type NodeData = {
     label: string;
     imgUrl?: string;
@@ -195,11 +202,13 @@ export type RFState = {
     mergeCanvases: (ids: string[], title: string) => string;
 
     // Global Calendar
-    calendarEvents: Record<string, { id: string; time: string; task: string; completed?: boolean }[]>;
-    projectCalendarEvents: Record<string, Record<string, { id: string; time: string; task: string; completed?: boolean }[]>>;
+    calendarEvents: Record<string, CalendarEvent[]>;
+    projectCalendarEvents: Record<string, Record<string, CalendarEvent[]>>;
+    writingPinnedCalendarEventKeys: Record<string, string[]>; // canvasId -> ["YYYY-MM-DD::eventId"]
     addCalendarEvent: (date: string, time: string, task: string, canvasId?: string) => void;
     toggleCalendarEvent: (date: string, eventId: string, canvasId?: string) => void;
     removeCalendarEvent: (date: string, eventId: string, canvasId?: string) => void;
+    toggleWritingPinnedCalendarEvent: (canvasId: string, date: string, eventId: string) => void;
 
     // Chat History
     chatHistory: Record<string, { role: 'user' | 'assistant'; content: string }[]>;
@@ -253,6 +262,7 @@ const useStore = create<RFState>()(
             timelines: {},
             calendarEvents: {},
             projectCalendarEvents: {},
+            writingPinnedCalendarEventKeys: {},
             chatHistory: {},
             folders: {},
             activeFolderId: null,
@@ -318,6 +328,8 @@ const useStore = create<RFState>()(
 
                     const newProjectCalendarEvents = { ...state.projectCalendarEvents };
                     delete newProjectCalendarEvents[id];
+                    const newPinnedKeys = { ...state.writingPinnedCalendarEventKeys };
+                    delete newPinnedKeys[id];
 
                     // If we deleted a canvas that was part of a merged project, it will just show as missing in that project.
                     // If we deleted a merged project itself, just clear the currentCanvasId if needed.
@@ -325,6 +337,7 @@ const useStore = create<RFState>()(
                     return {
                         canvases: newCanvases,
                         projectCalendarEvents: newProjectCalendarEvents,
+                        writingPinnedCalendarEventKeys: newPinnedKeys,
                         currentCanvasId: state.currentCanvasId === id ? null : state.currentCanvasId,
                     };
                 });
@@ -947,11 +960,17 @@ const useStore = create<RFState>()(
                         const removing = currentEvents.find(e => e.id === eventId);
                         if (removing) NotificationManager.cancelNotification(removing.task, removing.time, date);
                         const newEvents = currentEvents.filter((e) => e.id !== eventId);
+                        const key = `${date}::${eventId}`;
+                        const existingPins = state.writingPinnedCalendarEventKeys[canvasId] || [];
                         return {
                             projectCalendarEvents: {
                                 ...state.projectCalendarEvents,
                                 [canvasId]: { ...projectEvents, [date]: newEvents }
-                            }
+                            },
+                            writingPinnedCalendarEventKeys: {
+                                ...state.writingPinnedCalendarEventKeys,
+                                [canvasId]: existingPins.filter((k) => k !== key),
+                            },
                         };
                     } else {
                         const currentEvents = state.calendarEvents[date] || [];
@@ -965,6 +984,20 @@ const useStore = create<RFState>()(
                             }
                         };
                     }
+                });
+            },
+
+            toggleWritingPinnedCalendarEvent: (canvasId, date, eventId) => {
+                set((state) => {
+                    const key = `${date}::${eventId}`;
+                    const current = state.writingPinnedCalendarEventKeys[canvasId] || [];
+                    const exists = current.includes(key);
+                    return {
+                        writingPinnedCalendarEventKeys: {
+                            ...state.writingPinnedCalendarEventKeys,
+                            [canvasId]: exists ? current.filter((k) => k !== key) : [...current, key]
+                        }
+                    };
                 });
             },
 
