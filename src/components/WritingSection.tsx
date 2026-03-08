@@ -34,15 +34,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const textareaBRef = useRef<HTMLTextAreaElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    // Save indicator
-    const [savedIndicator, setSavedIndicator] = useState(false);
-    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const triggerSaveIndicator = () => {
-        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-        setSavedIndicator(true);
-        saveTimerRef.current = setTimeout(() => setSavedIndicator(false), 2000);
-    };
 
     // Branch state
     const [showBranchModal, setShowBranchModal] = useState(false);
@@ -169,7 +160,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         const newContent = e.target.value;
         setContent(newContent);
         updateCanvasWriting(canvasId, buildStorageString(newContent, contentA, contentB, headingA, headingB, isSplitMode));
-        triggerSaveIndicator();
     };
 
     const handleSplitContentChange = (side: 'A' | 'B', val: string) => {
@@ -177,7 +167,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         const newCB = side === 'B' ? val : contentB;
         if (side === 'A') setContentA(val); else setContentB(val);
         updateCanvasWriting(canvasId, buildStorageString(content, newCA, newCB, headingA, headingB, true));
-        triggerSaveIndicator();
     };
 
     const handleHeadingChange = (side: 'A' | 'B', val: string) => {
@@ -277,11 +266,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 <div className="flex items-center gap-1.5 mr-auto min-w-0">
                     <Type size={15} className="text-primary shrink-0" />
                     <span className="text-xs font-medium text-white/40 hidden sm:block">Writing</span>
-                    {savedIndicator && (
-                        <span className="text-[10px] font-semibold text-green-400/70 animate-in fade-in duration-300">
-                            ✓ Saved
-                        </span>
-                    )}
                 </div>
 
                 <div className="flex items-center gap-0.5">
