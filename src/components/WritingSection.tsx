@@ -3,11 +3,15 @@ import useStore from '../store/useStore';
 import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X, FileText, Trash2, File, Loader2, CalendarDays, Pin, PinOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
+import type { CalendarEvent } from '../store/useStore';
 
 interface WritingSectionProps {
     canvasId: string;
     onBranch?: () => void;
 }
+
+const EMPTY_PROJECT_EVENTS: Record<string, CalendarEvent[]> = {};
+const EMPTY_PINNED_KEYS: string[] = [];
 
 export default function WritingSection({ canvasId }: WritingSectionProps) {
     const navigate = useNavigate();
@@ -20,8 +24,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const deleteCanvasDoc = useStore(state => state.deleteCanvasDoc);
     const addCalendarEvent = useStore(state => state.addCalendarEvent);
     const toggleWritingPinnedCalendarEvent = useStore(state => state.toggleWritingPinnedCalendarEvent);
-    const projectCalendarEvents = useStore(state => state.projectCalendarEvents[canvasId] || {});
-    const writingPinnedKeys = useStore(state => state.writingPinnedCalendarEventKeys[canvasId] || []);
+    const projectCalendarEvents = useStore(state => state.projectCalendarEvents[canvasId] ?? EMPTY_PROJECT_EVENTS);
+    const writingPinnedKeys = useStore(state => state.writingPinnedCalendarEventKeys[canvasId] ?? EMPTY_PINNED_KEYS);
 
     const [title, setTitle] = useState(canvas?.title || '');
     const [content, setContent] = useState('');
