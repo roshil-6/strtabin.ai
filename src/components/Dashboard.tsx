@@ -129,8 +129,26 @@ export default function Dashboard() {
     };
 
     const handleMoveToFolder = (itemId: string, targetFolderId: string | null) => {
-        moveItemToFolder(itemId, activeTab === 'timeline' ? 'timeline' : 'canvas', targetFolderId);
+        moveItemToFolder(itemId, 'canvas', targetFolderId);
         setShowMoveMenu(null);
+    };
+
+    const handleMoveToFreshFolder = (projectId: string) => {
+        const folderName = window.prompt('New folder name for this project:');
+        const trimmed = folderName?.trim();
+        if (!trimmed) return;
+        const freshFolderId = createFolder(trimmed);
+        moveItemToFolder(projectId, 'canvas', freshFolderId);
+        setShowMoveMenu(null);
+    };
+
+    const handleDuplicateToFreshFolder = (projectId: string) => {
+        const folderName = window.prompt('New folder name for duplicated project:');
+        const trimmed = folderName?.trim();
+        if (!trimmed) return;
+        const freshFolderId = createFolder(trimmed);
+        duplicateCanvas(projectId, freshFolderId);
+        setShowDuplicateMenu(null);
     };
 
     const activeFolder = activeFolderId ? folders[activeFolderId] : null;
@@ -629,6 +647,12 @@ export default function Dashboard() {
                                     >
                                         <Layout size={14} /> General Projects
                                     </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleDuplicateToFreshFolder(p.id); }}
+                                        className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-primary"
+                                    >
+                                        <FolderPlus size={14} /> New Fresh Folder...
+                                    </button>
                                     {Object.values(folders).map(f => (
                                         <button
                                             key={f.id}
@@ -659,6 +683,12 @@ export default function Dashboard() {
                                         className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 ${p.folderId === null ? 'text-primary' : 'text-white/60'}`}
                                     >
                                         <Layout size={14} /> General Projects
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleMoveToFreshFolder(p.id); }}
+                                        className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-primary"
+                                    >
+                                        <FolderPlus size={14} /> New Fresh Folder...
                                     </button>
                                     {Object.values(folders).map(f => (
                                         <button

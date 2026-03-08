@@ -229,7 +229,7 @@ export type RFState = {
     // Folder Management
     folders: Record<string, Folder>;
     activeFolderId: string | null;
-    createFolder: (name: string) => void;
+    createFolder: (name: string) => string;
     deleteFolder: (id: string) => void;
     updateFolderName: (id: string, name: string) => void;
     setActiveFolder: (id: string | null) => void;
@@ -323,8 +323,71 @@ const useStore = create<RFState>()(
 
             deleteCanvas: (id) => {
                 set((state) => {
+                    const now = Date.now();
                     const newCanvases = { ...state.canvases };
                     delete newCanvases[id];
+
+                    // Clean stale canvas references from other canvases.
+                    Object.keys(newCanvases).forEach((canvasId) => {
+                        const canvas = newCanvases[canvasId];
+                        let changed = false;
+                        let nextCanvas = canvas;
+
+                        if (canvas.linkedCanvases?.includes(id)) {
+                            nextCanvas = {
+                                ...nextCanvas,
+                                linkedCanvases: canvas.linkedCanvases.filter((linkedId) => linkedId !== id),
+                            };
+                            changed = true;
+                        }
+
+                        if (canvas.mergedCanvasIds?.includes(id)) {
+                            nextCanvas = {
+                                ...nextCanvas,
+                                mergedCanvasIds: canvas.mergedCanvasIds.filter((mergedId) => mergedId !== id),
+                            };
+                            changed = true;
+                        }
+
+                        const updatedNodes = canvas.nodes.map((node) => {
+                            const data = node.data as Record<string, unknown>;
+                            let nodeChanged = false;
+                            const nextData: Record<string, unknown> = { ...data };
+
+                            if (nextData.subCanvasId === id) {
+                                delete nextData.subCanvasId;
+                                nodeChanged = true;
+                            }
+                            if (nextData.linkedSubCanvasId === id) {
+                                delete nextData.linkedSubCanvasId;
+                                nodeChanged = true;
+                            }
+
+                            return nodeChanged ? { ...node, data: nextData } : node;
+                        });
+
+                        if (updatedNodes.some((node, idx) => node !== canvas.nodes[idx])) {
+                            nextCanvas = { ...nextCanvas, nodes: updatedNodes };
+                            changed = true;
+                        }
+
+                        if (changed) {
+                            newCanvases[canvasId] = { ...nextCanvas, updatedAt: now };
+                        }
+                    });
+
+                    // Clean stale canvas links from timelines.
+                    const newTimelines = { ...state.timelines };
+                    Object.keys(newTimelines).forEach((timelineId) => {
+                        const timeline = newTimelines[timelineId];
+                        if (timeline.linkedCanvases?.includes(id)) {
+                            newTimelines[timelineId] = {
+                                ...timeline,
+                                linkedCanvases: timeline.linkedCanvases.filter((linkedId) => linkedId !== id),
+                                updatedAt: now,
+                            };
+                        }
+                    });
 
                     const newProjectCalendarEvents = { ...state.projectCalendarEvents };
                     delete newProjectCalendarEvents[id];
@@ -336,6 +399,7 @@ const useStore = create<RFState>()(
 
                     return {
                         canvases: newCanvases,
+                        timelines: newTimelines,
                         projectCalendarEvents: newProjectCalendarEvents,
                         writingPinnedCalendarEventKeys: newPinnedKeys,
                         currentCanvasId: state.currentCanvasId === id ? null : state.currentCanvasId,
@@ -1230,6 +1294,7 @@ const useStore = create<RFState>()(
                     folders: { ...state.folders, [id]: newFolder },
                     activeFolderId: id, // switch to newly created folder
                 }));
+                return id;
             },
 
             deleteFolder: (id) => {
@@ -1255,10 +1320,24 @@ const useStore = create<RFState>()(
                         }
                     });
 
+                    const newDiagrams = state.diagrams.map((diagram) => (
+                        diagram.folderId === id
+                            ? { ...diagram, folderId: null, updatedAt: Date.now() }
+                            : diagram
+                    ));
+
+                    const newProjectMapNodes = { ...state.projectMapNodes };
+                    delete newProjectMapNodes[id];
+                    const newProjectMapEdges = { ...state.projectMapEdges };
+                    delete newProjectMapEdges[id];
+
                     return {
                         folders: newFolders,
                         canvases: newCanvases,
                         timelines: newTimelines,
+                        diagrams: newDiagrams,
+                        projectMapNodes: newProjectMapNodes,
+                        projectMapEdges: newProjectMapEdges,
                         activeFolderId: state.activeFolderId === id ? null : state.activeFolderId,
                     };
                 });
