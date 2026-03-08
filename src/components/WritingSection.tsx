@@ -37,6 +37,9 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     // Debounce refs — local state updates instantly, store persists after 600ms idle
     const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isComposingRef = useRef(false);
+    const isEditingRef = useRef(false);
+    const lastEditAtRef = useRef(0);
 
 
     // Branch state
@@ -106,10 +109,21 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         parseDocx();
     }, [previewDoc]);
 
+    useEffect(() => {
+        return () => {
+            if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
+            if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+        };
+    }, []);
+
     // Sync with store
     useEffect(() => {
         if (!canvas) return;
         setTitle(canvas.title || '');
+        // Never rehydrate from store while user is actively typing/composing.
+        // This prevents stale store echoes from overwriting recent input (spaces/IME).
+        if (isComposingRef.current || isEditingRef.current) return;
+        if (Date.now() - lastEditAtRef.current < 900) return;
 
         const storeContent = canvas.writingContent || "";
 
@@ -156,10 +170,13 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newTitle = e.target.value;
+        isEditingRef.current = true;
+        lastEditAtRef.current = Date.now();
         setTitle(newTitle);
         if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
         titleDebounceRef.current = setTimeout(() => {
             updateCanvasTitle(canvasId, newTitle);
+            isEditingRef.current = false;
         }, 600);
     };
 
@@ -174,30 +191,41 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newContent = e.target.value;
+        isEditingRef.current = true;
+        lastEditAtRef.current = Date.now();
         setContent(newContent); // instant UI update
+        if (isComposingRef.current) return;
         if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
         writeDebounceRef.current = setTimeout(() => {
             updateCanvasWriting(canvasId, buildStorageString(newContent, contentA, contentB, headingA, headingB, isSplitMode));
+            isEditingRef.current = false;
         }, 600);
     };
 
     const handleSplitContentChange = (side: 'A' | 'B', val: string) => {
         const newCA = side === 'A' ? val : contentA;
         const newCB = side === 'B' ? val : contentB;
+        isEditingRef.current = true;
+        lastEditAtRef.current = Date.now();
         if (side === 'A') setContentA(val); else setContentB(val);
+        if (isComposingRef.current) return;
         if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
         writeDebounceRef.current = setTimeout(() => {
             updateCanvasWriting(canvasId, buildStorageString(content, newCA, newCB, headingA, headingB, true));
+            isEditingRef.current = false;
         }, 600);
     };
 
     const handleHeadingChange = (side: 'A' | 'B', val: string) => {
         const newHA = side === 'A' ? val : headingA;
         const newHB = side === 'B' ? val : headingB;
+        isEditingRef.current = true;
+        lastEditAtRef.current = Date.now();
         if (side === 'A') setHeadingA(val); else setHeadingB(val);
         if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
         writeDebounceRef.current = setTimeout(() => {
             updateCanvasWriting(canvasId, buildStorageString(content, contentA, contentB, newHA, newHB, true));
+            isEditingRef.current = false;
         }, 600);
     };
 
@@ -406,6 +434,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     <textarea
                         ref={textareaRef}
                         value={content}
+                        onCompositionStart={() => { isComposingRef.current = true; }}
+                        onCompositionEnd={() => { isComposingRef.current = false; }}
                         onChange={handleContentChange}
                         placeholder="Start simple, write everything here..."
                         className="w-full bg-transparent text-base md:text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[200px]"
@@ -445,6 +475,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     <textarea
                                         ref={textareaARef}
                                         value={contentA}
+                                        onCompositionStart={() => { isComposingRef.current = true; }}
+                                        onCompositionEnd={() => { isComposingRef.current = false; }}
                                         onChange={(e) => handleSplitContentChange('A', e.target.value)}
                                         placeholder="Write in column A..."
                                         className="w-full bg-transparent text-base text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[220px]"
@@ -465,6 +497,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     <textarea
                                         ref={textareaBRef}
                                         value={contentB}
+                                        onCompositionStart={() => { isComposingRef.current = true; }}
+                                        onCompositionEnd={() => { isComposingRef.current = false; }}
                                         onChange={(e) => handleSplitContentChange('B', e.target.value)}
                                         placeholder="Write in column B..."
                                         className="w-full bg-transparent text-base text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[220px]"
