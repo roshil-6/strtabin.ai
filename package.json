@@ -6,12 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "mobile:build": "npm run build && npx cap sync android",
+    "mobile:sync": "npx cap sync android",
+    "mobile:open:android": "npx cap open android",
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "node server.js",
     "start:server": "node server.js"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
     "@clerk/backend": "^3.0.1",
     "@clerk/clerk-react": "^5.61.3",
     "@types/dompurify": "^3.0.5",
@@ -34,6 +39,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.2.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^18.3.28",

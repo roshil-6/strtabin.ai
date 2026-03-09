@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Stratabin</string>
+    <string name="title_activity_main">Stratabin</string>
+    <string name="package_name">com.stratabin.app</string>
+    <string name="custom_url_scheme">com.stratabin.app</string>
+</resources>
