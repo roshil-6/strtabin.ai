@@ -13,6 +13,8 @@ dotenv.config();
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CLERK_SECRET_KEY  = process.env.CLERK_SECRET_KEY;
 const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const PORT = process.env.PORT || 3001;
 
 if (!ANTHROPIC_API_KEY) {
@@ -122,6 +124,105 @@ app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json
     } catch (error) {
         console.error('Payment webhook error:', error);
         return res.status(500).json({ error: 'Webhook processing failed.' });
+    }
+});
+
+// ─── Manual Payment Verification ──────────────────────────────────────────
+// Called by the user when they click "I have paid" on the paywall.
+// Flow:
+//   1. Verify Clerk JWT — identify the caller.
+//   2. Get fresh Clerk metadata — if already paid, return success immediately.
+//   3. If paymentId provided — call Razorpay API to confirm capture + email match.
+//   4. If verified — update Clerk metadata and return success.
+app.post('/api/payments/verify', async (req, res) => {
+    if (!clerk) {
+        return res.status(503).json({ error: 'Auth service not configured.' });
+    }
+
+    // ── 1. Authenticate caller ──────────────────────────────────────────────
+    const authHeader = req.headers['authorization'] || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    if (!token) {
+        return res.status(401).json({ error: 'Missing authorization token.' });
+    }
+
+    let userId;
+    try {
+        const payload = await clerk.verifyToken(token);
+        userId = payload.sub;
+    } catch {
+        return res.status(401).json({ error: 'Invalid or expired token.' });
+    }
+
+    try {
+        // ── 2. Check if already paid in Clerk (handles stale browser cache) ──
+        const clerkUser = await clerk.users.getUser(userId);
+        const alreadyPaid = Boolean(
+            clerkUser.publicMetadata?.isPaid === true ||
+            clerkUser.publicMetadata?.paid === true ||
+            clerkUser.publicMetadata?.hasPaidAccess === true
+        );
+
+        if (alreadyPaid) {
+            return res.status(200).json({ ok: true, paid: true, source: 'clerk_cache' });
+        }
+
+        // ── 3. Verify via Razorpay API if keys + paymentId are available ─────
+        const { paymentId } = req.body || {};
+
+        if (RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET && typeof paymentId === 'string' && paymentId.startsWith('pay_')) {
+            const rzpAuth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64');
+            const rzpRes = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, {
+                headers: { Authorization: `Basic ${rzpAuth}` },
+            });
+
+            if (!rzpRes.ok) {
+                return res.status(400).json({ error: 'Payment ID not found in Razorpay. Please check and try again.' });
+            }
+
+            const payment = await rzpRes.json();
+
+            // Must be captured (i.e. money actually received)
+            if (payment.status !== 'captured') {
+                return res.status(400).json({ error: `Payment status is "${payment.status}", not captured yet.` });
+            }
+
+            // Verify the payer email matches this Clerk account to prevent sharing payment IDs
+            const clerkEmails = clerkUser.emailAddresses.map(e => e.emailAddress.toLowerCase());
+            const paymentEmail = (payment.email || '').toLowerCase();
+            if (paymentEmail && !clerkEmails.includes(paymentEmail)) {
+                console.warn(`Payment ${paymentId} email (${paymentEmail}) does not match Clerk user ${userId} emails (${clerkEmails.join(', ')})`);
+                return res.status(400).json({
+                    error: 'The email on this payment does not match your account. Please contact support.',
+                });
+            }
+
+            // ── 4. All checks passed — mark paid in Clerk ───────────────────
+            await clerk.users.updateUserMetadata(userId, {
+                publicMetadata: {
+                    isPaid: true,
+                    paid: true,
+                    hasPaidAccess: true,
+                    paidAt: new Date().toISOString(),
+                    paymentProvider: 'razorpay',
+                    verifiedPaymentId: paymentId,
+                    verifiedAt: new Date().toISOString(),
+                },
+            });
+
+            return res.status(200).json({ ok: true, paid: true, source: 'razorpay_verified' });
+        }
+
+        // ── No Razorpay keys or no paymentId — cannot verify ─────────────────
+        return res.status(202).json({
+            ok: false,
+            paid: false,
+            message: 'Payment not yet reflected. Please wait 1-2 minutes for the payment to process, then try again.',
+        });
+
+    } catch (error) {
+        console.error('Payment verify error:', error);
+        return res.status(500).json({ error: 'Verification failed. Please try again.' });
     }
 });
 

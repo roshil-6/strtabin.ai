@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import useStore from '../store/useStore';
-import { Zap, Clock, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
-import { RAZORPAY_LINK, ONE_DAY } from '../constants';
+import { Zap, Clock, ArrowRight, CheckCircle2, Lock, ReceiptText } from 'lucide-react';
+import { RAZORPAY_LINK, ONE_DAY, API_BASE_URL } from '../constants';
 import toast from 'react-hot-toast';
 
 function formatTimeLeft(ms: number): string {
@@ -15,10 +15,13 @@ function formatTimeLeft(ms: number): string {
 
 export default function PaywallGate({ children }: { children: React.ReactNode }) {
     const { user } = useUser();
+    const { getToken } = useAuth();
     const { startTrial, trialStartedAt } = useStore();
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
     const [isRefreshingPayment, setIsRefreshingPayment] = useState(false);
+    const [showPaymentIdInput, setShowPaymentIdInput] = useState(false);
+    const [paymentIdInput, setPaymentIdInput] = useState('');
     const rafRef = useRef<number | null>(null);
     const paidFromClerk = Boolean(
         user?.publicMetadata?.isPaid === true ||
@@ -60,24 +63,42 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, trialStartedAt, paidFromClerk]);
 
-    const refreshPaymentStatus = async () => {
+    const refreshPaymentStatus = async (paymentId?: string) => {
         if (!user) return;
         setIsRefreshingPayment(true);
         try {
-            await user.reload();
-            const refreshedPaid = Boolean(
-                user.publicMetadata?.isPaid === true ||
-                user.publicMetadata?.paid === true ||
-                user.publicMetadata?.hasPaidAccess === true
-            );
-            if (refreshedPaid) {
+            // Step 1: get a fresh Clerk token
+            const token = await getToken();
+            if (!token) throw new Error('No auth token.');
+
+            // Step 2: call the backend verify endpoint (checks Clerk + optionally Razorpay API)
+            const body: Record<string, string> = {};
+            const trimmedId = (paymentId || paymentIdInput).trim();
+            if (trimmedId) body.paymentId = trimmedId;
+
+            const res = await fetch(`${API_BASE_URL}/api/payments/verify`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(body),
+            });
+
+            const data = await res.json();
+
+            if (data.paid) {
+                // Reload Clerk session so publicMetadata is fresh in-browser too
+                await user.reload();
                 setStatus('paid');
-                toast.success('Payment verified. Full access unlocked.');
+                setShowPaymentIdInput(false);
+                toast.success('Payment verified. Full access unlocked!');
             } else {
-                toast.error('Payment not verified yet. Please wait 1-2 minutes and retry.');
+                const msg = data.error || data.message || 'Payment not verified yet.';
+                toast.error(msg);
             }
         } catch {
-            toast.error('Could not refresh payment status. Please try again.');
+            toast.error('Could not reach verification server. Please try again.');
         } finally {
             setIsRefreshingPayment(false);
         }
@@ -97,7 +118,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                         </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={refreshPaymentStatus}
+                                onClick={() => refreshPaymentStatus()}
                                 className="text-xs font-black uppercase tracking-wider px-3 py-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all min-h-[36px]"
                                 title="Refresh paid status"
                                 disabled={isRefreshingPayment}
@@ -169,14 +190,50 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                         <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                     </a>
 
-                    {/* After payment confirmation */}
-                    <button
-                        onClick={refreshPaymentStatus}
-                        className="text-xs text-white/20 hover:text-white/50 transition-colors py-2 font-bold"
-                        disabled={isRefreshingPayment}
-                    >
-                        {isRefreshingPayment ? 'Verifying payment...' : 'I have paid — verify and refresh access'}
-                    </button>
+                    {/* Already paid verification */}
+                    {!showPaymentIdInput ? (
+                        <button
+                            onClick={() => setShowPaymentIdInput(true)}
+                            className="text-xs text-white/30 hover:text-white/60 transition-colors py-2 font-bold flex items-center justify-center gap-2"
+                            disabled={isRefreshingPayment}
+                        >
+                            <ReceiptText size={13} />
+                            I have already paid — verify access
+                        </button>
+                    ) : (
+                        <div className="flex flex-col gap-2 bg-white/[0.03] border border-white/10 rounded-2xl p-4">
+                            <p className="text-xs text-white/50 font-bold text-center">
+                                Enter your Razorpay Payment ID
+                            </p>
+                            <p className="text-[10px] text-white/25 text-center leading-relaxed">
+                                Find it in your payment confirmation email or SMS. Starts with <span className="text-white/50 font-mono">pay_</span>
+                            </p>
+                            <input
+                                type="text"
+                                value={paymentIdInput}
+                                onChange={e => setPaymentIdInput(e.target.value.trim())}
+                                placeholder="pay_xxxxxxxxxxxxxxxxxx"
+                                className="w-full bg-[#080808] border border-white/10 rounded-xl px-4 py-3 text-sm text-white font-mono placeholder-white/15 outline-none focus:border-primary/50 transition-all"
+                                autoFocus
+                            />
+                            <div className="flex gap-2 mt-1">
+                                <button
+                                    onClick={() => refreshPaymentStatus()}
+                                    disabled={isRefreshingPayment || !paymentIdInput.startsWith('pay_')}
+                                    className="flex-1 py-2.5 bg-primary text-black text-xs font-black rounded-xl hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    {isRefreshingPayment ? 'Verifying...' : 'Verify Payment'}
+                                </button>
+                                <button
+                                    onClick={() => { setShowPaymentIdInput(false); setPaymentIdInput(''); refreshPaymentStatus(''); }}
+                                    disabled={isRefreshingPayment}
+                                    className="px-3 py-2.5 text-xs text-white/30 hover:text-white/60 font-bold transition-colors disabled:opacity-30"
+                                >
+                                    Skip
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
