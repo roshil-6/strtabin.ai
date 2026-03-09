@@ -15,7 +15,7 @@ function formatTimeLeft(ms: number): string {
 
 export default function PaywallGate({ children }: { children: React.ReactNode }) {
     const { user } = useUser();
-    const { getAccessStatus, startTrial, trialStartedAt, setPaidUser } = useStore();
+    const { startTrial, trialStartedAt } = useStore();
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
     const [isRefreshingPayment, setIsRefreshingPayment] = useState(false);
@@ -31,9 +31,6 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
         const userId = user.id;
         if (!paidFromClerk) {
             startTrial(userId);
-        } else {
-            // Cache verified paid status locally once Clerk confirms it.
-            setPaidUser(userId);
         }
 
         const tick = () => {
@@ -41,11 +38,12 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                 setStatus('paid');
                 return;
             }
-            const s = getAccessStatus(userId);
-            setStatus(s);
-            if (s === 'trial') {
-                const started = trialStartedAt[userId];
-                if (started) setTimeLeft(Math.max(0, ONE_DAY - (Date.now() - started)));
+            const started = trialStartedAt[userId];
+            const remaining = started ? Math.max(0, ONE_DAY - (Date.now() - started)) : ONE_DAY;
+            const nextStatus: 'trial' | 'expired' = remaining > 0 ? 'trial' : 'expired';
+            setStatus(nextStatus);
+            if (nextStatus === 'trial') {
+                setTimeLeft(remaining);
                 // Only re-schedule at 1-second intervals, not every animation frame
                 setTimeout(() => {
                     rafRef.current = requestAnimationFrame(tick);
@@ -58,9 +56,9 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
         return () => {
             if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
         };
-    // getAccessStatus and startTrial are store actions — stable references
+    // startTrial is a store action — stable reference
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, trialStartedAt, paidFromClerk, setPaidUser]);
+    }, [user, trialStartedAt, paidFromClerk]);
 
     const refreshPaymentStatus = async () => {
         if (!user) return;
@@ -73,7 +71,6 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                 user.publicMetadata?.hasPaidAccess === true
             );
             if (refreshedPaid) {
-                setPaidUser(user.id);
                 setStatus('paid');
                 toast.success('Payment verified. Full access unlocked.');
             } else {
