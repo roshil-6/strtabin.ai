@@ -32,36 +32,57 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     useEffect(() => {
         if (!user) return;
         const userId = user.id;
-        if (!paidFromClerk) {
-            startTrial(userId);
+
+        // Paid via Clerk metadata — grant access immediately.
+        if (paidFromClerk) {
+            setStatus('paid');
+            return;
         }
 
-        const tick = () => {
-            if (paidFromClerk) {
-                setStatus('paid');
-                return;
-            }
+        // Ensure trial is recorded for this user.
+        startTrial(userId);
+
+        // ── Set status SYNCHRONOUSLY so it never stays on 'loading' ─────────
+        // trialStartedAt[userId] may be undefined on the very first render
+        // (before startTrial's state update propagates). The fallback of ONE_DAY
+        // correctly treats that as a fresh trial.
+        const getRemaining = () => {
             const started = trialStartedAt[userId];
-            const remaining = started ? Math.max(0, ONE_DAY - (Date.now() - started)) : ONE_DAY;
-            const nextStatus: 'trial' | 'expired' = remaining > 0 ? 'trial' : 'expired';
-            setStatus(nextStatus);
-            if (nextStatus === 'trial') {
-                setTimeLeft(remaining);
-                // Only re-schedule at 1-second intervals, not every animation frame
+            return started ? Math.max(0, ONE_DAY - (Date.now() - started)) : ONE_DAY;
+        };
+
+        const remaining0 = getRemaining();
+        const initialStatus: 'trial' | 'expired' = remaining0 > 0 ? 'trial' : 'expired';
+        setStatus(initialStatus);
+        if (initialStatus === 'trial') setTimeLeft(remaining0);
+
+        // No need for a live countdown if already expired.
+        if (initialStatus === 'expired') return;
+
+        // ── Live countdown — updates every second ────────────────────────────
+        const tick = () => {
+            const r = getRemaining();
+            const next: 'trial' | 'expired' = r > 0 ? 'trial' : 'expired';
+            setStatus(next);
+            setTimeLeft(r);
+            if (next === 'trial') {
                 setTimeout(() => {
                     rafRef.current = requestAnimationFrame(tick);
                 }, 1000);
             }
-            // If expired or paid, we stop updating
         };
 
-        rafRef.current = requestAnimationFrame(tick);
+        setTimeout(() => {
+            rafRef.current = requestAnimationFrame(tick);
+        }, 1000);
+
         return () => {
             if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
         };
-    // startTrial is a store action — stable reference
+    // trialStartedAt deliberately omitted — status is set synchronously above
+    // so re-running on every store update is not needed and causes RAF cancellation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, trialStartedAt, paidFromClerk]);
+    }, [user, paidFromClerk]);
 
     const refreshPaymentStatus = async (paymentId?: string) => {
         if (!user) return;
