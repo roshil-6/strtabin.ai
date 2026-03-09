@@ -16,30 +16,38 @@ function formatTimeLeft(ms: number): string {
 export default function PaywallGate({ children }: { children: React.ReactNode }) {
     const { user } = useUser();
     const { getToken } = useAuth();
-    const { startTrial, trialStartedAt } = useStore();
+    const { startTrial, trialStartedAt, setPaidUser, paidUsers } = useStore();
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
     const [isRefreshingPayment, setIsRefreshingPayment] = useState(false);
     const [showPaymentIdInput, setShowPaymentIdInput] = useState(false);
     const [paymentIdInput, setPaymentIdInput] = useState('');
     const rafRef = useRef<number | null>(null);
+
+    // Primary paid check: Clerk server-side metadata (set by webhook or verify endpoint).
     const paidFromClerk = Boolean(
         user?.publicMetadata?.isPaid === true ||
         user?.publicMetadata?.paid === true ||
         user?.publicMetadata?.hasPaidAccess === true
     );
 
+    // Secondary paid check: local Zustand cache — written only after verified payment.
+    // This keeps access alive across reloads even before Razorpay API keys are configured.
+    const paidLocally = Boolean(user?.id && paidUsers[user.id]);
+
+    const isPaid = paidFromClerk || paidLocally;
+
     useEffect(() => {
         if (!user) return;
         const userId = user.id;
 
-        // Paid via Clerk metadata — grant access immediately.
-        if (paidFromClerk) {
+        // Paid — grant access immediately (either Clerk or locally verified).
+        if (isPaid) {
             setStatus('paid');
             return;
         }
 
-        // Ensure trial is recorded for this user.
+        // Ensure trial timestamp is recorded for this user.
         startTrial(userId);
 
         // ── Set status SYNCHRONOUSLY so it never stays on 'loading' ─────────
@@ -55,8 +63,6 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
         const initialStatus: 'trial' | 'expired' = remaining0 > 0 ? 'trial' : 'expired';
         setStatus(initialStatus);
         if (initialStatus === 'trial') setTimeLeft(remaining0);
-
-        // No need for a live countdown if already expired.
         if (initialStatus === 'expired') return;
 
         // ── Live countdown — updates every second ────────────────────────────
@@ -79,10 +85,10 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
         return () => {
             if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
         };
-    // trialStartedAt deliberately omitted — status is set synchronously above
-    // so re-running on every store update is not needed and causes RAF cancellation.
+    // trialStartedAt intentionally omitted — status is set synchronously above.
+    // isPaid covers both Clerk and local paid state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, paidFromClerk]);
+    }, [user, isPaid]);
 
     const refreshPaymentStatus = async (paymentId?: string) => {
         if (!user) return;
@@ -94,7 +100,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
 
             // Step 2: call the backend verify endpoint (checks Clerk + optionally Razorpay API)
             const body: Record<string, string> = {};
-            const trimmedId = (paymentId || paymentIdInput).trim();
+            const trimmedId = (paymentId !== undefined ? paymentId : paymentIdInput).trim();
             if (trimmedId) body.paymentId = trimmedId;
 
             const res = await fetch(`${API_BASE_URL}/api/payments/verify`, {
@@ -109,7 +115,9 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
             const data = await res.json();
 
             if (data.paid) {
-                // Reload Clerk session so publicMetadata is fresh in-browser too
+                // Cache paid status locally so it persists across reloads.
+                setPaidUser(user.id);
+                // Also reload Clerk session so publicMetadata is fresh.
                 await user.reload();
                 setStatus('paid');
                 setShowPaymentIdInput(false);
