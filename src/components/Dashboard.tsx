@@ -738,9 +738,11 @@ export default function Dashboard() {
                             <Icon size={22} className={activeTab === 'strategy' ? 'text-primary' : 'text-white/50'} />
                         )}
                     </div>
-                    <div className={`px-2.5 py-0.5 rounded-lg bg-white/[0.03] border border-white/[0.04] text-[9px] uppercase font-bold tracking-[0.15em] group-hover:text-primary transition-colors duration-300 ${isMerged ? 'text-orange-400' : 'text-white/25'}`}>
-                        {isMerged ? 'Merged' : activeTab}
-                    </div>
+                    {isMerged && (
+                        <div className="px-2.5 py-0.5 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[9px] uppercase font-bold tracking-[0.15em] text-orange-400">
+                            Merged
+                        </div>
+                    )}
                 </div>
 
                 {renamingId === p.id ? (

@@ -282,7 +282,7 @@ function CanvasContent() {
                 On mobile: height stops at the bottom nav (80px) so nothing is ever hidden behind it.
                 On desktop: full height as before. */}
             <div
-                className={`flex-1 flex w-full ${isMerged ? 'pt-28' : 'pt-16'}`}
+                className={`flex-1 flex w-full ${isMerged ? 'pt-12 md:pt-14' : ''}`}
                 style={{ height: isMobile ? 'calc(100% - 80px)' : '100%' }}
             >
 
