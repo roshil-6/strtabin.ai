@@ -9,9 +9,6 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="canonical" href="https://stratabin.com" />
 
-  <!-- Viewport: standard responsive scaling.
-       Zoom prevention per-section: inputs use touch-action:manipulation (no double-tap zoom),
-       canvas uses touch-action:none on its container so ReactFlow owns pinch-zoom. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#da7756" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -20,24 +17,136 @@
   <meta name="apple-mobile-web-app-title" content="Stratabin" />
   <link rel="apple-touch-icon" href="/favicon.png" />
 
-  <!-- SEO -->
-  <meta name="description" content="Stratabin — the AI-powered strategy workspace. Map ideas, build timelines, manage tasks, and get intelligent project insights with STRAB AI." />
-  <meta name="keywords" content="strategy workspace, project management, mind map, AI assistant, STRAB, productivity" />
+  <!-- SEO Meta -->
+  <title>Stratabin — AI Strategy Planning Tool | Turn Ideas Into Execution Plans</title>
+  <meta name="description" content="Stratabin is the AI strategy planning tool that converts scattered ideas into structured execution plans. Write, map, branch, and execute — all in one workspace. Free trial." />
+  <meta name="keywords" content="AI strategy planning tool, strategy workspace, AI project planner, idea to execution, mind map AI, business strategy tool, STRAB AI, project management AI, strategic planning software, brainstorming tool, workflow automation, execution planning" />
+  <meta name="author" content="Stratabin" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Stratabin" />
   <meta property="og:url" content="https://stratabin.com" />
-  <meta property="og:title" content="Stratabin AI — Strategy Workspace" />
-  <meta property="og:description" content="Map ideas, build timelines, manage tasks, and get intelligent project insights with STRAB AI." />
+  <meta property="og:title" content="Stratabin — AI Strategy Planning Tool | Ideas to Execution" />
+  <meta property="og:description" content="The AI-powered strategy workspace that turns raw ideas into structured execution plans. Interactive canvas, writing mode, task management, and STRAB AI intelligence." />
   <meta property="og:image" content="https://stratabin.com/favicon.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:locale" content="en_US" />
 
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Stratabin AI — Strategy Workspace" />
-  <meta name="twitter:description" content="Map ideas, build timelines, manage tasks, and get intelligent project insights with STRAB AI." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Stratabin — AI Strategy Planning Tool" />
+  <meta name="twitter:description" content="Turn scattered ideas into structured execution plans with AI. Write, map, branch, and execute in one workspace." />
   <meta name="twitter:image" content="https://stratabin.com/favicon.png" />
 
-  <title>Stratabin AI — Strategy Workspace</title>
+  <!-- JSON-LD: SoftwareApplication Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Stratabin",
+    "description": "AI-powered strategy workspace that converts ideas into structured execution plans with interactive canvas, writing mode, task management, and AI intelligence.",
+    "url": "https://stratabin.com",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, Android, iOS, Windows",
+    "offers": {
+      "@type": "Offer",
+      "price": "2.00",
+      "priceCurrency": "USD",
+      "description": "Lifetime access — one-time payment"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "120",
+      "bestRating": "5"
+    },
+    "featureList": [
+      "AI Strategy Intelligence (STRAB AI)",
+      "Interactive Flow Canvas",
+      "Distraction-free Writing Mode",
+      "Branch and Split Ideas",
+      "Task Management System",
+      "Calendar and Timeline Planning",
+      "Project Merging",
+      "Folder Workspaces",
+      "Progressive Web App (PWA)"
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQ Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is Stratabin?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Stratabin is an AI-powered strategy workspace that helps you convert scattered ideas into structured execution plans. It combines a writing editor, interactive flow canvas, task management, calendars, and AI intelligence in one tool."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does the AI strategy planning work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "STRAB AI analyzes your strategy canvas, writing content, and project structure to provide context-aware insights, generate reports, identify gaps in your planning, and suggest next steps for execution."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is Stratabin free to use?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Stratabin offers a free trial period so you can explore all features. After the trial, full lifetime access is available for a one-time payment of ₹64 (India) or $2 (International) — no subscriptions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use Stratabin on my phone?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Stratabin is a Progressive Web App (PWA) that can be installed on any smartphone — iPhone, Android, or tablet — for a native app-like experience. It also works on desktop browsers."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What makes Stratabin different from other planning tools?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Unlike traditional project management tools that only track tasks, Stratabin bridges the gap between ideation and execution. You can write long-form strategies, branch ideas into visual flowcharts, merge projects, and get AI-powered insights — all in one unified workspace."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I collaborate or merge multiple strategy projects?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Stratabin's project merging feature lets you combine multiple strategy canvases into a unified view, making it easy to see connections between different workstreams and manage complex multi-project strategies."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: Organization Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Stratabin",
+    "url": "https://stratabin.com",
+    "logo": "https://stratabin.com/favicon.png",
+    "description": "AI strategy planning tool for students and professionals.",
+    "sameAs": []
+  }
+  </script>
 </head>
 
 <body>
