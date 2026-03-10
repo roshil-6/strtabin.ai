@@ -25,10 +25,10 @@ export default function TextNode({ id, data, selected }: NodeProps) {
             selected ? "ring-1 ring-primary/50" : ""
         )}>
             {/* Handles */}
-            <Handle type="target" position={Position.Top} className="!bg-white/10 !w-3 !h-1 !rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Handle type="source" position={Position.Right} className="!bg-white/10 !w-1 !h-3 !rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Handle type="source" position={Position.Bottom} className="!bg-white/10 !w-3 !h-1 !rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Handle type="target" position={Position.Left} className="!bg-white/10 !w-1 !h-3 !rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Handle type="target" position={Position.Top} className="!bg-white/10 !w-3 !h-1 !rounded-full md:opacity-0 md:group-hover:opacity-100 opacity-50 transition-opacity" />
+            <Handle type="source" position={Position.Right} className="!bg-white/10 !w-1 !h-3 !rounded-full md:opacity-0 md:group-hover:opacity-100 opacity-50 transition-opacity" />
+            <Handle type="source" position={Position.Bottom} className="!bg-white/10 !w-3 !h-1 !rounded-full md:opacity-0 md:group-hover:opacity-100 opacity-50 transition-opacity" />
+            <Handle type="target" position={Position.Left} className="!bg-white/10 !w-1 !h-3 !rounded-full md:opacity-0 md:group-hover:opacity-100 opacity-50 transition-opacity" />
 
             {/* Content */}
             <div className={clsx(

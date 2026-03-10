@@ -8,7 +8,6 @@ import {
     type Node,
     useReactFlow,
     ReactFlowProvider,
-    Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import useStore, { type RFState } from '../store/useStore';
@@ -20,7 +19,7 @@ import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen } from 'lucide-react';
+import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen, ZoomIn, ZoomOut, Move } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
@@ -47,7 +46,7 @@ function CanvasContent() {
         syncSubProjectNodes: state.syncSubProjectNodes,
         ensureCanvasExists: state.ensureCanvasExists,
     })));
-    const { screenToFlowPosition, fitView } = useReactFlow();
+    const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow();
 
     const nodeTypes = useMemo(() => ({
         text: TextNode,
@@ -371,42 +370,36 @@ function CanvasContent() {
                 ${mobileTab === 'map' ? 'flex' : 'hidden'} 
                 md:flex flex-1 h-full relative flex-col
             `}>
-                    {/* touch-action:none lets React Flow own all touch events (pinch zoom, drag pan)
-                        without the browser intercepting them to zoom the page */}
                     <div className="flex-1 w-full h-full relative" style={{ touchAction: 'none' }}>
-                        {/* Flow Top Bar */}
-                        <div className={`absolute ${isMerged ? 'top-18' : 'top-2 md:top-4'} left-2 right-2 md:left-4 md:right-4 h-12 md:h-14 bg-[#0e0e0e]/90 backdrop-blur-xl rounded-2xl border border-white/[0.08] flex items-center px-3 md:px-4 z-40 justify-between transition-all shadow-[0_8px_32px_rgba(0,0,0,0.4)]`}>
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-                                <span className="text-xs md:text-sm font-bold text-white/60">Flow Canvas</span>
+                        {/* Flow Top Bar — compact on mobile */}
+                        <div className={`absolute ${isMerged ? 'top-18' : 'top-1.5 md:top-4'} left-1.5 right-1.5 md:left-4 md:right-4 h-10 md:h-14 bg-[#0e0e0e]/90 backdrop-blur-xl rounded-xl md:rounded-2xl border border-white/[0.06] flex items-center px-2 md:px-4 z-40 justify-between transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]`}>
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
+                                <span className="text-[10px] md:text-sm font-bold text-white/50">Flow</span>
                             </div>
 
-                            <div className="flex items-center gap-1.5 md:gap-2">
+                            <div className="flex items-center gap-1 md:gap-2">
                                 {canvases[activeCanvasId]?.folderId && (
                                     <button
                                         onClick={handleAutoMapFolder}
-                                        className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-xl bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-white/10 hover:text-white active:scale-95 transition-all"
+                                        className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-white/10 hover:text-white active:scale-95 transition-all"
                                         aria-label="Auto-map folder projects"
-                                        title="Add boxes for all other projects in this folder"
                                     >
-                                        <FolderOpen size={15} />
-                                        <span className="text-[11px] font-bold hidden sm:inline">Map Folder</span>
+                                        <FolderOpen size={13} />
+                                        <span className="text-[10px] font-bold hidden sm:inline">Map Folder</span>
                                     </button>
                                 )}
                                 <button
                                     onClick={() => navigate(`/strab/${id || 'default'}`)}
-                                    className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 active:scale-95 transition-all"
+                                    className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 active:scale-95 transition-all"
                                     aria-label="Open STRAB AI"
                                 >
-                                    <Bot size={15} />
-                                    <span className="text-[11px] font-bold">STRAB</span>
+                                    <Bot size={13} />
+                                    <span className="text-[10px] md:text-[11px] font-bold">AI</span>
                                 </button>
                             </div>
                         </div>
 
-                        {/* On mobile: only mount ReactFlow when the map tab is active.
-                            This prevents React Flow's global keydown handlers (Space = pan)
-                            from intercepting key events in the Write section's inputs. */}
                         {(!isMobile || mobileTab === 'map') && <ReactFlow
                             nodes={enhancedNodes}
                             edges={edges}
@@ -421,49 +414,87 @@ function CanvasContent() {
                             edgeTypes={edgeTypes}
                             defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
                             fitView
-                            fitViewOptions={{ minZoom: 0.3, maxZoom: 1.5, padding: 0.15 }}
+                            fitViewOptions={{ minZoom: 0.3, maxZoom: 1.5, padding: 0.2 }}
                             colorMode="dark"
-                            minZoom={0.2}
-                            maxZoom={2}
+                            minZoom={0.1}
+                            maxZoom={2.5}
                             connectionRadius={50}
                             snapToGrid
                             snapGrid={[10, 10]}
                             connectionLineStyle={{ stroke: '#FF5F1F', strokeWidth: 2.5, strokeDasharray: '6 3' }}
-                            translateExtent={[[-4000, -4000], [4000, 4000]]}
+                            translateExtent={isMobile ? undefined : [[-4000, -4000], [4000, 4000]]}
                             zoomOnPinch={true}
                             zoomOnScroll={!isMobile}
                             panOnScroll={false}
                             panOnDrag={true}
                             preventScrolling={true}
-                            // Disable space-for-pan so spacebar always reaches
-                            // textarea/input elements inside nodes
                             panActivationKeyCode={null}
                             disableKeyboardA11y={isMobile}
+                            selectionOnDrag={false}
                         >
                             <Background color="#151515" gap={20} variant={BackgroundVariant.Dots} size={1} />
-                            <Controls style={{
-                                backgroundColor: '#151515',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                fill: '#9aa0a6',
-                                marginBottom: '60px',
-                            }} />
 
-                            {/* Mobile-only Fit View Button */}
-                            <Panel position="bottom-right" className="md:hidden pb-4 pr-4">
+                            {/* Desktop-only: built-in controls */}
+                            <div className="hidden md:block">
+                                <Controls style={{
+                                    backgroundColor: '#151515',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    fill: '#9aa0a6',
+                                    marginBottom: '60px',
+                                }} />
+                            </div>
+                        </ReactFlow>}
+
+                        {/* Mobile floating toolbar — replaces confusing default controls */}
+                        {isMobile && mobileTab === 'map' && (
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-[#0e0e0e]/95 backdrop-blur-2xl px-2 py-1.5 rounded-2xl border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
                                 <button
-                                    onClick={() => fitView({ duration: 600, padding: 0.2 })}
-                                    className="w-12 h-12 rounded-full bg-[#1a1a1a]/90 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 active:scale-95 transition-all shadow-xl"
-                                    title="Fit View"
+                                    onClick={() => handleAddNode('default')}
+                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/15 text-primary border border-primary/20 active:scale-90 transition-all"
+                                    aria-label="Add new section"
+                                >
+                                    <Plus size={16} strokeWidth={2.5} />
+                                    <span className="text-[10px] font-black tracking-wide">Add</span>
+                                </button>
+
+                                <div className="w-px h-6 bg-white/[0.06]" />
+
+                                <button
+                                    onClick={() => fitView({ duration: 400, padding: 0.25 })}
+                                    className="p-2.5 rounded-xl text-white/50 active:scale-90 active:bg-white/10 transition-all"
                                     aria-label="Fit all nodes in view"
                                 >
-                                    <Maximize size={20} />
+                                    <Maximize size={17} />
                                 </button>
-                            </Panel>
-                        </ReactFlow>}
+
+                                <button
+                                    onClick={() => zoomIn({ duration: 200 })}
+                                    className="p-2.5 rounded-xl text-white/50 active:scale-90 active:bg-white/10 transition-all"
+                                    aria-label="Zoom in"
+                                >
+                                    <ZoomIn size={17} />
+                                </button>
+
+                                <button
+                                    onClick={() => zoomOut({ duration: 200 })}
+                                    className="p-2.5 rounded-xl text-white/50 active:scale-90 active:bg-white/10 transition-all"
+                                    aria-label="Zoom out"
+                                >
+                                    <ZoomOut size={17} />
+                                </button>
+
+                                <div className="w-px h-6 bg-white/[0.06]" />
+
+                                <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/[0.03]">
+                                    <Move size={11} className="text-white/20" />
+                                    <span className="text-[8px] font-bold text-white/20 tracking-wider">DRAG TO PAN</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Floating Command Dock */}
-                    <div className="absolute bottom-[72px] md:bottom-8 left-1/2 -translate-x-1/2 z-50">
+                    {/* Floating Command Dock — desktop only now, mobile uses the toolbar above */}
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 hidden md:block">
                         <CommandDock onAddNode={handleAddNode} />
                     </div>
                 </div>

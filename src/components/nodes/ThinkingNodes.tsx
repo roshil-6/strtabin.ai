@@ -41,7 +41,7 @@ const NodeShell = ({ id, data, selected }: ThinkingNodeProps) => {
         !w-3.5 !h-3.5 !bg-[#333] !border-2 !border-[#555]
         hover:!bg-primary hover:!border-primary hover:!scale-125
         transition-all duration-150 cursor-crosshair
-        opacity-0 group-hover:opacity-100
+        md:opacity-0 md:group-hover:opacity-100 opacity-60
     `;
 
     return (
@@ -61,7 +61,7 @@ const NodeShell = ({ id, data, selected }: ThinkingNodeProps) => {
                 <GripHorizontal size={14} className={`transition-colors mx-auto ${selected ? 'text-primary' : 'text-white/20 group-hover:text-white/40'}`} />
                 <button
                     onClick={handleDelete}
-                    className="nodrag opacity-0 group-hover:opacity-100 p-1 rounded text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
+                    className="nodrag md:opacity-0 md:group-hover:opacity-100 opacity-60 p-1 rounded text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
                     title="Delete node"
                 >
                     <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
@@ -139,9 +139,8 @@ const NodeShell = ({ id, data, selected }: ThinkingNodeProps) => {
                 style={{ left: -7, top: '50%', transform: 'translateY(-50%)' }}
             />
 
-            {/* Connection hint label (shows on hover) */}
-            <div className="absolute -bottom-5 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <span className="text-[9px] text-white/30 tracking-widest uppercase">drag handles to connect</span>
+            <div className="absolute -bottom-5 left-0 right-0 flex justify-center md:opacity-0 md:group-hover:opacity-100 opacity-40 transition-opacity pointer-events-none">
+                <span className="text-[8px] md:text-[9px] text-white/30 tracking-widest uppercase">drag handles to connect</span>
             </div>
         </div>
     );
