@@ -342,11 +342,15 @@ function CanvasContent() {
                     </div>
                 )}
 
-                {/* Writing Section (Mobile: Toggleable, Desktop: 45%) */}
-                <div className={`
-                ${mobileTab === 'write' ? 'flex' : 'hidden'} 
-                md:flex w-full md:w-[45%] h-full border-r border-white/5 relative z-10 bg-background shadow-2xl
-            `}>
+                {/* Writing Section (Mobile: Toggleable, Desktop: 45%) — isolated from flow zoom/scroll */}
+                <div
+                    className={`
+                        ${mobileTab === 'write' ? 'flex' : 'hidden'} 
+                        md:flex w-full md:w-[45%] h-full border-r border-white/5 relative z-10 bg-background shadow-2xl
+                    `}
+                    style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
+                    onWheel={(e) => e.stopPropagation()}
+                >
                     <WritingSection
                         canvasId={id || 'default'}
                         onBranch={() => {
@@ -359,18 +363,21 @@ function CanvasContent() {
                                     data: { label: '' }
                                 });
                             }
-                            // On mobile, switch to map to see the result
                             setMobileTab('map');
                         }}
                     />
                 </div>
 
-                {/* Visual Canvas (Mobile: Toggleable, Desktop: Flex-1) */}
-                <div className={`
-                ${mobileTab === 'map' ? 'flex' : 'hidden'} 
-                md:flex flex-1 h-full relative flex-col
-            `}>
-                    <div className="flex-1 w-full h-full relative" style={{ touchAction: 'none' }}>
+                {/* Visual Canvas (Mobile: Toggleable, Desktop: Flex-1) — fully isolated zoom/pan */}
+                <div
+                    className={`
+                        ${mobileTab === 'map' ? 'flex' : 'hidden'} 
+                        md:flex flex-1 h-full relative flex-col
+                    `}
+                    style={{ overscrollBehavior: 'contain' }}
+                    onWheel={(e) => e.stopPropagation()}
+                >
+                    <div className="flex-1 w-full h-full relative" style={{ touchAction: 'none', overscrollBehavior: 'none' }}>
                         {/* Flow Top Bar — compact on mobile */}
                         <div className={`absolute ${isMerged ? 'top-18' : 'top-1.5 md:top-4'} left-1.5 right-1.5 md:left-4 md:right-4 h-10 md:h-14 bg-[#0e0e0e]/90 backdrop-blur-xl rounded-xl md:rounded-2xl border border-white/[0.06] flex items-center px-2 md:px-4 z-40 justify-between transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]`}>
                             <div className="flex items-center gap-1.5">
