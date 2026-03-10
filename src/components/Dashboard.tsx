@@ -49,6 +49,13 @@ export default function Dashboard() {
         return () => { document.title = 'Stratabin AI — Strategy Workspace'; };
     }, []);
 
+    useEffect(() => {
+        if (!showMoveMenu && !showDuplicateMenu) return;
+        const close = () => { setShowMoveMenu(null); setShowDuplicateMenu(null); };
+        const timer = setTimeout(() => document.addEventListener('click', close, { once: true }), 0);
+        return () => { clearTimeout(timer); document.removeEventListener('click', close); };
+    }, [showMoveMenu, showDuplicateMenu]);
+
     const handleCreate = () => {
         const id = createCanvas();
         navigate(`/strategy/${id}`);

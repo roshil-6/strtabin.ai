@@ -232,8 +232,11 @@ export default function StrabView() {
         <div className="flex flex-col h-screen bg-[#060606] text-white overflow-hidden relative">
             {/* Header */}
             <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-2 md:px-6 bg-[#060606]/95 backdrop-blur-2xl z-10 flex-shrink-0 gap-1.5 md:gap-2">
-                <button
-                    onClick={() => navigate(-1)}
+                    <button
+                        onClick={() => {
+                            if (window.history.length > 1) navigate(-1);
+                            else navigate(id ? `/strategy/${id}` : '/dashboard');
+                        }}
                     className="p-1.5 md:p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 active:scale-95 transition-all shrink-0"
                     aria-label="Go back"
                 >
@@ -358,8 +361,8 @@ export default function StrabView() {
                             ))}
                         </div>
 
-                        {/* Input Area */}
-                        <div className="px-2 md:px-3 py-2 md:py-3 bg-[#060606] border-t border-white/[0.03]">
+                        {/* Input Area — pb-[68px] compensates for fixed MobileNav on mobile */}
+                        <div className="px-2 md:px-3 py-2 md:py-3 pb-[68px] md:pb-3 bg-[#060606] border-t border-white/[0.03]">
                             <div className="relative max-w-3xl mx-auto">
                                 <input
                                     type="text"

@@ -379,7 +379,7 @@ function CanvasContent() {
                 >
                     <div className="flex-1 w-full h-full relative" style={{ touchAction: 'none', overscrollBehavior: 'none' }}>
                         {/* Flow Top Bar — compact on mobile */}
-                        <div className={`absolute ${isMerged ? 'top-18' : 'top-1.5 md:top-4'} left-1.5 right-1.5 md:left-4 md:right-4 h-10 md:h-14 bg-[#0e0e0e]/90 backdrop-blur-xl rounded-xl md:rounded-2xl border border-white/[0.06] flex items-center px-2 md:px-4 z-40 justify-between transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]`}>
+                        <div className={`absolute ${isMerged ? 'top-[4.5rem]' : 'top-1.5 md:top-4'} left-1.5 right-1.5 md:left-4 md:right-4 h-10 md:h-14 bg-[#0e0e0e]/90 backdrop-blur-xl rounded-xl md:rounded-2xl border border-white/[0.06] flex items-center px-2 md:px-4 z-40 justify-between transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]`}>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
                                 <span className="text-[10px] md:text-sm font-bold text-white/50">Flow</span>
