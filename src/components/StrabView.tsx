@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
-import { sendStrabMessage, type ChatMessage } from '../services/strabService';
+import { sendStrabMessageStreaming, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
 import { Network, Send, Sparkles, ArrowLeft, Trash2 } from 'lucide-react';
 import MobileNav from './MobileNav';
@@ -14,6 +14,7 @@ export default function StrabView() {
     const { getToken } = useAuth();
     const canvas = useStore(state => state.canvases[id || '']);
     const addChatMessage = useStore(state => state.addChatMessage);
+    const updateLastChatMessage = useStore(state => state.updateLastChatMessage);
     const clearChatHistory = useStore(state => state.clearChatHistory);
     const chatHistoryMap = useStore(state => state.chatHistory);
     const chatHistory = useMemo(() => chatHistoryMap[id || ''] || [], [chatHistoryMap, id]);
@@ -106,17 +107,46 @@ export default function StrabView() {
         serverWarmup.start();
     }, []);
 
-    // Initial Greeting — reads store state directly to avoid stale closure duplicates
+    // Initial Greeting — project-aware, no API call needed
     useEffect(() => {
         if (!id) return;
         const existing = useStore.getState().chatHistory[id] || [];
         if (existing.length === 0) {
-            const canvasName = useStore.getState().canvases[id]?.name;
-            const name = canvasName && canvasName !== 'Untitled Canvas' ? canvasName : 'Project';
-            addChatMessage(id, {
-                role: 'assistant',
-                content: `I am STRAB. I have analyzed **${name}**. Ready to assist with reports, insights, or strategy.`
-            });
+            const c = useStore.getState().canvases[id];
+            const name = c?.name && c.name !== 'Untitled Canvas' ? c.name : 'Project';
+            const nodeCount = c?.nodes?.length || 0;
+            const edgeCount = c?.edges?.length || 0;
+            const todoCount = c?.todos?.length || 0;
+            const completedCount = c?.todos?.filter(t => t.completed).length || 0;
+            const wordCount = c?.writingContent?.trim().split(/\s+/).filter(Boolean).length || 0;
+
+            const parts: string[] = [`I am **STRAB**. I've scanned **${name}**.`];
+
+            if (nodeCount === 0) {
+                parts.push('Your canvas is empty — start by mapping your key ideas so I can help you structure them.');
+            } else {
+                const stage = nodeCount < 4 ? 'early planning' : nodeCount < 10 ? 'active development' : 'detailed execution';
+                parts.push(`You're in **${stage}** with ${nodeCount} nodes${edgeCount > 0 ? ` and ${edgeCount} connections` : ' but no connections yet'}.`);
+
+                if (edgeCount === 0 && nodeCount > 1) {
+                    parts.push('Your ideas aren\'t linked — connect them to reveal your strategy flow.');
+                }
+            }
+
+            if (todoCount > 0) {
+                const rate = Math.round((completedCount / todoCount) * 100);
+                parts.push(`Tasks: **${completedCount}/${todoCount}** done (${rate}%).`);
+            }
+
+            if (wordCount > 50) {
+                parts.push(`Writing section has ${wordCount.toLocaleString()} words.`);
+            } else if (nodeCount > 3 && wordCount === 0) {
+                parts.push('No writing yet — your strategy map exists but hasn\'t been written up.');
+            }
+
+            parts.push('Ask me anything about this project.');
+
+            addChatMessage(id, { role: 'assistant', content: parts.join(' ') });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
@@ -130,10 +160,15 @@ export default function StrabView() {
                 window.history.replaceState({}, '', window.location.pathname);
                 const triggerAi = async () => {
                     setIsLoading(true);
+                    addChatMessage(id!, { role: 'assistant', content: '' });
                     try {
                         const token = await getToken();
-                        const responseText = await sendStrabMessage(chatHistory, projectContext, token ?? undefined);
-                        addChatMessage(id!, { role: 'assistant', content: responseText });
+                        await sendStrabMessageStreaming(
+                            chatHistory,
+                            projectContext,
+                            (text) => updateLastChatMessage(id!, text),
+                            token ?? undefined,
+                        );
                     } catch {
                         toast.error('STRAB is unreachable. Please try again.');
                     } finally {
@@ -143,7 +178,7 @@ export default function StrabView() {
                 triggerAi();
             }
         }
-    }, [id, chatHistory, isLoading, projectContext, addChatMessage, getToken]);
+    }, [id, chatHistory, isLoading, projectContext, addChatMessage, updateLastChatMessage, getToken]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -154,20 +189,25 @@ export default function StrabView() {
 
         const userMsg: ChatMessage = { role: 'user', content: message };
         addChatMessage(id!, userMsg);
+        addChatMessage(id!, { role: 'assistant', content: '' });
         setIsLoading(true);
 
         try {
             const token = await getToken();
             const messagesForApi = [...chatHistory, userMsg];
-            const responseText = await sendStrabMessage(messagesForApi, projectContext, token ?? undefined);
-            addChatMessage(id!, { role: 'assistant', content: responseText });
+            await sendStrabMessageStreaming(
+                messagesForApi,
+                projectContext,
+                (text) => updateLastChatMessage(id!, text),
+                token ?? undefined,
+            );
         } catch {
             toast.error('STRAB is unreachable. Please try again.');
-            addChatMessage(id!, { role: 'assistant', content: "I'm having trouble connecting right now. Please try again in a moment." });
+            updateLastChatMessage(id!, "I'm having trouble connecting right now. Please try again in a moment.");
         } finally {
             setIsLoading(false);
         }
-    }, [id, chatHistory, projectContext, addChatMessage, getToken, isLoading]);
+    }, [id, chatHistory, projectContext, addChatMessage, updateLastChatMessage, getToken, isLoading]);
 
     const handleSend = useCallback(() => {
         if (!input.trim()) return;
@@ -330,20 +370,37 @@ export default function StrabView() {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="whitespace-pre-wrap">{msg.content.replace(/```json[\s\S]*```/, '')}</div>
+                                                <div className="whitespace-pre-wrap">
+                                                    {msg.content.replace(/```json[\s\S]*```/, '')}
+                                                    {isLoading && idx === chatHistory.length - 1 && msg.role === 'assistant' && msg.content.length > 0 && (
+                                                        <span className="inline-block w-[2px] h-[1em] bg-primary/70 ml-0.5 align-middle animate-pulse" />
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
                                     </div>
                                 );
                             })}
-                            {isLoading && (
-                                <div className="flex gap-4">
-                                    <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-[#151515] border border-white/5 text-white/80">
-                                        <Network size={14} />
+                            {isLoading && (() => {
+                                const lastMsg = chatHistory[chatHistory.length - 1];
+                                const isStreaming = lastMsg?.role === 'assistant' && lastMsg.content.length > 0;
+                                if (isStreaming) return null;
+                                return (
+                                    <div className="flex gap-4">
+                                        <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-[#151515] border border-white/5 text-white/80">
+                                            <Network size={14} />
+                                        </div>
+                                        <div className="p-4 text-white/30 text-sm flex items-center gap-2">
+                                            <div className="flex gap-1">
+                                                <span className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                <span className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                                <span className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                            </div>
+                                            Connecting…
+                                        </div>
                                     </div>
-                                    <div className="p-4 text-white/30 text-sm animate-pulse">Thinking...</div>
-                                </div>
-                            )}
+                                );
+                            })()}
                             <div ref={messagesEndRef} />
                         </div>
 

@@ -325,7 +325,19 @@ function sanitiseMessages(messages) {
 
 function sanitiseContext(ctx) {
     if (!ctx || typeof ctx !== 'object') return {};
-    // Whitelist only expected fields — prevents prompt injection via extra fields
+
+    // Connections can arrive as strings ("A → B") or objects ({from, to})
+    let connections = [];
+    if (Array.isArray(ctx.connections)) {
+        connections = ctx.connections.slice(0, 100).map(c => {
+            if (typeof c === 'string') return c.slice(0, 200);
+            if (c && typeof c === 'object') {
+                return `${String(c.from || '').slice(0, 100)} → ${String(c.to || '').slice(0, 100)}`;
+            }
+            return null;
+        }).filter(Boolean);
+    }
+
     return {
         name:            typeof ctx.name === 'string'   ? ctx.name.slice(0, 200) : 'Untitled',
         projectStage:    typeof ctx.projectStage === 'string' ? ctx.projectStage.slice(0, 50) : undefined,
@@ -334,12 +346,7 @@ function sanitiseContext(ctx) {
         namedNodes:      Array.isArray(ctx.namedNodes)
                             ? ctx.namedNodes.slice(0, 50).map(n => String(n).slice(0, 100))
                             : [],
-        connections:     Array.isArray(ctx.connections)
-                            ? ctx.connections.slice(0, 100).map(c => ({
-                                from: String(c?.from || '').slice(0, 100),
-                                to:   String(c?.to   || '').slice(0, 100),
-                              }))
-                            : [],
+        connections,
         nodeTypes:       ctx.nodeTypes && typeof ctx.nodeTypes === 'object'
                             ? Object.fromEntries(
                                 Object.entries(ctx.nodeTypes)
@@ -349,6 +356,9 @@ function sanitiseContext(ctx) {
                             : {},
         tasks:           ctx.tasks && typeof ctx.tasks === 'object'
                             ? {
+                                total:         typeof ctx.tasks.total === 'number' ? ctx.tasks.total : 0,
+                                completedCount: typeof ctx.tasks.completedCount === 'number' ? ctx.tasks.completedCount : 0,
+                                completionRate: typeof ctx.tasks.completionRate === 'number' ? ctx.tasks.completionRate : 0,
                                 pending:   Array.isArray(ctx.tasks.pending)
                                     ? ctx.tasks.pending.slice(0, 30).map(t => String(t).slice(0, 200))
                                     : [],
@@ -356,7 +366,7 @@ function sanitiseContext(ctx) {
                                     ? ctx.tasks.completed.slice(0, 30).map(t => String(t).slice(0, 200))
                                     : [],
                               }
-                            : { pending: [], completed: [] },
+                            : { total: 0, completedCount: 0, completionRate: 0, pending: [], completed: [] },
         writing:         typeof ctx.writing === 'string'         ? ctx.writing.slice(0, 2000) : '',
         writingWordCount: typeof ctx.writingWordCount === 'number' ? ctx.writingWordCount : 0,
         timeline:        typeof ctx.timeline === 'string'         ? ctx.timeline.slice(0, 1000) : '',
@@ -436,23 +446,8 @@ BREVITY RULES (CRITICAL)
 // ─── Routes ───────────────────────────────────────────────────────────────
 // NOTE: / and /health are registered before middleware at the top of this file.
 
-app.post('/api/chat', aiLimiter, requireAuth, async (req, res) => {
-    try {
-        const { messages, projectContext } = req.body;
-
-        // Validate and sanitise inputs
-        const cleanMessages = sanitiseMessages(messages);
-        if (!cleanMessages || cleanMessages.length === 0) {
-            return res.status(400).json({ error: 'Invalid or empty messages.' });
-        }
-
-        const cleanContext = sanitiseContext(projectContext);
-
-        if (!ANTHROPIC_API_KEY) {
-            return res.status(503).json({ error: 'AI service is not configured.' });
-        }
-
-        const systemPrompt = `
+function buildSystemPrompt(cleanContext) {
+    return `
 ${SYSTEM_PROMPT_BASE}
 
 ---
@@ -482,7 +477,81 @@ If you have enough information to answer the user directly, just respond with no
 ACTIVE PROJECT CONTEXT:
 ${JSON.stringify(cleanContext, null, 2)}
 `;
+}
 
+app.post('/api/chat', aiLimiter, requireAuth, async (req, res) => {
+    try {
+        const { messages, projectContext, stream: wantsStream } = req.body;
+
+        const cleanMessages = sanitiseMessages(messages);
+        if (!cleanMessages || cleanMessages.length === 0) {
+            return res.status(400).json({ error: 'Invalid or empty messages.' });
+        }
+
+        const cleanContext = sanitiseContext(projectContext);
+
+        if (!ANTHROPIC_API_KEY) {
+            return res.status(503).json({ error: 'AI service is not configured.' });
+        }
+
+        const systemPrompt = buildSystemPrompt(cleanContext);
+
+        // ── Streaming path ───────────────────────────────────────────
+        if (wantsStream) {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            res.setHeader('X-Accel-Buffering', 'no');
+            res.flushHeaders();
+
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': ANTHROPIC_API_KEY,
+                    'anthropic-version': '2023-06-01',
+                },
+                body: JSON.stringify({
+                    model: 'claude-3-haiku-20240307',
+                    max_tokens: 2048,
+                    system: systemPrompt,
+                    messages: cleanMessages,
+                    stream: true,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Anthropic Stream Error [${response.status}]:`, errorText);
+                res.write(`data: ${JSON.stringify({ error: 'AI service temporarily unavailable.' })}\n\n`);
+                res.write('data: [DONE]\n\n');
+                return res.end();
+            }
+
+            let buffer = '';
+            for await (const chunk of response.body) {
+                buffer += (Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk);
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const payload = line.slice(6).trim();
+                    if (!payload || payload === '[DONE]') continue;
+                    try {
+                        const evt = JSON.parse(payload);
+                        if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+                            res.write(`data: ${JSON.stringify({ t: evt.delta.text })}\n\n`);
+                        }
+                    } catch { /* partial JSON, skip */ }
+                }
+            }
+
+            res.write('data: [DONE]\n\n');
+            return res.end();
+        }
+
+        // ── Non-streaming fallback ───────────────────────────────────
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -499,7 +568,6 @@ ${JSON.stringify(cleanContext, null, 2)}
         });
 
         if (!response.ok) {
-            // Log full error server-side, but send only a generic message to client
             const errorText = await response.text();
             console.error(`Anthropic API Error [${response.status}]:`, errorText);
             return res.status(502).json({ error: 'AI service temporarily unavailable.' });
@@ -509,7 +577,6 @@ ${JSON.stringify(cleanContext, null, 2)}
         res.json(data);
 
     } catch (error) {
-        // Never expose internal error details to the client
         console.error('Server Error in /api/chat:', error);
         res.status(500).json({ error: 'Internal Server Error.' });
     }

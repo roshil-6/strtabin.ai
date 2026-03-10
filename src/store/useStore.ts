@@ -213,6 +213,7 @@ export type RFState = {
     // Chat History
     chatHistory: Record<string, { role: 'user' | 'assistant'; content: string }[]>;
     addChatMessage: (id: string, message: { role: 'user' | 'assistant'; content: string }) => void;
+    updateLastChatMessage: (id: string, content: string) => void;
     clearChatHistory: (id: string) => void;
 
     // Canvas Comments
@@ -1074,6 +1075,16 @@ const useStore = create<RFState>()(
                             [id]: [...currentHistory, message]
                         }
                     };
+                });
+            },
+
+            updateLastChatMessage: (id, content) => {
+                set((state) => {
+                    const history = state.chatHistory[id];
+                    if (!history || history.length === 0) return state;
+                    const updated = [...history];
+                    updated[updated.length - 1] = { ...updated[updated.length - 1], content };
+                    return { chatHistory: { ...state.chatHistory, [id]: updated } };
                 });
             },
 
