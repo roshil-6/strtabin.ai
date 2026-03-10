@@ -140,7 +140,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
         return (
             <>
                 {status === 'trial' && (
-                    <div className="fixed bottom-20 md:bottom-4 right-4 z-50 flex flex-wrap items-center gap-3 px-4 py-3 bg-[#111] border border-white/10 rounded-2xl shadow-2xl backdrop-blur-sm max-w-[calc(100vw-2rem)]">
+                    <div className="fixed bottom-[72px] md:bottom-4 right-2 md:right-4 z-50 flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/[0.06] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] max-w-[calc(100vw-1rem)]">
                         <div className="flex items-center gap-2">
                             <Clock size={14} className="text-primary shrink-0" />
                             <span className="text-xs font-black text-white/60">Trial: <span className="text-primary">{formatTimeLeft(timeLeft)}</span></span>

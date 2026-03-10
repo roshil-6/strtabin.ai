@@ -21,49 +21,47 @@ export default function MobileNav({ canvasId }: MobileNavProps) {
 
     return (
         <nav
-            className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/98 backdrop-blur-2xl border-t border-white/[0.06]"
+            className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#060606]/[0.97] backdrop-blur-2xl border-t border-white/[0.04]"
             aria-label="Mobile project navigation"
         >
-            <div className="flex items-stretch h-[60px]">
+            <div className="flex items-stretch h-[62px] px-1">
                 {items.map(({ label, icon: Icon, path, action, exact }) => {
                     const active = exact
                         ? location.pathname === path
                         : location.pathname.startsWith(path.split('?')[0]);
+                    const isAI = label === 'STRAB';
                     return (
                         <button
                             key={label}
                             onClick={action}
-                            className="flex-1 flex flex-col items-center justify-center gap-[5px] min-w-0 relative active:opacity-60 transition-opacity"
+                            className="flex-1 flex flex-col items-center justify-center gap-1 min-w-0 relative active:scale-90 transition-all duration-200"
                             aria-label={label}
                             aria-current={active ? 'page' : undefined}
                         >
-                            {/* Active indicator bar at top */}
-                            <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-[2px] rounded-b-full transition-all duration-300 ${
-                                active ? 'w-6 bg-primary' : 'w-0 bg-transparent'
+                            <div className={`absolute top-0 left-1/2 -translate-x-1/2 rounded-b-full transition-all duration-300 ${
+                                active ? 'w-8 h-[2.5px] bg-primary shadow-[0_0_8px_rgba(255,95,31,0.4)]' : 'w-0 h-0'
                             }`} />
 
-                            {/* Icon with subtle active background */}
                             <div className={`rounded-xl p-1.5 transition-all duration-200 ${
                                 active
-                                    ? label === 'STRAB' ? 'bg-primary/15' : 'bg-white/8'
+                                    ? isAI ? 'bg-primary/12' : 'bg-white/[0.08]'
                                     : ''
                             }`}>
                                 <Icon
-                                    size={18}
+                                    size={19}
                                     className={`transition-colors duration-200 ${
                                         active
-                                            ? label === 'STRAB' ? 'text-primary' : 'text-white'
-                                            : 'text-white/30'
+                                            ? isAI ? 'text-primary' : 'text-white'
+                                            : 'text-white/25'
                                     }`}
-                                    strokeWidth={active ? 2.5 : 1.5}
+                                    strokeWidth={active ? 2.4 : 1.5}
                                 />
                             </div>
 
-                            {/* Label */}
-                            <span className={`text-[9px] font-semibold tracking-wide leading-none truncate w-full text-center px-0.5 transition-colors duration-200 ${
+                            <span className={`text-[9px] font-bold tracking-wider leading-none truncate w-full text-center px-0.5 transition-colors duration-200 ${
                                 active
-                                    ? label === 'STRAB' ? 'text-primary' : 'text-white/80'
-                                    : 'text-white/25'
+                                    ? isAI ? 'text-primary' : 'text-white/90'
+                                    : 'text-white/20'
                             }`}>
                                 {label}
                             </span>
@@ -71,8 +69,7 @@ export default function MobileNav({ canvasId }: MobileNavProps) {
                     );
                 })}
             </div>
-            {/* iOS home indicator safe area */}
-            <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} className="bg-[#0a0a0a]/98" />
+            <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} className="bg-[#060606]/[0.97]" />
         </nav>
     );
 }

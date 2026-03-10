@@ -34,23 +34,21 @@ export default function TimelineSection() {
     };
 
     return (
-        <div className="w-screen h-screen bg-[#0b0b0b] text-white flex">
-            {/* Desktop sidebar — hidden on mobile */}
+        <div className="w-screen h-screen bg-[#050505] text-white flex">
             <Sidebar canvasId={id} />
 
             <div className="flex-1 flex flex-col min-w-0">
-                {/* Header */}
-                <div className="h-14 md:h-16 border-b border-white/[0.06] flex items-center px-3 md:px-6 gap-2.5 shrink-0 bg-[#0a0a0a]/80 backdrop-blur-xl">
+                <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-2 md:px-6 gap-2 shrink-0 bg-[#060606]/95 backdrop-blur-2xl">
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className="md:hidden p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
+                        className="md:hidden p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
                         aria-label="Back to dashboard"
                     >
                         <ArrowLeft size={18} />
                     </button>
                     <div className="min-w-0 flex-1">
-                        <p className="text-[10px] text-white/30 font-semibold uppercase tracking-widest leading-none mb-0.5 hidden sm:block">Timeline</p>
-                        <h1 className="text-sm md:text-base font-bold truncate text-white">
+                        <p className="text-[9px] md:text-[10px] text-white/25 font-bold uppercase tracking-wider leading-none mb-0.5 hidden sm:block">Timeline</p>
+                        <h1 className="text-[13px] md:text-base font-bold truncate text-white">
                             {canvas.name || canvas.title || 'Untitled'}
                         </h1>
                     </div>

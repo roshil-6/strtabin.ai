@@ -286,25 +286,24 @@ function CanvasContent() {
                 style={{ height: isMobile ? 'calc(100% - 80px)' : '100%' }}
             >
 
-                {/* Merged Tabs Bar - Fixed at the very top for browser-like feel */}
+                {/* Merged Tabs Bar */}
                 {isMerged && currentCanvas.mergedCanvasIds && (
-                    <div className="absolute top-0 left-0 right-0 h-14 bg-[#080808] border-b border-white/10 flex items-center px-4 gap-1 z-[60] shadow-2xl">
-                        {/* Master Workflow Tab */}
+                    <div className="absolute top-0 left-0 right-0 h-12 md:h-14 bg-[#060606]/95 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-2 md:px-4 gap-1 z-[60] shadow-[0_4px_24px_rgba(0,0,0,0.5)] overflow-x-auto custom-scrollbar-hide">
                         <button
                             onClick={() => setActiveSubCanvasId(null)}
                             className={`
-                                flex items-center gap-2.5 px-4 h-10 rounded-xl transition-all border
+                                flex items-center gap-1.5 md:gap-2.5 px-2.5 md:px-4 h-8 md:h-10 rounded-xl transition-all border shrink-0
                                 ${activeSubCanvasId === null
-                                    ? 'bg-white/10 border-white/20 text-primary shadow-[0_0_15px_rgba(255,255,255,0.1)]'
-                                    : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10 hover:text-white/60'
+                                    ? 'bg-white/10 border-white/15 text-primary shadow-[0_0_12px_rgba(255,255,255,0.08)]'
+                                    : 'bg-white/[0.03] border-transparent text-white/40 hover:bg-white/10 hover:text-white/60'
                                 }
                             `}
                         >
-                            <Layers size={16} />
-                            <span className="text-sm font-black uppercase tracking-widest">Main Overview</span>
+                            <Layers size={14} />
+                            <span className="text-[11px] md:text-sm font-black uppercase tracking-wider">Overview</span>
                         </button>
 
-                        <div className="w-px h-6 bg-white/5 mx-2" />
+                        <div className="w-px h-5 md:h-6 bg-white/5 mx-1 md:mx-2 shrink-0" />
 
                         {currentCanvas.mergedCanvasIds.map((subId: string) => {
                             const subCanvas = canvases[subId];
@@ -314,15 +313,15 @@ function CanvasContent() {
                                     key={subId}
                                     onClick={() => setActiveSubCanvasId(subId)}
                                     className={`
-                                        flex items-center gap-2.5 px-4 h-10 rounded-xl transition-all border
+                                        flex items-center gap-1.5 md:gap-2.5 px-2.5 md:px-4 h-8 md:h-10 rounded-xl transition-all border shrink-0
                                         ${isActive
-                                            ? 'bg-white/10 border-white/20 text-primary shadow-[0_0_15px_rgba(255,255,255,0.1)]'
-                                            : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10 hover:text-white/60'
+                                            ? 'bg-white/10 border-white/15 text-primary shadow-[0_0_12px_rgba(255,255,255,0.08)]'
+                                            : 'bg-white/[0.03] border-transparent text-white/40 hover:bg-white/10 hover:text-white/60'
                                         }
                                     `}
                                 >
-                                    <FileText size={16} />
-                                    <span className="text-sm font-bold truncate max-w-[150px]">{subCanvas?.name || 'Sub Project'}</span>
+                                    <FileText size={13} />
+                                    <span className="text-[11px] md:text-sm font-bold truncate max-w-[100px] md:max-w-[150px]">{subCanvas?.name || 'Sub Project'}</span>
                                     {isActive && <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
                                 </button>
                             );
@@ -332,13 +331,13 @@ function CanvasContent() {
                                 const newId = addSubCanvasToMerged(activeCanvasId);
                                 setActiveSubCanvasId(newId);
                             }}
-                            className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-dashed border-white/20 text-white/40 hover:bg-white/10 hover:border-white/40 hover:text-white transition-all ml-1"
+                            className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white/[0.03] border border-dashed border-white/15 text-white/40 hover:bg-white/10 hover:border-white/40 hover:text-white active:scale-95 transition-all ml-1 shrink-0"
                             title="Add New Sequence"
                         >
-                            <Plus size={18} />
+                            <Plus size={16} />
                         </button>
                         <div className="flex-1" />
-                        <div className="px-3 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[10px] uppercase font-black tracking-widest text-orange-400">
+                        <div className="hidden md:block px-3 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[10px] uppercase font-black tracking-widest text-orange-400 shrink-0">
                             Merged Project View
                         </div>
                     </div>
@@ -376,32 +375,31 @@ function CanvasContent() {
                         without the browser intercepting them to zoom the page */}
                     <div className="flex-1 w-full h-full relative" style={{ touchAction: 'none' }}>
                         {/* Flow Top Bar */}
-                        <div className={`absolute ${isMerged ? 'top-18' : 'top-4'} left-4 right-4 h-14 bg-[#1a1a1a]/80 backdrop-blur-md rounded-2xl border border-white/10 flex items-center px-4 z-40 justify-between transition-all`}>
+                        <div className={`absolute ${isMerged ? 'top-18' : 'top-2 md:top-4'} left-2 right-2 md:left-4 md:right-4 h-12 md:h-14 bg-[#0e0e0e]/90 backdrop-blur-xl rounded-2xl border border-white/[0.08] flex items-center px-3 md:px-4 z-40 justify-between transition-all shadow-[0_8px_32px_rgba(0,0,0,0.4)]`}>
                             <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-green-500" />
-                                <span className="text-sm font-bold text-white/70">Flow Canvas</span>
+                                <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                                <span className="text-xs md:text-sm font-bold text-white/60">Flow Canvas</span>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                {/* Only show Map Folder button when canvas is in a folder */}
+                            <div className="flex items-center gap-1.5 md:gap-2">
                                 {canvases[activeCanvasId]?.folderId && (
                                     <button
                                         onClick={handleAutoMapFolder}
-                                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white transition-all"
+                                        className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-xl bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-white/10 hover:text-white active:scale-95 transition-all"
                                         aria-label="Auto-map folder projects"
                                         title="Add boxes for all other projects in this folder"
                                     >
-                                        <FolderOpen size={16} />
-                                        <span className="text-xs font-bold hidden sm:inline">Map Folder</span>
+                                        <FolderOpen size={15} />
+                                        <span className="text-[11px] font-bold hidden sm:inline">Map Folder</span>
                                     </button>
                                 )}
                                 <button
                                     onClick={() => navigate(`/strab/${id || 'default'}`)}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 transition-all"
+                                    className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 active:scale-95 transition-all"
                                     aria-label="Open STRAB AI"
                                 >
-                                    <Bot size={16} />
-                                    <span className="text-xs font-bold">Ask STRAB</span>
+                                    <Bot size={15} />
+                                    <span className="text-[11px] font-bold">STRAB</span>
                                 </button>
                             </div>
                         </div>
@@ -465,14 +463,14 @@ function CanvasContent() {
                     </div>
 
                     {/* Floating Command Dock */}
-                    <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-50">
+                    <div className="absolute bottom-[72px] md:bottom-8 left-1/2 -translate-x-1/2 z-50">
                         <CommandDock onAddNode={handleAddNode} />
                     </div>
                 </div>
 
                 {/* Mobile Bottom Navigation */}
-                <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/98 backdrop-blur-2xl border-t border-white/[0.06]" aria-label="Canvas navigation">
-                    <div className="flex items-stretch h-[60px]">
+                <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#060606]/[0.97] backdrop-blur-2xl border-t border-white/[0.04]" aria-label="Canvas navigation">
+                    <div className="flex items-stretch h-[62px] px-1">
                         {[
                             { label: 'Write', icon: FileText, action: () => setMobileTab('write'),            active: mobileTab === 'write' },
                             { label: 'Flow',  icon: Layers,   action: () => setMobileTab('map'),              active: mobileTab === 'map'   },
@@ -484,24 +482,24 @@ function CanvasContent() {
                             <button
                                 key={label}
                                 onClick={action}
-                                className="flex-1 flex flex-col items-center justify-center gap-[5px] min-w-0 relative active:opacity-60 transition-opacity"
+                                className="flex-1 flex flex-col items-center justify-center gap-1 min-w-0 relative active:scale-90 transition-all duration-200"
                                 aria-label={label}
                             >
-                                <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-[2px] rounded-b-full transition-all duration-300 ${active ? 'w-6 bg-primary' : 'w-0'}`} />
-                                <div className={`rounded-xl p-1.5 transition-all duration-200 ${active ? 'bg-white/8' : ''}`}>
+                                <div className={`absolute top-0 left-1/2 -translate-x-1/2 rounded-b-full transition-all duration-300 ${active ? 'w-8 h-[2.5px] bg-primary shadow-[0_0_8px_rgba(255,95,31,0.4)]' : 'w-0 h-0'}`} />
+                                <div className={`rounded-xl p-1.5 transition-all duration-200 ${active ? 'bg-white/[0.08]' : ''}`}>
                                     <Icon
-                                        size={18}
-                                        strokeWidth={active ? 2.5 : 1.5}
-                                        className={`transition-colors ${active ? 'text-white' : highlight ? 'text-primary/70' : 'text-white/30'}`}
+                                        size={19}
+                                        strokeWidth={active ? 2.4 : 1.5}
+                                        className={`transition-colors duration-200 ${active ? 'text-white' : highlight ? 'text-primary/70' : 'text-white/25'}`}
                                     />
                                 </div>
-                                <span className={`text-[9px] font-semibold tracking-wide leading-none ${active ? 'text-white/80' : highlight ? 'text-primary/60' : 'text-white/25'}`}>
+                                <span className={`text-[9px] font-bold tracking-wider leading-none transition-colors duration-200 ${active ? 'text-white/90' : highlight ? 'text-primary/50' : 'text-white/20'}`}>
                                     {label}
                                 </span>
                             </button>
                         ))}
                     </div>
-                    <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} className="bg-[#0a0a0a]/98" />
+                    <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} className="bg-[#060606]/[0.97]" />
                 </nav>
             </div>
         </div>

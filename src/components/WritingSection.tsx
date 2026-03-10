@@ -349,58 +349,58 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     return (
         <div className="h-full w-full bg-[#0a0a0a] flex flex-col border-r border-white/[0.05] relative">
             {/* Toolbar */}
-            <div className="h-12 md:h-14 border-b border-white/[0.05] flex items-center px-3 md:px-4 gap-1.5 bg-[#0a0a0a]/90 backdrop-blur-xl sticky top-0 z-20">
-                <div className="flex items-center gap-1.5 mr-auto min-w-0">
-                    <Type size={15} className="text-primary shrink-0" />
-                    <span className="text-xs font-medium text-white/40 hidden sm:block">Writing</span>
+            <div className="h-11 md:h-14 border-b border-white/[0.03] flex items-center px-2 md:px-4 gap-1 bg-[#070707]/95 backdrop-blur-2xl sticky top-0 z-20">
+                <div className="flex items-center gap-1.5 mr-auto min-w-0 shrink-0">
+                    <Type size={14} className="text-primary shrink-0" />
+                    <span className="text-[11px] font-bold text-white/30 hidden sm:block tracking-wide">Writing</span>
                 </div>
 
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-xl p-0.5 border border-white/[0.04]">
                     <button
                         onClick={() => imageInputRef.current?.click()}
-                        className="p-2.5 hover:bg-white/8 rounded-xl text-white/40 hover:text-white active:scale-95 transition-all flex items-center justify-center"
+                        className="p-2 hover:bg-white/[0.06] rounded-lg text-white/35 hover:text-white active:scale-90 transition-all flex items-center justify-center"
                         title="Add Image"
                     >
-                        <ImageIcon size={16} />
+                        <ImageIcon size={15} />
                     </button>
                     <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-2.5 hover:bg-white/8 rounded-xl text-white/40 hover:text-white active:scale-95 transition-all flex items-center justify-center"
+                        className="p-2 hover:bg-white/[0.06] rounded-lg text-white/35 hover:text-white active:scale-90 transition-all flex items-center justify-center"
                         title="Add Attachment"
                     >
-                        <File size={16} />
+                        <File size={15} />
                     </button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="*" onChange={handleFileUpload} />
 
                     <button
                         onClick={() => navigate(`/strab/${canvasId}`)}
-                        className="p-2.5 hover:bg-primary/10 hover:text-primary rounded-xl text-white/40 active:scale-95 transition-all flex items-center justify-center"
+                        className="p-2 hover:bg-primary/10 hover:text-primary rounded-lg text-white/35 active:scale-90 transition-all flex items-center justify-center"
                         title="Ask STRAB AI"
                     >
-                        <Bot size={16} />
+                        <Bot size={15} />
                     </button>
                 </div>
 
-                <div className="w-px h-4 bg-white/[0.08] mx-1" />
+                <div className="w-px h-4 bg-white/[0.05] mx-0.5 md:mx-1" />
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-xl p-0.5 border border-white/[0.04]">
                     <button
                         onClick={insertSplitSeparator}
-                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 ${isSplitMode ? 'bg-primary/15 text-primary' : 'text-white/40 hover:text-white hover:bg-white/8'}`}
+                        className={`flex items-center gap-1 px-2 md:px-2.5 py-1.5 md:py-2 rounded-lg text-[11px] font-bold transition-all active:scale-90 ${isSplitMode ? 'bg-primary/15 text-primary shadow-[0_0_8px_rgba(255,95,31,0.15)]' : 'text-white/35 hover:text-white hover:bg-white/[0.06]'}`}
                         title={isSplitMode ? "Remove Split" : "Split View"}
                     >
-                        <Layout size={14} />
+                        <Layout size={13} />
                         <span className="hidden sm:inline">Split</span>
                     </button>
 
                     <button
                         onClick={() => setShowBranchModal(true)}
-                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 ${showBranchModal ? 'bg-primary/15 text-primary' : 'text-white/40 hover:text-white hover:bg-white/8'}`}
+                        className={`flex items-center gap-1 px-2 md:px-2.5 py-1.5 md:py-2 rounded-lg text-[11px] font-bold transition-all active:scale-90 ${showBranchModal ? 'bg-primary/15 text-primary shadow-[0_0_8px_rgba(255,95,31,0.15)]' : 'text-white/35 hover:text-white hover:bg-white/[0.06]'}`}
                         title="Insert Branch"
                     >
-                        <GitBranch size={14} />
+                        <GitBranch size={13} />
                         <span className="hidden sm:inline">Branch</span>
                     </button>
                 </div>
@@ -631,7 +631,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
             {/* Branch Creation Modal */}
             {showBranchModal && (
-                <div className="absolute top-16 right-4 w-80 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl p-5 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+                <div className="absolute top-14 md:top-16 right-2 md:right-4 w-[calc(100vw-1rem)] max-w-[320px] bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] p-4 md:p-5 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-white font-bold flex items-center gap-2">
                             <GitBranch size={16} className="text-primary" />

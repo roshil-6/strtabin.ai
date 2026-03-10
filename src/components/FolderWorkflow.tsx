@@ -72,42 +72,45 @@ function WorkflowContent() {
             edgeTypes={edgeTypes}
             defaultEdgeOptions={{ type: 'smart' }}
             fitView
-            className="bg-[#080808]"
+            className="bg-[#050505]"
+            zoomOnPinch={true}
+            panOnDrag={true}
+            preventScrolling={true}
         >
-            <Background color="#333" gap={32} size={1} variant={BackgroundVariant.Dots} />
+            <Background color="#222" gap={32} size={1} variant={BackgroundVariant.Dots} />
 
-            {/* Make Controls visible by passing custom tailwind style classes, overriding their default white boxes so they look good on dark theme */}
-            <Controls position="bottom-right" className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-2xl mb-6 mr-6 [&>button]:bg-[#1a1a1a] [&>button]:border-white/10 [&>button]:text-white [&>button:hover]:bg-white/10" />
+            <Controls position="bottom-right" className="bg-[#0e0e0e] border border-white/[0.06] rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)] mb-4 mr-3 md:mb-6 md:mr-6 [&>button]:bg-[#0e0e0e] [&>button]:border-white/[0.06] [&>button]:text-white [&>button:hover]:bg-white/10" />
 
-            <Panel position="top-left" className="m-6">
+            <Panel position="top-left" className="m-3 md:m-6">
                 <button
                     onClick={() => {
                         store.setActiveFolder(targetFolderId || null);
                         navigate('/dashboard');
                     }}
-                    className="flex items-center gap-2 text-white/50 hover:text-white bg-[#1a1a1a]/80 backdrop-blur-md px-4 py-2 md:px-5 md:py-2.5 rounded-xl border border-white/10 transition-all shadow-lg hover:bg-white/5 group"
+                    className="flex items-center gap-1.5 md:gap-2 text-white/50 hover:text-white bg-[#0e0e0e]/90 backdrop-blur-xl px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl border border-white/[0.06] transition-all shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:bg-white/5 active:scale-95 group"
                 >
-                    <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-xs md:text-sm font-bold uppercase tracking-wider">Back to Dashboard</span>
+                    <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                    <span className="text-[11px] md:text-sm font-bold uppercase tracking-wider">Back</span>
                 </button>
             </Panel>
 
-            <Panel position="top-center" className="m-6 bg-black/50 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-2xl shadow-2xl pointer-events-none">
+            <Panel position="top-center" className="m-3 md:m-6 bg-[#060606]/80 backdrop-blur-2xl border border-white/[0.06] px-4 py-2.5 md:px-6 md:py-4 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-none">
                 <div className="text-center">
-                    <h1 className="text-2xl font-black text-white tracking-tighter mb-1">{folderDetails.name} Workflow</h1>
-                    <p className="text-xs text-white/40 uppercase tracking-widest font-bold">
-                        Map out your folder structure
+                    <h1 className="text-base md:text-2xl font-black text-white tracking-tighter mb-0.5">{folderDetails.name}</h1>
+                    <p className="text-[9px] md:text-xs text-white/30 uppercase tracking-widest font-bold">
+                        Workflow Map
                     </p>
                 </div>
             </Panel>
 
-            <Panel position="top-right" className="m-6 flex gap-3">
+            <Panel position="top-right" className="m-3 md:m-6 flex gap-2 md:gap-3">
                 <button
                     onClick={handleAddStep}
-                    className="flex items-center gap-2 bg-primary hover:bg-orange-500 text-black px-4 py-2.5 rounded-xl transition-all shadow-lg font-bold text-sm tracking-wide"
+                    className="flex items-center gap-1.5 md:gap-2 bg-primary hover:bg-orange-500 text-black px-3 py-2 md:px-4 md:py-2.5 rounded-xl transition-all shadow-lg active:scale-95 font-bold text-xs md:text-sm tracking-wide"
                 >
-                    <Plus size={18} />
-                    Add Box
+                    <Plus size={16} />
+                    <span className="hidden sm:inline">Add Box</span>
+                    <span className="sm:hidden">Add</span>
                 </button>
             </Panel>
         </ReactFlow>
@@ -116,7 +119,7 @@ function WorkflowContent() {
 
 export default function FolderWorkflow() {
     return (
-        <div className="w-full h-screen bg-[#080808] relative">
+        <div className="w-full h-screen bg-[#050505] relative">
             <ReactFlowProvider>
                 <WorkflowContent />
             </ReactFlowProvider>

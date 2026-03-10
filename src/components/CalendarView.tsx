@@ -120,7 +120,7 @@ export default function CalendarView() {
     }, [selectedDateKey]);
 
     return (
-        <div className="w-screen h-screen bg-[#0a0a0a] text-white flex overflow-hidden">
+        <div className="w-screen h-screen bg-[#050505] text-white flex overflow-hidden">
             {/* Desktop left nav — hidden on mobile */}
             {id ? <Sidebar canvasId={id} /> : (
                 <div className="hidden md:flex w-16 h-full bg-[#080808] border-r border-white/5 flex-col items-center py-6 gap-6">
@@ -162,19 +162,18 @@ export default function CalendarView() {
                 <div className="flex-shrink-0 px-3 md:px-6 pt-3 md:pt-6 pb-3 md:pb-5">
                     {/* Mobile: compact single-row header with view toggle + nav */}
                     <div className="flex items-center gap-2 md:hidden mb-3">
-                        {/* View toggle pill */}
-                        <div className="flex bg-white/[0.06] rounded-lg p-0.5 shrink-0">
+                        <div className="flex bg-white/[0.04] rounded-xl p-0.5 shrink-0 border border-white/[0.04]">
                             <button
                                 onClick={() => navigate(id ? `/calendar/${id}` : '/calendar')}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'month' ? 'bg-white/10 text-white' : 'text-white/35'}`}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${viewMode === 'month' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30'}`}
                             >
-                                <Calendar size={13} /> Month
+                                <Calendar size={12} /> Month
                             </button>
                             <button
                                 onClick={() => navigate(id ? `/calendar/${id}?mode=week` : '/calendar?mode=week')}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'week' ? 'bg-white/10 text-white' : 'text-white/35'}`}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-95 ${viewMode === 'week' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30'}`}
                             >
-                                <CheckCircle2 size={13} /> Week
+                                <CheckCircle2 size={12} /> Week
                             </button>
                         </div>
 

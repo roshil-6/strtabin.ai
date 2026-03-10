@@ -34,14 +34,13 @@ export default function TodoSection() {
     };
 
     return (
-        <div className="w-screen h-screen bg-[#0b0b0b] text-white flex flex-col">
+        <div className="w-screen h-screen bg-[#050505] text-white flex flex-col">
             <ProjectHeader canvasId={id!} activeTab="tasks" />
 
             <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-12 pb-24 md:pb-12 w-full max-w-3xl mx-auto">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-12 pb-24 md:pb-12 w-full max-w-3xl mx-auto">
 
-                    {/* Add task input */}
-                    <form onSubmit={handleAdd} className="flex gap-2.5 mb-5">
+                    <form onSubmit={handleAdd} className="flex gap-2 mb-5">
                         <input
                             type="text"
                             value={newTodo}
@@ -49,11 +48,11 @@ export default function TodoSection() {
                             placeholder="Add a new task…"
                             maxLength={MAX_TODO_LENGTH}
                             aria-label="New task"
-                            className="flex-1 bg-[#111] border border-white/[0.09] rounded-xl px-4 py-3.5 text-base outline-none focus:border-primary/40 transition-colors placeholder-white/20"
+                            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 md:px-4 py-3 md:py-3.5 text-sm md:text-base outline-none focus:border-primary/30 focus:bg-white/[0.06] transition-all placeholder-white/15"
                         />
                         <button
                             type="submit"
-                            className="bg-primary text-black font-bold px-5 py-3.5 rounded-xl active:scale-95 transition-all shrink-0"
+                            className="bg-primary text-black font-bold px-4 md:px-5 py-3 md:py-3.5 rounded-xl active:scale-90 transition-all shrink-0 text-sm"
                         >
                             Add
                         </button>

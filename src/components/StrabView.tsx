@@ -229,50 +229,48 @@ export default function StrabView() {
     );
 
         return (
-        <div className="flex flex-col h-screen bg-[#0b0b0b] text-white overflow-hidden relative">
+        <div className="flex flex-col h-screen bg-[#060606] text-white overflow-hidden relative">
             {/* Header */}
-            <div className="h-14 md:h-16 border-b border-white/[0.06] flex items-center px-3 md:px-6 bg-[#0a0a0a]/90 backdrop-blur-xl z-10 flex-shrink-0 gap-2">
+            <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-2 md:px-6 bg-[#060606]/95 backdrop-blur-2xl z-10 flex-shrink-0 gap-1.5 md:gap-2">
                 <button
                     onClick={() => navigate(-1)}
-                    className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 active:scale-95 transition-all shrink-0"
+                    className="p-1.5 md:p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 active:scale-95 transition-all shrink-0"
                     aria-label="Go back"
                 >
                     <ArrowLeft size={18} />
                 </button>
 
-                {/* Icon + title */}
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                        <Network size={14} className="text-primary" />
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                        <Network size={13} className="text-primary" />
                     </div>
                     <div className="min-w-0">
-                        <h1 className="font-bold text-sm leading-tight">STRAB <span className="text-white/30 font-normal text-xs">AI</span></h1>
-                        <p className="text-[10px] text-white/30 leading-none mt-0.5 truncate hidden sm:block">{resolvedName}</p>
+                        <h1 className="font-bold text-[13px] leading-tight">STRAB <span className="text-white/25 font-normal text-[11px]">AI</span></h1>
+                        <p className="text-[9px] text-white/25 leading-none mt-0.5 truncate hidden sm:block">{resolvedName}</p>
                     </div>
                 </div>
 
-                {/* Tab switcher + clear */}
-                <div className="flex items-center gap-1 shrink-0">
-                    <div className="flex bg-white/[0.06] rounded-lg p-0.5">
+                <div className="flex items-center gap-0.5 md:gap-1 shrink-0">
+                    <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04]">
                         <button
                             onClick={() => setActiveTab('chat')}
-                            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${activeTab === 'chat' ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/70'}`}
+                            className={`px-2.5 md:px-3 py-1.5 rounded-lg text-[11px] md:text-xs font-bold transition-all active:scale-95 ${activeTab === 'chat' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white/60'}`}
                         >
                             Chat
                         </button>
                         <button
                             onClick={() => setActiveTab('reports')}
-                            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${activeTab === 'reports' ? 'bg-white/10 text-white' : 'text-white/35 hover:text-white/70'}`}
+                            className={`px-2.5 md:px-3 py-1.5 rounded-lg text-[11px] md:text-xs font-bold transition-all active:scale-95 ${activeTab === 'reports' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white/60'}`}
                         >
                             Reports
                         </button>
                     </div>
                     <button
                         onClick={() => clearChatHistory(id!)}
-                        className="p-2 rounded-lg text-white/25 hover:text-red-400 hover:bg-white/5 active:scale-95 transition-all"
+                        className="p-1.5 md:p-2 rounded-lg text-white/20 hover:text-red-400 hover:bg-white/5 active:scale-95 transition-all"
                         aria-label="Clear conversation"
                     >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                     </button>
                 </div>
             </div>
@@ -306,11 +304,11 @@ export default function StrabView() {
                                 }
 
                                 return (
-                                    <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-white/10' : 'bg-[#151515] border border-white/5 text-white/80'}`}>
-                                            {msg.role === 'user' ? <div className="w-2 h-2 bg-white rounded-full" /> : <Network size={14} />}
+                                    <div key={idx} className={`flex gap-2.5 md:gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                        <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-white/[0.06]' : 'bg-[#111] border border-white/[0.04] text-white/70'}`}>
+                                            {msg.role === 'user' ? <div className="w-1.5 h-1.5 bg-white rounded-full" /> : <Network size={13} />}
                                         </div>
-                                        <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[80%] text-sm leading-relaxed ${msg.role === 'user' ? 'bg-[#151515] border border-white/5 text-white/90' : 'text-white/80'}`}>
+                                        <div className={`p-3 md:p-4 rounded-2xl max-w-[85%] md:max-w-[80%] text-[13px] md:text-sm leading-relaxed ${msg.role === 'user' ? 'bg-white/[0.04] border border-white/[0.04] text-white/90' : 'text-white/75'}`}>
                                             {isInteractive && parsedJson ? (
                                                 <div className="space-y-4">
                                                     <div className="font-medium text-white text-base">
@@ -361,7 +359,7 @@ export default function StrabView() {
                         </div>
 
                         {/* Input Area */}
-                        <div className="px-3 py-3 bg-[#0a0a0a]">
+                        <div className="px-2 md:px-3 py-2 md:py-3 bg-[#060606] border-t border-white/[0.03]">
                             <div className="relative max-w-3xl mx-auto">
                                 <input
                                     type="text"
@@ -369,18 +367,18 @@ export default function StrabView() {
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSend()}
                                     placeholder="Ask STRAB anything…"
-                                    className="w-full bg-[#151515] border border-white/[0.09] rounded-2xl py-3.5 pl-4 pr-12 text-base text-white focus:border-primary/40 focus:ring-1 focus:ring-primary/10 outline-none transition-all placeholder-white/20"
+                                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-2xl py-3 md:py-3.5 pl-4 pr-12 text-sm md:text-base text-white focus:border-primary/30 focus:bg-white/[0.06] outline-none transition-all placeholder-white/15"
                                     aria-label="Message STRAB"
                                 />
                                 <button
                                     onClick={handleSend}
                                     disabled={!input.trim() || isLoading}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-primary text-black rounded-xl disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all"
+                                    className="absolute right-1.5 md:right-2 top-1/2 -translate-y-1/2 w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-primary text-black rounded-xl disabled:opacity-20 disabled:cursor-not-allowed active:scale-90 transition-all"
                                     aria-label="Send message"
                                 >
                                     {isLoading
-                                        ? <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                                        : <Send size={14} strokeWidth={2.5} />
+                                        ? <div className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                        : <Send size={13} strokeWidth={2.5} />
                                     }
                                 </button>
                             </div>
