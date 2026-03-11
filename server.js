@@ -61,6 +61,14 @@ app.use(cors({
     credentials: true,
 }));
 
+// ─── Body Parser (before all routes except raw webhook) ───────────────────
+// Register early so req.body is available in all JSON route handlers
+app.use((req, res, next) => {
+    // Skip for the raw webhook endpoint so its HMAC verification still works
+    if (req.path === '/api/payments/razorpay/webhook') return next();
+    express.json({ limit: '50kb' })(req, res, next);
+});
+
 // ─── Health + Root routes ─────────────────────────────────────────────────
 app.get('/', (_req, res) => {
     res.json({ status: 'STRAB Server is running.' });
@@ -167,9 +175,13 @@ app.post('/api/payments/verify', async (req, res) => {
 
     let userId;
     try {
-        const payload = await clerk.verifyToken(token);
+        const authorizedParties = allowedOrigins.filter(o => o.startsWith('http'));
+        const payload = await clerk.verifyToken(token, {
+            authorizedParties,
+        });
         userId = payload.sub;
-    } catch {
+    } catch (clerkErr) {
+        console.error('❌ Clerk verifyToken failed:', clerkErr?.message || clerkErr);
         return res.status(401).json({ error: 'Invalid or expired token.' });
     }
 
@@ -259,9 +271,6 @@ app.use(helmet({
     }
 }));
 
-// ─── Body Parser — 50 KB max to prevent payload bombs ─────────────────────
-app.use(express.json({ limit: '50kb' }));
-
 // ─── Global Rate Limiter — 120 requests / 15 min per IP ───────────────────
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -297,8 +306,10 @@ async function requireAuth(req, res, next) {
     // If Clerk is configured, verify the token cryptographically
     if (clerk) {
         try {
-            await clerk.verifyToken(token);
-        } catch {
+            const authorizedParties = allowedOrigins.filter(o => o.startsWith('http'));
+            await clerk.verifyToken(token, { authorizedParties });
+        } catch (clerkErr) {
+            console.error('❌ Clerk verifyToken (requireAuth) failed:', clerkErr?.message || clerkErr);
             return res.status(401).json({ error: 'Unauthorized: invalid token.' });
         }
     }
