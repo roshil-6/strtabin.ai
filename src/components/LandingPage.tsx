@@ -8,8 +8,8 @@ import HexagonBackground from './HexagonBackground';
 export default function LandingPage() {
     const navigate = useNavigate();
     const { isSignedIn, isLoaded: authLoaded } = useAuth();
-    const { signIn, isLoaded: signInLoaded } = useSignIn();
-    const { signUp, isLoaded: signUpLoaded } = useSignUp();
+    const { signIn, isLoaded: signInLoaded, setActive: setSignInActive } = useSignIn();
+    const { signUp, isLoaded: signUpLoaded, setActive: setSignUpActive } = useSignUp();
     const [loading, setLoading] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
     const [showHowTo, setShowHowTo] = useState(false);
@@ -68,11 +68,13 @@ export default function LandingPage() {
             if (isSignUpFlow) {
                 const result = await signUp.attemptEmailAddressVerification({ code });
                 if (result.status === 'complete') {
+                    await setSignUpActive({ session: result.createdSessionId });
                     navigate('/dashboard', { replace: true });
                 }
             } else {
                 const result = await signIn.attemptFirstFactor({ strategy: 'email_code', code });
                 if (result.status === 'complete') {
+                    await setSignInActive({ session: result.createdSessionId });
                     navigate('/dashboard', { replace: true });
                 }
             }
