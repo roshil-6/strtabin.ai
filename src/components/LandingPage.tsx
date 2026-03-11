@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-react';
-import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles } from 'lucide-react';
+import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, UserX } from 'lucide-react';
+
+export const GUEST_TRIAL_KEY = 'guest-trial-start';
 import { RAZORPAY_LINK } from '../constants';
 import HexagonBackground from './HexagonBackground';
 
@@ -69,12 +71,15 @@ export default function LandingPage() {
                 const result = await signUp.attemptEmailAddressVerification({ code });
                 if (result.status === 'complete') {
                     await setSignUpActive({ session: result.createdSessionId });
+                    // carry over guest trial if exists — prevents double free trial
+                    transferGuestTrial(result.createdUserId);
                     navigate('/dashboard', { replace: true });
                 }
             } else {
                 const result = await signIn.attemptFirstFactor({ strategy: 'email_code', code });
                 if (result.status === 'complete') {
                     await setSignInActive({ session: result.createdSessionId });
+                    transferGuestTrial(result.createdSessionId);
                     navigate('/dashboard', { replace: true });
                 }
             }
@@ -84,6 +89,23 @@ export default function LandingPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Moves guest trial timestamp into a user-scoped key so they can't double-dip
+    const transferGuestTrial = (userId?: string | null) => {
+        const guestStart = localStorage.getItem(GUEST_TRIAL_KEY);
+        if (guestStart && userId) {
+            const key = `trial-handoff-${userId}`;
+            localStorage.setItem(key, guestStart);
+            localStorage.removeItem(GUEST_TRIAL_KEY);
+        }
+    };
+
+    const handleGuestAccess = () => {
+        if (!localStorage.getItem(GUEST_TRIAL_KEY)) {
+            localStorage.setItem(GUEST_TRIAL_KEY, Date.now().toString());
+        }
+        navigate('/dashboard', { replace: true });
     };
 
     const handlePayment = () => {
@@ -248,6 +270,15 @@ export default function LandingPage() {
                     )}
                     {authError && (
                         <p className="mt-4 text-red-400 text-sm font-bold text-center">{authError}</p>
+                    )}
+                    {!isSignedIn && authStep === 'email' && (
+                        <button
+                            onClick={handleGuestAccess}
+                            className="mt-2 flex items-center gap-2 mx-auto text-xs text-white/25 hover:text-white/50 transition-colors font-medium"
+                        >
+                            <UserX size={13} />
+                            Continue as Guest — 24hr free trial, no sign-up
+                        </button>
                     )}
                 </div>
             </section>

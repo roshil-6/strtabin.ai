@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { Zap, Clock, ArrowRight, CheckCircle2, Lock, ReceiptText } from 'lucide-react';
+import { Zap, Clock, ArrowRight, CheckCircle2, Lock, ReceiptText, UserX } from 'lucide-react';
 import { RAZORPAY_LINK, ONE_DAY, API_BASE_URL } from '../constants';
+import { GUEST_TRIAL_KEY } from './LandingPage';
 import toast from 'react-hot-toast';
 
 function formatTimeLeft(ms: number): string {
@@ -18,7 +19,14 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     const { user } = useUser();
     const { getToken } = useAuth();
     const { pathname } = useLocation();
+    const navigate = useNavigate();
     const isDashboard = pathname === '/dashboard';
+
+    // ── Guest mode: no Clerk user, trial tracked in localStorage ──────────────
+    const isGuest = !user;
+    const guestTrialStart = isGuest ? parseInt(localStorage.getItem(GUEST_TRIAL_KEY) || '0') : 0;
+    const guestTimeLeft = isGuest ? Math.max(0, ONE_DAY - (Date.now() - guestTrialStart)) : 0;
+    const guestTrialExpired = isGuest && guestTrialStart > 0 && guestTimeLeft === 0;
     const { startTrial, trialStartedAt, setPaidUser, paidUsers } = useStore();
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
@@ -50,8 +58,15 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
             return;
         }
 
-        // Ensure trial timestamp is recorded for this user.
-        startTrial(userId);
+        // Check if there's a guest trial handoff for this user (prevents double free trial)
+        const handoffKey = `trial-handoff-${userId}`;
+        const handoffTs = localStorage.getItem(handoffKey);
+        if (handoffTs) {
+            startTrial(userId, parseInt(handoffTs));
+            localStorage.removeItem(handoffKey);
+        } else {
+            startTrial(userId);
+        }
 
         // ── Set status SYNCHRONOUSLY so it never stays on 'loading' ─────────
         // trialStartedAt[userId] may be undefined on the very first render
@@ -135,6 +150,62 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
             setIsRefreshingPayment(false);
         }
     };
+
+    // Guest trial expired — prompt to create account
+    if (guestTrialExpired) {
+        return (
+            <div className="min-h-screen bg-[#080808] text-white flex items-center justify-center p-6 font-sans">
+                <div className="max-w-sm w-full flex flex-col items-center text-center gap-6">
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center overflow-hidden border border-white/10">
+                        <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        <UserX size={24} className="text-white/30" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black tracking-tighter mb-2">Guest trial ended</h1>
+                        <p className="text-white/40 text-sm leading-relaxed">
+                            Create a free account to continue — your work is saved. Then unlock lifetime access for ₹64.
+                        </p>
+                    </div>
+                    <div className="flex flex-col gap-3 w-full">
+                        <button
+                            onClick={() => navigate('/', { replace: true })}
+                            className="group flex items-center justify-center gap-3 w-full py-4 bg-white text-black font-black rounded-2xl hover:bg-primary transition-all active:scale-95 text-sm"
+                        >
+                            <Zap size={16} fill="currentColor" />
+                            Create Account &amp; Continue
+                            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                        <p className="text-[11px] text-white/20">Your existing work will be preserved after sign-up.</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Guest with active trial — render children with trial banner
+    if (isGuest && !guestTrialExpired) {
+        return (
+            <>
+                {isDashboard && (
+                    <div className="fixed bottom-[72px] md:bottom-4 right-2 md:right-4 z-50 flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/[0.06] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] max-w-[calc(100vw-1rem)]">
+                        <div className="flex items-center gap-2">
+                            <Clock size={14} className="text-primary shrink-0" />
+                            <span className="text-xs font-black text-white/60">Guest Trial: <span className="text-primary">{formatTimeLeft(guestTimeLeft)}</span></span>
+                        </div>
+                        <button
+                            onClick={() => navigate('/', { replace: true })}
+                            className="text-xs font-black uppercase tracking-wider px-4 py-2 bg-primary text-black rounded-xl hover:bg-white transition-all min-h-[36px]"
+                        >
+                            Sign Up
+                        </button>
+                    </div>
+                )}
+                {children}
+            </>
+        );
+    }
 
     if (status === 'loading') return null;
 

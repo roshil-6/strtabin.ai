@@ -247,7 +247,7 @@ export type RFState = {
     // Trial & Access
     trialStartedAt: Record<string, number>; // userId -> timestamp
     paidUsers: Record<string, boolean>; // userId -> paid
-    startTrial: (userId: string) => void;
+    startTrial: (userId: string, overrideTimestamp?: number) => void;
     setPaidUser: (userId: string) => void;
     getAccessStatus: (userId: string) => 'trial' | 'expired' | 'paid';
 };
@@ -272,10 +272,11 @@ const useStore = create<RFState>()(
             trialStartedAt: {},
             paidUsers: {},
 
-            startTrial: (userId: string) => {
+            startTrial: (userId: string, overrideTimestamp?: number) => {
                 set((state) => {
-                    if (state.trialStartedAt[userId]) return state; // already started
-                    return { trialStartedAt: { ...state.trialStartedAt, [userId]: Date.now() } };
+                    if (state.trialStartedAt[userId] && !overrideTimestamp) return state;
+                    const ts = overrideTimestamp ?? state.trialStartedAt[userId] ?? Date.now();
+                    return { trialStartedAt: { ...state.trialStartedAt, [userId]: ts } };
                 });
             },
 
