@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
+import { useLocation } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { Zap, Clock, ArrowRight, CheckCircle2, Lock, ReceiptText } from 'lucide-react';
 import { RAZORPAY_LINK, ONE_DAY, API_BASE_URL } from '../constants';
@@ -16,6 +17,8 @@ function formatTimeLeft(ms: number): string {
 export default function PaywallGate({ children }: { children: React.ReactNode }) {
     const { user } = useUser();
     const { getToken } = useAuth();
+    const { pathname } = useLocation();
+    const isDashboard = pathname === '/dashboard';
     const { startTrial, trialStartedAt, setPaidUser, paidUsers } = useStore();
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
@@ -139,7 +142,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     if (status === 'trial' || status === 'paid') {
         return (
             <>
-                {status === 'trial' && (
+                {status === 'trial' && isDashboard && (
                     <div className="fixed bottom-[72px] md:bottom-4 right-2 md:right-4 z-50 flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/[0.06] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] max-w-[calc(100vw-1rem)]">
                         <div className="flex items-center gap-2">
                             <Clock size={14} className="text-primary shrink-0" />
