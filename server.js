@@ -175,10 +175,7 @@ app.post('/api/payments/verify', async (req, res) => {
 
     let userId;
     try {
-        const authorizedParties = allowedOrigins.filter(o => o.startsWith('http'));
-        const payload = await clerk.verifyToken(token, {
-            authorizedParties,
-        });
+        const payload = await clerk.verifyToken(token);
         userId = payload.sub;
     } catch (clerkErr) {
         console.error('❌ Clerk verifyToken failed:', clerkErr?.message || clerkErr);
@@ -306,8 +303,7 @@ async function requireAuth(req, res, next) {
     // If Clerk is configured, verify the token cryptographically
     if (clerk) {
         try {
-            const authorizedParties = allowedOrigins.filter(o => o.startsWith('http'));
-            await clerk.verifyToken(token, { authorizedParties });
+            await clerk.verifyToken(token);
         } catch (clerkErr) {
             console.error('❌ Clerk verifyToken (requireAuth) failed:', clerkErr?.message || clerkErr);
             return res.status(401).json({ error: 'Unauthorized: invalid token.' });
