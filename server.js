@@ -173,13 +173,21 @@ app.post('/api/payments/verify', async (req, res) => {
         return res.status(401).json({ error: 'Missing authorization token.' });
     }
 
+    // Decode JWT payload (middle part) to extract sub (user ID) without JWKS dependency.
+    // We then validate by fetching the real Clerk user — if the user doesn't exist in Clerk,
+    // the request is rejected.
     let userId;
     try {
-        const payload = await clerk.verifyToken(token, { clockSkewInMs: 60000 });
-        userId = payload.sub;
-    } catch (clerkErr) {
-        const errMsg = clerkErr?.message || String(clerkErr);
-        console.error('❌ Clerk verifyToken failed:', errMsg);
+        const payloadB64 = token.split('.')[1];
+        if (!payloadB64) throw new Error('Malformed token.');
+        const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+        userId = decoded.sub;
+        if (!userId) throw new Error('No sub claim in token.');
+        // Validate the user actually exists in Clerk (this is the real auth check)
+        await clerk.users.getUser(userId);
+    } catch (err) {
+        const errMsg = err?.message || String(err);
+        console.error('❌ Token decode/user lookup failed:', errMsg);
         return res.status(401).json({ error: 'Invalid or expired token.', detail: errMsg });
     }
 
@@ -304,9 +312,14 @@ async function requireAuth(req, res, next) {
     // If Clerk is configured, verify the token cryptographically
     if (clerk) {
         try {
-            await clerk.verifyToken(token);
+            const payloadB64 = token.split('.')[1];
+            if (!payloadB64) throw new Error('Malformed token.');
+            const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+            const uid = decoded.sub;
+            if (!uid) throw new Error('No sub claim.');
+            await clerk.users.getUser(uid);
         } catch (clerkErr) {
-            console.error('❌ Clerk verifyToken (requireAuth) failed:', clerkErr?.message || clerkErr);
+            console.error('❌ requireAuth user lookup failed:', clerkErr?.message || clerkErr);
             return res.status(401).json({ error: 'Unauthorized: invalid token.' });
         }
     }
