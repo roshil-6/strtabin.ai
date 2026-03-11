@@ -175,11 +175,12 @@ app.post('/api/payments/verify', async (req, res) => {
 
     let userId;
     try {
-        const payload = await clerk.verifyToken(token);
+        const payload = await clerk.verifyToken(token, { clockSkewInMs: 60000 });
         userId = payload.sub;
     } catch (clerkErr) {
-        console.error('❌ Clerk verifyToken failed:', clerkErr?.message || clerkErr);
-        return res.status(401).json({ error: 'Invalid or expired token.' });
+        const errMsg = clerkErr?.message || String(clerkErr);
+        console.error('❌ Clerk verifyToken failed:', errMsg);
+        return res.status(401).json({ error: 'Invalid or expired token.', detail: errMsg });
     }
 
     try {
