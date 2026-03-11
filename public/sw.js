@@ -1,15 +1,5 @@
-const CACHE_NAME = 'stratabin-v2';
+const CACHE_NAME = 'stratabin-v3';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/favicon.png'];
-
-// URLs/origins that should never be cached (live API, auth services)
-const NO_CACHE_PATTERNS = [
-    'onrender.com',
-    'clerk.com',
-    'clerk.accounts.dev',
-    'clerk-telemetry',
-    'api.anthropic.com',
-    'cloudflare.com',
-];
 
 // Install: cache static assets
 self.addEventListener('install', (event) => {
@@ -29,12 +19,12 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Fetch: network first, fallback to cache (skip external API/auth origins)
+// Fetch: only cache same-origin GET requests — never touch external/cross-origin
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
 
-    const url = event.request.url;
-    if (NO_CACHE_PATTERNS.some((pattern) => url.includes(pattern))) return;
+    const url = new URL(event.request.url);
+    if (url.origin !== self.location.origin) return;
 
     event.respondWith(
         fetch(event.request)
@@ -43,7 +33,9 @@ self.addEventListener('fetch', (event) => {
                 caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
                 return response;
             })
-            .catch(() => caches.match(event.request))
+            .catch(() =>
+                caches.match(event.request).then((cached) => cached || new Response('Offline', { status: 503 }))
+            )
     );
 });
 
