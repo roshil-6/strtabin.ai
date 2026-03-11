@@ -1,18 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSignIn, useAuth } from '@clerk/clerk-react';
-import { Check, Zap, ArrowRight, Chrome, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles } from 'lucide-react';
+import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-react';
+import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles } from 'lucide-react';
 import { RAZORPAY_LINK } from '../constants';
 import HexagonBackground from './HexagonBackground';
 
 export default function LandingPage() {
     const navigate = useNavigate();
     const { isSignedIn, isLoaded: authLoaded } = useAuth();
-    const { signIn, isLoaded } = useSignIn();
+    const { signIn, isLoaded: signInLoaded } = useSignIn();
+    const { signUp, isLoaded: signUpLoaded } = useSignUp();
     const [loading, setLoading] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
     const [showHowTo, setShowHowTo] = useState(false);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
+    const [email, setEmail] = useState('');
+    const [code, setCode] = useState('');
+    const [authStep, setAuthStep] = useState<'email' | 'code'>('email');
+    const [isSignUpFlow, setIsSignUpFlow] = useState(false);
+
+    const isLoaded = signInLoaded && signUpLoaded;
 
     useEffect(() => {
         if (authLoaded && isSignedIn) {
@@ -20,19 +27,59 @@ export default function LandingPage() {
         }
     }, [authLoaded, isSignedIn, navigate]);
 
-    const handleGoogleLogin = async () => {
-        if (!isLoaded || !signIn) return;
+    const handleEmailSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!isLoaded || !signIn || !signUp) return;
         setLoading(true);
         setAuthError(null);
         try {
-            await signIn.authenticateWithRedirect({
-                strategy: 'oauth_google',
-                redirectUrl: `${window.location.origin}/sso-callback`,
-                redirectUrlComplete: `${window.location.origin}/dashboard`,
-            });
+            const result = await signIn.create({ identifier: email, strategy: 'email_code' });
+            if (result.status === 'needs_first_factor') {
+                setIsSignUpFlow(false);
+                setAuthStep('code');
+            }
+        } catch (err: unknown) {
+            const clerkErr = err as { errors?: Array<{ code?: string; longMessage?: string }> };
+            const errCode = clerkErr?.errors?.[0]?.code;
+            if (errCode === 'form_identifier_not_found') {
+                try {
+                    await signUp.create({ emailAddress: email });
+                    await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+                    setIsSignUpFlow(true);
+                    setAuthStep('code');
+                } catch (signUpErr: unknown) {
+                    const signUpClerkErr = signUpErr as { errors?: Array<{ longMessage?: string }> };
+                    setAuthError(signUpClerkErr?.errors?.[0]?.longMessage || 'Sign-up failed. Please try again.');
+                }
+            } else {
+                setAuthError(clerkErr?.errors?.[0]?.longMessage || 'Sign-in failed. Please try again.');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCodeSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!isLoaded || !signIn || !signUp) return;
+        setLoading(true);
+        setAuthError(null);
+        try {
+            if (isSignUpFlow) {
+                const result = await signUp.attemptEmailAddressVerification({ code });
+                if (result.status === 'complete') {
+                    navigate('/dashboard', { replace: true });
+                }
+            } else {
+                const result = await signIn.attemptFirstFactor({ strategy: 'email_code', code });
+                if (result.status === 'complete') {
+                    navigate('/dashboard', { replace: true });
+                }
+            }
         } catch (err: unknown) {
             const clerkErr = err as { errors?: Array<{ longMessage?: string }> };
-            setAuthError(clerkErr?.errors?.[0]?.longMessage || 'Sign-in failed. Please try again.');
+            setAuthError(clerkErr?.errors?.[0]?.longMessage || 'Invalid code. Please try again.');
+        } finally {
             setLoading(false);
         }
     };
@@ -143,16 +190,59 @@ export default function LandingPage() {
                             Go to Dashboard
                             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </button>
+                    ) : authStep === 'email' ? (
+                        <form onSubmit={handleEmailSubmit} className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
+                            <div className="relative w-full">
+                                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+                                <input
+                                    type="email"
+                                    required
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    placeholder="Enter your email"
+                                    className="w-full pl-11 pr-4 py-3.5 bg-white/[0.04] border border-white/10 rounded-2xl text-white placeholder-white/25 text-sm font-medium focus:outline-none focus:border-primary/50 focus:bg-white/[0.06] transition-all"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loading || !email}
+                                className="group w-full flex items-center justify-center gap-3 px-7 py-3.5 bg-white text-black font-black rounded-2xl hover:bg-primary hover:text-white transition-all shadow-[0_4px_30px_rgba(255,255,255,0.1)] active:scale-95 disabled:opacity-50 text-sm"
+                            >
+                                <Zap size={16} fill="currentColor" />
+                                {loading ? 'Sending code...' : 'Get Started Free'}
+                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </form>
                     ) : (
-                        <button
-                            onClick={handleGoogleLogin}
-                            disabled={loading}
-                            className="group relative flex items-center gap-3 px-7 md:px-8 py-3.5 md:py-4 bg-white text-black font-black rounded-2xl hover:bg-primary hover:text-white transition-all shadow-[0_4px_30px_rgba(255,255,255,0.1)] active:scale-95 mx-auto disabled:opacity-50 text-sm md:text-base"
-                        >
-                            <Chrome size={18} />
-                            {loading ? 'Connecting...' : 'Get Started Free with Google'}
-                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
+                        <form onSubmit={handleCodeSubmit} className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
+                            <p className="text-white/40 text-xs font-medium">
+                                We sent a 6-digit code to <span className="text-white/70 font-bold">{email}</span>
+                            </p>
+                            <input
+                                type="text"
+                                required
+                                value={code}
+                                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                placeholder="Enter 6-digit code"
+                                maxLength={6}
+                                className="w-full text-center tracking-[0.5em] px-4 py-3.5 bg-white/[0.04] border border-white/10 rounded-2xl text-white placeholder-white/25 text-lg font-black focus:outline-none focus:border-primary/50 focus:bg-white/[0.06] transition-all"
+                            />
+                            <button
+                                type="submit"
+                                disabled={loading || code.length < 6}
+                                className="group w-full flex items-center justify-center gap-3 px-7 py-3.5 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_4px_30px_rgba(255,119,86,0.3)] active:scale-95 disabled:opacity-50 text-sm"
+                            >
+                                {loading ? 'Verifying...' : 'Verify & Continue'}
+                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setAuthStep('email'); setCode(''); setAuthError(null); }}
+                                className="text-white/25 text-xs hover:text-white/50 transition-colors"
+                            >
+                                Use a different email
+                            </button>
+                        </form>
                     )}
                     {authError && (
                         <p className="mt-4 text-red-400 text-sm font-bold text-center">{authError}</p>
