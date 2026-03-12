@@ -20,7 +20,7 @@ export default function ProjectHeader({ canvasId, activeTab }: ProjectHeaderProp
     ];
 
     return (
-        <div className="h-14 md:h-16 border-b border-white/[0.04] flex items-center px-3 md:px-6 bg-[#060606]/95 backdrop-blur-xl z-50 flex-shrink-0 gap-2 md:gap-0">
+        <div className="h-14 md:h-16 border-b border-[var(--border)] flex items-center px-3 md:px-6 theme-panel backdrop-blur-xl z-50 flex-shrink-0 gap-2 md:gap-0">
             {/* Left: Back & Title */}
             <div className="flex items-center gap-2 md:gap-4 mr-2 md:mr-8 shrink-0">
                 <button
@@ -31,10 +31,10 @@ export default function ProjectHeader({ canvasId, activeTab }: ProjectHeaderProp
                     <ArrowLeft size={18} />
                 </button>
                 <div className="flex flex-col">
-                    <h1 className="text-xs md:text-sm font-bold text-white leading-tight truncate max-w-[120px] md:max-w-none">
+                    <h1 className="text-xs md:text-sm font-bold text-[var(--text)] leading-tight truncate max-w-[120px] md:max-w-none">
                         {canvas?.name || 'Untitled Project'}
                     </h1>
-                    <span className="text-[9px] md:text-[10px] text-white/30 uppercase tracking-wider font-medium">
+                    <span className="text-[9px] md:text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium">
                         Strategy Board
                     </span>
                 </div>

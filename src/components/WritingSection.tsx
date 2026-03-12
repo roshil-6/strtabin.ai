@@ -425,7 +425,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         value={title}
                         onChange={handleTitleChange}
                         placeholder="Untitled Strategy"
-                        className="w-full bg-transparent text-4xl font-bold text-[var(--text)] placeholder-[var(--text-muted)] outline-none leading-tight mb-8"
+                        className="w-full bg-transparent text-4xl font-bold outline-none leading-tight mb-8 theme-title-input"
                     />
 
                     {/* Writing Planner — collapsed by default, tap to expand */}

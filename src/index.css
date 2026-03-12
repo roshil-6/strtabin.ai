@@ -340,6 +340,29 @@ a {
   fill: rgba(0,0,0,0.5) !important;
 }
 
+/* Light theme: flow edges — brighter orange for visibility */
+[data-theme="light"] .react-flow__edge-path {
+  stroke: rgba(249,115,22,0.7) !important;
+  stroke-width: 2px !important;
+}
+[data-theme="light"] .react-flow__edge.selected .react-flow__edge-path {
+  stroke: rgba(249,115,22,0.95) !important;
+}
+[data-theme="light"] .react-flow__edge:hover .react-flow__edge-path {
+  stroke: rgba(249,115,22,0.9) !important;
+}
+[data-theme="light"] .react-flow__connection-path {
+  stroke: rgba(249,115,22,0.9) !important;
+}
+
+/* Project/writing title — ensure visible in light theme */
+.theme-title-input {
+  color: var(--text) !important;
+}
+.theme-title-input::placeholder {
+  color: var(--text-muted) !important;
+}
+
 /* Custom scrollbar — theme-aware */
 ::-webkit-scrollbar {
   width: 6px;
