@@ -409,21 +409,6 @@ function CanvasContent() {
                             </div>
                         </div>
 
-                        {/* Vignette overlay for depth */}
-                        <div
-                            className="absolute inset-0 pointer-events-none z-10"
-                            style={{
-                                background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)',
-                            }}
-                        />
-                        {/* Subtle warm glow at canvas center */}
-                        <div
-                            className="absolute inset-0 pointer-events-none z-[9]"
-                            style={{
-                                background: 'radial-gradient(ellipse 60% 40% at 50% 55%, rgba(249,115,22,0.035) 0%, transparent 70%)',
-                            }}
-                        />
-
                         {(!isMobile || mobileTab === 'map') && <ReactFlow
                             nodes={enhancedNodes}
                             edges={edges}
