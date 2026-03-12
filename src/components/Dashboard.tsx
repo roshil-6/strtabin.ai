@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers } from 'lucide-react';
 import type { CanvasData } from '../store/useStore';
 
 export default function Dashboard() {
@@ -557,7 +557,7 @@ export default function Dashboard() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
                                     {(pinnedProjects.length > 0 || currentProjects.length > 0 ? otherProjects : regularProjects).map(p => renderProjectCard(p))}
 
-                                    {isFirstLoad && canvases.length === 0 && (
+                                    {isFirstLoad && Object.keys(canvases).length === 0 && (
                                         <div className="col-span-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
                                             {[...Array(3)].map((_, i) => (
                                                 <div key={i} className="h-40 rounded-2xl bg-white/[0.02] border border-white/[0.04] animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
@@ -565,7 +565,7 @@ export default function Dashboard() {
                                         </div>
                                     )}
 
-                                    {!isFirstLoad && regularProjects.length === 0 && mergedProjects.length === 0 && canvases.length === 0 && (
+                                    {!isFirstLoad && regularProjects.length === 0 && mergedProjects.length === 0 && Object.keys(canvases).length === 0 && (
                                         <div className="col-span-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                                             <div className="py-16 md:py-20 flex flex-col items-center text-center gap-10">
                                                 <div className="flex flex-col items-center gap-4">
@@ -618,7 +618,7 @@ export default function Dashboard() {
                                         </div>
                                     )}
 
-                                    {!isFirstLoad && regularProjects.length === 0 && mergedProjects.length === 0 && canvases.length > 0 && (
+                                    {!isFirstLoad && regularProjects.length === 0 && mergedProjects.length === 0 && Object.keys(canvases).length > 0 && (
                                         <div className="col-span-full py-20 border border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center gap-4 animate-in fade-in duration-300">
                                             <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
                                                 <Folder size={24} className="text-white/20" />

@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Calendar, CheckSquare, Home, Clock, CheckCircle2, Bot } from 'lucide-react';
+import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot } from 'lucide-react';
 
 const NAV_ITEMS = [
     {

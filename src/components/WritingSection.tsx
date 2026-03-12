@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, Type, Bot, GitBranch, Layout, X, FileText, Trash2, File, Loader2, CalendarDays, Pin, PinOff, ChevronDown } from 'lucide-react';
+import { Image as ImageIcon, Bot, GitBranch, Layout, X, FileText, Trash2, File, Loader2, CalendarDays, Pin, PinOff, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import type { CalendarEvent } from '../store/useStore';
