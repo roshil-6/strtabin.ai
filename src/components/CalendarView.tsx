@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, X, Calendar, Trash2, Bot, Clock, FileText, CheckCircle2, Circle, Layout, Bell, BellOff, ArrowLeft, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Calendar, Trash2, Bot, Clock, CheckCircle2, Circle, Layout, Bell, BellOff, ArrowLeft, Sparkles } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import useStore from '../store/useStore';
@@ -282,13 +282,13 @@ export default function CalendarView() {
                 <div className="flex-1 flex flex-col lg:flex-row gap-3 md:gap-4 px-2 md:px-6 pb-20 md:pb-6 overflow-hidden min-h-0">
 
                     {/* Calendar Grid / Weekly Planner */}
-                    <div className={`flex-1 rounded-2xl md:rounded-3xl border border-white/[0.04] flex flex-col overflow-hidden transition-all duration-300 ${viewMode === 'month' ? 'bg-[#080808]' : 'bg-[#090909]'}`}>
+                    <div className={`flex-1 rounded-2xl md:rounded-3xl border border-white/[0.05] flex flex-col overflow-hidden transition-all duration-300 ${viewMode === 'month' ? 'bg-[#080808]' : 'bg-[#070707]'}`}>
                         {viewMode === 'month' ? (
                             <>
                                 {/* Day headers */}
-                                <div className="grid grid-cols-7 border-b border-white/[0.04] flex-shrink-0 bg-white/[0.02]">
-                                    {dayNames.map(d => (
-                                        <div key={d} className="py-2 md:py-3 text-center text-[9px] md:text-[10px] font-black uppercase tracking-wider text-white/20">
+                                <div className="grid grid-cols-7 border-b border-white/[0.05] flex-shrink-0 bg-[#0a0a0a]">
+                                    {dayNames.map((d, i) => (
+                                        <div key={d} className={`py-2.5 md:py-3.5 text-center text-[9px] md:text-[10px] font-black uppercase tracking-wider ${i === 0 || i === 6 ? 'text-white/15' : 'text-white/25'}`}>
                                             <span className="md:hidden">{d[0]}</span>
                                             <span className="hidden md:inline">{d}</span>
                                         </div>
@@ -298,7 +298,7 @@ export default function CalendarView() {
                                 {/* Day cells */}
                                 <div className="flex-1 grid grid-cols-7 grid-rows-6 overflow-hidden">
                                     {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                                        <div key={`e-${i}`} className="border-b border-r border-white/[0.02]" />
+                                        <div key={`e-${i}`} className="border-b border-r border-white/[0.03] bg-[#060606]/40" />
                                     ))}
 
                                     {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -307,57 +307,71 @@ export default function CalendarView() {
                                         const dayEvents = activeCalendarEvents[key] || [];
                                         const isToday = key === todayKey;
                                         const isSelected = key === selectedDateKey;
-                                        const hasEvents = dayEvents.length > 0;
+                                        const isWeekend = (new Date(year, month, day).getDay() === 0 || new Date(year, month, day).getDay() === 6);
+                                        const pendingCount = dayEvents.filter(e => !e.completed).length;
 
                                         return (
                                             <div
                                                 key={day}
                                                 onClick={() => handleDayClick(key)}
                                                 className={`
-                                                    border-b border-r border-white/[0.02] p-0.5 md:p-3 cursor-pointer transition-all duration-200 relative group
-                                                    ${isSelected ? 'bg-white/[0.06] z-10' : 'hover:bg-white/[0.03]'}
+                                                    border-b border-r border-white/[0.03] p-0.5 md:p-2.5 cursor-pointer transition-all duration-200 relative group
+                                                    ${isWeekend ? 'bg-[#060606]/60' : ''}
+                                                    ${isSelected ? 'bg-primary/[0.06] border-primary/20 z-10' : 'hover:bg-white/[0.03]'}
                                                 `}
                                             >
-                                                <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between mb-0.5 md:mb-2">
+                                                {/* Today accent bar */}
+                                                {isToday && <div className="absolute top-0 left-0 right-0 h-[2px] bg-primary rounded-t-sm" />}
+
+                                                <div className="flex flex-col items-center md:flex-row md:items-start md:justify-between mb-0.5 md:mb-1.5 mt-0.5 md:mt-0">
                                                     <span className={`
-                                                        text-[11px] md:text-sm font-black w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-lg transition-all duration-200
-                                                        ${isToday ? 'bg-primary text-black shadow-[0_0_10px_rgba(255,95,31,0.3)]' : isSelected ? 'bg-white/10 text-white' : 'text-white/30 group-hover:text-white/60'}
+                                                        text-[11px] md:text-[13px] font-black w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-lg transition-all duration-200
+                                                        ${isToday
+                                                            ? 'bg-primary text-black shadow-[0_2px_8px_rgba(249,115,22,0.4)]'
+                                                            : isSelected
+                                                                ? 'bg-white/10 text-white'
+                                                                : isWeekend ? 'text-white/20 group-hover:text-white/40' : 'text-white/35 group-hover:text-white/70'
+                                                        }
                                                     `}>
                                                         {day}
                                                     </span>
-                                                    {hasEvents && (
-                                                        <div className="flex gap-[3px] mt-0.5 md:mt-0">
-                                                            {dayEvents.slice(0, 3).map(evt => (
-                                                                <div key={evt.id} className={`w-[5px] h-[5px] rounded-full transition-all ${evt.completed ? 'bg-white/15' : 'bg-primary shadow-[0_0_4px_rgba(255,95,31,0.3)]'}`} />
-                                                            ))}
-                                                            {dayEvents.length > 3 && (
-                                                                <span className="text-[7px] font-bold text-white/25 ml-0.5">+{dayEvents.length - 3}</span>
-                                                            )}
-                                                        </div>
+                                                    {pendingCount > 0 && (
+                                                        <span className="hidden md:flex text-[9px] font-black text-primary/60 bg-primary/[0.08] px-1.5 py-0.5 rounded-md border border-primary/10">
+                                                            {pendingCount}
+                                                        </span>
                                                     )}
                                                 </div>
-                                                {/* Event pills — desktop only */}
-                                                <div className="hidden md:block space-y-1 overflow-hidden">
+
+                                                {/* Mobile: dot indicators */}
+                                                <div className="flex md:hidden justify-center gap-[3px] mt-0.5">
+                                                    {dayEvents.slice(0, 3).map(evt => (
+                                                        <div key={evt.id} className={`w-[4px] h-[4px] rounded-full ${evt.completed ? 'bg-white/10' : 'bg-primary/60'}`} />
+                                                    ))}
+                                                    {dayEvents.length > 3 && <div className="w-[4px] h-[4px] rounded-full bg-white/10" />}
+                                                </div>
+
+                                                {/* Desktop: event pills */}
+                                                <div className="hidden md:flex flex-col gap-0.5 overflow-hidden">
                                                     {dayEvents.slice(0, 2).map((evt) => (
                                                         <div
                                                             key={evt.id}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                toggleCalendarEvent(key, evt.id, id);
-                                                            }}
-                                                            className={`text-[9px] font-bold truncate bg-white/[0.04] px-2 py-1 rounded-md flex items-center gap-1 leading-none transition-all border border-white/[0.03] hover:border-white/10 ${evt.completed ? 'opacity-20' : 'text-white/40'}`}
+                                                            onClick={(e) => { e.stopPropagation(); toggleCalendarEvent(key, evt.id, id); }}
+                                                            className={`text-[9px] font-bold truncate px-1.5 py-1 rounded-md flex items-center gap-1 leading-none transition-all border-l-[2px] ${
+                                                                evt.completed
+                                                                    ? 'bg-white/[0.02] border-white/10 text-white/20 line-through'
+                                                                    : 'bg-primary/[0.07] border-primary/40 text-white/55 hover:bg-primary/[0.12] hover:text-white/80'
+                                                            }`}
                                                         >
-                                                            {evt.completed ? <CheckCircle2 size={8} className="text-white/40" /> : <Circle size={8} className="text-primary/40" />}
                                                             <span className="truncate">{evt.task}</span>
                                                         </div>
                                                     ))}
                                                     {dayEvents.length > 2 && (
-                                                        <span className="text-[8px] font-bold text-white/15 px-2">+{dayEvents.length - 2} more</span>
+                                                        <span className="text-[8px] font-black text-white/20 px-1">+{dayEvents.length - 2}</span>
                                                     )}
                                                 </div>
 
                                                 {isSelected && (
-                                                    <div className="absolute inset-0 border-2 border-primary/30 rounded-sm pointer-events-none m-[-1px]" />
+                                                    <div className="absolute inset-0 ring-1 ring-primary/25 rounded-sm pointer-events-none" />
                                                 )}
                                             </div>
                                         );
@@ -365,66 +379,70 @@ export default function CalendarView() {
                                 </div>
                             </>
                         ) : (
-                            <div className="flex-1 grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-white/[0.03] overflow-y-auto md:overflow-hidden custom-scrollbar">
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-white/[0.04] overflow-y-auto md:overflow-hidden custom-scrollbar">
                                 {weekDays.map((date, i) => {
                                     const key = dateToKey(date);
                                     const dayEvents = activeCalendarEvents[key] || [];
                                     const isToday = key === todayKey;
                                     const isSelected = key === selectedDateKey;
+                                    const pendingCount = dayEvents.filter(e => !e.completed).length;
+                                    const isWeekend = i === 0 || i === 6;
 
                                     return (
                                         <div
                                             key={i}
                                             onClick={() => handleDayClick(key)}
-                                            className={`flex flex-col p-3 md:p-5 transition-all duration-200 min-h-[120px] md:min-h-0 md:h-full cursor-pointer relative group ${isSelected ? 'bg-white/[0.04]' : 'hover:bg-white/[0.02]'}`}
+                                            className={`flex flex-col p-3 md:p-4 transition-all duration-200 min-h-[120px] md:min-h-0 md:h-full cursor-pointer relative group
+                                                ${isWeekend ? 'bg-[#060606]/50' : ''}
+                                                ${isSelected ? 'bg-primary/[0.04]' : 'hover:bg-white/[0.02]'}
+                                            `}
                                         >
-                                            <div className="flex items-center justify-between mb-3 md:mb-5">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/10 group-hover:text-primary/40 transition-colors">{dayNames[i]}</span>
-                                                    <span className={`text-2xl md:text-3xl font-black tracking-tighter ${isToday ? 'text-primary' : 'text-white/70'}`}>{date.getDate()}</span>
+                                            {/* Today top accent */}
+                                            {isToday && <div className="absolute top-0 left-0 right-0 h-[2px] bg-primary" />}
+
+                                            <div className="flex items-center justify-between mb-3 md:mb-4">
+                                                <div>
+                                                    <span className={`text-[9px] font-black uppercase tracking-[0.2em] block mb-0.5 ${isToday ? 'text-primary/60' : 'text-white/15 group-hover:text-white/30 transition-colors'}`}>{dayNames[i]}</span>
+                                                    <span className={`text-xl md:text-2xl font-black tracking-tighter leading-none ${isToday ? 'text-primary' : isWeekend ? 'text-white/35' : 'text-white/70'}`}>{date.getDate()}</span>
                                                 </div>
-                                                {isToday && (
-                                                    <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(255,95,31,0.4)]" />
+                                                {pendingCount > 0 && (
+                                                    <span className="text-[10px] font-black text-primary/70 bg-primary/[0.08] px-2 py-0.5 rounded-lg border border-primary/15">
+                                                        {pendingCount}
+                                                    </span>
                                                 )}
                                             </div>
 
-                                            <div className="flex-1 space-y-2 md:space-y-3 overflow-y-auto custom-scrollbar pr-1 pb-2 md:pb-4">
+                                            <div className="flex-1 space-y-1.5 md:space-y-2 overflow-y-auto custom-scrollbar pr-0.5 pb-2 md:pb-3">
                                                 {dayEvents.map(evt => (
                                                     <div
                                                         key={evt.id}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            toggleCalendarEvent(key, evt.id, id);
-                                                        }}
-                                                        className={`p-3 md:p-4 rounded-xl flex flex-col gap-1.5 md:gap-2 transition-all duration-200 border ${evt.completed ? 'bg-white/[0.03] border-white/[0.03] opacity-20' : 'bg-white/[0.06] border-white/[0.04] hover:border-white/[0.12]'}`}
+                                                        onClick={(e) => { e.stopPropagation(); toggleCalendarEvent(key, evt.id, id); }}
+                                                        className={`p-2.5 md:p-3 rounded-xl flex flex-col gap-1 transition-all duration-200 border-l-[2px] ${
+                                                            evt.completed
+                                                                ? 'bg-white/[0.02] border-white/10 opacity-30'
+                                                                : 'bg-white/[0.05] border-primary/40 hover:bg-white/[0.08] hover:border-primary/60'
+                                                        }`}
                                                     >
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <Clock size={10} className="text-white/30" />
-                                                                <span className={`text-[10px] font-bold text-white/50 uppercase tracking-wider ${evt.completed ? 'line-through' : ''}`}>{evt.time}</span>
-                                                                {evt.time !== 'All Day' && notifPermission === 'granted' && !evt.completed && (
-                                                                    <Bell size={9} className="text-orange-400/50" aria-label="Reminder set" />
-                                                                )}
-                                                            </div>
-                                                            {evt.completed ? (
-                                                                <CheckCircle2 size={13} className="text-white/30" />
-                                                            ) : (
-                                                                <Circle size={13} className="text-white/10 group-hover:text-white/30 transition-colors" />
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Clock size={9} className="text-white/25 shrink-0" />
+                                                            <span className={`text-[9px] font-black text-white/40 uppercase tracking-wider ${evt.completed ? 'line-through' : ''}`}>{evt.time}</span>
+                                                            {evt.time !== 'All Day' && notifPermission === 'granted' && !evt.completed && (
+                                                                <Bell size={8} className="text-orange-400/50 ml-auto" />
                                                             )}
                                                         </div>
-                                                        <span className={`text-[11px] md:text-xs font-bold leading-relaxed break-words tracking-tight ${evt.completed ? 'line-through text-white/20' : 'text-white/75'}`}>{evt.task}</span>
+                                                        <span className={`text-[10px] md:text-[11px] font-bold leading-snug ${evt.completed ? 'line-through text-white/20' : 'text-white/70'}`}>{evt.task}</span>
                                                     </div>
                                                 ))}
                                                 {dayEvents.length === 0 && (
-                                                    <div className="h-full flex flex-col items-center justify-center opacity-[0.04] border border-dashed border-white/10 rounded-2xl py-8 md:py-12 transition-all group-hover:opacity-[0.08]">
-                                                        <Plus size={24} />
-                                                        <span className="text-[9px] font-black uppercase tracking-widest mt-3">Add Task</span>
+                                                    <div className="flex flex-col items-center justify-center py-6 md:py-8 rounded-xl border border-dashed border-white/[0.05] group-hover:border-primary/15 transition-all">
+                                                        <Plus size={14} className="text-white/10 group-hover:text-primary/30 transition-colors" />
+                                                        <span className="text-[8px] font-black uppercase tracking-widest mt-1.5 text-white/10 group-hover:text-primary/30 transition-colors">Add</span>
                                                     </div>
                                                 )}
                                             </div>
 
                                             {isSelected && (
-                                                <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-primary shadow-[0_0_6px_rgba(255,95,31,0.3)]" />
+                                                <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-primary shadow-[0_0_6px_rgba(249,115,22,0.4)]" />
                                             )}
                                         </div>
                                     );
@@ -434,115 +452,158 @@ export default function CalendarView() {
                     </div>
 
                     {/* Side Panel - Desktop only */}
-                    <div className="hidden lg:flex lg:w-80 xl:w-96 bg-[#070707] rounded-2xl md:rounded-3xl border border-white/[0.04] flex-col overflow-hidden flex-shrink-0 relative">
-                        <div className="flex-shrink-0 px-6 pt-7 pb-5 border-b border-white/[0.04] bg-white/[0.01]">
-                            <div className="flex items-center gap-3 mb-1">
-                                <div className={`p-2 rounded-xl transition-all ${selectedDateKey ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-white/[0.04] text-white/20 border border-white/[0.04]'}`}>
-                                    <Calendar size={18} />
+                    <div className="hidden lg:flex lg:w-72 xl:w-80 bg-[#070707] rounded-2xl md:rounded-3xl border border-white/[0.05] flex-col overflow-hidden flex-shrink-0">
+
+                        {/* Panel header */}
+                        <div className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-white/[0.05]">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${selectedDateKey ? 'bg-primary/10 border border-primary/20' : 'bg-white/[0.04] border border-white/[0.05]'}`}>
+                                    <Calendar size={16} className={selectedDateKey ? 'text-primary' : 'text-white/25'} />
                                 </div>
-                                <div>
-                                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                                        {selectedDateLabel || 'Mission Briefing'}
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="text-[13px] font-black text-white leading-tight truncate">
+                                        {selectedDateLabel || 'Select a day'}
                                     </h3>
-                                    <p className="text-[10px] text-white/25 font-bold tracking-widest uppercase">
-                                        {selectedDateKey ? 'Daily Execution List' : 'Select a date to begin'}
+                                    <p className="text-[10px] text-white/25 font-bold uppercase tracking-widest mt-0.5">
+                                        {selectedDateKey
+                                            ? `${selectedEvents.length} event${selectedEvents.length !== 1 ? 's' : ''}`
+                                            : 'Click any date'
+                                        }
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Events List */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar min-h-0">
+                        {/* Events list */}
+                        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 custom-scrollbar min-h-0">
                             {selectedDateKey ? (
                                 selectedEvents.length > 0 ? (
                                     selectedEvents.map((evt) => (
                                         <div
                                             key={evt.id}
-                                            className={`group flex flex-col gap-3 p-5 rounded-2xl border transition-all duration-300 ${evt.completed ? 'bg-white/5 border-white/5 opacity-20' : 'bg-white/10 border-white/5 hover:border-white/20'}`}
+                                            className={`group flex items-start gap-3 p-3.5 rounded-2xl border-l-[2px] transition-all duration-200 ${
+                                                evt.completed
+                                                    ? 'bg-white/[0.02] border-white/10 opacity-30'
+                                                    : 'bg-white/[0.04] border-primary/40 hover:bg-white/[0.07] hover:border-primary/60'
+                                            }`}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <div
-                                                    className="flex items-center gap-3 cursor-pointer"
-                                                    onClick={() => toggleCalendarEvent(selectedDateKey, evt.id, id)}
-                                                >
-                                                    {evt.completed ? (
-                                                        <CheckCircle2 size={18} className="text-white/40" />
-                                                    ) : (
-                                                        <Circle size={18} className="text-white/20 group-hover:text-white transition-all" />
-                                                    )}
-                                                    <div className="px-3 py-1 bg-white/5 text-white/60 text-[10px] font-black rounded-lg flex items-center gap-2 border border-white/10">
-                                                        <Clock size={12} />
-                                                        {evt.time}
-                                                    </div>
-                                                    {/* Bell icon shows on timed events when reminders are on */}
+                                            <button
+                                                onClick={() => toggleCalendarEvent(selectedDateKey, evt.id, id)}
+                                                className="mt-0.5 shrink-0 transition-all active:scale-90"
+                                            >
+                                                {evt.completed
+                                                    ? <CheckCircle2 size={16} className="text-white/30" />
+                                                    : <Circle size={16} className="text-white/20 group-hover:text-primary/60 transition-colors" />
+                                                }
+                                            </button>
+                                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleCalendarEvent(selectedDateKey, evt.id, id)}>
+                                                <span className={`text-[13px] font-bold leading-snug block ${evt.completed ? 'line-through text-white/20' : 'text-white/85'}`}>
+                                                    {evt.task}
+                                                </span>
+                                                <div className="flex items-center gap-1.5 mt-1.5">
+                                                    <span className="text-[10px] font-black text-white/30 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.05] flex items-center gap-1">
+                                                        <Clock size={8} />{evt.time}
+                                                    </span>
                                                     {evt.time !== 'All Day' && notifPermission === 'granted' && !evt.completed && (
-                                                        <Bell size={12} className="text-orange-400/60" aria-label="Reminder set" />
+                                                        <Bell size={9} className="text-orange-400/50" />
                                                     )}
                                                 </div>
-                                <button
-                                    onClick={() => removeCalendarEvent(selectedDateKey, evt.id, id)}
-                                    className="text-white/20 hover:text-red-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all p-2.5 hover:bg-red-500/10 rounded-xl"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
                                             </div>
-                                            <span
-                                                className={`text-sm leading-relaxed font-bold tracking-tight px-1 flex items-start gap-3 cursor-pointer ${evt.completed ? 'line-through text-white/20' : 'text-white/90'}`}
-                                                onClick={() => toggleCalendarEvent(selectedDateKey, evt.id, id)}
+                                            <button
+                                                onClick={() => removeCalendarEvent(selectedDateKey, evt.id, id)}
+                                                className="p-1.5 text-white/10 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 shrink-0"
                                             >
-                                                <FileText size={18} className="mt-0.5 text-white/20 flex-shrink-0" />
-                                                {evt.task}
-                                            </span>
+                                                <Trash2 size={12} />
+                                            </button>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="h-full flex flex-col items-center justify-center text-white/10 gap-4 py-12 opacity-20">
-                                        <Bot size={48} />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">No active objectives</span>
+                                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                                        <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center mb-4">
+                                            <Plus size={18} className="text-white/15" />
+                                        </div>
+                                        <p className="text-xs font-black text-white/20 uppercase tracking-widest">Nothing scheduled</p>
+                                        <p className="text-[11px] text-white/15 mt-1">Add an event below</p>
                                     </div>
                                 )
                             ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-white/5 gap-4 py-12">
-                                    <Layout size={64} className="opacity-10" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Ready for input</span>
-                                </div>
+                                /* Upcoming events across all dates */
+                                (() => {
+                                    const upcoming = Object.entries(activeCalendarEvents)
+                                        .filter(([k]) => k >= todayKey)
+                                        .sort(([a], [b]) => a.localeCompare(b))
+                                        .flatMap(([k, evts]) => evts.filter(e => !e.completed).map(e => ({ ...e, dateKey: k })))
+                                        .slice(0, 8);
+                                    return upcoming.length > 0 ? (
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 mb-3">Upcoming</p>
+                                            <div className="space-y-2">
+                                                {upcoming.map(evt => {
+                                                    const [y, m, d] = evt.dateKey.split('-').map(Number);
+                                                    const label = new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                                                    return (
+                                                        <div
+                                                            key={evt.id}
+                                                            onClick={() => handleDayClick(evt.dateKey)}
+                                                            className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.06] hover:border-white/[0.08] cursor-pointer transition-all border-l-[2px] border-l-primary/30"
+                                                        >
+                                                            <div className="shrink-0 w-8 text-center">
+                                                                <div className="text-[9px] font-black text-primary/50 uppercase">{label.split(' ')[0]}</div>
+                                                                <div className="text-base font-black text-white/60 leading-none">{d}</div>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-[12px] font-bold text-white/70 truncate">{evt.task}</p>
+                                                                <p className="text-[10px] text-white/25 mt-0.5">{evt.time}</p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                                            <Layout size={32} className="text-white/[0.07] mb-4" />
+                                            <p className="text-xs font-black text-white/15 uppercase tracking-widest">No upcoming events</p>
+                                            <p className="text-[11px] text-white/10 mt-1">Click a day to add one</p>
+                                        </div>
+                                    );
+                                })()
                             )}
                         </div>
 
-                        {/* Add Event Input — desktop only */}
-                        <div className="flex-shrink-0 p-8 pt-0 mt-auto">
-                            <div className={`p-6 bg-white/[0.03] rounded-3xl border border-white/5 space-y-4 transition-all duration-300 ${selectedDateKey ? 'opacity-100' : 'opacity-10 pointer-events-none'}`}>
-                                <div className="space-y-3">
-                                    <div className="relative group">
-                                        <Clock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white transition-colors" />
+                        {/* Add Event form */}
+                        <div className="flex-shrink-0 p-4 border-t border-white/[0.04]">
+                            <div className={`space-y-2 transition-all duration-300 ${selectedDateKey ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
+                                <div className="flex gap-2">
+                                    <div className="relative w-[100px] shrink-0">
+                                        <Clock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" />
                                         <input
                                             ref={timeInputRef}
                                             type="time"
                                             value={newEventTime}
                                             onChange={(e) => setNewEventTime(e.target.value)}
-                                            className="w-full bg-white/5 border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-sm text-white focus:outline-none focus:border-white/20 transition-all font-bold cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
+                                            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-8 pr-2 py-2.5 text-xs text-white focus:outline-none focus:border-primary/25 transition-all font-bold cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-30"
                                         />
                                     </div>
-                                    <div className="relative group">
-                                        <FileText size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-primary transition-colors" />
+                                    <div className="relative flex-1">
                                         <input
                                             ref={inputRef}
                                             type="text"
                                             value={newEventTitle}
                                             onChange={(e) => setNewEventTitle(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && handleAddEvent()}
-                                            placeholder="Assign objective..."
-                                            className="w-full bg-white/5 border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-sm text-white focus:outline-none focus:border-white/20 transition-all placeholder-white/5 font-bold"
+                                            placeholder={selectedDateKey ? 'Add event…' : 'Select a date first'}
+                                            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-primary/25 transition-all placeholder-white/20"
                                         />
                                     </div>
                                 </div>
                                 <button
                                     onClick={handleAddEvent}
                                     disabled={!selectedDateKey || !newEventTitle.trim()}
-                                    className="w-full py-4 bg-white text-black text-xs font-black uppercase tracking-[0.2em] rounded-xl hover:bg-white/90 transition-all disabled:opacity-10 flex items-center justify-center gap-3 active:scale-95"
+                                    className="w-full py-2.5 bg-primary/90 text-black text-xs font-black uppercase tracking-wider rounded-xl hover:bg-primary transition-all disabled:opacity-20 flex items-center justify-center gap-2 active:scale-[0.98]"
                                 >
-                                    <Plus size={20} />
-                                    Add Task
+                                    <Plus size={14} strokeWidth={3} />
+                                    Add Event
                                 </button>
                             </div>
                         </div>
