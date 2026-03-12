@@ -6,6 +6,7 @@ import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronD
 export const GUEST_TRIAL_KEY = 'guest-trial-start';
 import { RAZORPAY_LINK } from '../constants';
 import HexagonBackground from './HexagonBackground';
+import ThemeToggle from './ThemeToggle';
 
 export default function LandingPage() {
     const navigate = useNavigate();
@@ -153,6 +154,7 @@ export default function LandingPage() {
                         <span className="text-xl md:text-2xl font-black tracking-tighter text-white">Stratabin<span className="text-primary">.</span></span>
                     </div>
                     <nav className="flex items-center gap-2 md:gap-4">
+                        <ThemeToggle />
                         <button
                             onClick={() => setShowHowTo(true)}
                             className="text-xs md:text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 flex items-center"

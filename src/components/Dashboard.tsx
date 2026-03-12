@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 import type { CanvasData } from '../store/useStore';
 
 export default function Dashboard() {
@@ -226,7 +227,7 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="flex h-screen bg-[#080808] text-white font-sans overflow-hidden relative">
+        <div className="flex h-screen theme-page font-sans overflow-hidden relative">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
@@ -237,7 +238,7 @@ export default function Dashboard() {
 
             {/* Folder Sidebar */}
             <aside className={`
-                fixed inset-y-0 left-0 z-50 w-72 border-r border-white/[0.04] flex flex-col shrink-0 bg-[#060606]/[0.98] backdrop-blur-2xl transition-transform duration-300 md:relative md:translate-x-0
+                fixed inset-y-0 left-0 z-50 w-72 border-r border-[var(--border)] flex flex-col shrink-0 theme-panel backdrop-blur-2xl transition-transform duration-300 md:relative md:translate-x-0
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
                 <div className="p-5 md:p-8">
@@ -352,7 +353,7 @@ export default function Dashboard() {
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#050505]">
+            <main className="flex-1 overflow-y-auto custom-scrollbar theme-page">
                 <div className="max-w-7xl mx-auto px-3 pt-4 pb-24 md:px-10 md:pt-10 md:pb-10">
                     {/* Header */}
                     <header className="mb-5 md:mb-10">
@@ -416,13 +417,16 @@ export default function Dashboard() {
                                 </button>
                             )}
 
-                            <button
-                                onClick={handleCreate}
-                                className="hidden md:flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white/90 transition-all border border-white/10 ml-auto"
-                            >
-                                <Plus size={18} strokeWidth={3} />
-                                New Project
-                            </button>
+                            <div className="hidden md:flex items-center gap-2 ml-auto">
+                                <ThemeToggle />
+                                <button
+                                    onClick={handleCreate}
+                                    className="flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white/90 transition-all border border-white/10"
+                                >
+                                    <Plus size={18} strokeWidth={3} />
+                                    New Project
+                                </button>
+                            </div>
                         </div>
                     </header>
 

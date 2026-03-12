@@ -15,6 +15,7 @@ import NotFoundPage from './components/NotFoundPage';
 
 function App() {
   return (
+    <div className="min-h-screen w-full theme-page">
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
@@ -30,6 +31,7 @@ function App() {
       <Route path="/strab/:id" element={<AuthGate><PaywallGate><StrabView /></PaywallGate></AuthGate>} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </div>
   );
 }
 

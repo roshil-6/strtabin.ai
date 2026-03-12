@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
 const NAV_ITEMS = [
     {
@@ -59,8 +60,8 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
 
     return (
         <nav
-            className="hidden md:flex w-[68px] h-full flex-col items-center py-4 z-50 gap-1"
-            style={{ background: '#090909', borderRight: '1px solid rgba(255,255,255,0.04)' }}
+            className="hidden md:flex w-[68px] h-full flex-col items-center py-4 z-50 gap-1 theme-panel"
+            style={{ borderRight: '1px solid var(--border)' }}
             aria-label="Project navigation"
         >
             {/* Logo / Home */}
@@ -164,6 +165,10 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                     </button>
                 );
             })()}
+
+            <div className="mt-2">
+                <ThemeToggle compact />
+            </div>
         </nav>
     );
 }

@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast'
 import './index.css'
 import App from './App'
 import useStore from './store/useStore'
+import { ThemeProvider } from './context/ThemeContext'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 if (!PUBLISHABLE_KEY) {
@@ -75,9 +76,10 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
-        <BrowserRouter>
-          <App />
-          <Toaster
+        <ThemeProvider>
+          <BrowserRouter>
+            <App />
+            <Toaster
             position="bottom-right"
             toastOptions={{
               style: {
@@ -92,6 +94,7 @@ createRoot(document.getElementById('root')!).render(
             }}
           />
         </BrowserRouter>
+        </ThemeProvider>
       </ClerkProvider>
     </ErrorBoundary>
   </StrictMode>,
