@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import useStore from '../../store/useStore';
+import { useTheme } from '../../context/ThemeContext';
 import { GripHorizontal, FolderPlus, ExternalLink, Trash2, Lightbulb, HelpCircle, GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -53,6 +54,8 @@ const VARIANTS: Record<NodeVariant, {
 const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { variant: NodeVariant }) => {
     const { updateNodeData, convertNodeToProject, currentCanvasId, onNodesChange } = useStore();
     const navigate = useNavigate();
+    const { resolved } = useTheme();
+    const isLight = resolved === 'light';
     const v = VARIANTS[variant];
     const Icon = v.icon;
 
@@ -87,9 +90,9 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
         <div
             className="relative group flex flex-col min-w-[160px] md:min-w-[240px] max-w-[320px] rounded-xl transition-all duration-200"
             style={{
-                background: '#131313',
-                border: `1px solid ${selected ? v.selectedBorder : v.border}`,
-                boxShadow: selected ? v.selectedGlow : '0 2px 12px rgba(0,0,0,0.3)',
+                background: isLight ? '#ffffff' : '#131313',
+                border: `1px solid ${selected ? v.selectedBorder : (isLight ? 'rgba(0,0,0,0.1)' : v.border)}`,
+                boxShadow: selected ? v.selectedGlow : (isLight ? '0 1px 3px rgba(0,0,0,0.08)' : '0 2px 12px rgba(0,0,0,0.3)'),
             }}
         >
             {/* Accent top bar */}
@@ -98,7 +101,7 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
             {/* Header */}
             <div
                 className="flex items-center justify-between px-3 py-2 rounded-none border-b cursor-grab active:cursor-grabbing"
-                style={{ background: v.headerBg, borderColor: `${v.border}` }}
+                style={{ background: v.headerBg, borderColor: isLight ? 'rgba(0,0,0,0.08)' : v.border }}
             >
                 <div className="flex items-center gap-2">
                     <Icon size={12} style={{ color: v.accent }} />
@@ -121,7 +124,7 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
             {/* Content */}
             <div className="px-3 py-2.5 md:px-4 md:py-3">
                 <textarea
-                    className="nodrag w-full bg-transparent text-white/85 text-xs md:text-sm outline-none resize-none leading-relaxed placeholder-white/15 min-h-[60px] md:min-h-[80px]"
+                    className={`nodrag w-full bg-transparent text-xs md:text-sm outline-none resize-none leading-relaxed min-h-[60px] md:min-h-[80px] ${isLight ? 'text-[var(--text)] placeholder-[var(--text-muted)]' : 'text-white/85 placeholder-white/15'}`}
                     value={(data?.label as string) || ''}
                     onChange={handleInputChange}
                     placeholder={variant === 'idea' ? 'Describe the idea...' : variant === 'question' ? 'What needs answering?' : 'What decision to make?'}
@@ -133,7 +136,7 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
             {/* Footer actions */}
             <div
                 className="px-3 py-2 border-t flex items-center"
-                style={{ borderColor: v.border, background: 'rgba(255,255,255,0.01)' }}
+                style={{ borderColor: isLight ? 'rgba(0,0,0,0.08)' : v.border, background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)' }}
             >
                 {data.subCanvasId ? (
                     <button
@@ -147,7 +150,7 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
                 ) : (
                     <button
                         onClick={handleProjectize}
-                        className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-white/30 hover:text-white/60 transition-all"
+                        className={`opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-all ${isLight ? 'text-[var(--text-muted)] hover:text-[var(--text)]' : 'text-white/30 hover:text-white/60'}`}
                     >
                         <FolderPlus size={10} />
                         Convert to Project

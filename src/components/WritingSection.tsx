@@ -351,14 +351,14 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const projectName = canvas?.name || canvas?.title || 'Untitled';
 
     return (
-        <div className="h-full w-full bg-[#0a0a0a] flex flex-col border-r border-white/[0.05] relative">
+        <div className="h-full w-full theme-page flex flex-col border-r border-[var(--border)] relative">
             {/* Toolbar */}
-            <div className="h-11 md:h-14 border-b border-white/[0.03] flex items-center px-2 md:px-4 gap-1 bg-[#070707]/95 backdrop-blur-2xl sticky top-0 z-20">
+            <div className="h-11 md:h-14 border-b border-[var(--border)] flex items-center px-2 md:px-4 gap-1 theme-panel backdrop-blur-2xl sticky top-0 z-20">
                 <div className="flex items-center gap-2 mr-auto min-w-0">
                     <FileText size={13} className="text-primary shrink-0" />
-                    <span className="text-xs font-bold text-white/60 truncate max-w-[120px] md:max-w-[200px]" title={projectName}>{projectName}</span>
+                    <span className="text-xs font-bold text-[var(--text-secondary)] truncate max-w-[120px] md:max-w-[200px]" title={projectName}>{projectName}</span>
                     {wc > 0 && (
-                        <span className="hidden sm:flex items-center gap-1 text-[10px] text-white/20 font-medium bg-white/[0.03] px-2 py-0.5 rounded-md border border-white/[0.04]">
+                        <span className="hidden sm:flex items-center gap-1 text-[10px] text-[var(--text-muted)] font-medium bg-[var(--input-bg)] px-2 py-0.5 rounded-md border border-[var(--input-border)]">
                             {wc} words
                         </span>
                     )}
@@ -425,7 +425,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         value={title}
                         onChange={handleTitleChange}
                         placeholder="Untitled Strategy"
-                        className="w-full bg-transparent text-4xl font-bold text-white placeholder-white/20 outline-none leading-tight mb-8"
+                        className="w-full bg-transparent text-4xl font-bold text-[var(--text)] placeholder-[var(--text-muted)] outline-none leading-tight mb-8"
                     />
 
                     {/* Writing Planner — collapsed by default, tap to expand */}
@@ -450,7 +450,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         value={quickTask}
                                         onChange={(e) => setQuickTask(e.target.value)}
                                         placeholder="Add important task..."
-                                        className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-primary/30 transition-all placeholder-white/15"
+                                        className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-primary/30 transition-all placeholder-[var(--text-muted)]"
                                     />
                                     <input
                                         type="date"
@@ -576,7 +576,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         onCompositionEnd={() => { isComposingRef.current = false; }}
                         onChange={handleContentChange}
                         placeholder="Start simple, write everything here..."
-                        className="w-full bg-transparent text-base md:text-lg text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[200px]"
+                        className="w-full bg-transparent text-base md:text-lg text-[var(--text)] leading-relaxed outline-none resize-none placeholder-[var(--text-muted)] font-sans min-h-[200px]"
                         spellCheck={false}
                     />
 
@@ -617,7 +617,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         onCompositionEnd={() => { isComposingRef.current = false; }}
                                         onChange={(e) => handleSplitContentChange('A', e.target.value)}
                                         placeholder="Write in column A..."
-                                        className="w-full bg-transparent text-base text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[220px]"
+                                        className="w-full bg-transparent text-base text-[var(--text)] leading-relaxed outline-none resize-none placeholder-[var(--text-muted)] font-sans min-h-[220px]"
                                         spellCheck={false}
                                     />
                                 </div>
@@ -639,7 +639,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         onCompositionEnd={() => { isComposingRef.current = false; }}
                                         onChange={(e) => handleSplitContentChange('B', e.target.value)}
                                         placeholder="Write in column B..."
-                                        className="w-full bg-transparent text-base text-white/90 leading-relaxed outline-none resize-none placeholder-white/10 font-sans min-h-[220px]"
+                                        className="w-full bg-transparent text-base text-[var(--text)] leading-relaxed outline-none resize-none placeholder-[var(--text-muted)] font-sans min-h-[220px]"
                                         spellCheck={false}
                                     />
                                 </div>
@@ -650,10 +650,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             </div>
 
             {/* Branch Creation Modal */}
-            {showBranchModal && (
-                <div className="absolute top-14 md:top-16 right-2 md:right-4 w-[calc(100vw-1rem)] max-w-[320px] bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] p-4 md:p-5 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+                {showBranchModal && (
+                <div className="absolute top-14 md:top-16 right-2 md:right-4 w-[calc(100vw-1rem)] max-w-[320px] theme-panel backdrop-blur-xl border border-[var(--border)] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.15)] p-4 md:p-5 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-white font-bold flex items-center gap-2">
+                        <h3 className="text-[var(--text)] font-bold flex items-center gap-2">
                             <GitBranch size={16} className="text-primary" />
                             Insert Branch
                         </h3>
@@ -664,7 +664,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs uppercase font-bold text-white/40 mb-1">Topic Heading</label>
+                            <label className="block text-xs uppercase font-bold text-[var(--text-muted)] mb-1">Topic Heading</label>
                             <input
                                 autoFocus
                                 type="text"
@@ -673,7 +673,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                 placeholder="Core Topic..."
                                 maxLength={100}
                                 aria-label="Branch topic"
-                                className="w-full bg-[#111] border border-[#333] rounded p-3 text-base text-white focus:border-primary/50 outline-none transition-colors"
+                                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded p-3 text-base text-[var(--text)] focus:border-primary/50 outline-none transition-colors placeholder-[var(--text-muted)]"
                             />
                         </div>
 
@@ -704,7 +704,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         setBranchItems(newItems);
                                     }}
                                     placeholder={`Branch ${i + 1}`}
-                                    className="w-full bg-[#111] border border-[#333] rounded p-3 text-base text-white focus:border-primary/50 outline-none transition-colors"
+                                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded p-3 text-base text-[var(--text)] focus:border-primary/50 outline-none transition-colors placeholder-[var(--text-muted)]"
                                 />
                             ))}
                         </div>
@@ -724,13 +724,13 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             {previewDoc && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-12 animate-in fade-in duration-300">
                     <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={closePreview} />
-                    <div className="relative w-full h-full max-w-6xl bg-[#0a0a0a] border border-white/10 rounded-2xl md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
-                        <div className="flex-shrink-0 p-4 border-b border-white/5 flex items-center justify-between bg-[#0f0f0f]">
+                    <div className="relative w-full h-full max-w-6xl theme-panel border border-[var(--border)] rounded-2xl md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+                        <div className="flex-shrink-0 p-4 border-b border-[var(--border)] flex items-center justify-between theme-elevated">
                             <div className="flex items-center gap-3">
                                 <div className={`p-2 rounded-lg ${previewDoc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}>
                                     {previewDoc.name.toLowerCase().endsWith('.pdf') ? <FileText size={20} /> : <File size={20} />}
                                 </div>
-                                <h3 className="text-sm font-bold text-white truncate max-w-[200px] md:max-w-md">{previewDoc.name}</h3>
+                                <h3 className="text-sm font-bold text-[var(--text)] truncate max-w-[200px] md:max-w-md">{previewDoc.name}</h3>
                             </div>
                             <div className="flex items-center gap-2">
                                 <a

@@ -69,7 +69,10 @@
 [data-theme="light"] .bg-\[\#0e0e0e\],
 [data-theme="light"] .bg-\[\#0f0f0f\],
 [data-theme="light"] .bg-\[\#111\],
-[data-theme="light"] .bg-\[\#151515\] {
+[data-theme="light"] .bg-\[\#131313\],
+[data-theme="light"] .bg-\[\#151515\],
+[data-theme="light"] .bg-\[\#161410\],
+[data-theme="light"] .bg-\[\#1a1a1a\] {
   background-color: var(--bg-panel) !important;
 }
 
@@ -136,7 +139,15 @@
 
 [data-theme="light"] input,
 [data-theme="light"] textarea {
-  color: var(--text);
+  color: var(--text) !important;
+}
+
+/* Light theme: canvas nodes — force light backgrounds so text is visible */
+[data-theme="light"] .react-flow__node .bg-\[\#131313\],
+[data-theme="light"] .react-flow__node .bg-\[\#161410\],
+[data-theme="light"] .react-flow__node .bg-\[\#1a1a1a\] {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 :root {

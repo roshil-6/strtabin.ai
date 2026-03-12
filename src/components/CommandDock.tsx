@@ -55,9 +55,9 @@ const NODE_TYPES: {
 
 export default function CommandDock({ onAddNode }: CommandDockProps) {
     return (
-        <div className="flex items-center gap-1 bg-[#0d0d0d]/95 backdrop-blur-2xl px-2 py-2 rounded-2xl border border-white/[0.07] shadow-[0_8px_40px_rgba(0,0,0,0.7)]">
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/15 px-2 hidden sm:block">Add</span>
-            <div className="w-px h-5 bg-white/[0.06] mr-1 hidden sm:block" />
+        <div className="flex items-center gap-1 theme-panel backdrop-blur-2xl px-2 py-2 rounded-2xl border border-[var(--border)] shadow-[0_8px_40px_rgba(0,0,0,0.12)]">
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] px-2 hidden sm:block">Add</span>
+            <div className="w-px h-5 bg-[var(--border)] mr-1 hidden sm:block" />
 
             {NODE_TYPES.map(({ type, label, icon: Icon, accent, bg, border, desc }) => (
                 <button
