@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { sendGeneralStrabMessage, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
 import {
@@ -183,13 +184,13 @@ export default function StrabHome() {
     const { getToken } = useAuth();
 
     const { createCanvas, populateCanvas, updateCanvasName, updateCanvasWriting, addCanvasTodo } =
-        useStore(s => ({
+        useStore(useShallow(s => ({
             createCanvas: s.createCanvas,
             populateCanvas: s.populateCanvas,
             updateCanvasName: s.updateCanvasName,
             updateCanvasWriting: s.updateCanvasWriting,
             addCanvasTodo: s.addCanvasTodo,
-        }));
+        })));
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
