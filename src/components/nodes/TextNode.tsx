@@ -1,14 +1,9 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import useStore from '../../store/useStore';
-import { useTheme } from '../../context/ThemeContext';
-
 export default function TextNode({ id, data, selected }: NodeProps) {
     const updateNodeData = useStore((state) => state.updateNodeData);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const { resolved } = useTheme();
-    const isLight = resolved === 'light';
-
     useEffect(() => {
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
@@ -31,13 +26,9 @@ export default function TextNode({ id, data, selected }: NodeProps) {
         <div className={`
             relative group min-w-[160px] md:min-w-[220px] max-w-[320px]
             rounded-xl border transition-all duration-200 overflow-hidden
-            ${isLight
-                ? selected
-                    ? 'border-primary/50 shadow-[0_0_0_2px_rgba(249,115,22,0.12),0_1px_3px_rgba(0,0,0,0.08)] bg-white'
-                    : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-white hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]'
-                : selected
-                    ? 'border-primary/50 shadow-[0_0_0_2px_rgba(249,115,22,0.12),0_0_24px_rgba(249,115,22,0.08),0_8px_24px_rgba(0,0,0,0.5)] bg-[#161410]'
-                    : 'border-[#222] hover:border-[#333] bg-[#131313] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]'
+            ${selected
+                ? 'border-primary/50 shadow-[0_0_0_2px_rgba(249,115,22,0.12),0_0_24px_rgba(249,115,22,0.08),0_8px_24px_rgba(0,0,0,0.5)] bg-[#161410]'
+                : 'border-[#222] hover:border-[#333] bg-[#131313] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]'
             }
         `}>
             {/* Subtle accent top bar */}
@@ -57,7 +48,7 @@ export default function TextNode({ id, data, selected }: NodeProps) {
             <div className="px-3 py-2.5 md:px-4 md:py-3">
                 <textarea
                     ref={textareaRef}
-                    className={`w-full bg-transparent outline-none resize-none overflow-hidden font-sans text-sm md:text-base leading-relaxed nodrag ${isLight ? 'text-[var(--text)] placeholder-[var(--text-muted)]' : 'text-white/90 placeholder-white/15'}`}
+                    className="w-full bg-transparent text-white/90 placeholder-white/15 outline-none resize-none overflow-hidden font-sans text-sm md:text-base leading-relaxed nodrag"
                     value={data.label as string}
                     onChange={onChange}
                     placeholder="Type here..."

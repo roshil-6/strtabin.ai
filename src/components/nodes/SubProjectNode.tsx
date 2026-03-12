@@ -37,7 +37,7 @@ const SubProjectNode = ({ data, selected }: NodeProps<Node<SubProjectData>>) => 
 
             {/* Content */}
             <div className="p-3 md:p-5 flex flex-col gap-3 md:gap-4">
-                <h3 className="text-sm md:text-lg font-bold text-[var(--text)] leading-tight">
+                <h3 className="text-sm md:text-lg font-bold text-white leading-tight">
                     {data.label || 'Untitled Sub-Project'}
                 </h3>
 

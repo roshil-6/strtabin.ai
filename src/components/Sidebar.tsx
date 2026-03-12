@@ -76,7 +76,7 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                         <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
                     </div>
                 </div>
-                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#1c1c1c] border border-white/10 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
+                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 theme-elevated border border-[var(--border)] text-[var(--text)] text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
                     ← Dashboard
                 </div>
             </button>

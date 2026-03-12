@@ -142,12 +142,59 @@
   color: var(--text) !important;
 }
 
-/* Light theme: canvas nodes — force light backgrounds so text is visible */
+/* Light theme: flow nodes stay dark — keep white text (override global dark-text overrides) */
+[data-theme="light"] .react-flow__node .text-white { color: #ffffff !important; }
+[data-theme="light"] .react-flow__node .text-white\/90 { color: rgba(255,255,255,0.9) !important; }
+[data-theme="light"] .react-flow__node .text-white\/85 { color: rgba(255,255,255,0.85) !important; }
+[data-theme="light"] .react-flow__node .text-white\/80 { color: rgba(255,255,255,0.8) !important; }
+[data-theme="light"] .react-flow__node .text-white\/70 { color: rgba(255,255,255,0.7) !important; }
+[data-theme="light"] .react-flow__node .text-white\/60 { color: rgba(255,255,255,0.6) !important; }
+[data-theme="light"] .react-flow__node .text-white\/50 { color: rgba(255,255,255,0.5) !important; }
+[data-theme="light"] .react-flow__node .text-white\/40 { color: rgba(255,255,255,0.4) !important; }
+[data-theme="light"] .react-flow__node .text-white\/35 { color: rgba(255,255,255,0.35) !important; }
+[data-theme="light"] .react-flow__node .text-white\/30 { color: rgba(255,255,255,0.3) !important; }
+[data-theme="light"] .react-flow__node .text-white\/25 { color: rgba(255,255,255,0.25) !important; }
+[data-theme="light"] .react-flow__node .text-white\/20 { color: rgba(255,255,255,0.2) !important; }
+[data-theme="light"] .react-flow__node .text-white\/15 { color: rgba(255,255,255,0.15) !important; }
+[data-theme="light"] .react-flow__node .text-white\/10 { color: rgba(255,255,255,0.1) !important; }
+
+/* Light theme: flow node textareas/inputs keep white text */
+[data-theme="light"] .react-flow__node input,
+[data-theme="light"] .react-flow__node textarea {
+  color: rgba(255,255,255,0.9) !important;
+}
+[data-theme="light"] .react-flow__node .placeholder-white\/15::placeholder {
+  color: rgba(255,255,255,0.15) !important;
+}
+
+/* Light theme: flow nodes keep dark backgrounds (override the panel mapping) */
 [data-theme="light"] .react-flow__node .bg-\[\#131313\],
-[data-theme="light"] .react-flow__node .bg-\[\#161410\],
+[data-theme="light"] .react-flow__node .bg-\[\#161410\] {
+  background-color: #131313 !important;
+}
 [data-theme="light"] .react-flow__node .bg-\[\#1a1a1a\] {
-  background-color: #ffffff !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  background-color: #1a1a1a !important;
+}
+[data-theme="light"] .react-flow__node .bg-\[\#151515\] {
+  background-color: #151515 !important;
+}
+
+/* Light theme: dashboard, sidebar, nav labels — ensure visibility on light surfaces */
+[data-theme="light"] .theme-panel .text-white\/20,
+[data-theme="light"] .theme-panel .text-white\/30,
+[data-theme="light"] .theme-panel .text-white\/40,
+[data-theme="light"] .theme-page .text-white\/20,
+[data-theme="light"] .theme-page .text-white\/30,
+[data-theme="light"] .theme-page .text-white\/40 {
+  color: var(--text-secondary) !important;
+}
+[data-theme="light"] .theme-panel .text-white,
+[data-theme="light"] .theme-panel h1,
+[data-theme="light"] .theme-panel h2,
+[data-theme="light"] .theme-page .text-white,
+[data-theme="light"] .theme-page h1,
+[data-theme="light"] .theme-page h2 {
+  color: var(--text) !important;
 }
 
 :root {

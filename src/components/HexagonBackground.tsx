@@ -44,7 +44,7 @@ export default function HexagonBackground() {
             }
             ctx.closePath();
             const stroke = resolved === 'light'
-                ? `rgba(218, 119, 86, ${opacity * 0.55})`
+                ? `rgba(218, 119, 86, ${opacity * 0.85})`
                 : `rgba(218, 119, 86, ${opacity})`;
             ctx.strokeStyle = stroke;
             ctx.lineWidth = 1;
@@ -67,13 +67,13 @@ export default function HexagonBackground() {
                     const dy = y - mouseRef.current.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
-                    const maxDist = 250;
-                    let opacity = resolved === 'light' ? 0.02 : 0.03;
+                    const maxDist = 280;
+                    let opacity = resolved === 'light' ? 0.045 : 0.03;
 
                     if (dist < maxDist) {
                         const effect = 1 - dist / maxDist;
                         opacity = resolved === 'light'
-                            ? 0.02 + 0.08 * effect
+                            ? 0.045 + 0.18 * effect
                             : 0.03 + 0.15 * effect;
                     }
 

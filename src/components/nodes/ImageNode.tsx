@@ -13,7 +13,7 @@ function ImageNode({ data, selected }: NodeProps) {
             <Handle type="source" position={Position.Bottom} className="!bg-primary !w-3 !h-3 !rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
 
             {/* Image Content */}
-            <div className="bg-[var(--bg-panel)]">
+            <div className="bg-[#151515]">
                 {data.imgUrl ? (
                     <img
                         src={data.imgUrl as string}
@@ -22,7 +22,7 @@ function ImageNode({ data, selected }: NodeProps) {
                         draggable={false}
                     />
                 ) : (
-                    <div className="p-4 text-center text-[var(--text-muted)]">No Image</div>
+                    <div className="p-4 text-center text-white/50">No Image</div>
                 )}
             </div>
         </div>
