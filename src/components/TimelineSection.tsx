@@ -112,12 +112,12 @@ function PhaseCard({ phase, index, total, onUpdate, onDelete }: PhaseCardProps) 
                             <GripVertical size={13} className="text-white/15 opacity-0 group-hover/phase:opacity-100 transition-opacity" />
                         </div>
                         <div className="min-w-0 flex-1">
-                            {editingField === 'name' ? (
+                            {editingField === 'name' || !phase.name ? (
                                 <input
-                                    autoFocus
-                                    className="w-full bg-transparent text-white font-black text-sm outline-none border-b border-primary/40 pb-0.5 placeholder-white/20"
+                                    autoFocus={editingField === 'name'}
+                                    className="w-full bg-transparent text-white font-black text-sm outline-none border-b border-primary/40 pb-0.5 placeholder-white/20 timeline-phase-name"
                                     value={phase.name}
-                                    placeholder="Phase name…"
+                                    placeholder="Untitled phase — add a title"
                                     onChange={e => onUpdate(phase.id, { name: e.target.value })}
                                     onBlur={() => setEditingField(null)}
                                     onKeyDown={e => { if (e.key === 'Enter') setEditingField(null); e.stopPropagation(); }}
@@ -125,11 +125,11 @@ function PhaseCard({ phase, index, total, onUpdate, onDelete }: PhaseCardProps) 
                                 />
                             ) : (
                                 <span
-                                    className="font-black text-sm text-white hover:text-primary transition-colors"
+                                    className="font-black text-sm text-white hover:text-primary transition-colors timeline-phase-name"
                                     onDoubleClick={e => { e.stopPropagation(); setEditingField('name'); }}
                                     title="Double-click to edit"
                                 >
-                                    {phase.name || <span className="text-white/20 italic font-normal text-xs">Untitled phase</span>}
+                                    {phase.name}
                                 </span>
                             )}
 
@@ -254,7 +254,7 @@ export default function TimelineSection() {
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
     return (
-        <div className="w-screen h-screen theme-page text-white flex overflow-hidden">
+        <div className="timeline-section w-screen h-screen theme-page text-white flex overflow-hidden">
             <Sidebar canvasId={id} />
 
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
