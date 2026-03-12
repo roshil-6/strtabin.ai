@@ -347,13 +347,21 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         if (scrollEl) scrollEl.scrollTop = savedScrollTop;
     }, [content, contentA, contentB, isSplitMode]);
 
+    const wc = content.trim().split(/\s+/).filter(Boolean).length;
+    const projectName = canvas?.name || canvas?.title || 'Untitled';
+
     return (
         <div className="h-full w-full bg-[#0a0a0a] flex flex-col border-r border-white/[0.05] relative">
             {/* Toolbar */}
             <div className="h-11 md:h-14 border-b border-white/[0.03] flex items-center px-2 md:px-4 gap-1 bg-[#070707]/95 backdrop-blur-2xl sticky top-0 z-20">
-                <div className="flex items-center gap-1.5 mr-auto min-w-0 shrink-0">
-                    <Type size={14} className="text-primary shrink-0" />
-                    <span className="text-[11px] font-bold text-white/30 hidden sm:block tracking-wide">Writing</span>
+                <div className="flex items-center gap-2 mr-auto min-w-0">
+                    <FileText size={13} className="text-primary shrink-0" />
+                    <span className="text-xs font-bold text-white/60 truncate max-w-[120px] md:max-w-[200px]" title={projectName}>{projectName}</span>
+                    {wc > 0 && (
+                        <span className="hidden sm:flex items-center gap-1 text-[10px] text-white/20 font-medium bg-white/[0.03] px-2 py-0.5 rounded-md border border-white/[0.04]">
+                            {wc} words
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-xl p-0.5 border border-white/[0.04]">

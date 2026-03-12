@@ -163,6 +163,24 @@ export default function Dashboard() {
 
     const activeFolder = activeFolderId ? folders[activeFolderId] : null;
 
+    const ACCENT_COLORS = ['#f97316','#3b82f6','#8b5cf6','#10b981','#ec4899','#14b8a6','#eab308','#ef4444'];
+    function getAccent(id: string) {
+        const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        return ACCENT_COLORS[hash % ACCENT_COLORS.length];
+    }
+    function timeAgo(ts: number): string {
+        const d = Date.now() - ts;
+        if (d < 60_000) return 'Just now';
+        if (d < 3_600_000) return `${Math.floor(d / 60_000)}m ago`;
+        if (d < 86_400_000) return `${Math.floor(d / 3_600_000)}h ago`;
+        if (d < 604_800_000) return `${Math.floor(d / 86_400_000)}d ago`;
+        return new Date(ts).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+    }
+    function wordCount(text?: string) {
+        if (!text) return 0;
+        return text.trim().split(/\s+/).filter(Boolean).length;
+    }
+
     // Filter canvases based on activeFolderId
     // General workspace (null) shows only projects with folderId === null or undefined
     const filteredCanvases = Object.values(canvases).filter(p => (p.folderId || null) === activeFolderId);
@@ -672,189 +690,155 @@ export default function Dashboard() {
         const Icon = getActiveIcon();
         const isSelected = selectedIds.includes(p.id);
         const isMerged = !!p.mergedCanvasIds;
+        const accent = getAccent(p.id);
+        const nodeCount = p.nodes?.length ?? 0;
+        const todoCount = p.todos?.length ?? 0;
+        const wc = wordCount(p.writingContent);
 
         return (
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`
-                    group relative bg-[#0a0a0a] p-4 md:p-7 rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.98] hover:bg-[#0d0d0d] hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)]
-                    ${isSelected ? 'border-orange-500 ring-1 ring-orange-500/50 shadow-[0_0_20px_rgba(255,95,31,0.1)]' : 'border-white/[0.05] hover:border-white/[0.12]'}
-                    ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40 animate-pulse' : 'opacity-100'}
+                className={`group relative rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-hidden flex flex-col
+                    ${isSelected ? 'border-orange-500 ring-1 ring-orange-500/40' : 'border-white/[0.06] hover:border-white/[0.14]'}
+                    ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
+                style={{
+                    background: '#0a0a0a',
+                    boxShadow: isSelected
+                        ? `0 0 20px ${accent}20`
+                        : undefined,
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = `0 8px 32px ${accent}18`; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = isSelected ? `0 0 20px ${accent}20` : ''; }}
             >
-                {/* Selection Overlay */}
-                {selectionMode && (
-                    <div className="absolute top-4 right-4 z-10">
-                        {isSelected ? (
-                            <div className="bg-orange-500 text-white rounded-full p-1 shadow-lg">
-                                <CheckCircle2 size={24} />
-                            </div>
-                        ) : (
-                            <div className="w-8 h-8 rounded-full border-2 border-white/10 group-hover:border-white/30 transition-colors" />
-                        )}
-                    </div>
-                )}
+                {/* Accent top strip */}
+                <div className="h-[3px] w-full shrink-0" style={{ background: accent, opacity: 0.85 }} />
 
-                {/* Card Actions — always visible on mobile, hover-reveal on desktop */}
-                {!selectionMode && (
-                    <div className="absolute top-4 right-4 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all pointer-events-auto">
-                        <div className="relative">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setShowDuplicateMenu(showDuplicateMenu === p.id ? null : p.id); setShowMoveMenu(null); }}
-                                className={`p-2 rounded-lg transition-colors ${showDuplicateMenu === p.id ? 'text-primary bg-white/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
-                                title="Duplicate Project"
-                            >
-                                <Copy size={16} />
-                            </button>
-
-                            {showDuplicateMenu === p.id && (
-                                <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-50 animate-in slide-in-from-top-2 duration-200">
-                                    <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-primary border-b border-white/[0.04] mb-1">Duplicate to...</p>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, null); setShowDuplicateMenu(null); }}
-                                        className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-white/60 hover:text-white`}
-                                    >
-                                        <Layout size={14} /> General Projects
-                                    </button>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleDuplicateToFreshFolder(p.id); }}
-                                        className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-primary"
-                                    >
-                                        <FolderPlus size={14} /> New Fresh Folder...
-                                    </button>
-                                    {Object.values(folders).map(f => (
-                                        <button
-                                            key={f.id}
-                                            onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, f.id); setShowDuplicateMenu(null); }}
-                                            className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-white/60 hover:text-white`}
-                                        >
-                                            <Folder size={14} /> {f.name}
-                                        </button>
-                                    ))}
+                <div className="p-4 md:p-6 flex flex-col flex-1">
+                    {/* Selection Overlay */}
+                    {selectionMode && (
+                        <div className="absolute top-5 right-4 z-10">
+                            {isSelected ? (
+                                <div className="text-white rounded-full p-1 shadow-lg" style={{ background: accent }}>
+                                    <CheckCircle2 size={20} />
                                 </div>
+                            ) : (
+                                <div className="w-7 h-7 rounded-full border-2 border-white/10 group-hover:border-white/30 transition-colors" />
                             )}
-                        </div>
-
-                        <div className="relative">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setShowMoveMenu(showMoveMenu === p.id ? null : p.id); setShowDuplicateMenu(null); }}
-                                className={`p-2 rounded-lg transition-colors ${showMoveMenu === p.id ? 'text-primary bg-white/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
-                                title="Move to Workspace"
-                            >
-                                <Folders size={16} />
-                            </button>
-
-                            {showMoveMenu === p.id && (
-                                <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-50 animate-in slide-in-from-top-2 duration-200">
-                                    <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-white/30 border-b border-white/[0.04] mb-1">Move to...</p>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleMoveToFolder(p.id, null); }}
-                                        className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 ${p.folderId === null ? 'text-primary' : 'text-white/60'}`}
-                                    >
-                                        <Layout size={14} /> General Projects
-                                    </button>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleMoveToFreshFolder(p.id); }}
-                                        className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-primary"
-                                    >
-                                        <FolderPlus size={14} /> New Fresh Folder...
-                                    </button>
-                                    {Object.values(folders).map(f => (
-                                        <button
-                                            key={f.id}
-                                            onClick={(e) => { e.stopPropagation(); handleMoveToFolder(p.id, f.id); }}
-                                            className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 ${p.folderId === f.id ? 'text-primary' : 'text-white/60'}`}
-                                        >
-                                            <Folder size={14} /> {f.name}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <button
-                            onClick={(e) => handleToggleCurrent(e, p.id)}
-                            className={`p-2 rounded-lg transition-colors ${p.isCurrent ? 'text-yellow-400 bg-yellow-500/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
-                            title={p.isCurrent ? "Remove from Current" : "Mark as Current"}
-                        >
-                            <Zap size={16} fill={p.isCurrent ? "currentColor" : "none"} />
-                        </button>
-                        <button
-                            onClick={(e) => handleTogglePin(e, p.id)}
-                            className={`p-2 rounded-lg transition-colors ${p.isPinned ? 'text-primary bg-white/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
-                            title={p.isPinned ? "Unpin Project" : "Pin Project"}
-                        >
-                            <Star size={16} fill={p.isPinned ? "currentColor" : "none"} />
-                        </button>
-                        <button
-                            onClick={(e) => handleStartRename(e, p.id, p.name || p.title || '')}
-                            className="p-2 rounded-lg text-white/20 hover:text-primary hover:bg-white/5 transition-colors"
-                            title="Rename Project"
-                            aria-label="Rename project"
-                        >
-                            <Pencil size={16} />
-                        </button>
-                        <button
-                            onClick={(e) => handleDelete(e, p.id)}
-                            className="p-2 rounded-lg text-white/20 hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                            title="Delete Project"
-                        >
-                            <Trash2 size={16} />
-                        </button>
-                    </div>
-                )}
-
-                <div className="flex items-start justify-between mb-3 md:mb-5">
-                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center bg-white/[0.04] border border-white/[0.04] group-hover:bg-white/[0.06] group-hover:border-white/[0.08] transition-all duration-300`}>
-                        {isMerged ? (
-                            <GitMerge size={22} className="text-orange-400" />
-                        ) : (
-                            <Icon size={22} className={activeTab === 'strategy' ? 'text-primary' : 'text-white/50'} />
-                        )}
-                    </div>
-                    {isMerged && (
-                        <div className="px-2.5 py-0.5 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[9px] uppercase font-bold tracking-[0.15em] text-orange-400">
-                            Merged
                         </div>
                     )}
-                </div>
 
-                {renamingId === p.id ? (
-                    <input
-                        autoFocus
-                        type="text"
-                        value={renameValue}
-                        onChange={e => setRenameValue(e.target.value.slice(0, 80))}
-                        onBlur={() => handleRenameCommit(p.id)}
-                        onKeyDown={e => {
-                            if (e.key === 'Enter') { e.preventDefault(); handleRenameCommit(p.id); }
-                            if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); }
-                        }}
-                        onClick={e => e.stopPropagation()}
-                        className="text-lg md:text-xl font-bold text-white mb-2 w-full bg-transparent border-b border-primary/60 outline-none pb-0.5 placeholder-white/20"
-                        placeholder="Project name..."
-                        aria-label="Rename project"
-                    />
-                ) : (
-                    <h3
-                        className="text-sm md:text-lg font-bold text-white mb-1 md:mb-2 truncate cursor-text group/title flex items-center gap-2"
-                        onDoubleClick={e => handleStartRename(e, p.id, p.name || p.title || '')}
-                        title="Double-click to rename"
-                    >
-                        <span className="truncate">{p.title || p.name || 'Untitled Project'}</span>
-                    </h3>
-                )}
-                <p className="text-white/20 text-[11px] md:text-sm mb-3 md:mb-5 line-clamp-1">
-                    {isMerged ? `Contains ${p.mergedCanvasIds?.length ?? 0} strategy canvases.` :
-                        activeTab === 'strategy' ? 'Main strategy board and flowchart.' :
-                            activeTab === 'todo' ? `${p.todos?.length || 0} tasks pending.` :
-                                activeTab === 'strab' ? 'AI-powered reports and insights.' :
-                                    'Project timeline and milestones.'}
-                </p>
+                    {/* Card Actions */}
+                    {!selectionMode && (
+                        <div className="absolute top-5 right-3 flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all z-10">
+                            <div className="relative">
+                                <button onClick={(e) => { e.stopPropagation(); setShowDuplicateMenu(showDuplicateMenu === p.id ? null : p.id); setShowMoveMenu(null); }}
+                                    className={`p-1.5 rounded-lg transition-colors ${showDuplicateMenu === p.id ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title="Duplicate">
+                                    <Copy size={14} />
+                                </button>
+                                {showDuplicateMenu === p.id && (
+                                    <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-50 animate-in slide-in-from-top-2 duration-200">
+                                        <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-primary border-b border-white/[0.04] mb-1">Duplicate to...</p>
+                                        <button onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, null); setShowDuplicateMenu(null); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-white/60 hover:text-white"><Layout size={14} /> General Projects</button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleDuplicateToFreshFolder(p.id); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-primary"><FolderPlus size={14} /> New Fresh Folder...</button>
+                                        {Object.values(folders).map(f => (<button key={f.id} onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, f.id); setShowDuplicateMenu(null); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-white/60 hover:text-white"><Folder size={14} /> {f.name}</button>))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="relative">
+                                <button onClick={(e) => { e.stopPropagation(); setShowMoveMenu(showMoveMenu === p.id ? null : p.id); setShowDuplicateMenu(null); }}
+                                    className={`p-1.5 rounded-lg transition-colors ${showMoveMenu === p.id ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title="Move">
+                                    <Folders size={14} />
+                                </button>
+                                {showMoveMenu === p.id && (
+                                    <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-50 animate-in slide-in-from-top-2 duration-200">
+                                        <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-white/30 border-b border-white/[0.04] mb-1">Move to...</p>
+                                        <button onClick={(e) => { e.stopPropagation(); handleMoveToFolder(p.id, null); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 ${p.folderId === null ? 'text-primary' : 'text-white/60'}`}><Layout size={14} /> General Projects</button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleMoveToFreshFolder(p.id); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-primary"><FolderPlus size={14} /> New Fresh Folder...</button>
+                                        {Object.values(folders).map(f => (<button key={f.id} onClick={(e) => { e.stopPropagation(); handleMoveToFolder(p.id, f.id); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 ${p.folderId === f.id ? 'text-primary' : 'text-white/60'}`}><Folder size={14} /> {f.name}</button>))}
+                                    </div>
+                                )}
+                            </div>
+                            <button onClick={(e) => handleToggleCurrent(e, p.id)} className={`p-1.5 rounded-lg transition-colors ${p.isCurrent ? 'text-yellow-400 bg-yellow-500/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title={p.isCurrent ? 'Remove from Current' : 'Mark as Current'}><Zap size={14} fill={p.isCurrent ? 'currentColor' : 'none'} /></button>
+                            <button onClick={(e) => handleTogglePin(e, p.id)} className={`p-1.5 rounded-lg transition-colors ${p.isPinned ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title={p.isPinned ? 'Unpin' : 'Pin'}><Star size={14} fill={p.isPinned ? 'currentColor' : 'none'} /></button>
+                            <button onClick={(e) => handleStartRename(e, p.id, p.name || p.title || '')} className="p-1.5 rounded-lg text-white/25 hover:text-primary hover:bg-white/8 transition-colors" title="Rename"><Pencil size={14} /></button>
+                            <button onClick={(e) => handleDelete(e, p.id)} className="p-1.5 rounded-lg text-white/25 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete"><Trash2 size={14} /></button>
+                        </div>
+                    )}
 
-                <div className="flex items-center text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest gap-2 opacity-60 md:opacity-0 group-hover:opacity-100 transition-all duration-300 md:translate-y-2 md:group-hover:translate-y-0">
-                    <span>{selectionMode ? (isSelected ? 'Deselect' : 'Select') : `Open ${isMerged ? 'View' : activeTab}`}</span>
-                    <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform duration-300" />
+                    {/* Icon + badges row */}
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0"
+                            style={{ background: `${accent}18`, border: `1px solid ${accent}30` }}>
+                            {isMerged
+                                ? <GitMerge size={18} style={{ color: accent }} />
+                                : <Icon size={18} style={{ color: accent }} />
+                            }
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            {p.isPinned && <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-black uppercase tracking-wider text-white/30">Pinned</span>}
+                            {p.isCurrent && <span className="px-1.5 py-0.5 rounded-md bg-yellow-500/10 text-[9px] font-black uppercase tracking-wider text-yellow-500/70">Active</span>}
+                            {isMerged && <span className="px-1.5 py-0.5 rounded-md bg-orange-500/10 text-[9px] font-black uppercase tracking-wider text-orange-400">Merged</span>}
+                        </div>
+                    </div>
+
+                    {/* Title */}
+                    {renamingId === p.id ? (
+                        <input autoFocus type="text" value={renameValue}
+                            onChange={e => setRenameValue(e.target.value.slice(0, 80))}
+                            onBlur={() => handleRenameCommit(p.id)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleRenameCommit(p.id); } if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); } }}
+                            onClick={e => e.stopPropagation()}
+                            className="text-base md:text-lg font-bold text-white mb-3 w-full bg-transparent border-b outline-none pb-0.5 placeholder-white/20"
+                            style={{ borderColor: `${accent}60` }}
+                            placeholder="Project name..." aria-label="Rename project"
+                        />
+                    ) : (
+                        <h3 className="text-sm md:text-base font-bold text-white mb-3 truncate leading-snug"
+                            onDoubleClick={e => handleStartRename(e, p.id, p.name || p.title || '')}
+                            title="Double-click to rename">
+                            {p.title || p.name || 'Untitled Project'}
+                        </h3>
+                    )}
+
+                    {/* Stats row */}
+                    <div className="flex items-center gap-3 mb-4 flex-wrap">
+                        {nodeCount > 0 && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
+                                <span className="w-1 h-1 rounded-full inline-block" style={{ background: accent }} />
+                                {nodeCount} node{nodeCount !== 1 ? 's' : ''}
+                            </span>
+                        )}
+                        {todoCount > 0 && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
+                                <CheckSquare size={10} className="opacity-60" />
+                                {todoCount} task{todoCount !== 1 ? 's' : ''}
+                            </span>
+                        )}
+                        {wc > 0 && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
+                                <FileText size={10} className="opacity-60" />
+                                {wc}w
+                            </span>
+                        )}
+                        {isMerged && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
+                                <Layers size={10} className="opacity-60" />
+                                {p.mergedCanvasIds?.length ?? 0} canvases
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-auto flex items-center justify-between">
+                        <span className="text-[10px] text-white/20 font-medium">{timeAgo(p.updatedAt)}</span>
+                        <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0"
+                            style={{ color: accent }}>
+                            {selectionMode ? (isSelected ? 'Deselect' : 'Select') : 'Open'}
+                            <ArrowRight size={11} />
+                        </span>
+                    </div>
                 </div>
             </div>
         );
