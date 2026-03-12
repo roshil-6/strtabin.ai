@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool } from 'lucide-react';
 import type { CanvasData } from '../store/useStore';
 
 export default function Dashboard() {
@@ -34,6 +34,8 @@ export default function Dashboard() {
     const { user } = useUser();
 
     const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab'>('strategy');
+    const [tabKey, setTabKey] = useState(0);
+    const [isFirstLoad, setIsFirstLoad] = useState(true);
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [showFolderModal, setShowFolderModal] = useState(false);
@@ -46,7 +48,8 @@ export default function Dashboard() {
 
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
-        return () => { document.title = 'Stratabin AI — Strategy Workspace'; };
+        const t = setTimeout(() => setIsFirstLoad(false), 400);
+        return () => { clearTimeout(t); document.title = 'Stratabin AI — Strategy Workspace'; };
     }, []);
 
     useEffect(() => {
@@ -400,7 +403,7 @@ export default function Dashboard() {
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab')}
+                                onClick={() => { setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab'); setTabKey(k => k + 1); }}
                                 className={`group flex items-center gap-1.5 md:gap-3 pb-2.5 md:pb-4 relative transition-all duration-300 min-w-max ${activeTab === tab.id
                                     ? 'text-white'
                                     : 'text-white/25 hover:text-white/60'
@@ -417,7 +420,7 @@ export default function Dashboard() {
 
                     {/* Tab Content */}
                     {activeTab === 'calendar' ? (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 space-y-8">
+                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-8">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
                                     <h2 className="text-2xl font-black text-white">Calendar Hub</h2>
@@ -456,7 +459,7 @@ export default function Dashboard() {
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-8 md:space-y-14 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div key={tabKey} className="space-y-8 md:space-y-14 animate-in fade-in slide-in-from-bottom-3 duration-300">
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
                                     <div className="bg-[#1a1a1a] border border-orange-500/30 rounded-2xl p-4 shadow-2xl flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
@@ -536,15 +539,79 @@ export default function Dashboard() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
                                     {(pinnedProjects.length > 0 || currentProjects.length > 0 ? otherProjects : regularProjects).map(p => renderProjectCard(p))}
 
-                                    {regularProjects.length === 0 && mergedProjects.length === 0 && (
-                                        <div className="col-span-full py-32 border border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center">
-                                            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-                                                <FileText size={32} className="text-white/20" />
+                                    {isFirstLoad && canvases.length === 0 && (
+                                        <div className="col-span-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+                                            {[...Array(3)].map((_, i) => (
+                                                <div key={i} className="h-40 rounded-2xl bg-white/[0.02] border border-white/[0.04] animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {!isFirstLoad && regularProjects.length === 0 && mergedProjects.length === 0 && canvases.length === 0 && (
+                                        <div className="col-span-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                            <div className="py-16 md:py-20 flex flex-col items-center text-center gap-10">
+                                                <div className="flex flex-col items-center gap-4">
+                                                    <div className="relative">
+                                                        <div className="w-20 h-20 bg-white rounded-[1.5rem] flex items-center justify-center overflow-hidden shadow-2xl border-2 border-white/10">
+                                                            <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                                                        </div>
+                                                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                                                            <Sparkles size={12} className="text-black" />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-2xl md:text-3xl font-black text-white mb-2">
+                                                            Welcome{user?.firstName ? `, ${user.firstName}` : ''}
+                                                        </h3>
+                                                        <p className="text-sm text-white/35 max-w-sm leading-relaxed">
+                                                            Your strategy workspace is ready. Create your first project and start turning ideas into execution plans.
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
+                                                    {[
+                                                        { icon: PenTool, step: '01', title: 'Write & Capture', desc: 'Start with raw ideas in the writing editor' },
+                                                        { icon: Target, step: '02', title: 'Map & Connect', desc: 'Drag ideas onto the canvas as visual nodes' },
+                                                        { icon: CheckSquare, step: '03', title: 'Execute & Track', desc: 'Convert to tasks, timelines and reports' },
+                                                    ].map((item) => (
+                                                        <div key={item.step} className="p-5 bg-white/[0.02] border border-white/[0.04] rounded-2xl text-left hover:border-primary/20 hover:bg-white/[0.03] transition-all group">
+                                                            <div className="flex items-center gap-3 mb-3">
+                                                                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-all">
+                                                                    <item.icon size={15} className="text-primary group-hover:text-black transition-colors" />
+                                                                </div>
+                                                                <span className="text-[10px] font-black text-white/20 tracking-widest">{item.step}</span>
+                                                            </div>
+                                                            <p className="text-xs font-black text-white/70 mb-1">{item.title}</p>
+                                                            <p className="text-[11px] text-white/30 leading-relaxed">{item.desc}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <button
+                                                    onClick={handleCreate}
+                                                    className="group flex items-center gap-3 px-8 py-4 bg-white text-black font-black rounded-2xl hover:bg-primary hover:text-white transition-all shadow-[0_4px_30px_rgba(255,255,255,0.08)] active:scale-95 text-sm"
+                                                >
+                                                    <Plus size={18} strokeWidth={3} />
+                                                    Create First Strategy
+                                                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                                </button>
                                             </div>
-                                            <h3 className="text-xl font-bold text-white/60 mb-2">No projects found.</h3>
-                                            <p className="text-sm text-white/20 max-w-xs">
-                                                This workspace is currently empty. Create a new project or move one here from General.
-                                            </p>
+                                        </div>
+                                    )}
+
+                                    {!isFirstLoad && regularProjects.length === 0 && mergedProjects.length === 0 && canvases.length > 0 && (
+                                        <div className="col-span-full py-20 border border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center gap-4 animate-in fade-in duration-300">
+                                            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                                                <Folder size={24} className="text-white/20" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-base font-black text-white/50 mb-1">This workspace is empty</h3>
+                                                <p className="text-xs text-white/20 max-w-xs">Create a new project or move one here from General.</p>
+                                            </div>
+                                            <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black text-white/50 hover:text-white transition-all">
+                                                <Plus size={14} strokeWidth={3} /> New Project
+                                            </button>
                                         </div>
                                     )}
                                 </div>
