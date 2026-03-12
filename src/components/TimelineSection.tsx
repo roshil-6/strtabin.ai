@@ -77,6 +77,7 @@ interface PhaseCardProps {
 function PhaseCard({ phase, index, total, onUpdate, onDelete }: PhaseCardProps) {
     const [expanded, setExpanded] = useState(true);
     const [editingField, setEditingField] = useState<string | null>(null);
+    const [nameInputActive, setNameInputActive] = useState(!phase.name);
     const meta = STATUS_META[phase.status];
     const StatusIcon = meta.icon;
 
@@ -112,15 +113,16 @@ function PhaseCard({ phase, index, total, onUpdate, onDelete }: PhaseCardProps) 
                             <GripVertical size={13} className="text-white/15 opacity-0 group-hover/phase:opacity-100 transition-opacity" />
                         </div>
                         <div className="min-w-0 flex-1">
-                            {editingField === 'name' || !phase.name ? (
+                            {editingField === 'name' || !phase.name || nameInputActive ? (
                                 <input
-                                    autoFocus={editingField === 'name'}
+                                    autoFocus={editingField === 'name' || !phase.name}
                                     className="w-full bg-transparent text-white font-black text-sm outline-none border-b border-primary/40 pb-0.5 placeholder-white/20 timeline-phase-name"
                                     value={phase.name}
                                     placeholder="Untitled phase — add a title"
                                     onChange={e => onUpdate(phase.id, { name: e.target.value })}
-                                    onBlur={() => setEditingField(null)}
-                                    onKeyDown={e => { if (e.key === 'Enter') setEditingField(null); e.stopPropagation(); }}
+                                    onFocus={() => setNameInputActive(true)}
+                                    onBlur={() => { setEditingField(null); setNameInputActive(false); }}
+                                    onKeyDown={e => { if (e.key === 'Enter') { setEditingField(null); setNameInputActive(false); } e.stopPropagation(); }}
                                     onClick={e => e.stopPropagation()}
                                 />
                             ) : (
