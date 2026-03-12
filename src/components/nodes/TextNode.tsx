@@ -27,12 +27,21 @@ export default function TextNode({ id, data, selected }: NodeProps) {
     return (
         <div className={`
             relative group min-w-[160px] md:min-w-[220px] max-w-[320px]
-            rounded-xl border transition-all duration-200
+            rounded-xl border transition-all duration-200 overflow-hidden
             ${selected
-                ? 'border-primary/60 shadow-[0_0_0_2px_rgba(249,115,22,0.15),0_8px_24px_rgba(0,0,0,0.5)] bg-[#161616]'
-                : 'border-[#252525] hover:border-[#3a3a3a] bg-[#131313] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]'
+                ? 'border-primary/50 shadow-[0_0_0_2px_rgba(249,115,22,0.12),0_0_24px_rgba(249,115,22,0.08),0_8px_24px_rgba(0,0,0,0.5)] bg-[#161410]'
+                : 'border-[#222] hover:border-[#333] bg-[#131313] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]'
             }
         `}>
+            {/* Subtle accent top bar */}
+            <div
+                className="h-[2px] w-full transition-opacity duration-200"
+                style={{
+                    background: 'linear-gradient(90deg, rgba(249,115,22,0.6) 0%, rgba(249,115,22,0.2) 100%)',
+                    opacity: selected ? 1 : 0.3,
+                }}
+            />
+
             <Handle type="target" position={Position.Top} className={handleClass} style={{ top: -6, left: '50%', transform: 'translateX(-50%)' }} />
             <Handle type="source" position={Position.Right} className={handleClass} style={{ right: -6, top: '50%', transform: 'translateY(-50%)' }} />
             <Handle type="source" position={Position.Bottom} className={handleClass} style={{ bottom: -6, left: '50%', transform: 'translateX(-50%)' }} />

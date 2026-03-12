@@ -24,11 +24,11 @@ const VARIANTS: Record<NodeVariant, {
     idea: {
         label: 'Idea',
         icon: Lightbulb,
-        accent: '#3b82f6',
-        headerBg: 'rgba(59,130,246,0.08)',
-        border: '#1e293b',
-        selectedBorder: 'rgba(59,130,246,0.6)',
-        selectedGlow: '0 0 0 2px rgba(59,130,246,0.15), 0 8px 24px rgba(0,0,0,0.5)',
+        accent: '#f97316',
+        headerBg: 'rgba(249,115,22,0.07)',
+        border: '#1e120a',
+        selectedBorder: 'rgba(249,115,22,0.6)',
+        selectedGlow: '0 0 0 2px rgba(249,115,22,0.15), 0 12px 28px rgba(249,115,22,0.08), 0 8px 24px rgba(0,0,0,0.5)',
     },
     question: {
         label: 'Question',

@@ -27,7 +27,28 @@ export default function SmartEdge({
 
     return (
         <>
-            <BaseEdge path={edgePath} markerEnd={markerEnd} style={{ ...style, stroke: '#FF5F1F', strokeWidth: 2 }} />
+            {/* Glow layer behind the edge */}
+            <BaseEdge
+                path={edgePath}
+                style={{
+                    ...style,
+                    stroke: 'rgba(249,115,22,0.15)',
+                    strokeWidth: 8,
+                    filter: 'blur(4px)',
+                    strokeLinecap: 'round',
+                }}
+            />
+            {/* Main edge line */}
+            <BaseEdge
+                path={edgePath}
+                markerEnd={markerEnd}
+                style={{
+                    ...style,
+                    stroke: 'rgba(249,115,22,0.55)',
+                    strokeWidth: 1.5,
+                    strokeLinecap: 'round',
+                }}
+            />
             <EdgeLabelRenderer>
                 <div
                     style={{
@@ -39,15 +60,15 @@ export default function SmartEdge({
                     className="nodrag nopan flex items-center gap-1 group"
                 >
                     {typeof data?.label === 'string' && (
-                        <div className="bg-[#1a1a1a] text-white/90 px-2 py-1 rounded border border-[#333] shadow-sm">
+                        <div className="bg-[#111] text-white/80 px-2 py-1 rounded-lg border border-white/[0.08] text-[11px] font-medium shadow-lg">
                             {data.label}
                         </div>
                     )}
                     <button
-                        className="w-5 h-5 bg-black border border-red-500 rounded-full flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+                        className="w-5 h-5 bg-[#111] border border-white/[0.08] rounded-full flex items-center justify-center text-white/30 hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
                         onClick={() => deleteEdge(id)}
                     >
-                        <X size={10} />
+                        <X size={9} />
                     </button>
                 </div>
             </EdgeLabelRenderer>

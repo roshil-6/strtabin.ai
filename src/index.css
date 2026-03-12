@@ -55,6 +55,75 @@ a {
   overflow: hidden;
 }
 
+/* ── ReactFlow canvas overrides ────────────────────────────────────── */
+
+/* Selection rectangle → orange */
+.react-flow__selection {
+  border: 1.5px solid rgba(249,115,22,0.5) !important;
+  background: rgba(249,115,22,0.04) !important;
+  border-radius: 6px !important;
+}
+.react-flow__nodesselection-rect {
+  border: 1.5px solid rgba(249,115,22,0.5) !important;
+  background: rgba(249,115,22,0.04) !important;
+  border-radius: 4px !important;
+}
+
+/* Edges → subtle warm color, slightly brighter */
+.react-flow__edge-path {
+  stroke: rgba(249,115,22,0.35) !important;
+  stroke-width: 1.5px !important;
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: rgba(249,115,22,0.8) !important;
+}
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: rgba(249,115,22,0.6) !important;
+}
+
+/* Connection line while dragging */
+.react-flow__connection-path {
+  stroke: rgba(249,115,22,0.7) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 6 3 !important;
+}
+
+/* Controls → match app theme */
+.react-flow__controls {
+  background: #111111 !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+}
+.react-flow__controls-button {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  fill: rgba(255,255,255,0.3) !important;
+  width: 32px !important;
+  height: 32px !important;
+  transition: all 0.15s !important;
+}
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+.react-flow__controls-button:hover {
+  background: rgba(249,115,22,0.08) !important;
+  fill: rgba(249,115,22,0.9) !important;
+}
+
+/* Edge label */
+.react-flow__edge-text {
+  fill: rgba(255,255,255,0.4) !important;
+  font-size: 11px !important;
+}
+
+/* Attribution (hide Vercel badge area) */
+.react-flow__attribution {
+  opacity: 0.15 !important;
+}
+
 /* Custom scrollbar for panels if needed */
 ::-webkit-scrollbar {
   width: 6px;

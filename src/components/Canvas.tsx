@@ -378,10 +378,13 @@ function CanvasContent() {
                 >
                     <div className="flex-1 w-full h-full relative" style={{ touchAction: 'none', overscrollBehavior: 'none' }}>
                         {/* Flow Top Bar — compact on mobile */}
-                        <div className={`absolute ${isMerged ? 'top-[4.5rem]' : 'top-1.5 md:top-4'} left-1.5 right-1.5 md:left-4 md:right-4 h-10 md:h-14 bg-[#0e0e0e]/90 backdrop-blur-xl rounded-xl md:rounded-2xl border border-white/[0.06] flex items-center px-2 md:px-4 z-40 justify-between transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]`}>
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
-                                <span className="text-[10px] md:text-sm font-bold text-white/50">Flow</span>
+                        <div className={`absolute ${isMerged ? 'top-[4.5rem]' : 'top-1.5 md:top-4'} left-1.5 right-1.5 md:left-4 md:right-4 h-10 md:h-14 bg-[#0a0a0a]/95 backdrop-blur-2xl rounded-xl md:rounded-2xl border border-white/[0.07] flex items-center px-2 md:px-4 z-40 justify-between transition-all shadow-[0_4px_24px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.04)]`}>
+                            <div className="flex items-center gap-2 md:gap-2.5">
+                                <div className="relative">
+                                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+                                    <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-30" />
+                                </div>
+                                <span className="text-[10px] md:text-[11px] font-black tracking-widest text-white/35 uppercase">Flow</span>
                             </div>
 
                             <div className="flex items-center gap-1 md:gap-2">
@@ -406,6 +409,21 @@ function CanvasContent() {
                             </div>
                         </div>
 
+                        {/* Vignette overlay for depth */}
+                        <div
+                            className="absolute inset-0 pointer-events-none z-10"
+                            style={{
+                                background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)',
+                            }}
+                        />
+                        {/* Subtle warm glow at canvas center */}
+                        <div
+                            className="absolute inset-0 pointer-events-none z-[9]"
+                            style={{
+                                background: 'radial-gradient(ellipse 60% 40% at 50% 55%, rgba(249,115,22,0.035) 0%, transparent 70%)',
+                            }}
+                        />
+
                         {(!isMobile || mobileTab === 'map') && <ReactFlow
                             nodes={enhancedNodes}
                             edges={edges}
@@ -427,7 +445,7 @@ function CanvasContent() {
                             connectionRadius={50}
                             snapToGrid
                             snapGrid={[10, 10]}
-                            connectionLineStyle={{ stroke: '#FF5F1F', strokeWidth: 2.5, strokeDasharray: '6 3' }}
+                            connectionLineStyle={{ stroke: '#f97316', strokeWidth: 2, strokeDasharray: '6 3' }}
                             translateExtent={isMobile ? undefined : [[-4000, -4000], [4000, 4000]]}
                             zoomOnPinch={true}
                             zoomOnScroll={!isMobile}
@@ -437,8 +455,14 @@ function CanvasContent() {
                             panActivationKeyCode={null}
                             disableKeyboardA11y={isMobile}
                             selectionOnDrag={false}
+                            style={{ background: '#080808' }}
                         >
-                            <Background color="#151515" gap={20} variant={BackgroundVariant.Dots} size={1} />
+                            <Background
+                                color="rgba(255,255,255,0.07)"
+                                gap={28}
+                                variant={BackgroundVariant.Dots}
+                                size={1.2}
+                            />
 
                             {/* Desktop-only: built-in controls */}
                             <div className="hidden md:block">
