@@ -122,12 +122,11 @@ function CanvasContent() {
     }, [nodes, navigate]);
 
     // Handle Adding Nodes from Command Dock
-    const handleAddNode = (type: 'default') => {
+    const handleAddNode = (type: 'default' | 'text' | 'question' | 'decision') => {
         const position = screenToFlowPosition({ x: window.innerWidth * 0.725, y: window.innerHeight / 2 });
-
         const newNode: Node = {
             id: `node-${Date.now()}`,
-            type: type,
+            type,
             position: { x: position.x - 100, y: position.y - 50 },
             data: { label: '' },
         };
