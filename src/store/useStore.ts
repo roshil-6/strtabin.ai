@@ -155,6 +155,7 @@ export type RFState = {
     canvases: Record<string, CanvasData>;
     currentCanvasId: string | null;
     createCanvas: () => string;
+    populateCanvas: (canvasId: string, nodes: Node[], edges: Edge[]) => void;
     initDefaultCanvas: () => void;
     deleteCanvas: (id: string) => void;
     duplicateCanvas: (id: string, targetFolderId: string | null) => void;
@@ -300,6 +301,19 @@ const useStore = create<RFState>()(
                 if (Object.keys(state.canvases).length === 0) {
                     state.createCanvas();
                 }
+            },
+
+            populateCanvas: (canvasId: string, nodes: Node[], edges: Edge[]) => {
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas) return state;
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: { ...canvas, nodes, edges, updatedAt: Date.now() },
+                        },
+                    };
+                });
             },
 
             createCanvas: (initialName?: string) => {

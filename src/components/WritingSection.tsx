@@ -551,7 +551,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                             onClick={() => openPreview(doc)}
                                             className="flex items-center gap-3 flex-1 min-w-0 text-left"
                                         >
-                                            <div className={`p-2 rounded-lg ${doc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                            <div className={`p-2 rounded-lg ${doc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}>
                                                 {doc.name.toLowerCase().endsWith('.pdf') ? <FileText size={20} /> : <File size={20} />}
                                             </div>
                                             <span className="text-sm text-white/70 truncate group-hover:text-white transition-colors">{doc.name}</span>
@@ -727,7 +727,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     <div className="relative w-full h-full max-w-6xl bg-[#0a0a0a] border border-white/10 rounded-2xl md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
                         <div className="flex-shrink-0 p-4 border-b border-white/5 flex items-center justify-between bg-[#0f0f0f]">
                             <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-lg ${previewDoc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                <div className={`p-2 rounded-lg ${previewDoc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}>
                                     {previewDoc.name.toLowerCase().endsWith('.pdf') ? <FileText size={20} /> : <File size={20} />}
                                 </div>
                                 <h3 className="text-sm font-bold text-white truncate max-w-[200px] md:max-w-md">{previewDoc.name}</h3>

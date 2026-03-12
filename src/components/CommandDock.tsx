@@ -19,9 +19,9 @@ const NODE_TYPES: {
         type: 'default',
         label: 'Idea',
         icon: Lightbulb,
-        accent: '#3b82f6',
-        bg: 'rgba(59,130,246,0.08)',
-        border: 'rgba(59,130,246,0.2)',
+        accent: '#f97316',
+        bg: 'rgba(249,115,22,0.08)',
+        border: 'rgba(249,115,22,0.2)',
         desc: 'Add an idea node',
     },
     {

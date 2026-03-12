@@ -20,11 +20,11 @@ export const ProcessNode = memo(({ data, selected }: NodeProps) => (
     <div className={clsx(
         "px-6 py-4 rounded-lg border-2 transition-all min-w-[150px] text-center font-medium",
         selected
-            ? "bg-blue-500/20 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+            ? "bg-orange-500/20 border-orange-500 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.3)]"
             : "bg-[#1a1a1a] border-white/20 text-white hover:border-white/40"
     )}>
-        <Handle type="target" position={Position.Top} className="!bg-blue-500/50" />
-        <Handle type="source" position={Position.Bottom} className="!bg-blue-500/50" />
+        <Handle type="target" position={Position.Top} className="!bg-orange-500/50" />
+        <Handle type="source" position={Position.Bottom} className="!bg-orange-500/50" />
         {data.label as string}
     </div>
 ));

@@ -5,6 +5,7 @@ import Canvas from './components/Canvas';
 import TimelineSection from './components/TimelineSection';
 import TodoSection from './components/TodoSection';
 import StrabView from './components/StrabView';
+import StrabHome from './components/StrabHome';
 import CalendarView from './components/CalendarView';
 import LandingPage from './components/LandingPage';
 import FolderWorkflow from './components/FolderWorkflow';
@@ -25,6 +26,7 @@ function App() {
       <Route path="/todo/:id" element={<AuthGate><PaywallGate><TodoSection /></PaywallGate></AuthGate>} />
       <Route path="/calendar/:id" element={<AuthGate><PaywallGate><CalendarView /></PaywallGate></AuthGate>} />
       <Route path="/calendar" element={<AuthGate><PaywallGate><CalendarView /></PaywallGate></AuthGate>} />
+      <Route path="/strab" element={<AuthGate><PaywallGate><StrabHome /></PaywallGate></AuthGate>} />
       <Route path="/strab/:id" element={<AuthGate><PaywallGate><StrabView /></PaywallGate></AuthGate>} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

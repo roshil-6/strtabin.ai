@@ -16,9 +16,9 @@ const NAV_ITEMS = [
         icon: Clock,
         path: (id: string) => `/timeline/${id}`,
         match: (p: string, _s: string) => p.includes('/timeline'),
-        accent: '#3b82f6',
-        activeBg: 'rgba(59,130,246,0.12)',
-        activeBorder: 'rgba(59,130,246,0.3)',
+        accent: '#f97316',
+        activeBg: 'rgba(249,115,22,0.12)',
+        activeBorder: 'rgba(249,115,22,0.3)',
     },
     {
         label: 'Calendar',

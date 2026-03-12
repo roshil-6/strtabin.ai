@@ -163,7 +163,7 @@ export default function Dashboard() {
 
     const activeFolder = activeFolderId ? folders[activeFolderId] : null;
 
-    const ACCENT_COLORS = ['#f97316','#3b82f6','#8b5cf6','#10b981','#ec4899','#14b8a6','#eab308','#ef4444'];
+    const ACCENT_COLORS = ['#f97316','#f59e0b','#8b5cf6','#10b981','#ec4899','#14b8a6','#eab308','#ef4444'];
     function getAccent(id: string) {
         const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
         return ACCENT_COLORS[hash % ACCENT_COLORS.length];
@@ -195,7 +195,7 @@ export default function Dashboard() {
     const tabs = [
         { id: 'strategy', label: 'Writing & Flow', icon: FileText, color: 'text-primary' },
         { id: 'todo', label: 'Task Lists', icon: ListTodo, color: 'text-orange-400' },
-        { id: 'timeline', label: 'Timelines', icon: Clock, color: 'text-blue-400' },
+        { id: 'timeline', label: 'Timelines', icon: Clock, color: 'text-orange-400' },
         { id: 'calendar', label: 'Strategic Calendar', icon: Calendar, color: 'text-white' },
         { id: 'planner', label: 'Project Weekly Planner', icon: CheckCircle2, color: 'text-orange-500' },
         { id: 'strab', label: 'STRAB AI', icon: Bot, color: 'text-orange-500' },
@@ -381,6 +381,16 @@ export default function Dashboard() {
                         </div>
 
                         <div className="flex flex-row items-center gap-1.5 md:gap-2 mt-2.5 md:mt-6 overflow-x-auto custom-scrollbar-hide">
+
+                            {/* STRAB AI Builder — general chat */}
+                            <button
+                                onClick={() => navigate('/strab')}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-5 md:py-3 bg-primary/8 text-primary border border-primary/25 hover:bg-primary/15 hover:border-primary/40 rounded-xl active:scale-95 transition-all font-black text-[11px] md:text-sm shrink-0 shadow-[0_2px_12px_rgba(249,115,22,0.12)]"
+                                style={{ background: 'rgba(249,115,22,0.07)' }}
+                            >
+                                <Bot size={14} />
+                                <span>STRAB AI</span>
+                            </button>
 
                             <button
                                 onClick={() => navigate(`/folder-workflow/${activeFolderId || 'general'}`)}
