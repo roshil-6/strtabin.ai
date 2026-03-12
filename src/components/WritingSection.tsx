@@ -351,14 +351,14 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const projectName = canvas?.name || canvas?.title || 'Untitled';
 
     return (
-        <div className="h-full w-full flex flex-col border-r border-white/[0.06] relative bg-[#0b0b0b] writing-section-dark">
+        <div className="h-full w-full theme-page flex flex-col border-r border-[var(--border)] relative">
             {/* Toolbar */}
-            <div className="h-11 md:h-14 border-b border-white/[0.06] flex items-center px-2 md:px-4 gap-1 bg-[#0a0a0a] backdrop-blur-2xl sticky top-0 z-20">
+            <div className="h-11 md:h-14 border-b border-[var(--border)] flex items-center px-2 md:px-4 gap-1 theme-panel backdrop-blur-2xl sticky top-0 z-20">
                 <div className="flex items-center gap-2 mr-auto min-w-0">
                     <FileText size={13} className="text-primary shrink-0" />
-                    <span className="text-xs font-bold text-white/70 truncate max-w-[120px] md:max-w-[200px]" title={projectName}>{projectName}</span>
+                    <span className="text-xs font-bold text-[var(--text-secondary)] truncate max-w-[120px] md:max-w-[200px]" title={projectName}>{projectName}</span>
                     {wc > 0 && (
-                        <span className="hidden sm:flex items-center gap-1 text-[10px] text-white/50 font-medium bg-white/[0.06] px-2 py-0.5 rounded-md border border-white/[0.08]">
+                        <span className="hidden sm:flex items-center gap-1 text-[10px] text-[var(--text-muted)] font-medium bg-[var(--input-bg)] px-2 py-0.5 rounded-md border border-[var(--input-border)]">
                             {wc} words
                         </span>
                     )}
@@ -425,7 +425,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         value={title}
                         onChange={handleTitleChange}
                         placeholder="Untitled Strategy"
-                        className="w-full bg-transparent text-4xl font-bold outline-none leading-tight mb-8 theme-title-input"
+                        className="w-full bg-transparent text-4xl font-bold text-[var(--text)] placeholder-[var(--text-muted)] outline-none leading-tight mb-8"
                     />
 
                     {/* Writing Planner — collapsed by default, tap to expand */}

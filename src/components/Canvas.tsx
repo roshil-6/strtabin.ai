@@ -288,7 +288,7 @@ function CanvasContent() {
 
                 {/* Merged Tabs Bar */}
                 {isMerged && currentCanvas.mergedCanvasIds && (
-                    <div className="absolute top-0 left-0 right-0 h-12 md:h-14 bg-[#060606]/95 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-2 md:px-4 gap-1 z-[60] shadow-[0_4px_24px_rgba(0,0,0,0.5)] overflow-x-auto custom-scrollbar-hide">
+                    <div className="canvas-top-bar absolute top-0 left-0 right-0 h-12 md:h-14 bg-[#060606]/95 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-2 md:px-4 gap-1 z-[60] shadow-[0_4px_24px_rgba(0,0,0,0.5)] overflow-x-auto custom-scrollbar-hide">
                         <button
                             onClick={() => setActiveSubCanvasId(null)}
                             className={`
@@ -347,7 +347,7 @@ function CanvasContent() {
                 <div
                     className={`
                         ${mobileTab === 'write' ? 'flex' : 'hidden'} 
-                        md:flex w-full md:w-[45%] h-full border-r border-white/[0.06] relative z-10 bg-[#0b0b0b] shadow-2xl
+                        md:flex w-full md:w-[45%] h-full border-r border-[var(--border)] relative z-10 theme-page shadow-2xl
                     `}
                     style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
                     onWheel={(e) => e.stopPropagation()}
@@ -380,7 +380,7 @@ function CanvasContent() {
                 >
                     <div className="flex-1 w-full h-full relative" style={{ touchAction: 'none', overscrollBehavior: 'none' }}>
                         {/* Flow Top Bar — compact on mobile */}
-                        <div className={`absolute ${isMerged ? 'top-[4.5rem]' : 'top-1.5 md:top-4'} left-1.5 right-1.5 md:left-4 md:right-4 h-10 md:h-14 bg-[#0a0a0a]/95 backdrop-blur-2xl rounded-xl md:rounded-2xl border border-white/[0.07] flex items-center px-2 md:px-4 z-40 justify-between transition-all shadow-[0_4px_24px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.04)]`}>
+                        <div className={`canvas-top-bar absolute ${isMerged ? 'top-[4.5rem]' : 'top-1.5 md:top-4'} left-1.5 right-1.5 md:left-4 md:right-4 h-10 md:h-14 bg-[#0a0a0a]/95 backdrop-blur-2xl rounded-xl md:rounded-2xl border border-white/[0.07] flex items-center px-2 md:px-4 z-40 justify-between transition-all shadow-[0_4px_24px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.04)]`}>
                             <div className="flex items-center gap-2 md:gap-2.5">
                                 <div className="relative">
                                     <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
