@@ -115,7 +115,7 @@ export default function LandingPage() {
     const faqs = [
         {
             q: "What is Stratabin and how does the AI strategy planning work?",
-            a: "Stratabin is an AI strategy planning tool that helps you convert scattered ideas into structured execution plans. STRAB AI analyzes your canvas, writing, and project structure to provide context-aware insights, generate reports, and suggest next steps — bridging the gap between ideation and execution."
+            a: "Stratabin is an AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI help you unscatter your thoughts and turn them into execution plans. STRAB AI analyzes your canvas, writing, and project structure to provide context-aware insights and suggest next steps."
         },
         {
             q: "Is Stratabin free to use?",
@@ -148,7 +148,7 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 md:w-10 md:h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10">
-                            <img src="/favicon.png" alt="Stratabin AI strategy planning tool logo" className="w-full h-full object-contain" />
+                            <img src="/favicon.png" alt="Stratabin — AI workspace and strategy planner for ideas" className="w-full h-full object-contain" />
                         </div>
                         <span className="text-xl md:text-2xl font-black tracking-tighter text-white">Stratabin<span className="text-primary">.</span></span>
                     </div>
@@ -174,23 +174,22 @@ export default function LandingPage() {
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-10 flex justify-center animate-in fade-in zoom-in duration-1000">
                         <div className="relative w-20 h-20 md:w-24 md:h-24 bg-white rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center overflow-hidden shadow-2xl border-4 border-white/5">
-                            <img src="/favicon.png" alt="Stratabin — AI strategy planning tool" className="w-full h-full object-contain" />
+                            <img src="/favicon.png" alt="Stratabin — AI workspace and strategy planner for ideas" className="w-full h-full object-contain" />
                         </div>
                     </div>
 
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.06] text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
                         <Zap size={13} />
-                        AI Strategy Planning Tool
+                        AI Workspace & Strategy Planner for Ideas
                     </div>
 
                     <h1 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tighter leading-[1.1] mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 break-words">
-                        Turn ideas into <br />
-                        <span className="text-white/40">execution plans.</span>
+                        Unscatter your ideas. <br />
+                        <span className="text-white/40">Notes, flows, and AI.</span>
                     </h1>
 
                     <p className="text-base md:text-xl text-white/40 max-w-2xl mx-auto mb-10 md:mb-12 leading-relaxed font-medium px-2">
-                        Stratabin is the AI strategy planning tool that converts scattered ideas into structured execution plans.
-                        Write, map, branch, and execute — all in one workspace powered by STRAB AI.
+                        Stratabin is the AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI — unscatter your thoughts and turn them into execution plans.
                     </p>
 
                     <div className="flex items-center justify-center gap-2 mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300">
@@ -470,7 +469,7 @@ export default function LandingPage() {
                         <span className="text-sm font-black tracking-tighter text-white/60">Stratabin</span>
                     </div>
                     <p className="text-[11px] text-white/15 text-center md:text-left">
-                        AI strategy planning tool for students and professionals. Convert ideas into execution plans.
+                        AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI.
                     </p>
                     <p className="text-[11px] text-white/10">&copy; {new Date().getFullYear()} Stratabin. All rights reserved.</p>
                 </div>

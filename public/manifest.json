@@ -1,7 +1,7 @@
 {
-    "name": "Stratabin — AI Strategy Planning Tool",
+    "name": "Stratabin — AI Workspace & Strategy Planner for Ideas",
     "short_name": "Stratabin",
-    "description": "AI-powered strategy workspace. Turn scattered ideas into structured execution plans with STRAB AI.",
+    "description": "AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#050505",
