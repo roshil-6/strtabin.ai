@@ -141,11 +141,11 @@ export default function LandingPage() {
     ];
 
     return (
-        <div className={`min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-white/20 relative ${showHowTo ? 'overflow-hidden' : 'overflow-x-hidden'}`}>
+        <div className={`min-h-screen theme-page font-sans selection:bg-white/20 relative ${showHowTo ? 'overflow-hidden' : 'overflow-x-hidden'}`}>
             <HexagonBackground />
 
             {/* Header */}
-            <header className="fixed top-0 w-full z-50 border-b border-white/[0.04] bg-[#0a0a0a]/80 backdrop-blur-2xl">
+            <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] theme-panel backdrop-blur-2xl">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 md:w-10 md:h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10">

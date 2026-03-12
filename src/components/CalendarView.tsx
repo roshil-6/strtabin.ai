@@ -120,10 +120,10 @@ export default function CalendarView() {
     }, [selectedDateKey]);
 
     return (
-        <div className="w-screen h-screen bg-[#050505] text-white flex overflow-hidden">
+        <div className="w-screen h-screen theme-page text-white flex overflow-hidden">
             {/* Desktop left nav */}
             {id ? <Sidebar canvasId={id} /> : (
-                <div className="hidden md:flex w-16 h-full bg-[#050505] border-r border-white/[0.04] flex-col items-center py-6 gap-6">
+                <div className="hidden md:flex w-16 h-full theme-page border-r border-white/[0.04] flex-col items-center py-6 gap-6">
                     <button onClick={() => navigate('/dashboard')} className="p-3 rounded-xl bg-white/[0.04] text-white/40 hover:text-white active:scale-95 transition-all border border-white/[0.04]" aria-label="Go to dashboard">
                         <Calendar size={20} />
                     </button>
@@ -131,7 +131,7 @@ export default function CalendarView() {
             )}
 
             {/* Desktop sub-nav */}
-            <div className="hidden md:flex w-48 lg:w-56 bg-[#060606] border-r border-white/[0.04] flex-col pt-6 px-4 gap-1.5">
+            <div className="hidden md:flex w-48 lg:w-56 theme-panel border-r border-white/[0.04] flex-col pt-6 px-4 gap-1.5">
                 <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/15 mb-4 px-2">Views</h2>
 
                 <button
@@ -282,7 +282,7 @@ export default function CalendarView() {
                 <div className="flex-1 flex flex-col lg:flex-row gap-3 md:gap-4 px-2 md:px-6 pb-20 md:pb-6 overflow-hidden min-h-0">
 
                     {/* Calendar Grid / Weekly Planner */}
-                    <div className={`flex-1 rounded-2xl md:rounded-3xl border border-white/[0.05] flex flex-col overflow-hidden transition-all duration-300 ${viewMode === 'month' ? 'bg-[#080808]' : 'bg-[#070707]'}`}>
+                    <div className={`flex-1 rounded-2xl md:rounded-3xl border border-white/[0.05] flex flex-col overflow-hidden transition-all duration-300 ${viewMode === 'month' ? 'theme-card' : 'theme-panel'}`}>
                         {viewMode === 'month' ? (
                             <>
                                 {/* Day headers */}
@@ -452,7 +452,7 @@ export default function CalendarView() {
                     </div>
 
                     {/* Side Panel - Desktop only */}
-                    <div className="hidden lg:flex lg:w-72 xl:w-80 bg-[#070707] rounded-2xl md:rounded-3xl border border-white/[0.05] flex-col overflow-hidden flex-shrink-0">
+                    <div className="hidden lg:flex lg:w-72 xl:w-80 theme-panel rounded-2xl md:rounded-3xl border border-white/[0.05] flex-col overflow-hidden flex-shrink-0">
 
                         {/* Panel header */}
                         <div className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-white/[0.05]">
@@ -699,7 +699,7 @@ export default function CalendarView() {
                         </div>
 
                         {/* Add Event Input */}
-                        <div className="p-4 bg-[#060606] border-t border-white/[0.04]">
+                        <div className="p-4 theme-panel border-t border-white/[0.04]">
                             <div className="flex flex-col gap-2.5">
                                 <div className="flex gap-2">
                                     <div className="relative group w-[110px] shrink-0">
@@ -736,7 +736,7 @@ export default function CalendarView() {
                         </div>
 
                         {/* Safe area for bottom nav */}
-                        <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} className="bg-[#060606]" />
+                        <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} className="theme-panel" />
                     </div>
                 </div>
             )}

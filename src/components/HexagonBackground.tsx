@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
 export default function HexagonBackground() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mouseRef = useRef({ x: 0, y: 0 });
+    const { resolved } = useTheme();
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -41,7 +43,10 @@ export default function HexagonBackground() {
                 else ctx.lineTo(hX, hY);
             }
             ctx.closePath();
-            ctx.strokeStyle = `rgba(218, 119, 86, ${opacity})`;
+            const stroke = resolved === 'light'
+                ? `rgba(218, 119, 86, ${opacity * 0.55})`
+                : `rgba(218, 119, 86, ${opacity})`;
+            ctx.strokeStyle = stroke;
             ctx.lineWidth = 1;
             ctx.stroke();
         };
@@ -63,11 +68,13 @@ export default function HexagonBackground() {
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
                     const maxDist = 250;
-                    let opacity = 0.03;
+                    let opacity = resolved === 'light' ? 0.02 : 0.03;
 
                     if (dist < maxDist) {
                         const effect = 1 - dist / maxDist;
-                        opacity = 0.03 + 0.15 * effect;
+                        opacity = resolved === 'light'
+                            ? 0.02 + 0.08 * effect
+                            : 0.03 + 0.15 * effect;
                     }
 
                     drawHexagon(x, y, opacity);
@@ -97,7 +104,7 @@ export default function HexagonBackground() {
             window.removeEventListener('touchmove', handleTouchMove);
             cancelAnimationFrame(animationFrameId);
         };
-    }, []);
+    }, [resolved]);
 
     return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" aria-hidden="true" />;
 }

@@ -22,11 +22,11 @@
 
 /* ── Theme: Light ─────────────────────────────────────────────────────── */
 [data-theme="light"] {
-  --bg-page: #f5f5f5;
+  --bg-page: #ffffff;
   --bg-panel: #ffffff;
   --bg-elevated: #ffffff;
   --bg-card: #ffffff;
-  --bg-muted: #f0f0f0;
+  --bg-muted: #fafafa;
   --text: #171717;
   --text-secondary: #404040;
   --text-muted: #737373;
@@ -45,13 +45,99 @@
 [data-theme="light"] .text-white\/70 { color: #525252 !important; }
 [data-theme="light"] .text-white\/60 { color: #737373 !important; }
 [data-theme="light"] .text-white\/50 { color: #737373 !important; }
+[data-theme="light"] .text-white\/55 { color: #525252 !important; }
 [data-theme="light"] .text-white\/40 { color: #737373 !important; }
+[data-theme="light"] .text-white\/45 { color: #525252 !important; }
 [data-theme="light"] .text-white\/35 { color: #a3a3a3 !important; }
 [data-theme="light"] .text-white\/30 { color: #a3a3a3 !important; }
 [data-theme="light"] .text-white\/25 { color: #a3a3a3 !important; }
 [data-theme="light"] .text-white\/20 { color: #a3a3a3 !important; }
 [data-theme="light"] .text-white\/15 { color: #d4d4d4 !important; }
 [data-theme="light"] .text-white\/10 { color: #d4d4d4 !important; }
+
+/* Light theme: map hardcoded dark backgrounds to theme surfaces */
+[data-theme="light"] .bg-\[\#050505\],
+[data-theme="light"] .bg-\[\#0a0a0a\],
+[data-theme="light"] .bg-\[\#0b0b0b\] {
+  background-color: var(--bg-page) !important;
+}
+
+[data-theme="light"] .bg-\[\#060606\],
+[data-theme="light"] .bg-\[\#070707\],
+[data-theme="light"] .bg-\[\#080808\],
+[data-theme="light"] .bg-\[\#0d0d0d\],
+[data-theme="light"] .bg-\[\#0e0e0e\],
+[data-theme="light"] .bg-\[\#0f0f0f\],
+[data-theme="light"] .bg-\[\#111\],
+[data-theme="light"] .bg-\[\#151515\] {
+  background-color: var(--bg-panel) !important;
+}
+
+[data-theme="light"] .bg-\[\#060606\]\/95,
+[data-theme="light"] .bg-\[\#060606\]\/80,
+[data-theme="light"] .bg-\[\#070707\]\/95,
+[data-theme="light"] .bg-\[\#0a0a0a\]\/95,
+[data-theme="light"] .bg-\[\#0a0a0a\]\/80,
+[data-theme="light"] .bg-\[\#0e0e0e\]\/95,
+[data-theme="light"] .bg-\[\#060606\]\/\[0\.97\] {
+  background-color: color-mix(in srgb, var(--bg-panel) 92%, white 8%) !important;
+}
+
+[data-theme="light"] .bg-black\/95,
+[data-theme="light"] .bg-black\/90,
+[data-theme="light"] .bg-black\/80,
+[data-theme="light"] .bg-black\/60,
+[data-theme="light"] .bg-black\/30,
+[data-theme="light"] .bg-black\/20 {
+  background-color: rgba(0,0,0,0.06) !important;
+}
+
+/* Light theme: make translucent white utilities readable on white surfaces */
+[data-theme="light"] .bg-white\/\[0\.01\],
+[data-theme="light"] .bg-white\/\[0\.02\],
+[data-theme="light"] .bg-white\/\[0\.03\],
+[data-theme="light"] .bg-white\/\[0\.04\],
+[data-theme="light"] .bg-white\/\[0\.05\],
+[data-theme="light"] .bg-white\/\[0\.06\],
+[data-theme="light"] .bg-white\/\[0\.08\],
+[data-theme="light"] .bg-white\/\[0\.1\],
+[data-theme="light"] .bg-white\/5,
+[data-theme="light"] .bg-white\/10 {
+  background-color: var(--input-bg) !important;
+}
+
+[data-theme="light"] .border-white\/\[0\.03\],
+[data-theme="light"] .border-white\/\[0\.04\],
+[data-theme="light"] .border-white\/\[0\.05\],
+[data-theme="light"] .border-white\/\[0\.06\],
+[data-theme="light"] .border-white\/\[0\.07\],
+[data-theme="light"] .border-white\/\[0\.08\],
+[data-theme="light"] .border-white\/10 {
+  border-color: var(--input-border) !important;
+}
+
+[data-theme="light"] .hover\:bg-white\/5:hover,
+[data-theme="light"] .hover\:bg-white\/10:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.02\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.04\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.06\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.08\]:hover {
+  background-color: color-mix(in srgb, var(--input-bg) 70%, rgba(0,0,0,0.08) 30%) !important;
+}
+
+/* Light theme: placeholder/input readability */
+[data-theme="light"] .placeholder-white\/25::placeholder,
+[data-theme="light"] .placeholder-white\/20::placeholder,
+[data-theme="light"] .placeholder-white\/15::placeholder {
+  color: #737373 !important;
+  opacity: 1 !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] textarea {
+  color: var(--text);
+}
 
 :root {
   background-color: var(--bg-page);

@@ -301,10 +301,10 @@ export default function StrabHome() {
     const isEmpty = messages.length === 0;
 
     return (
-        <div className="flex flex-col h-screen bg-[#060606] text-white overflow-hidden">
+        <div className="flex flex-col h-screen theme-page text-white overflow-hidden">
 
             {/* Header */}
-            <div className="h-14 border-b border-white/[0.04] flex items-center px-3 md:px-6 bg-[#060606]/95 backdrop-blur-2xl z-20 flex-shrink-0 gap-2">
+            <div className="h-14 border-b border-white/[0.04] flex items-center px-3 md:px-6 theme-panel backdrop-blur-2xl z-20 flex-shrink-0 gap-2">
                 <button
                     onClick={() => navigate('/dashboard')}
                     className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] active:scale-95 transition-all shrink-0"
@@ -467,7 +467,7 @@ export default function StrabHome() {
                 )}
 
                 {/* Input area */}
-                <div className={`px-3 md:px-6 py-3 bg-[#060606] flex-shrink-0 ${isEmpty ? '' : 'border-t border-white/[0.04]'}`}>
+                <div className={`px-3 md:px-6 py-3 theme-panel flex-shrink-0 ${isEmpty ? '' : 'border-t border-white/[0.04]'}`}>
                     <div className="max-w-3xl mx-auto">
                         <div className="relative flex items-end gap-2 bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3 focus-within:border-primary/25 focus-within:bg-white/[0.05] transition-all shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
                             <textarea

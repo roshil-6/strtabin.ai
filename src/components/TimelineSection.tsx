@@ -104,7 +104,7 @@ function PhaseCard({ phase, index, total, onUpdate, onDelete }: PhaseCardProps) 
             </div>
 
             {/* Card */}
-            <div className="flex-1 mb-6 md:mb-8 bg-[#0e0e0e] border border-white/[0.06] rounded-2xl overflow-hidden transition-all hover:border-white/[0.1]">
+            <div className="flex-1 mb-6 md:mb-8 theme-panel border border-white/[0.06] rounded-2xl overflow-hidden transition-all hover:border-white/[0.1]">
                 {/* Card header */}
                 <div className="flex items-start justify-between gap-2 px-4 py-3 cursor-pointer select-none" onClick={() => setExpanded(e => !e)}>
                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -243,7 +243,7 @@ export default function TimelineSection() {
     };
 
     if (!canvas) return (
-        <div className="flex items-center justify-center h-screen bg-[#050505] text-white/40 text-sm">
+        <div className="flex items-center justify-center h-screen theme-page text-white/40 text-sm">
             Project not found
         </div>
     );
@@ -254,13 +254,13 @@ export default function TimelineSection() {
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
     return (
-        <div className="w-screen h-screen bg-[#050505] text-white flex overflow-hidden">
+        <div className="w-screen h-screen theme-page text-white flex overflow-hidden">
             <Sidebar canvasId={id} />
 
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
                 {/* Header */}
-                <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-3 md:px-6 gap-2 shrink-0 bg-[#060606]/95 backdrop-blur-2xl">
+                <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-3 md:px-6 gap-2 shrink-0 theme-panel backdrop-blur-2xl">
                     <button
                         onClick={() => navigate('/dashboard')}
                         className="md:hidden p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] active:scale-95 transition-all"

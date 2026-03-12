@@ -23,6 +23,7 @@ import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, F
 import toast from 'react-hot-toast';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
+import { useTheme } from '../context/ThemeContext';
 
 
 function CanvasContent() {
@@ -47,6 +48,7 @@ function CanvasContent() {
         ensureCanvasExists: state.ensureCanvasExists,
     })));
     const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow();
+    const { resolved } = useTheme();
 
     const nodeTypes = useMemo(() => ({
         text: TextNode,
@@ -269,7 +271,7 @@ function CanvasContent() {
     }, []);
 
     return (
-        <div className="w-screen h-screen bg-background text-white relative overflow-hidden flex flex-col md:flex-row">
+        <div className="w-screen h-screen theme-page relative overflow-hidden flex flex-col md:flex-row">
 
             {/* Desktop Sidebar */}
             <div className={`hidden md:block h-full ${isMerged ? 'pt-12' : ''}`}>
@@ -424,7 +426,7 @@ function CanvasContent() {
                             defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
                             fitView
                             fitViewOptions={{ minZoom: 0.3, maxZoom: 1.5, padding: 0.2 }}
-                            colorMode="dark"
+                            colorMode={resolved}
                             minZoom={0.1}
                             maxZoom={2.5}
                             connectionRadius={50}
@@ -440,10 +442,10 @@ function CanvasContent() {
                             panActivationKeyCode={null}
                             disableKeyboardA11y={isMobile}
                             selectionOnDrag={false}
-                            style={{ background: '#080808' }}
+                            style={{ background: resolved === 'light' ? '#f8fafc' : '#080808' }}
                         >
                             <Background
-                                color="rgba(255,255,255,0.07)"
+                                color={resolved === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.07)'}
                                 gap={28}
                                 variant={BackgroundVariant.Dots}
                                 size={1.2}

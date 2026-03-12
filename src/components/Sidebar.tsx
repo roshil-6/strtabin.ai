@@ -101,8 +101,8 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                             title={label}
                             onMouseEnter={e => {
                                 if (!active) {
-                                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                                    e.currentTarget.style.border = '1px solid rgba(255,255,255,0.06)';
+                                    e.currentTarget.style.background = 'var(--input-bg)';
+                                    e.currentTarget.style.border = '1px solid var(--border)';
                                 }
                             }}
                             onMouseLeave={e => {
@@ -114,11 +114,11 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                         >
                             <Icon
                                 size={18}
-                                style={{ color: active ? accent : 'rgba(255,255,255,0.25)', transition: 'color 0.2s' }}
+                                style={{ color: active ? accent : 'var(--text-dim)', transition: 'color 0.2s' }}
                             />
                             <span
                                 className="text-[8px] font-black uppercase tracking-wider transition-colors"
-                                style={{ color: active ? accent : 'rgba(255,255,255,0.2)', opacity: active ? 0.9 : 0.7 }}
+                                style={{ color: active ? accent : 'var(--text-dim)', opacity: active ? 0.9 : 0.7 }}
                             >
                                 {label}
                             </span>
@@ -155,10 +155,10 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                             }
                         }}
                     >
-                        <Bot size={18} style={{ color: active ? '#f97316' : 'rgba(255,255,255,0.25)' }} />
+                        <Bot size={18} style={{ color: active ? '#f97316' : 'var(--text-dim)' }} />
                         <span
                             className="text-[8px] font-black uppercase tracking-wider"
-                            style={{ color: active ? '#f97316' : 'rgba(255,255,255,0.2)', opacity: active ? 0.9 : 0.7 }}
+                            style={{ color: active ? '#f97316' : 'var(--text-dim)', opacity: active ? 0.9 : 0.7 }}
                         >
                             AI
                         </span>

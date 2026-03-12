@@ -34,7 +34,7 @@ export default function TodoSection() {
     };
 
     return (
-        <div className="w-screen h-screen bg-[#050505] text-white flex flex-col">
+        <div className="w-screen h-screen theme-page text-white flex flex-col">
             <ProjectHeader canvasId={id!} activeTab="tasks" />
 
             <div className="flex-1 flex flex-col overflow-hidden">
@@ -73,7 +73,7 @@ export default function TodoSection() {
                                 className={`flex items-center gap-2 px-3 py-3 rounded-xl border transition-all ${
                                     todo.completed
                                         ? 'bg-transparent border-white/[0.04] opacity-40'
-                                        : 'bg-[#111] border-white/[0.08] active:bg-white/5'
+                                        : 'theme-panel border-white/[0.08] active:bg-white/5'
                                 }`}
                             >
                                 <button

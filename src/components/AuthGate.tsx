@@ -28,7 +28,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     // While Clerk is loading, show a premium full-screen spinner
     if (!isLoaded) {
         return (
-            <div className="w-screen h-screen bg-[#0a0a0a] flex items-center justify-center">
+            <div className="w-screen h-screen theme-page flex items-center justify-center">
                 <div className="flex flex-col items-center gap-6">
                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center overflow-hidden border-2 border-white/10 animate-pulse">
                         <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
@@ -41,7 +41,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
     // If not signed in but guest trial is active, allow through
     if (!isSignedIn && !isGuestTrialActive()) return (
-        <div className="w-screen h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="w-screen h-screen theme-page flex items-center justify-center">
             <div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin" />
         </div>
     );

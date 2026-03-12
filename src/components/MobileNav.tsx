@@ -21,7 +21,7 @@ export default function MobileNav({ canvasId }: MobileNavProps) {
 
     return (
         <nav
-            className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#060606]/[0.97] backdrop-blur-2xl border-t border-white/[0.04]"
+            className="md:hidden fixed bottom-0 left-0 right-0 z-50 theme-panel backdrop-blur-2xl border-t border-white/[0.04]"
             aria-label="Mobile project navigation"
         >
             <div className="flex items-stretch h-[62px] px-1">
@@ -69,7 +69,7 @@ export default function MobileNav({ canvasId }: MobileNavProps) {
                     );
                 })}
             </div>
-            <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} className="bg-[#060606]/[0.97]" />
+            <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} className="theme-panel" />
         </nav>
     );
 }

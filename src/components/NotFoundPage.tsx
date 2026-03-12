@@ -4,7 +4,7 @@ export default function NotFoundPage() {
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen bg-[#0b0b0b] text-white flex items-center justify-center p-6 font-sans">
+        <div className="min-h-screen theme-page text-white flex items-center justify-center p-6 font-sans">
             <div className="max-w-md w-full flex flex-col items-center text-center gap-6">
                 <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center overflow-hidden border border-white/10">
                     <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
