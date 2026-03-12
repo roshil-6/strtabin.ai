@@ -355,6 +355,21 @@ a {
   stroke: rgba(249,115,22,0.9) !important;
 }
 
+/* Dashboard project cards — dark bg, force white text in light theme */
+[data-theme="light"] .dashboard-project-card h3,
+[data-theme="light"] .dashboard-project-card .text-white {
+  color: #ffffff !important;
+}
+[data-theme="light"] .dashboard-project-card .text-white\/25,
+[data-theme="light"] .dashboard-project-card .text-white\/20,
+[data-theme="light"] .dashboard-project-card .text-white\/30 {
+  color: rgba(255,255,255,0.6) !important;
+}
+[data-theme="light"] .dashboard-project-card input.text-white {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
 /* Project canvas box heading (Flow top bar, merged tabs) — dark bg, force white text in light theme */
 [data-theme="light"] .canvas-top-bar .text-white\/35,
 [data-theme="light"] .canvas-top-bar .text-white\/40,

@@ -713,7 +713,7 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`group relative rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-hidden flex flex-col
+                className={`dashboard-project-card group relative rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-hidden flex flex-col
                     ${isSelected ? 'border-orange-500 ring-1 ring-orange-500/40' : 'border-white/[0.06] hover:border-white/[0.14]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
