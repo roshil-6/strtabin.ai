@@ -347,7 +347,7 @@ function CanvasContent() {
                 <div
                     className={`
                         ${mobileTab === 'write' ? 'flex' : 'hidden'} 
-                        md:flex w-full md:w-[45%] h-full border-r border-[var(--border)] relative z-10 theme-page shadow-2xl
+                        md:flex w-full md:w-[45%] h-full border-r border-white/[0.06] relative z-10 bg-[#0b0b0b] shadow-2xl
                     `}
                     style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
                     onWheel={(e) => e.stopPropagation()}

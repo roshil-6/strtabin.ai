@@ -355,12 +355,23 @@ a {
   stroke: rgba(249,115,22,0.9) !important;
 }
 
-/* Project/writing title — ensure visible in light theme */
+/* Writing section: dark box with white text (matches flow area) */
 .theme-title-input {
-  color: var(--text) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 .theme-title-input::placeholder {
-  color: var(--text-muted) !important;
+  color: rgba(255,255,255,0.4) !important;
+}
+/* Light theme: writing section stays dark — force white text for inputs/textareas */
+[data-theme="light"] .writing-section-dark input,
+[data-theme="light"] .writing-section-dark textarea {
+  color: rgba(255,255,255,0.9) !important;
+  -webkit-text-fill-color: rgba(255,255,255,0.9) !important;
+}
+[data-theme="light"] .writing-section-dark input::placeholder,
+[data-theme="light"] .writing-section-dark textarea::placeholder {
+  color: rgba(255,255,255,0.4) !important;
 }
 
 /* Custom scrollbar — theme-aware */
