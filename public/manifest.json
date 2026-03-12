@@ -1,11 +1,11 @@
 {
-    "name": "Stratabin AI",
+    "name": "Stratabin — AI Strategy Planning Tool",
     "short_name": "Stratabin",
-    "description": "Your AI-powered strategy workspace. Think, plan, and execute with STRAB AI.",
+    "description": "AI-powered strategy workspace. Turn scattered ideas into structured execution plans with STRAB AI.",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#080808",
-    "theme_color": "#da7756",
+    "background_color": "#050505",
+    "theme_color": "#f97316",
     "orientation": "portrait-primary",
     "icons": [
         {
