@@ -374,7 +374,7 @@ export default function LandingPage() {
                         <p className="text-white/30 text-sm">Pay once. Use forever. No subscriptions, no surprises.</p>
                     </div>
 
-                    <div className="group relative bg-[#0e0e0e] border border-primary/20 rounded-3xl p-7 md:p-14 shadow-2xl overflow-hidden">
+                    <div className="group relative bg-[var(--bg-muted)] border border-primary/20 rounded-3xl p-7 md:p-14 shadow-2xl overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent pointer-events-none" />
                         <div className="absolute top-5 right-5 px-3 py-1 bg-primary text-black text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-full">
                             Lifetime
@@ -386,15 +386,15 @@ export default function LandingPage() {
                                 <div className="flex items-baseline gap-3 mb-2">
                                     <span className="text-5xl md:text-6xl font-black text-white">₹64</span>
                                     <div className="flex flex-col">
-                                        <span className="text-white/20 font-bold text-sm">India</span>
-                                        <span className="text-white/40 text-xs">One-time payment</span>
+                                        <span className="text-white/70 font-bold text-sm">India</span>
+                                        <span className="text-white/60 text-xs">One-time payment</span>
                                     </div>
                                 </div>
                                 <div className="flex items-baseline gap-3 mt-3">
                                     <span className="text-2xl md:text-3xl font-black text-white/60">$2</span>
                                     <div className="flex flex-col">
-                                        <span className="text-white/20 font-bold text-sm">International</span>
-                                        <span className="text-white/40 text-xs">USD, one-time</span>
+                                        <span className="text-white/70 font-bold text-sm">International</span>
+                                        <span className="text-white/60 text-xs">USD, one-time</span>
                                     </div>
                                 </div>
                             </div>
@@ -425,7 +425,7 @@ export default function LandingPage() {
                             <Zap size={18} fill="currentColor" />
                             Get Full Access — ₹64 / $2
                         </button>
-                        <p className="text-center text-white/15 text-[11px] md:text-xs mt-4">
+                        <p className="text-center text-white/55 text-[11px] md:text-xs mt-4">
                             Secured by Razorpay · No recurring charges
                         </p>
                     </div>

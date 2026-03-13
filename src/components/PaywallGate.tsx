@@ -154,7 +154,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     // Guest trial expired — prompt to create account
     if (guestTrialExpired) {
         return (
-            <div className="min-h-screen bg-[#080808] text-white flex items-center justify-center p-6 font-sans">
+            <div className="min-h-screen bg-[var(--bg-page)] text-white flex items-center justify-center p-6 font-sans">
                 <div className="max-w-sm w-full flex flex-col items-center text-center gap-6">
                     <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center overflow-hidden border border-white/10">
                         <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
@@ -244,7 +244,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
 
     // Trial expired — show paywall
     return (
-        <div className="min-h-screen bg-[#080808] text-white flex items-center justify-center p-6 font-sans">
+        <div className="min-h-screen bg-[var(--bg-page)] text-white flex items-center justify-center p-6 font-sans">
             <div className="max-w-lg w-full flex flex-col items-center text-center gap-8">
                 {/* Logo */}
                 <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center overflow-hidden border border-white/10">
@@ -265,7 +265,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                 </div>
 
                 {/* Features reminder */}
-                <div className="w-full bg-white/[0.03] border border-white/8 rounded-2xl p-6 flex flex-col gap-3 text-left">
+                <div className="w-full bg-white/[0.05] border border-white/10 rounded-2xl p-6 flex flex-col gap-3 text-left">
                     {[
                         'Unlimited strategy canvases & projects',
                         'AI-powered STRAB assistant',
@@ -297,7 +297,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                     {!showPaymentIdInput ? (
                         <button
                             onClick={() => setShowPaymentIdInput(true)}
-                            className="text-xs text-white/30 hover:text-white/60 transition-colors py-2 font-bold flex items-center justify-center gap-2"
+                            className="text-xs text-white/55 hover:text-white/80 transition-colors py-2 font-bold flex items-center justify-center gap-2"
                             disabled={isRefreshingPayment}
                         >
                             <ReceiptText size={13} />
@@ -305,18 +305,18 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                         </button>
                     ) : (
                         <div className="flex flex-col gap-2 bg-white/[0.03] border border-white/10 rounded-2xl p-4">
-                            <p className="text-xs text-white/50 font-bold text-center">
+                            <p className="text-xs text-white/70 font-bold text-center">
                                 Enter your Razorpay Payment ID
                             </p>
-                            <p className="text-[10px] text-white/25 text-center leading-relaxed">
-                                Find it in your payment confirmation email or SMS. Starts with <span className="text-white/50 font-mono">pay_</span>
+                            <p className="text-[10px] text-white/55 text-center leading-relaxed">
+                                Find it in your payment confirmation email or SMS. Starts with <span className="text-white/70 font-mono">pay_</span>
                             </p>
                             <input
                                 type="text"
                                 value={paymentIdInput}
                                 onChange={e => setPaymentIdInput(e.target.value.trim())}
                                 placeholder="pay_xxxxxxxxxxxxxxxxxx"
-                                className="w-full bg-[#080808] border border-white/10 rounded-xl px-4 py-3 text-sm text-white font-mono placeholder-white/15 outline-none focus:border-primary/50 transition-all"
+                                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-4 py-3 text-sm text-white font-mono placeholder-white/40 outline-none focus:border-primary/50 transition-all"
                                 autoFocus
                             />
                             <div className="flex gap-2 mt-1">
@@ -330,7 +330,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                                 <button
                                     onClick={() => { setShowPaymentIdInput(false); setPaymentIdInput(''); refreshPaymentStatus(''); }}
                                     disabled={isRefreshingPayment}
-                                    className="px-3 py-2.5 text-xs text-white/30 hover:text-white/60 font-bold transition-colors disabled:opacity-30"
+                                    className="px-3 py-2.5 text-xs text-white/55 hover:text-white/80 font-bold transition-colors disabled:opacity-30"
                                 >
                                     Skip
                                 </button>

@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#0b0b0b', // Deep Black
+        background: '#1a1a1a', // Greyish Black
         primary: '#DA7756',    // Claude-like Terracotta Orange
         secondary: '#9aa0a6',  // Soft Gray
         accent: '#00cc6a',

@@ -2,22 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme: Dark (default) ───────────────────────────────────────────── */
+/* ── Theme: Dark (greyish black) ───────────────────────────────────────── */
 :root,
 [data-theme="dark"] {
-  --bg-page: #050505;
-  --bg-panel: #060606;
-  --bg-elevated: #080808;
-  --bg-card: #0a0a0a;
-  --bg-muted: #0e0e0e;
+  --bg-page: #1a1a1a;
+  --bg-panel: #1f1f1f;
+  --bg-elevated: #242424;
+  --bg-card: #2a2a2a;
+  --bg-muted: #2f2f2f;
   --text: #ffffff;
-  --text-secondary: rgba(255,255,255,0.7);
-  --text-muted: rgba(255,255,255,0.4);
-  --text-dim: rgba(255,255,255,0.25);
-  --border: rgba(255,255,255,0.06);
-  --border-strong: rgba(255,255,255,0.1);
-  --input-bg: rgba(255,255,255,0.04);
-  --input-border: rgba(255,255,255,0.08);
+  --text-secondary: rgba(255,255,255,0.85);
+  --text-muted: rgba(255,255,255,0.6);
+  --text-dim: rgba(255,255,255,0.45);
+  --border: rgba(255,255,255,0.1);
+  --border-strong: rgba(255,255,255,0.15);
+  --input-bg: rgba(255,255,255,0.06);
+  --input-border: rgba(255,255,255,0.12);
+}
+
+/* Dark theme: map old pitch-black to greyish for consistency */
+[data-theme="dark"] .bg-\[\#050505\],
+[data-theme="dark"] .bg-\[\#060606\],
+[data-theme="dark"] .bg-\[\#080808\],
+[data-theme="dark"] .bg-\[\#0a0a0a\],
+[data-theme="dark"] .bg-\[\#0b0b0b\],
+[data-theme="dark"] .bg-\[\#0e0e0e\] {
+  background-color: var(--bg-card) !important;
 }
 
 /* ── Theme: Light ─────────────────────────────────────────────────────── */
