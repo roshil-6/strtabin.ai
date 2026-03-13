@@ -1,17 +1,20 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
 import { sendStrabMessageStreaming, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
+import { getGuestAiRemaining, consumeGuestAiMessage, refundGuestAiMessage } from '../constants';
 import { Network, Send, Sparkles, ArrowLeft, Trash2 } from 'lucide-react';
 import MobileNav from './MobileNav';
 
 export default function StrabView() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { user } = useUser();
     const { getToken } = useAuth();
+    const isGuest = !user;
     const canvas = useStore(state => state.canvases[id || '']);
     const addChatMessage = useStore(state => state.addChatMessage);
     const updateLastChatMessage = useStore(state => state.updateLastChatMessage);
@@ -22,7 +25,12 @@ export default function StrabView() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'chat' | 'reports'>('chat');
+    const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (isGuest) setGuestAiRemaining(getGuestAiRemaining());
+    }, [chatHistory, isGuest]);
 
     const resolvedName = canvas?.name && canvas.name !== 'Untitled Canvas' ? canvas.name : 'Project';
 
@@ -159,8 +167,17 @@ export default function StrabView() {
             if (lastMsg.role === 'user' && lastMsg.content.includes('Regarding this part:')) {
                 window.history.replaceState({}, '', window.location.pathname);
                 const triggerAi = async () => {
+                    if (isGuest && getGuestAiRemaining() <= 0) {
+                        toast.error('Guest AI limit reached. Sign up to continue.');
+                        navigate('/', { replace: true });
+                        return;
+                    }
                     setIsLoading(true);
                     addChatMessage(id!, { role: 'assistant', content: '' });
+                    if (isGuest) {
+                        consumeGuestAiMessage();
+                        setGuestAiRemaining(getGuestAiRemaining());
+                    }
                     try {
                         const token = await getToken();
                         await sendStrabMessageStreaming(
@@ -170,6 +187,10 @@ export default function StrabView() {
                             token ?? undefined,
                         );
                     } catch {
+                        if (isGuest) {
+                            refundGuestAiMessage();
+                            setGuestAiRemaining(getGuestAiRemaining());
+                        }
                         toast.error('STRAB is unreachable. Please try again.');
                     } finally {
                         setIsLoading(false);
@@ -178,7 +199,7 @@ export default function StrabView() {
                 triggerAi();
             }
         }
-    }, [id, chatHistory, isLoading, projectContext, addChatMessage, updateLastChatMessage, getToken]);
+    }, [id, chatHistory, isLoading, projectContext, addChatMessage, updateLastChatMessage, getToken, isGuest, navigate]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -187,10 +208,24 @@ export default function StrabView() {
     const sendMessage = useCallback(async (message: string) => {
         if (!message.trim() || isLoading) return;
 
+        if (isGuest) {
+            const remaining = getGuestAiRemaining();
+            if (remaining <= 0) {
+                toast.error('Guest AI limit reached. Sign up to continue.');
+                navigate('/', { replace: true });
+                return;
+            }
+        }
+
         const userMsg: ChatMessage = { role: 'user', content: message };
         addChatMessage(id!, userMsg);
         addChatMessage(id!, { role: 'assistant', content: '' });
         setIsLoading(true);
+
+        if (isGuest) {
+            consumeGuestAiMessage();
+            setGuestAiRemaining(getGuestAiRemaining());
+        }
 
         try {
             const token = await getToken();
@@ -202,12 +237,16 @@ export default function StrabView() {
                 token ?? undefined,
             );
         } catch {
+            if (isGuest) {
+                refundGuestAiMessage();
+                setGuestAiRemaining(getGuestAiRemaining());
+            }
             toast.error('STRAB is unreachable. Please try again.');
             updateLastChatMessage(id!, "I'm having trouble connecting right now. Please try again in a moment.");
         } finally {
             setIsLoading(false);
         }
-    }, [id, chatHistory, projectContext, addChatMessage, updateLastChatMessage, getToken, isLoading]);
+    }, [id, chatHistory, projectContext, addChatMessage, updateLastChatMessage, getToken, isLoading, isGuest, navigate]);
 
     const handleSend = useCallback(() => {
         if (!input.trim()) return;
@@ -293,7 +332,16 @@ export default function StrabView() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-0.5 md:gap-1 shrink-0">
+                <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                    {isGuest && (
+                        <button
+                            onClick={() => navigate('/', { replace: true })}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[10px] md:text-[11px] font-bold hover:bg-primary/20 transition-all"
+                        >
+                            <Sparkles size={12} />
+                            {guestAiRemaining > 0 ? `${guestAiRemaining} AI left` : 'Upgrade'}
+                        </button>
+                    )}
                     <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04]">
                         <button
                             onClick={() => setActiveTab('chat')}

@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
+import { getGuestAiRemaining, consumeGuestAiMessage, refundGuestAiMessage } from '../constants';
 import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { sendGeneralStrabMessage, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
 import {
-    Send, Network, ArrowLeft, Trash2, ExternalLink, Zap,
+    Send, Network, ArrowLeft, Trash2, ExternalLink, Zap, Sparkles,
     GitBranch, Lightbulb, Target, Layers, Rocket, Map,
 } from 'lucide-react';
 import type { Node, Edge } from '@xyflow/react';
@@ -181,7 +182,9 @@ function parseAndExecuteActions(
 // ── Component ─────────────────────────────────────────────────────────────
 export default function StrabHome() {
     const navigate = useNavigate();
+    const { user } = useUser();
     const { getToken } = useAuth();
+    const isGuest = !user;
 
     const { createCanvas, populateCanvas, updateCanvasName, updateCanvasWriting, addCanvasTodo } =
         useStore(useShallow(s => ({
@@ -195,7 +198,12 @@ export default function StrabHome() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
     const abortRef = useRef<AbortController | null>(null);
+
+    useEffect(() => {
+        if (isGuest) setGuestAiRemaining(getGuestAiRemaining());
+    }, [messages, isGuest]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -211,6 +219,18 @@ export default function StrabHome() {
 
     const sendMessage = useCallback(async (text: string) => {
         if (!text.trim() || isLoading) return;
+
+        if (isGuest) {
+            const remaining = getGuestAiRemaining();
+            if (remaining <= 0) {
+                toast.error('Guest AI limit reached. Sign up to continue.', {
+                    style: { background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' },
+                });
+                navigate('/', { replace: true });
+                return;
+            }
+        }
+
         setInput('');
 
         const userMsg: Message = { role: 'user', content: text };
@@ -218,6 +238,11 @@ export default function StrabHome() {
 
         setMessages(prev => [...prev, userMsg, assistantMsg]);
         setIsLoading(true);
+
+        if (isGuest) {
+            consumeGuestAiMessage();
+            setGuestAiRemaining(getGuestAiRemaining());
+        }
 
         const controller = new AbortController();
         abortRef.current = controller;
@@ -267,6 +292,10 @@ export default function StrabHome() {
             }
         } catch (err) {
             if ((err as Error).name === 'AbortError') return;
+            if (isGuest) {
+                refundGuestAiMessage();
+                setGuestAiRemaining(getGuestAiRemaining());
+            }
             toast.error('STRAB is unreachable. Please try again.', {
                 style: { background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' },
             });
@@ -279,7 +308,7 @@ export default function StrabHome() {
             setIsLoading(false);
             abortRef.current = null;
         }
-    }, [isLoading, messages, getToken, createCanvas, populateCanvas, updateCanvasName, updateCanvasWriting, addCanvasTodo]);
+    }, [isLoading, messages, getToken, createCanvas, populateCanvas, updateCanvasName, updateCanvasWriting, addCanvasTodo, isGuest, navigate]);
 
     const handleSend = useCallback(() => {
         if (input.trim()) sendMessage(input.trim());
@@ -314,6 +343,15 @@ export default function StrabHome() {
                 </button>
 
                 <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    {isGuest && (
+                        <button
+                            onClick={() => navigate('/', { replace: true })}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold hover:bg-primary/20 transition-all shrink-0"
+                        >
+                            <Sparkles size={12} />
+                            {guestAiRemaining > 0 ? `${guestAiRemaining} AI left` : 'Upgrade'}
+                        </button>
+                    )}
                     <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(249,115,22,0.15)]">
                         <Network size={14} className="text-primary" />
                     </div>
