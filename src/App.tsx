@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 import Dashboard from './components/Dashboard';
 import Canvas from './components/Canvas';
@@ -11,11 +11,16 @@ import LandingPage from './components/LandingPage';
 import FolderWorkflow from './components/FolderWorkflow';
 import AuthGate from './components/AuthGate';
 import PaywallGate from './components/PaywallGate';
+import ProjectBackground from './components/ProjectBackground';
 import NotFoundPage from './components/NotFoundPage';
 
 function App() {
+  const { pathname } = useLocation();
+  const isProjectRoute = pathname !== '/' && pathname !== '/sso-callback';
+
   return (
-    <div className="min-h-screen w-full theme-page">
+    <div className="min-h-screen w-full theme-page relative">
+    {isProjectRoute && <ProjectBackground />}
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
