@@ -12,7 +12,7 @@ async function fetchWithRetry(
         const res = await fetch(url, { ...opts, signal });
         if (res.status !== 503 || i === delays.length - 1) return res;
     }
-    return fetch(url, opts);
+    return fetch(url, { ...opts, signal });
 }
 
 export interface ChatMessage {
