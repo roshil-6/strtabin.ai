@@ -41,12 +41,12 @@ class ServerWarmup {
     }
 
     /**
-     * Silent background warm-up — pings the server up to 8 times with
-     * exponential backoff until it responds. Never touches UI state.
+     * Silent background warm-up — pings the server up to 12 times with
+     * shorter intervals to wake cold-started Render faster.
      */
     private async warmInBackground(attempts = 0) {
-        const MAX_ATTEMPTS = 8;
-        const RETRY_MS = Math.min(4000 + attempts * 2000, 15000);
+        const MAX_ATTEMPTS = 12;
+        const RETRY_MS = Math.min(2000 + attempts * 1500, 12000);
 
         const ok = await this.checkReachable();
         if (ok || attempts >= MAX_ATTEMPTS) return;
@@ -77,10 +77,10 @@ class ServerWarmup {
         this.ready = true;
         this.listeners.forEach(cb => cb());
         this.listeners = [];
-        // Keep the server warm with a ping every 10 min
+        // Keep the server warm with a ping every 5 min (reduces cold starts)
         this.keepAliveTimer = setInterval(() => {
             this.checkReachable().catch(() => {});
-        }, 10 * 60 * 1000);
+        }, 5 * 60 * 1000);
     }
 
     /** Reset (e.g. on sign-out) */

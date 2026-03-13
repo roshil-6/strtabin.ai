@@ -1,5 +1,20 @@
 import { API_BASE_URL } from '../constants';
 
+/** Retry on 503 (cold start) — up to 3 attempts with backoff */
+async function fetchWithRetry(
+    url: string,
+    opts: RequestInit,
+    signal?: AbortSignal,
+): Promise<Response> {
+    const delays = [0, 8000, 18000]; // 0ms, 8s, 18s
+    for (let i = 0; i < delays.length; i++) {
+        if (delays[i] > 0) await new Promise(r => setTimeout(r, delays[i]));
+        const res = await fetch(url, { ...opts, signal });
+        if (res.status !== 503 || i === delays.length - 1) return res;
+    }
+    return fetch(url, opts);
+}
+
 export interface ChatMessage {
     role: 'user' | 'assistant';
     content: string;
@@ -14,12 +29,11 @@ export const sendGeneralStrabMessage = async (
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
-    const response = await fetch(`${API_BASE_URL}/api/strab-general`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ messages, stream: true }),
+    const response = await fetchWithRetry(
+        `${API_BASE_URL}/api/strab-general`,
+        { method: 'POST', headers, body: JSON.stringify({ messages, stream: true }) },
         signal,
-    });
+    );
 
     if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
 
@@ -76,11 +90,10 @@ export const sendStrabMessage = async (
         headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ messages, projectContext }),
-    });
+    const response = await fetchWithRetry(
+        `${API_BASE_URL}/api/chat`,
+        { method: 'POST', headers, body: JSON.stringify({ messages, projectContext }) },
+    );
 
     if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
@@ -109,12 +122,11 @@ export const sendStrabMessageStreaming = async (
         headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ messages, projectContext, stream: true }),
+    const response = await fetchWithRetry(
+        `${API_BASE_URL}/api/chat`,
+        { method: 'POST', headers, body: JSON.stringify({ messages, projectContext, stream: true }) },
         signal,
-    });
+    );
 
     if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);

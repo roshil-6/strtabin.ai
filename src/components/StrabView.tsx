@@ -186,12 +186,15 @@ export default function StrabView() {
                             (text) => updateLastChatMessage(id!, text),
                             token ?? undefined,
                         );
-                    } catch {
+                    } catch (err) {
                         if (isGuest) {
                             refundGuestAiMessage();
                             setGuestAiRemaining(getGuestAiRemaining());
                         }
-                        toast.error('STRAB is unreachable. Please try again.');
+                        const msg = (err as Error)?.message?.includes('503')
+                            ? 'Server waking up — please try again in a moment.'
+                            : 'STRAB is unreachable. Please try again.';
+                        toast.error(msg);
                     } finally {
                         setIsLoading(false);
                     }
@@ -236,12 +239,15 @@ export default function StrabView() {
                 (text) => updateLastChatMessage(id!, text),
                 token ?? undefined,
             );
-        } catch {
+        } catch (err) {
             if (isGuest) {
                 refundGuestAiMessage();
                 setGuestAiRemaining(getGuestAiRemaining());
             }
-            toast.error('STRAB is unreachable. Please try again.');
+            const msg = (err as Error)?.message?.includes('503')
+                ? 'Server waking up — please try again in a moment.'
+                : 'STRAB is unreachable. Please try again.';
+            toast.error(msg);
             updateLastChatMessage(id!, "I'm having trouble connecting right now. Please try again in a moment.");
         } finally {
             setIsLoading(false);

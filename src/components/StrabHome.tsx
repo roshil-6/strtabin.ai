@@ -296,7 +296,10 @@ export default function StrabHome() {
                 refundGuestAiMessage();
                 setGuestAiRemaining(getGuestAiRemaining());
             }
-            toast.error('STRAB is unreachable. Please try again.', {
+            const msg = (err as Error)?.message?.includes('503')
+                ? 'Server waking up — please try again in a moment.'
+                : 'STRAB is unreachable. Please try again.';
+            toast.error(msg, {
                 style: { background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' },
             });
             setMessages(prev => {
