@@ -163,7 +163,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                         <UserX size={24} className="text-white/30" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black tracking-tighter mb-2">Guest trial ended</h1>
+                        <h1 className="text-2xl font-black tracking-tighter mb-2">Guest period expired</h1>
                         <p className="text-white/40 text-sm leading-relaxed">
                             Create a free account to continue — your work is saved. Then unlock lifetime access for ₹64.
                         </p>
