@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
 import { sendStrabMessageStreaming, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
-import { getGuestAiRemaining, consumeGuestAiMessage, refundGuestAiMessage } from '../constants';
+import { getGuestAiRemaining, consumeGuestAiMessage, refundGuestAiMessage, getProAiRemaining, consumeProAiMessage, refundProAiMessage, PRO_AI_DAILY_LIMIT } from '../constants';
 import { Network, Send, Sparkles, ArrowLeft, Trash2 } from 'lucide-react';
 import MobileNav from './MobileNav';
 
@@ -14,7 +14,14 @@ export default function StrabView() {
     const navigate = useNavigate();
     const { user } = useUser();
     const { getToken } = useAuth();
+    const paidUsers = useStore(state => state.paidUsers);
     const isGuest = !user;
+    const isPaid = Boolean(user && (
+        user.publicMetadata?.isPaid === true ||
+        user.publicMetadata?.paid === true ||
+        user.publicMetadata?.hasPaidAccess === true ||
+        paidUsers[user.id]
+    ));
     const canvas = useStore(state => state.canvases[id || '']);
     const addChatMessage = useStore(state => state.addChatMessage);
     const updateLastChatMessage = useStore(state => state.updateLastChatMessage);
@@ -26,11 +33,13 @@ export default function StrabView() {
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'chat' | 'reports'>('chat');
     const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
+    const [proAiRemaining, setProAiRemaining] = useState(() => (user?.id ? getProAiRemaining(user.id) : PRO_AI_DAILY_LIMIT));
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (isGuest) setGuestAiRemaining(getGuestAiRemaining());
-    }, [chatHistory, isGuest]);
+        if (isPaid && user?.id) setProAiRemaining(getProAiRemaining(user.id));
+    }, [chatHistory, isGuest, isPaid, user?.id]);
 
     const resolvedName = canvas?.name && canvas.name !== 'Untitled Canvas' ? canvas.name : 'Project';
 
@@ -172,11 +181,19 @@ export default function StrabView() {
                         navigate('/', { replace: true });
                         return;
                     }
+                    if (isPaid && user?.id && getProAiRemaining(user.id) <= 0) {
+                        toast.error('Daily AI limit reached (12/day). Resets at midnight UTC.');
+                        return;
+                    }
                     setIsLoading(true);
                     addChatMessage(id!, { role: 'assistant', content: '' });
                     if (isGuest) {
                         consumeGuestAiMessage();
                         setGuestAiRemaining(getGuestAiRemaining());
+                    }
+                    if (isPaid && user?.id) {
+                        consumeProAiMessage(user.id);
+                        setProAiRemaining(getProAiRemaining(user.id));
                     }
                     try {
                         const token = await getToken();
@@ -191,6 +208,10 @@ export default function StrabView() {
                             refundGuestAiMessage();
                             setGuestAiRemaining(getGuestAiRemaining());
                         }
+                        if (isPaid && user?.id) {
+                            refundProAiMessage(user.id);
+                            setProAiRemaining(getProAiRemaining(user.id));
+                        }
                         const msg = (err as Error)?.message?.includes('503')
                             ? 'Server waking up — please try again in a moment.'
                             : 'STRAB is unreachable. Please try again.';
@@ -202,7 +223,7 @@ export default function StrabView() {
                 triggerAi();
             }
         }
-    }, [id, chatHistory, isLoading, projectContext, addChatMessage, updateLastChatMessage, getToken, isGuest, navigate]);
+    }, [id, chatHistory, isLoading, projectContext, addChatMessage, updateLastChatMessage, getToken, isGuest, isPaid, user?.id, navigate]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -219,6 +240,13 @@ export default function StrabView() {
                 return;
             }
         }
+        if (isPaid && user?.id) {
+            const remaining = getProAiRemaining(user.id);
+            if (remaining <= 0) {
+                toast.error('Daily AI limit reached (12/day). Resets at midnight UTC.');
+                return;
+            }
+        }
 
         const userMsg: ChatMessage = { role: 'user', content: message };
         addChatMessage(id!, userMsg);
@@ -228,6 +256,10 @@ export default function StrabView() {
         if (isGuest) {
             consumeGuestAiMessage();
             setGuestAiRemaining(getGuestAiRemaining());
+        }
+        if (isPaid && user?.id) {
+            consumeProAiMessage(user.id);
+            setProAiRemaining(getProAiRemaining(user.id));
         }
 
         try {
@@ -244,6 +276,10 @@ export default function StrabView() {
                 refundGuestAiMessage();
                 setGuestAiRemaining(getGuestAiRemaining());
             }
+            if (isPaid && user?.id) {
+                refundProAiMessage(user.id);
+                setProAiRemaining(getProAiRemaining(user.id));
+            }
             const msg = (err as Error)?.message?.includes('503')
                 ? 'Server waking up — please try again in a moment.'
                 : 'STRAB is unreachable. Please try again.';
@@ -252,7 +288,7 @@ export default function StrabView() {
         } finally {
             setIsLoading(false);
         }
-    }, [id, chatHistory, projectContext, addChatMessage, updateLastChatMessage, getToken, isLoading, isGuest, navigate]);
+    }, [id, chatHistory, projectContext, addChatMessage, updateLastChatMessage, getToken, isLoading, isGuest, isPaid, user?.id, navigate]);
 
     const handleSend = useCallback(() => {
         if (!input.trim()) return;
@@ -347,6 +383,15 @@ export default function StrabView() {
                             <Sparkles size={12} />
                             {guestAiRemaining > 0 ? `${guestAiRemaining} AI left` : 'Upgrade'}
                         </button>
+                    )}
+                    {isPaid && (
+                        <span
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/60 text-[10px] md:text-[11px] font-bold"
+                            title="Resets at midnight UTC"
+                        >
+                            <Sparkles size={12} />
+                            {proAiRemaining > 0 ? `${proAiRemaining}/12 today` : 'Limit reached'}
+                        </span>
                     )}
                     <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04]">
                         <button
