@@ -12,6 +12,8 @@ type ThinkingNodeProps = NodeProps<Node<ThinkingNodeData>>;
 
 type NodeVariant = 'idea' | 'question' | 'decision';
 
+const ORANGE_BORDER = 'rgba(249,115,22,0.7)';
+
 const VARIANTS: Record<NodeVariant, {
     label: string;
     icon: React.ElementType;
@@ -27,8 +29,8 @@ const VARIANTS: Record<NodeVariant, {
         accent: '#f97316',
         headerBg: 'rgba(249,115,22,0.07)',
         border: '#1e120a',
-        selectedBorder: 'rgba(249,115,22,0.6)',
-        selectedGlow: '0 0 0 2px rgba(249,115,22,0.15), 0 12px 28px rgba(249,115,22,0.08), 0 8px 24px rgba(0,0,0,0.5)',
+        selectedBorder: ORANGE_BORDER,
+        selectedGlow: '0 2px 12px rgba(0,0,0,0.3)',
     },
     question: {
         label: 'Question',
@@ -36,8 +38,8 @@ const VARIANTS: Record<NodeVariant, {
         accent: '#f59e0b',
         headerBg: 'rgba(245,158,11,0.08)',
         border: '#292218',
-        selectedBorder: 'rgba(245,158,11,0.6)',
-        selectedGlow: '0 0 0 2px rgba(245,158,11,0.15), 0 8px 24px rgba(0,0,0,0.5)',
+        selectedBorder: ORANGE_BORDER,
+        selectedGlow: '0 2px 12px rgba(0,0,0,0.3)',
     },
     decision: {
         label: 'Decision',
@@ -45,8 +47,8 @@ const VARIANTS: Record<NodeVariant, {
         accent: '#f97316',
         headerBg: 'rgba(249,115,22,0.08)',
         border: '#29180a',
-        selectedBorder: 'rgba(249,115,22,0.6)',
-        selectedGlow: '0 0 0 2px rgba(249,115,22,0.15), 0 8px 24px rgba(0,0,0,0.5)',
+        selectedBorder: ORANGE_BORDER,
+        selectedGlow: '0 2px 12px rgba(0,0,0,0.3)',
     },
 };
 

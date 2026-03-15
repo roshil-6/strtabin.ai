@@ -17,11 +17,13 @@ import NotFoundPage from './components/NotFoundPage';
 function App() {
   const { pathname } = useLocation();
   const isProjectRoute = pathname !== '/' && pathname !== '/sso-callback';
-  const isCalendarRoute = pathname.startsWith('/calendar');
+  const isStrategyRoute = pathname.startsWith('/strategy') || pathname.startsWith('/canvas');
+  const isStrabRoute = pathname.startsWith('/strab');
+  const showGrid = isProjectRoute && (isStrategyRoute || isStrabRoute);
 
   return (
     <div className="min-h-screen w-full theme-page relative">
-    {isProjectRoute && !isCalendarRoute && <ProjectBackground />}
+    {showGrid && <ProjectBackground />}
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />

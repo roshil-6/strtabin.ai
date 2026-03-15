@@ -7,7 +7,7 @@ export const StartNode = memo(({ data, selected }: NodeProps) => (
     <div className={clsx(
         "px-6 py-3 rounded-full border-2 transition-all min-w-[120px] text-center font-medium",
         selected
-            ? "bg-white/10 border-white/50 text-primary shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+            ? "bg-[#1a1a1a] border-orange-500 text-white"
             : "bg-[#1a1a1a] border-white/20 text-white hover:border-white/40"
     )}>
         <Handle type="source" position={Position.Bottom} className="!bg-white/50" />
@@ -20,7 +20,7 @@ export const ProcessNode = memo(({ data, selected }: NodeProps) => (
     <div className={clsx(
         "px-6 py-4 rounded-lg border-2 transition-all min-w-[150px] text-center font-medium",
         selected
-            ? "bg-orange-500/20 border-orange-500 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.3)]"
+            ? "bg-[#1a1a1a] border-orange-500 text-white"
             : "bg-[#1a1a1a] border-white/20 text-white hover:border-white/40"
     )}>
         <Handle type="target" position={Position.Top} className="!bg-orange-500/50" />
@@ -35,12 +35,12 @@ export const DecisionNode = memo(({ data, selected }: NodeProps) => (
         <div className={clsx(
             "absolute inset-0 rotate-45 border-2 transition-all",
             selected
-                ? "bg-yellow-500/20 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]"
+                ? "bg-[#1a1a1a] border-orange-500"
                 : "bg-[#1a1a1a] border-white/20 hover:border-white/40"
         )} />
         <div className={clsx(
             "relative z-10 text-center text-sm font-medium px-2",
-            selected ? "text-yellow-400" : "text-white"
+            selected ? "text-white" : "text-white"
         )}>
             {data.label as string}
         </div>
