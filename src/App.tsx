@@ -19,7 +19,8 @@ function App() {
   const isProjectRoute = pathname !== '/' && pathname !== '/sso-callback';
   const isStrategyRoute = pathname.startsWith('/strategy') || pathname.startsWith('/canvas');
   const isStrabRoute = pathname.startsWith('/strab');
-  const showGrid = isProjectRoute && (isStrategyRoute || isStrabRoute);
+  const isDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/folder-workflow');
+  const showGrid = isProjectRoute && (isStrategyRoute || isStrabRoute || isDashboardRoute);
 
   return (
     <div className="min-h-screen w-full theme-page relative">

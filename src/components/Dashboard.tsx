@@ -164,11 +164,7 @@ export default function Dashboard() {
 
     const activeFolder = activeFolderId ? folders[activeFolderId] : null;
 
-    const ACCENT_COLORS = ['#f97316','#f59e0b','#8b5cf6','#10b981','#ec4899','#14b8a6','#eab308','#ef4444'];
-    function getAccent(id: string) {
-        const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-        return ACCENT_COLORS[hash % ACCENT_COLORS.length];
-    }
+    const ORANGE_ACCENT = '#f97316';
     function timeAgo(ts: number): string {
         const d = Date.now() - ts;
         if (d < 60_000) return 'Just now';
@@ -704,7 +700,7 @@ export default function Dashboard() {
         const Icon = getActiveIcon();
         const isSelected = selectedIds.includes(p.id);
         const isMerged = !!p.mergedCanvasIds;
-        const accent = getAccent(p.id);
+        const accent = ORANGE_ACCENT;
         const nodeCount = p.nodes?.length ?? 0;
         const todoCount = p.todos?.length ?? 0;
         const wc = wordCount(p.writingContent);
@@ -720,11 +716,11 @@ export default function Dashboard() {
                 style={{
                     background: '#0a0a0a',
                     boxShadow: isSelected
-                        ? `0 0 20px ${accent}20`
+                        ? '0 0 20px rgba(249,115,22,0.12)'
                         : undefined,
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = `0 8px 32px ${accent}18`; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = isSelected ? `0 0 20px ${accent}20` : ''; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 32px rgba(249,115,22,0.08)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = isSelected ? '0 0 20px rgba(249,115,22,0.12)' : ''; }}
             >
                 {/* Accent top strip */}
                 <div className="h-[3px] w-full shrink-0" style={{ background: accent, opacity: 0.85 }} />
@@ -734,7 +730,7 @@ export default function Dashboard() {
                     {selectionMode && (
                         <div className="absolute top-5 right-4 z-10">
                             {isSelected ? (
-                                <div className="text-white rounded-full p-1 shadow-lg" style={{ background: accent }}>
+                                <div className="text-white rounded-full p-1 shadow-lg bg-primary">
                                     <CheckCircle2 size={20} />
                                 </div>
                             ) : (
@@ -783,11 +779,10 @@ export default function Dashboard() {
 
                     {/* Icon + badges row */}
                     <div className="flex items-start justify-between mb-4">
-                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0"
-                            style={{ background: `${accent}18`, border: `1px solid ${accent}30` }}>
+                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 bg-white/[0.06] border border-white/[0.08]">
                             {isMerged
-                                ? <GitMerge size={18} style={{ color: accent }} />
-                                : <Icon size={18} style={{ color: accent }} />
+                                ? <GitMerge size={18} className="text-white/70" />
+                                : <Icon size={18} className="text-white/70" />
                             }
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
@@ -804,8 +799,7 @@ export default function Dashboard() {
                             onBlur={() => handleRenameCommit(p.id)}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleRenameCommit(p.id); } if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); } }}
                             onClick={e => e.stopPropagation()}
-                            className="text-base md:text-lg font-bold text-white mb-3 w-full bg-transparent border-b outline-none pb-0.5 placeholder-white/20"
-                            style={{ borderColor: `${accent}60` }}
+                            className="text-base md:text-lg font-bold text-white mb-3 w-full bg-transparent border-b border-orange-500/40 outline-none pb-0.5 placeholder-white/20"
                             placeholder="Project name..." aria-label="Rename project"
                         />
                     ) : (
@@ -820,7 +814,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-3 mb-4 flex-wrap">
                         {nodeCount > 0 && (
                             <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
-                                <span className="w-1 h-1 rounded-full inline-block" style={{ background: accent }} />
+                                <span className="w-1 h-1 rounded-full inline-block bg-white/30" />
                                 {nodeCount} node{nodeCount !== 1 ? 's' : ''}
                             </span>
                         )}
@@ -847,8 +841,7 @@ export default function Dashboard() {
                     {/* Footer */}
                     <div className="mt-auto flex items-center justify-between">
                         <span className="text-[10px] text-white/20 font-medium">{timeAgo(p.updatedAt)}</span>
-                        <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0"
-                            style={{ color: accent }}>
+                        <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 text-primary">
                             {selectionMode ? (isSelected ? 'Deselect' : 'Select') : 'Open'}
                             <ArrowRight size={11} />
                         </span>
