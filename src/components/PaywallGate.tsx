@@ -3,7 +3,7 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { Zap, Clock, ArrowRight, CheckCircle2, Lock, ReceiptText, UserX } from 'lucide-react';
-import { RAZORPAY_LINK, ONE_DAY, API_BASE_URL } from '../constants';
+import { RAZORPAY_LINK, ONE_DAY, API_BASE_URL, backupGuestData } from '../constants';
 import { GUEST_TRIAL_KEY } from './LandingPage';
 import toast from 'react-hot-toast';
 
@@ -170,7 +170,10 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                     </div>
                     <div className="flex flex-col gap-3 w-full">
                         <button
-                            onClick={() => navigate('/', { replace: true })}
+                            onClick={() => {
+                                backupGuestData();
+                                navigate('/', { replace: true });
+                            }}
                             className="group flex items-center justify-center gap-3 w-full py-4 bg-white text-black font-black rounded-2xl hover:bg-primary transition-all active:scale-95 text-sm"
                         >
                             <Zap size={16} fill="currentColor" />

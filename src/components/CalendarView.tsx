@@ -1,10 +1,17 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, X, Calendar, Trash2, Bot, Clock, CheckCircle2, Circle, Layout, Bell, BellOff, ArrowLeft, Sparkles, Target, CalendarDays, ListChecks } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Calendar, Trash2, Bot, Clock, CheckCircle2, Circle, Layout, Bell, BellOff, ArrowLeft, Sparkles, Target, CalendarDays, ListChecks, Sun, Sunset, Moon } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import useStore from '../store/useStore';
 import { NotificationManager } from '../services/NotificationManager';
+
+const TIME_PRESETS = [
+    { label: 'All Day', value: '', icon: Sun },
+    { label: '9:00', value: '09:00', icon: Sun },
+    { label: '14:00', value: '14:00', icon: Sunset },
+    { label: '18:00', value: '18:00', icon: Moon },
+];
 
 export default function CalendarView() {
     const { id } = useParams<{ id: string }>();
@@ -93,17 +100,21 @@ export default function CalendarView() {
     const handleDayClick = (key: string) => {
         setSelectedDateKey(prev => (prev === key ? null : key));
         setNewEventTitle('');
-        setNewEventTime('');
-        setTimeout(() => timeInputRef.current?.focus(), 100);
+        setTimeout(() => inputRef.current?.focus(), 100);
     };
 
-    const handleAddEvent = () => {
-        if (!newEventTitle.trim() || !selectedDateKey) return;
+    const handleAddEvent = (overrideDateKey?: string) => {
+        const dateKey = overrideDateKey || selectedDateKey;
+        if (!newEventTitle.trim() || !dateKey) return;
         const finalTime = newEventTime.trim() || "All Day";
-        addCalendarEvent(selectedDateKey, finalTime, newEventTitle.trim(), id);
+        addCalendarEvent(dateKey, finalTime, newEventTitle.trim(), id);
         setNewEventTitle('');
-        setNewEventTime('');
         timeInputRef.current?.focus();
+        inputRef.current?.focus();
+    };
+
+    const setTimePreset = (value: string) => {
+        setNewEventTime(value);
     };
 
     const selectedDateLabel = selectedDateKey
@@ -421,6 +432,16 @@ export default function CalendarView() {
                                                     )}
                                                 </div>
 
+                                                {/* Quick-add on hover (desktop) */}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); handleDayClick(key); setTimeout(() => inputRef.current?.focus(), 100); }}
+                                                    className="hidden md:flex absolute bottom-1 right-1 p-1 rounded-md bg-white/[0.06] hover:bg-primary/20 text-white/30 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    aria-label="Add task"
+                                                >
+                                                    <Plus size={11} />
+                                                </button>
+
                                                 {isSelected && (
                                                     <div className="absolute inset-0 ring-1 ring-primary/30 rounded-sm pointer-events-none" />
                                                 )}
@@ -517,10 +538,14 @@ export default function CalendarView() {
                                                     </div>
                                                 ))}
                                                 {dayEvents.length === 0 && (
-                                                    <div className="flex flex-col items-center justify-center h-full min-h-[80px] rounded-xl border border-dashed border-white/[0.04] group-hover:border-primary/15 transition-all">
-                                                        <Plus size={13} className="text-white/30 group-hover:text-primary/50 transition-colors" />
-                                                        <span className="text-[7px] font-black uppercase tracking-[0.2em] mt-1 text-white/35 group-hover:text-primary/50 transition-colors">Add task</span>
-                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); handleDayClick(key); setTimeout(() => inputRef.current?.focus(), 150); }}
+                                                        className="flex flex-col items-center justify-center h-full min-h-[80px] rounded-xl border-2 border-dashed border-white/[0.06] hover:border-primary/30 hover:bg-primary/[0.04] transition-all w-full group/empty"
+                                                    >
+                                                        <Plus size={16} className="text-white/30 group-hover/empty:text-primary/60 transition-colors" />
+                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] mt-1.5 text-white/40 group-hover/empty:text-primary/60 transition-colors">Add task</span>
+                                                    </button>
                                                 )}
                                             </div>
 
@@ -674,37 +699,59 @@ export default function CalendarView() {
 
                         {/* Add Event form */}
                         <div className="flex-shrink-0 p-4 border-t border-white/[0.05]">
-                            <div className={`space-y-2.5 transition-all duration-300 ${selectedDateKey ? 'opacity-100' : 'opacity-25 pointer-events-none'}`}>
+                            <div className={`space-y-3 transition-all duration-300 ${selectedDateKey ? 'opacity-100' : 'opacity-40'}`}>
+                                {/* Quick add to today when no date selected */}
+                                {!selectedDateKey && (
+                                    <button
+                                        onClick={() => { setSelectedDateKey(todayKey); setTimeout(() => inputRef.current?.focus(), 50); }}
+                                        className="w-full py-2.5 rounded-xl border border-dashed border-primary/30 bg-primary/[0.06] text-primary text-xs font-bold flex items-center justify-center gap-2 hover:bg-primary/[0.1] hover:border-primary/50 transition-all"
+                                    >
+                                        <Plus size={14} />
+                                        Add to today
+                                    </button>
+                                )}
                                 <div className="flex gap-2">
-                                    <div className="relative w-[100px] shrink-0 group">
-                                        <Clock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-primary/60 transition-colors" />
+                                    <input
+                                        ref={inputRef}
+                                        type="text"
+                                        value={newEventTitle}
+                                        onChange={(e) => setNewEventTitle(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAddEvent()}
+                                        placeholder={selectedDateKey ? 'What needs to be done?' : 'Select a date first'}
+                                        className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/30 focus:bg-primary/[0.02] transition-all placeholder-white/40"
+                                    />
+                                    <div className="relative w-[90px] shrink-0 group">
+                                        <Clock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-primary/60 transition-colors pointer-events-none" />
                                         <input
                                             ref={timeInputRef}
                                             type="time"
                                             value={newEventTime}
                                             onChange={(e) => setNewEventTime(e.target.value)}
-                                            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-8 pr-2 py-2.5 text-xs text-white focus:outline-none focus:border-primary/30 focus:bg-primary/[0.02] transition-all font-bold cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-30"
-                                        />
-                                    </div>
-                                    <div className="relative flex-1 group">
-                                        <input
-                                            ref={inputRef}
-                                            type="text"
-                                            value={newEventTitle}
-                                            onChange={(e) => setNewEventTitle(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAddEvent()}
-                                            placeholder={selectedDateKey ? 'Add event…' : 'Select a date first'}
-                                            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-primary/30 focus:bg-primary/[0.02] transition-all placeholder-white/40"
+                                            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-7 pr-1.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary/30 font-bold cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-30"
                                         />
                                     </div>
                                 </div>
+                                {/* Time presets */}
+                                <div className="flex gap-1.5 flex-wrap">
+                                    {TIME_PRESETS.map(({ label, value, icon: Icon }) => (
+                                        <button
+                                            key={label}
+                                            type="button"
+                                            onClick={() => setTimePreset(value)}
+                                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all ${newEventTime === value ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/[0.04] text-white/50 hover:bg-white/[0.08] hover:text-white/70 border border-white/[0.04]'}`}
+                                        >
+                                            <Icon size={10} />
+                                            {label || 'All Day'}
+                                        </button>
+                                    ))}
+                                </div>
                                 <button
-                                    onClick={handleAddEvent}
+                                    onClick={() => handleAddEvent()}
                                     disabled={!selectedDateKey || !newEventTitle.trim()}
-                                    className="w-full py-2.5 bg-gradient-to-r from-primary to-primary/80 text-black text-xs font-black uppercase tracking-wider rounded-xl hover:shadow-[0_4px_15px_rgba(249,115,22,0.25)] transition-all disabled:opacity-15 disabled:shadow-none flex items-center justify-center gap-2 active:scale-[0.98]"
+                                    className="w-full py-2.5 bg-gradient-to-r from-primary to-primary/80 text-black text-xs font-black uppercase tracking-wider rounded-xl hover:shadow-[0_4px_15px_rgba(249,115,22,0.25)] transition-all disabled:opacity-20 disabled:shadow-none flex items-center justify-center gap-2 active:scale-[0.98]"
                                 >
                                     <Plus size={14} strokeWidth={3} />
-                                    Add Event
+                                    Add Task
                                 </button>
                             </div>
                         </div>
@@ -819,37 +866,48 @@ export default function CalendarView() {
 
                         {/* Add Event Input */}
                         <div className="p-4 theme-panel border-t border-white/[0.05]">
-                            <div className="flex flex-col gap-2.5">
-                                <div className="flex gap-2">
-                                    <div className="relative group w-[110px] shrink-0">
-                                        <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-primary/60 transition-colors" />
+                            <div className="flex flex-col gap-3">
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={newEventTitle}
+                                    onChange={(e) => setNewEventTitle(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddEvent()}
+                                    placeholder="What needs to be done?"
+                                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/25 focus:bg-primary/[0.02] transition-all placeholder-white/40"
+                                />
+                                <div className="flex gap-2 items-center">
+                                    <div className="relative flex-1 group">
+                                        <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
                                         <input
                                             ref={timeInputRef}
                                             type="time"
                                             value={newEventTime}
                                             onChange={(e) => setNewEventTime(e.target.value)}
-                                            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-9 pr-2 py-3 text-sm text-white focus:outline-none focus:border-primary/25 focus:bg-primary/[0.02] transition-all font-bold cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-40"
+                                            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl pl-9 pr-2 py-3 text-sm text-white focus:outline-none focus:border-primary/25 font-bold cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-40"
                                         />
                                     </div>
-                                    <div className="relative group flex-1">
-                                        <input
-                                            ref={inputRef}
-                                            type="text"
-                                            value={newEventTitle}
-                                            onChange={(e) => setNewEventTitle(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAddEvent()}
-                                            placeholder="What needs to be done?"
-                                            className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/25 focus:bg-primary/[0.02] transition-all placeholder-white/40"
-                                        />
+                                    <div className="flex gap-1 shrink-0">
+                                        {TIME_PRESETS.map(({ label, value, icon: Icon }) => (
+                                            <button
+                                                key={label}
+                                                type="button"
+                                                onClick={() => setTimePreset(value)}
+                                                className={`p-2 rounded-lg text-[10px] font-bold transition-all ${newEventTime === value ? 'bg-primary/20 text-primary' : 'bg-white/[0.04] text-white/50'}`}
+                                                title={label || 'All Day'}
+                                            >
+                                                <Icon size={14} />
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
                                 <button
-                                    onClick={handleAddEvent}
+                                    onClick={() => handleAddEvent()}
                                     disabled={!newEventTitle.trim()}
-                                    className="w-full py-3.5 bg-gradient-to-r from-primary to-primary/80 text-black font-black text-sm uppercase tracking-wider rounded-xl hover:shadow-[0_4px_15px_rgba(249,115,22,0.25)] transition-all disabled:opacity-10 disabled:shadow-none active:scale-[0.97] flex items-center justify-center gap-2"
+                                    className="w-full py-3.5 bg-gradient-to-r from-primary to-primary/80 text-black font-black text-sm uppercase tracking-wider rounded-xl hover:shadow-[0_4px_15px_rgba(249,115,22,0.25)] transition-all disabled:opacity-20 disabled:shadow-none active:scale-[0.97] flex items-center justify-center gap-2"
                                 >
                                     <Plus size={18} />
-                                    Add Event
+                                    Add Task
                                 </button>
                             </div>
                         </div>

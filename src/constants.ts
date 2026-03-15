@@ -5,6 +5,16 @@ export const ONE_WEEK = 7 * ONE_DAY;
 // Storage
 export const STORAGE_KEY = 'strategy-box-storage';
 export const LEGACY_STORAGE_KEY = 'startergy-box-storage';
+/** Backup of guest-created projects before sign-up; restored when user pays and returns */
+export const GUEST_DATA_BACKUP_KEY = 'strategy-box-guest-backup';
+
+/** Backup guest projects before navigating to sign-up; ensures data survives auth flow */
+export function backupGuestData(): void {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) localStorage.setItem(GUEST_DATA_BACKUP_KEY, data);
+    } catch { /* ignore */ }
+}
 
 // External links
 export const RAZORPAY_LINK = 'https://rzp.io/rzp/vxWpvWM';

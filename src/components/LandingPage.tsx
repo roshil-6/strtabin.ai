@@ -5,6 +5,7 @@ import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronD
 
 export const GUEST_TRIAL_KEY = 'guest-trial-start';
 import { RAZORPAY_LINK } from '../constants';
+import { restoreGuestDataIfNeeded } from '../store/useStore';
 import HexagonBackground from './HexagonBackground';
 import ThemeToggle from './ThemeToggle';
 
@@ -74,6 +75,11 @@ export default function LandingPage() {
                     await setSignUpActive({ session: result.createdSessionId });
                     // carry over guest trial if exists — prevents double free trial
                     transferGuestTrial(result.createdUserId);
+                    // restore guest-created projects if main storage was cleared during auth
+                    if (restoreGuestDataIfNeeded()) {
+                        window.location.href = '/dashboard';
+                        return;
+                    }
                     navigate('/dashboard', { replace: true });
                 }
             } else {
@@ -81,6 +87,10 @@ export default function LandingPage() {
                 if (result.status === 'complete') {
                     await setSignInActive({ session: result.createdSessionId });
                     transferGuestTrial(result.createdSessionId);
+                    if (restoreGuestDataIfNeeded()) {
+                        window.location.href = '/dashboard';
+                        return;
+                    }
                     navigate('/dashboard', { replace: true });
                 }
             }

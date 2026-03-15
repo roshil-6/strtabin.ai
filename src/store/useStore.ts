@@ -16,16 +16,72 @@ import {
     MarkerType,
 } from '@xyflow/react';
 import { NotificationManager } from '../services/NotificationManager';
-import { ONE_DAY, STORAGE_KEY, LEGACY_STORAGE_KEY, ONE_WEEK } from '../constants';
+import { ONE_DAY, STORAGE_KEY, LEGACY_STORAGE_KEY, ONE_WEEK, GUEST_DATA_BACKUP_KEY } from '../constants';
 
 // Migrate data from the old misspelled localStorage key to the new one
+// Also restore guest-created projects if main storage was cleared during sign-up
+export function restoreGuestDataIfNeeded(): boolean {
+    try {
+        const backupData = localStorage.getItem(GUEST_DATA_BACKUP_KEY);
+        if (!backupData) return false;
+        const mainData = localStorage.getItem(STORAGE_KEY);
+        const mainHasProjects = mainData && (() => {
+            try {
+                const parsed = JSON.parse(mainData);
+                const canvases = parsed?.state?.canvases ?? parsed?.canvases;
+                return canvases && Object.keys(canvases).length > 0;
+            } catch { return false; }
+        })();
+        if (mainHasProjects) {
+            localStorage.removeItem(GUEST_DATA_BACKUP_KEY);
+            return false;
+        }
+        try {
+            const backupParsed = JSON.parse(backupData);
+            const backupCanvases = backupParsed?.state?.canvases ?? backupParsed?.canvases;
+            if (backupCanvases && Object.keys(backupCanvases).length > 0) {
+                localStorage.setItem(STORAGE_KEY, backupData);
+                localStorage.removeItem(GUEST_DATA_BACKUP_KEY);
+                return true;
+            }
+        } catch { /* ignore */ }
+        localStorage.removeItem(GUEST_DATA_BACKUP_KEY);
+    } catch { /* ignore */ }
+    return false;
+}
+
 function migrateStorage() {
     try {
         const legacyData = localStorage.getItem(LEGACY_STORAGE_KEY);
-        const newData = localStorage.getItem(STORAGE_KEY);
-        if (legacyData && !newData) {
+        let mainData = localStorage.getItem(STORAGE_KEY);
+        const backupData = localStorage.getItem(GUEST_DATA_BACKUP_KEY);
+
+        if (legacyData && !mainData) {
             localStorage.setItem(STORAGE_KEY, legacyData);
             localStorage.removeItem(LEGACY_STORAGE_KEY);
+            mainData = legacyData;
+        }
+
+        // Restore guest projects when user signs up and pays — main may be empty after auth
+        if (backupData) {
+            const mainHasProjects = mainData && (() => {
+                try {
+                    const parsed = JSON.parse(mainData!);
+                    const canvases = parsed?.state?.canvases ?? parsed?.canvases;
+                    return canvases && Object.keys(canvases).length > 0;
+                } catch { return false; }
+            })();
+            if (!mainHasProjects) {
+                try {
+                    const backupParsed = JSON.parse(backupData);
+                    const backupCanvases = backupParsed?.state?.canvases ?? backupParsed?.canvases;
+                    const backupHasProjects = backupCanvases && Object.keys(backupCanvases).length > 0;
+                    if (backupHasProjects) {
+                        localStorage.setItem(STORAGE_KEY, backupData);
+                    }
+                } catch { /* ignore */ }
+            }
+            localStorage.removeItem(GUEST_DATA_BACKUP_KEY);
         }
     } catch {
         // localStorage may be unavailable in some environments
