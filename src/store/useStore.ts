@@ -551,7 +551,7 @@ const useStore = create<RFState>()(
                 set((state) => ({
                     canvases: {
                         ...state.canvases,
-                        [id]: { ...state.canvases[id], name, updatedAt: Date.now() },
+                        [id]: { ...state.canvases[id], name, title: name, updatedAt: Date.now() },
                     },
                 }));
             },
