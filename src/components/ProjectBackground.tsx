@@ -12,12 +12,12 @@ export default function ProjectBackground() {
             style={{
                 backgroundImage: isLight
                     ? `
-                        linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)
+                        linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)
                     `
                     : `
-                        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)
+                        linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px)
                     `,
                 backgroundSize: '32px 32px',
             }}

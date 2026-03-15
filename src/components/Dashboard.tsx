@@ -223,7 +223,7 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="flex h-screen theme-page font-sans overflow-hidden relative">
+        <div className="flex h-screen font-sans overflow-hidden relative bg-transparent">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
@@ -348,8 +348,8 @@ export default function Dashboard() {
                 </div>
             </aside>
 
-            {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto custom-scrollbar theme-page">
+            {/* Main Content Area — transparent so grid shows through */}
+            <main className="flex-1 overflow-y-auto custom-scrollbar bg-transparent">
                 <div className="max-w-7xl mx-auto px-3 pt-4 pb-24 md:px-10 md:pt-10 md:pb-10">
                     {/* Header */}
                     <header className="mb-5 md:mb-10">
