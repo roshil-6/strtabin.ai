@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, X, Calendar, Trash2, Bot, Clock, CheckCircle2, Circle, Layout, Bell, BellOff, ArrowLeft, Sparkles, Target, CalendarDays, ListChecks, Sun, Sunset, Moon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Calendar, Trash2, Bot, Clock, CheckCircle2, Circle, Layout, Bell, BellOff, ArrowLeft, Sparkles, Target, CalendarDays, ListChecks, Sun, Sunset, Moon, Zap } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import useStore from '../store/useStore';
@@ -17,7 +17,7 @@ export default function CalendarView() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { calendarEvents, projectCalendarEvents, addCalendarEvent, removeCalendarEvent, toggleCalendarEvent } = useStore();
+    const { calendarEvents, projectCalendarEvents, addCalendarEvent, removeCalendarEvent, toggleCalendarEvent, dailyExecutionLogs, setDailyExecutionLog } = useStore();
     const activeCalendarEvents = id ? (projectCalendarEvents[id] || {}) : calendarEvents;
     const viewMode: 'month' | 'week' = searchParams.get('mode') === 'week' ? 'week' : 'month';
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -451,7 +451,54 @@ export default function CalendarView() {
                                 </div>
                             </>
                         ) : (
-                            /* ── WEEKLY PLANNER ────────────────────────── */
+                            <>
+                            {/* Daily Execution Check-in — only when today is in the visible week */}
+                            {weekDays.some(d => dateToKey(d) === todayKey) && (
+                                <div className="flex-shrink-0 px-3 md:px-6 py-3 md:py-4 border-b border-white/[0.05] bg-gradient-to-r from-primary/[0.03] to-transparent">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Zap size={14} className="text-primary" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">Daily Check-in</span>
+                                    </div>
+                                    {(() => {
+                                        const logKey = id ? `${todayKey}_${id}` : todayKey;
+                                        const log = dailyExecutionLogs[logKey];
+                                        return (
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+                                                <div>
+                                                    <label className="text-[9px] font-black uppercase tracking-wider text-white/40 block mb-1">What did I execute today?</label>
+                                                    <input
+                                                        type="text"
+                                                        value={log?.executed ?? ''}
+                                                        onChange={(e) => setDailyExecutionLog(todayKey, { executed: e.target.value, blocking: log?.blocking ?? '', tomorrowAction: log?.tomorrowAction ?? '' }, id)}
+                                                        placeholder="e.g. Finished draft, called 3 leads"
+                                                        className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white placeholder-white/20 outline-none focus:border-primary/30"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] font-black uppercase tracking-wider text-white/40 block mb-1">What&apos;s blocking me?</label>
+                                                    <input
+                                                        type="text"
+                                                        value={log?.blocking ?? ''}
+                                                        onChange={(e) => setDailyExecutionLog(todayKey, { executed: log?.executed ?? '', blocking: e.target.value, tomorrowAction: log?.tomorrowAction ?? '' }, id)}
+                                                        placeholder="e.g. Waiting on design"
+                                                        className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white placeholder-white/20 outline-none focus:border-primary/30"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] font-black uppercase tracking-wider text-white/40 block mb-1">Top action for tomorrow</label>
+                                                    <input
+                                                        type="text"
+                                                        value={log?.tomorrowAction ?? ''}
+                                                        onChange={(e) => setDailyExecutionLog(todayKey, { executed: log?.executed ?? '', blocking: log?.blocking ?? '', tomorrowAction: e.target.value }, id)}
+                                                        placeholder="e.g. Ship v1 to beta"
+                                                        className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white placeholder-white/20 outline-none focus:border-primary/30"
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            )}
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-white/[0.05] overflow-y-auto md:overflow-hidden custom-scrollbar">
                                 {weekDays.map((date, i) => {
                                     const key = dateToKey(date);
@@ -556,6 +603,7 @@ export default function CalendarView() {
                                     );
                                 })}
                             </div>
+                            </>
                         )}
                     </div>
 

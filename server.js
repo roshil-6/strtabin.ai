@@ -419,6 +419,14 @@ function sanitiseContext(ctx) {
         hasTimeline:     typeof ctx.hasTimeline === 'boolean'     ? ctx.hasTimeline : false,
         daysSinceUpdate: typeof ctx.daysSinceUpdate === 'number'  ? ctx.daysSinceUpdate : 0,
         lastUpdated:     typeof ctx.lastUpdated === 'string'      ? ctx.lastUpdated.slice(0, 30) : '',
+        todayExecution:  typeof ctx.todayExecution === 'string'    ? ctx.todayExecution.slice(0, 500) : '',
+        blockers:        typeof ctx.blockers === 'string'         ? ctx.blockers.slice(0, 300) : '',
+        tomorrowAction:  typeof ctx.tomorrowAction === 'string'   ? ctx.tomorrowAction.slice(0, 300) : '',
+        goals:           Array.isArray(ctx.goals)
+            ? ctx.goals.slice(0, 10).map(g => (typeof g === 'object' && g !== null)
+                ? { label: String(g.label || '').slice(0, 100), current: g.current, target: g.target, unit: String(g.unit || '').slice(0, 20) }
+                : null).filter(Boolean)
+            : [],
     };
 }
 
@@ -453,6 +461,20 @@ You receive a structured JSON object called "ACTIVE PROJECT CONTEXT" with every 
 - **writingWordCount** — a signal of how developed the writing section is.
 - **daysSinceUpdate** — if high (>7), flag potential stagnation.
 - **nodeCount / edgeCount** — canvas density. Very few nodes or edges = early/planning stage.
+- **todayExecution** — what the user says they executed today (from daily check-in). Use this to acknowledge progress and challenge if empty.
+- **blockers** — what the user says is blocking them. Address these directly.
+- **tomorrowAction** — user's stated top action for tomorrow. Use to hold them accountable.
+- **goals** — outcome/metric goals (label, current, target, unit). Reference these when discussing progress and impact.
+
+---
+
+EXECUTION & ACCOUNTABILITY
+
+- When asked "What did I execute today?" or similar: use todayExecution if present.
+- When asked "What's blocking me?": use blockers if present.
+- When asked "What's my top action for tomorrow?": use tomorrowAction if present.
+- Act as a strategic mentor when asked to "Challenge my plan" or "Hold me accountable": be direct, critical where needed, and push for concrete next steps.
+- If goals exist and current/target are set: reference progress toward outcomes, not just activity.
 
 ---
 

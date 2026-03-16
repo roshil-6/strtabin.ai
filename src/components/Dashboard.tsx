@@ -11,11 +11,12 @@ import type { CanvasData } from '../store/useStore';
 export default function Dashboard() {
     const navigate = useNavigate();
     const {
-        canvases, createCanvas, deleteCanvas, togglePinCanvas, toggleCurrentProject,
+        canvases, projectCalendarEvents, createCanvas, deleteCanvas, togglePinCanvas, toggleCurrentProject,
         mergeCanvases, folders, activeFolderId, createFolder, deleteFolder,
         setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName,
     } = useStore(useShallow(state => ({
         canvases: state.canvases,
+        projectCalendarEvents: state.projectCalendarEvents,
         createCanvas: state.createCanvas,
         deleteCanvas: state.deleteCanvas,
         togglePinCanvas: state.togglePinCanvas,
@@ -178,6 +179,20 @@ export default function Dashboard() {
     function wordCount(text?: string) {
         if (!text) return 0;
         return text.trim().split(/\s+/).filter(Boolean).length;
+    }
+    function computeStreak(canvasId: string): number {
+        const events = projectCalendarEvents[canvasId] || {};
+        let streak = 0;
+        const d = new Date();
+        for (let i = 0; i < 90; i++) {
+            const key = d.toISOString().slice(0, 10);
+            const dayEvents = events[key] || [];
+            const hasCompleted = dayEvents.length > 0 && dayEvents.some(e => e.completed);
+            if (hasCompleted) streak++;
+            else break;
+            d.setDate(d.getDate() - 1);
+        }
+        return streak;
     }
 
     // Filter canvases based on activeFolderId
@@ -704,6 +719,7 @@ export default function Dashboard() {
         const isMerged = !!p.mergedCanvasIds;
         const accent = ORANGE_ACCENT;
         const nodeCount = p.nodes?.length ?? 0;
+        const streak = computeStreak(p.id);
         const todoCount = p.todos?.length ?? 0;
         const wc = wordCount(p.writingContent);
 
@@ -787,10 +803,11 @@ export default function Dashboard() {
                                 : <Icon size={18} className="text-white/70" />
                             }
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             {p.isPinned && <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-black uppercase tracking-wider text-white/30">Pinned</span>}
                             {p.isCurrent && <span className="px-1.5 py-0.5 rounded-md bg-yellow-500/10 text-[9px] font-black uppercase tracking-wider text-yellow-500/70">Active</span>}
                             {isMerged && <span className="px-1.5 py-0.5 rounded-md bg-orange-500/10 text-[9px] font-black uppercase tracking-wider text-orange-400">Merged</span>}
+                            {streak > 0 && <span className="px-1.5 py-0.5 rounded-md bg-green-500/10 text-[9px] font-black uppercase tracking-wider text-green-400">{streak}d streak</span>}
                         </div>
                     </div>
 

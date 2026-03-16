@@ -6,7 +6,7 @@ import useStore from '../store/useStore';
 import { sendStrabMessageStreaming, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
 import { getGuestAiRemaining, consumeGuestAiMessage, refundGuestAiMessage, getProAiRemaining, consumeProAiMessage, refundProAiMessage, PRO_AI_DAILY_LIMIT } from '../constants';
-import { Network, Send, Sparkles, ArrowLeft, Trash2 } from 'lucide-react';
+import { Network, Send, Sparkles, ArrowLeft, Trash2, Target, Plus } from 'lucide-react';
 import MobileNav from './MobileNav';
 
 export default function StrabView() {
@@ -23,6 +23,10 @@ export default function StrabView() {
         paidUsers[user.id]
     ));
     const canvas = useStore(state => state.canvases[id || '']);
+    const dailyExecutionLogs = useStore(state => state.dailyExecutionLogs);
+    const addCanvasGoal = useStore(state => state.addCanvasGoal);
+    const updateCanvasGoal = useStore(state => state.updateCanvasGoal);
+    const deleteCanvasGoal = useStore(state => state.deleteCanvasGoal);
     const addChatMessage = useStore(state => state.addChatMessage);
     const updateLastChatMessage = useStore(state => state.updateLastChatMessage);
     const clearChatHistory = useStore(state => state.clearChatHistory);
@@ -87,6 +91,10 @@ export default function StrabView() {
             (Date.now() - (canvas?.updatedAt || Date.now())) / (1000 * 60 * 60 * 24)
         );
 
+        const todayKey = new Date().toISOString().slice(0, 10);
+        const todayLogKey = id ? `${todayKey}_${id}` : todayKey;
+        const todayLog = dailyExecutionLogs?.[todayLogKey];
+
         return {
             name: resolvedName,
             canvasTitle: canvas?.title || null,
@@ -111,8 +119,17 @@ export default function StrabView() {
             hasImages: (canvas?.images?.length || 0) > 0,
             lastUpdated: new Date(canvas?.updatedAt || Date.now()).toISOString(),
             daysSinceUpdate,
+            todayExecution: todayLog?.executed || null,
+            blockers: todayLog?.blocking || null,
+            tomorrowAction: todayLog?.tomorrowAction || null,
+            goals: canvas?.goals?.map(g => ({
+                label: g.label,
+                current: g.currentValue,
+                target: g.targetValue,
+                unit: g.unit,
+            })) || [],
         };
-    }, [resolvedName, canvas]);
+    }, [resolvedName, canvas, id, dailyExecutionLogs]);
 
     // Update page title
     useEffect(() => {
@@ -340,6 +357,18 @@ export default function StrabView() {
         { label: 'What am I missing?', icon: '?' },
     ];
 
+    const DAILY_EXECUTION_PROMPTS = [
+        { label: 'What did I execute today?', icon: '✓' },
+        { label: "What's blocking my progress?", icon: '!' },
+        { label: "What's my top action for tomorrow?", icon: '→' },
+    ];
+
+    const ACCOUNTABILITY_PROMPTS = [
+        { label: "Challenge my plan — what's weak?", icon: '⚡' },
+        { label: "Hold me accountable — what must I do today?", icon: '🎯' },
+        { label: "What would I miss if I don't act?", icon: '?' },
+    ];
+
     if (!canvas) return (
         <div className="flex flex-col items-center justify-center h-screen theme-page text-white gap-4">
             <p className="text-white/50">Project not found.</p>
@@ -504,17 +533,31 @@ export default function StrabView() {
                         </div>
 
                         {/* Quick-action chips */}
-                        <div className="px-3 pt-2.5 pb-2 flex gap-2 overflow-x-auto custom-scrollbar-hide border-t border-white/[0.06]">
-                            {QUICK_INSIGHTS.slice(0, 4).map(({ label }) => (
-                                <button
-                                    key={label}
-                                    onClick={() => sendMessage(label)}
-                                    disabled={isLoading}
-                                    className="shrink-0 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[11px] font-medium text-white/45 hover:text-white hover:border-white/20 hover:bg-white/[0.08] active:scale-95 transition-all disabled:opacity-30"
-                                >
-                                    {label}
-                                </button>
-                            ))}
+                        <div className="px-3 pt-2.5 pb-2 flex flex-col gap-2 border-t border-white/[0.06]">
+                            <div className="flex gap-2 overflow-x-auto custom-scrollbar-hide">
+                                {QUICK_INSIGHTS.slice(0, 4).map(({ label }) => (
+                                    <button
+                                        key={label}
+                                        onClick={() => sendMessage(label)}
+                                        disabled={isLoading}
+                                        className="shrink-0 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[11px] font-medium text-white/45 hover:text-white hover:border-white/20 hover:bg-white/[0.08] active:scale-95 transition-all disabled:opacity-30"
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto custom-scrollbar-hide">
+                                {[...DAILY_EXECUTION_PROMPTS, ...ACCOUNTABILITY_PROMPTS].map(({ label }) => (
+                                    <button
+                                        key={label}
+                                        onClick={() => sendMessage(label)}
+                                        disabled={isLoading}
+                                        className="shrink-0 px-3 py-1.5 rounded-full bg-primary/[0.08] border border-primary/20 text-[11px] font-medium text-primary/80 hover:text-primary hover:border-primary/40 hover:bg-primary/[0.12] active:scale-95 transition-all disabled:opacity-30"
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Input Area — pb-[68px] compensates for fixed MobileNav on mobile */}
@@ -616,6 +659,85 @@ export default function StrabView() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Outcome Goals — track real results */}
+                            <div className="bg-[#151515] border border-white/5 p-5 rounded-2xl">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-white/30 flex items-center gap-2">
+                                        <Target size={12} /> Outcome Goals
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            const label = window.prompt('Goal (e.g. Launch product, 100 users)');
+                                            if (label?.trim()) addCanvasGoal(id!, { label: label.trim(), targetMetric: label.trim() });
+                                        }}
+                                        className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+                                    >
+                                        <Plus size={14} />
+                                    </button>
+                                </div>
+                                {canvas.goals && canvas.goals.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {canvas.goals.map(g => {
+                                            const pct = (g.targetValue != null && g.currentValue != null && g.targetValue > 0)
+                                                ? Math.min(100, (g.currentValue / g.targetValue) * 100) : 0;
+                                            return (
+                                                <div key={g.id} className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-xs font-bold text-white/80">{g.label}</span>
+                                                        <button onClick={() => deleteCanvasGoal(id!, g.id)} className="p-1 text-white/30 hover:text-red-400 rounded">
+                                                            <Trash2 size={10} />
+                                                        </button>
+                                                    </div>
+                                                    {(g.targetValue != null || g.currentValue != null) && (
+                                                        <div className="flex items-center gap-2 mt-2">
+                                                            <input
+                                                                type="number"
+                                                                value={g.currentValue ?? ''}
+                                                                onChange={(e) => updateCanvasGoal(id!, g.id, { currentValue: e.target.value ? Number(e.target.value) : undefined })}
+                                                                placeholder="Current"
+                                                                className="w-16 px-2 py-1 rounded bg-white/[0.04] border border-white/[0.06] text-[11px] text-white"
+                                                            />
+                                                            <span className="text-white/40 text-[11px]">/</span>
+                                                            <input
+                                                                type="number"
+                                                                value={g.targetValue ?? ''}
+                                                                onChange={(e) => updateCanvasGoal(id!, g.id, { targetValue: e.target.value ? Number(e.target.value) : undefined })}
+                                                                placeholder="Target"
+                                                                className="w-16 px-2 py-1 rounded bg-white/[0.04] border border-white/[0.06] text-[11px] text-white"
+                                                            />
+                                                            {g.unit && <span className="text-[10px] text-white/50">{g.unit}</span>}
+                                                        </div>
+                                                    )}
+                                                    {g.targetValue != null && g.currentValue != null && g.targetValue > 0 && (
+                                                        <div className="mt-2 h-1 rounded-full bg-white/5 overflow-hidden">
+                                                            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <p className="text-[11px] text-white/40">Add goals to track outcomes (users, revenue, milestones)</p>
+                                )}
+                            </div>
+
+                            {/* Execution & Accountability prompts */}
+                            <div className="bg-[#151515] border border-white/5 p-5 rounded-2xl">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Execution & Accountability</div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {[...DAILY_EXECUTION_PROMPTS, ...ACCOUNTABILITY_PROMPTS].map(({ label }) => (
+                                        <button
+                                            key={label}
+                                            onClick={() => { setActiveTab('chat'); sendMessage(label); }}
+                                            className="text-left px-3 py-2.5 rounded-xl bg-primary/[0.06] border border-primary/15 hover:border-primary/30 text-[11px] text-primary/90 hover:text-primary transition-all"
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
                             {/* AI Report button */}
                             <button

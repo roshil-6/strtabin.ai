@@ -103,6 +103,24 @@ export type Folder = {
     createdAt: number;
 };
 
+export type CanvasGoal = {
+    id: string;
+    label: string;
+    targetMetric?: string;
+    targetValue?: number;
+    currentValue?: number;
+    unit?: string;
+    updatedAt: number;
+};
+
+export type DailyExecutionLog = {
+    executed: string;
+    blocking: string;
+    tomorrowAction: string;
+    canvasId?: string;
+    createdAt: number;
+};
+
 export type CanvasData = {
     id: string;
     name: string;
@@ -121,6 +139,7 @@ export type CanvasData = {
     isCurrent?: boolean; // Current focus status
     mergedCanvasIds?: string[]; // IDs of canvases that are part of this merged project
     folderId?: string | null; // Associated folder ID
+    goals?: CanvasGoal[]; // Outcome/metric tracking
     updatedAt: number;
 };
 
@@ -267,6 +286,13 @@ export type RFState = {
     removeCalendarEvent: (date: string, eventId: string, canvasId?: string) => void;
     toggleWritingPinnedCalendarEvent: (canvasId: string, date: string, eventId: string) => void;
 
+    // Daily Execution & Accountability
+    dailyExecutionLogs: Record<string, DailyExecutionLog>; // key: date or date_canvasId
+    setDailyExecutionLog: (date: string, log: Omit<DailyExecutionLog, 'createdAt'>, canvasId?: string) => void;
+    addCanvasGoal: (canvasId: string, goal: Omit<CanvasGoal, 'id' | 'updatedAt'>) => void;
+    updateCanvasGoal: (canvasId: string, goalId: string, updates: Partial<CanvasGoal>) => void;
+    deleteCanvasGoal: (canvasId: string, goalId: string) => void;
+
     // Chat History
     chatHistory: Record<string, { role: 'user' | 'assistant'; content: string }[]>;
     addChatMessage: (id: string, message: { role: 'user' | 'assistant'; content: string }) => void;
@@ -321,6 +347,7 @@ const useStore = create<RFState>()(
             calendarEvents: {},
             projectCalendarEvents: {},
             writingPinnedCalendarEventKeys: {},
+            dailyExecutionLogs: {},
             chatHistory: {},
             folders: {},
             activeFolderId: null,
@@ -1132,6 +1159,62 @@ const useStore = create<RFState>()(
                         writingPinnedCalendarEventKeys: {
                             ...state.writingPinnedCalendarEventKeys,
                             [canvasId]: exists ? current.filter((k) => k !== key) : [...current, key]
+                        }
+                    };
+                });
+            },
+
+            setDailyExecutionLog: (date, log, canvasId) => {
+                const key = canvasId ? `${date}_${canvasId}` : date;
+                set((state) => ({
+                    dailyExecutionLogs: {
+                        ...state.dailyExecutionLogs,
+                        [key]: { ...log, canvasId, createdAt: Date.now() }
+                    }
+                }));
+            },
+
+            addCanvasGoal: (canvasId, goal) => {
+                const id = generateId();
+                const newGoal: CanvasGoal = { ...goal, id, updatedAt: Date.now() };
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas) return state;
+                    const goals = [...(canvas.goals || []), newGoal];
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: { ...canvas, goals, updatedAt: Date.now() }
+                        }
+                    };
+                });
+            },
+
+            updateCanvasGoal: (canvasId, goalId, updates) => {
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas?.goals) return state;
+                    const goals = canvas.goals.map(g =>
+                        g.id === goalId ? { ...g, ...updates, updatedAt: Date.now() } : g
+                    );
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: { ...canvas, goals, updatedAt: Date.now() }
+                        }
+                    };
+                });
+            },
+
+            deleteCanvasGoal: (canvasId, goalId) => {
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas?.goals) return state;
+                    const goals = canvas.goals.filter(g => g.id !== goalId);
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: { ...canvas, goals, updatedAt: Date.now() }
                         }
                     };
                 });
