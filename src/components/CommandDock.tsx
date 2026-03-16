@@ -22,7 +22,7 @@ const NODE_TYPES: {
         accent: '#f97316',
         bg: 'rgba(249,115,22,0.08)',
         border: 'rgba(249,115,22,0.2)',
-        desc: 'Add an idea node',
+        desc: 'Add an idea',
     },
     {
         type: 'question',
@@ -40,7 +40,7 @@ const NODE_TYPES: {
         accent: '#f97316',
         bg: 'rgba(249,115,22,0.08)',
         border: 'rgba(249,115,22,0.2)',
-        desc: 'Add a decision node',
+        desc: 'Add a decision',
     },
     {
         type: 'text',

@@ -598,7 +598,7 @@ export default function StrabView() {
                                 <div className="bg-[#151515] border border-white/5 p-4 rounded-2xl">
                                     <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Stage</div>
                                     <div className="text-lg font-bold text-white">{projectStage}</div>
-                                    <div className="text-[11px] text-white/30 mt-1">{canvas.nodes.length} nodes · {canvas.edges.length} connections</div>
+                                    <div className="text-[11px] text-white/30 mt-1">{canvas.nodes.length} ideas · {canvas.edges.length} connections</div>
                                 </div>
                                 <div className="bg-[#151515] border border-white/5 p-4 rounded-2xl">
                                     <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Task Progress</div>
@@ -625,7 +625,7 @@ export default function StrabView() {
                                 <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-4">Project Coverage</div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                     {[
-                                        { label: 'Canvas nodes', ok: canvas.nodes.length > 0, value: `${canvas.nodes.length} nodes` },
+                                        { label: 'Ideas', ok: canvas.nodes.length > 0, value: `${canvas.nodes.length} ideas` },
                                         { label: 'Tasks', ok: totalTasks > 0, value: totalTasks > 0 ? `${incompleteCount} pending` : 'None added' },
                                         { label: 'Writing', ok: writingWordCount > 50, value: writingWordCount > 0 ? `${writingWordCount} words` : 'Empty' },
                                         { label: 'Timeline', ok: hasTimeline, value: hasTimeline ? 'Defined' : 'Not set' },

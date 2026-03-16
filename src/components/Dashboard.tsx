@@ -617,7 +617,7 @@ export default function Dashboard() {
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
                                                     {[
                                                         { icon: PenTool, step: '01', title: 'Write & Capture', desc: 'Start with raw ideas in the writing editor' },
-                                                        { icon: Target, step: '02', title: 'Map & Connect', desc: 'Drag ideas onto the canvas as visual nodes' },
+                                                        { icon: Target, step: '02', title: 'Map & Connect', desc: 'Drag ideas onto the canvas and connect them' },
                                                         { icon: CheckSquare, step: '03', title: 'Execute & Track', desc: 'Convert to tasks, timelines and reports' },
                                                     ].map((item) => (
                                                         <div key={item.step} className="p-5 bg-white/[0.02] border border-white/[0.04] rounded-2xl text-left hover:border-primary/20 hover:bg-white/[0.03] transition-all group">
@@ -727,23 +727,31 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`dashboard-project-card group relative rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
-                    ${isSelected ? 'border-orange-500 ring-1 ring-orange-500/40' : 'border-white/[0.06] hover:border-white/[0.14]'}
+                className={`dashboard-project-card group relative rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.99] overflow-visible flex flex-col
+                    ${isSelected ? 'border-orange-500/60 ring-2 ring-orange-500/25' : 'border-white/[0.08] hover:border-white/[0.18]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
                 style={{
-                    background: '#0a0a0a',
+                    background: 'linear-gradient(180deg, #0d0d0d 0%, #0a0a0a 100%)',
                     boxShadow: isSelected
-                        ? '0 0 20px rgba(249,115,22,0.12)'
-                        : undefined,
+                        ? '0 0 0 1px rgba(249,115,22,0.2), 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(249,115,22,0.08)'
+                        : '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.02)',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 32px rgba(249,115,22,0.08)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = isSelected ? '0 0 20px rgba(249,115,22,0.12)' : ''; }}
+                onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLDivElement;
+                    if (!isSelected) el.style.boxShadow = '0 8px 32px rgba(0,0,0,0.35), 0 0 20px rgba(249,115,22,0.06), inset 0 1px 0 rgba(255,255,255,0.03)';
+                }}
+                onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLDivElement;
+                    el.style.boxShadow = isSelected
+                        ? '0 0 0 1px rgba(249,115,22,0.2), 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(249,115,22,0.08)'
+                        : '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.02)';
+                }}
             >
-                {/* Accent top strip */}
-                <div className="h-[3px] w-full shrink-0" style={{ background: accent, opacity: 0.85 }} />
+                {/* Accent top strip — refined */}
+                <div className="h-[2px] w-full shrink-0 rounded-t-2xl" style={{ background: `linear-gradient(90deg, ${accent}, ${accent}88)`, opacity: 0.9 }} />
 
-                <div className="p-4 md:p-6 flex flex-col flex-1">
+                <div className="p-4 md:p-5 flex flex-col flex-1">
                     {/* Selection Overlay */}
                     {selectionMode && (
                         <div className="absolute top-5 right-4 z-10">
@@ -796,11 +804,11 @@ export default function Dashboard() {
                     )}
 
                     {/* Icon + badges row */}
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 bg-white/[0.06] border border-white/[0.08]">
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 bg-white/[0.04] border border-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                             {isMerged
-                                ? <GitMerge size={18} className="text-white/70" />
-                                : <Icon size={18} className="text-white/70" />
+                                ? <GitMerge size={20} className="text-white/80" />
+                                : <Icon size={20} className="text-white/80" />
                             }
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -822,7 +830,7 @@ export default function Dashboard() {
                             placeholder="Project name..." aria-label="Rename project"
                         />
                     ) : (
-                        <h3 className="text-sm md:text-base font-bold text-white mb-3 truncate leading-snug"
+                        <h3 className="text-sm md:text-base font-bold text-white mb-3 truncate leading-snug tracking-tight"
                             onDoubleClick={e => handleStartRename(e, p.id, p.name || p.title || '')}
                             title="Double-click to rename">
                             {p.title || p.name || 'Untitled Project'}
@@ -834,7 +842,7 @@ export default function Dashboard() {
                         {nodeCount > 0 && (
                             <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
                                 <span className="w-1 h-1 rounded-full inline-block bg-white/30" />
-                                {nodeCount} node{nodeCount !== 1 ? 's' : ''}
+                                {nodeCount} idea{nodeCount !== 1 ? 's' : ''}
                             </span>
                         )}
                         {todoCount > 0 && (

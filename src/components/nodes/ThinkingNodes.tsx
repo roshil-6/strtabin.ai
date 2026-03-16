@@ -89,13 +89,13 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
         <div
             className="relative group flex flex-col min-w-[160px] md:min-w-[240px] max-w-[320px] rounded-xl transition-all duration-200"
             style={{
-                background: '#131313',
+                background: 'linear-gradient(180deg, #161616 0%, #121212 100%)',
                 border: `1px solid ${selected ? v.selectedBorder : v.border}`,
-                boxShadow: selected ? v.selectedGlow : '0 2px 12px rgba(0,0,0,0.3)',
+                boxShadow: selected ? v.selectedGlow : '0 2px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.02)',
             }}
         >
             {/* Accent top bar */}
-            <div className="h-[2px] rounded-t-xl w-full" style={{ background: v.accent, opacity: 0.7 }} />
+            <div className="h-[2px] rounded-t-xl w-full" style={{ background: `linear-gradient(90deg, ${v.accent}, ${v.accent}99)`, opacity: 0.85 }} />
 
             {/* Header */}
             <div
@@ -113,7 +113,7 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
                     <button
                         onClick={handleDelete}
                         className="nodrag md:opacity-0 md:group-hover:opacity-100 opacity-50 p-0.5 rounded text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                        title="Delete node"
+                        title="Delete idea"
                     >
                         <Trash2 size={12} />
                     </button>

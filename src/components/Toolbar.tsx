@@ -24,7 +24,7 @@ export default function Toolbar() {
 
     const handleBranch = () => {
         const selectedNode = getSelectedNode();
-        if (!selectedNode) return alert("Select a node to branch from.");
+        if (!selectedNode) return alert("Select an idea to branch from.");
 
         const newNodeId = `node-${Date.now()}`;
         const newNode: Node = {
@@ -50,7 +50,7 @@ export default function Toolbar() {
 
     const handleSplit = () => {
         const selectedNode = getSelectedNode();
-        if (!selectedNode) return alert("Select a node to split.");
+        if (!selectedNode) return alert("Select an idea to split.");
 
         const time = Date.now();
         const idA = `node-${time}-a`;

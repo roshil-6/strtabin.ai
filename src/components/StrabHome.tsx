@@ -427,7 +427,7 @@ export default function StrabHome() {
                             What are we building?
                         </h1>
                         <p className="text-white/35 text-sm md:text-base text-center max-w-md mb-10 leading-relaxed">
-                            Describe a project, strategy, or workflow — STRAB will create the entire canvas with nodes, connections, and a writing outline automatically.
+                            Describe a project, strategy, or workflow — STRAB will create the entire canvas with ideas, connections, and a writing outline automatically.
                         </p>
 
                         {/* Example prompt grid */}
@@ -454,7 +454,7 @@ export default function StrabHome() {
 
                         {/* Capability pills */}
                         <div className="flex flex-wrap gap-2 justify-center">
-                            {['Creates canvases', 'Adds idea nodes', 'Builds connections', 'Writes outlines', 'Sets up tasks'].map(pill => (
+                            {['Creates canvases', 'Adds ideas', 'Builds connections', 'Writes outlines', 'Sets up tasks'].map(pill => (
                                 <span key={pill} className="px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-[11px] text-white/30 font-medium flex items-center gap-1.5">
                                     <Zap size={10} className="text-primary/60" />
                                     {pill}
@@ -569,7 +569,7 @@ export default function StrabHome() {
                             </button>
                         </div>
                         <p className="text-center text-[10px] text-white/15 mt-2">
-                            STRAB can create canvases, add nodes, build connections and write project outlines automatically.
+                            STRAB can create canvases, add ideas, build connections and write project outlines automatically.
                         </p>
                     </div>
                 </div>
