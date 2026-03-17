@@ -347,12 +347,11 @@ function CanvasContent() {
                 <div
                     className={`
                         ${mobileTab === 'write' ? 'flex' : 'hidden'} 
-                        md:flex w-full md:w-[45%] h-full relative z-10 bg-gradient-to-r from-black/30 via-black/12 to-transparent
+                        md:flex w-full md:w-[45%] h-full relative z-10 bg-transparent
                     `}
                     style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
                     onWheel={(e) => e.stopPropagation()}
                 >
-                    <div className="absolute top-0 right-0 h-full w-px bg-gradient-to-b from-transparent via-white/[0.08] to-transparent pointer-events-none hidden md:block" />
                     <WritingSection
                         canvasId={id || 'default'}
                         onBranch={() => {

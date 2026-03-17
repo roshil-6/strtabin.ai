@@ -353,7 +353,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     return (
         <div className="h-full w-full bg-transparent flex flex-col relative">
             {/* Toolbar */}
-            <div className="h-11 md:h-14 border-b border-[var(--border)] flex items-center px-2 md:px-4 gap-1 theme-panel backdrop-blur-2xl sticky top-0 z-20">
+            <div className="h-11 md:h-14 flex items-center px-2 md:px-4 gap-1 bg-transparent sticky top-0 z-20">
                 <div className="flex items-center gap-2 mr-auto min-w-0">
                     <FileText size={13} className="text-primary shrink-0" />
                     <span className="text-xs font-bold text-[var(--text-secondary)] truncate max-w-[120px] md:max-w-[200px]" title={projectName}>{projectName}</span>
@@ -421,7 +421,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     {(() => {
                         const isEmpty = !content.trim() && !title.trim();
                         return (
-                            <div className="relative rounded-2xl overflow-hidden transition-all duration-300 bg-gradient-to-b from-white/[0.03] to-transparent">
+                            <div className="relative transition-all duration-300">
                                 <div className="relative px-3 md:px-4 pt-4 md:pt-5 pb-6 md:pb-8">
                                     {/* Title — no outline */}
                                     <input

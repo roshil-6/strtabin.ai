@@ -230,7 +230,7 @@ export type RFState = {
     // Canvas Management
     canvases: Record<string, CanvasData>;
     currentCanvasId: string | null;
-    createCanvas: () => string;
+    createCanvas: (initialName?: string, folderId?: string | null) => string;
     populateCanvas: (canvasId: string, nodes: Node[], edges: Edge[]) => void;
     initDefaultCanvas: () => void;
     deleteCanvas: (id: string) => void;
@@ -382,9 +382,9 @@ const useStore = create<RFState>()(
 
             initDefaultCanvas: () => {
                 const state = get();
-                if (Object.keys(state.canvases).length === 0) {
-                    for (let i = 0; i < 10; i++) state.createCanvas();
-                }
+                const generalCanvases = Object.values(state.canvases).filter(c => (c.folderId || null) === null);
+                const need = Math.max(0, 10 - generalCanvases.length);
+                for (let i = 0; i < need; i++) state.createCanvas('', null);
             },
 
             populateCanvas: (canvasId: string, nodes: Node[], edges: Edge[]) => {
@@ -400,9 +400,9 @@ const useStore = create<RFState>()(
                 });
             },
 
-            createCanvas: (initialName?: string) => {
+            createCanvas: (initialName?: string, targetFolderId?: string | null) => {
                 const id = generateId();
-                const folderId = get().activeFolderId;
+                const folderId = targetFolderId !== undefined ? targetFolderId : get().activeFolderId;
                 const newCanvas: CanvasData = {
                     id,
                     name: initialName || '',
