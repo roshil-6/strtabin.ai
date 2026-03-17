@@ -87,32 +87,39 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
 
     return (
         <div
-            className="relative group flex flex-col min-w-[160px] md:min-w-[240px] max-w-[320px] rounded-xl transition-all duration-200"
+            className="relative group flex flex-col min-w-[160px] md:min-w-[240px] max-w-[320px] rounded-xl transition-all duration-200 overflow-hidden"
             style={{
-                background: 'linear-gradient(180deg, #161616 0%, #121212 100%)',
+                background: `linear-gradient(165deg, #1a1a1a 0%, #141414 50%, #0f0f0f 100%)`,
                 border: `1px solid ${selected ? v.selectedBorder : v.border}`,
-                boxShadow: selected ? v.selectedGlow : '0 2px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.02)',
+                boxShadow: selected
+                    ? `0 0 0 1px ${v.accent}40, 0 8px 32px rgba(0,0,0,0.5), 0 0 40px ${v.accent}15, inset 0 1px 0 rgba(255,255,255,0.03)`
+                    : '0 4px 20px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03)',
             }}
         >
+            {/* Left accent stripe */}
+            <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: `linear-gradient(180deg, ${v.accent} 0%, ${v.accent}66 50%, transparent 100%)`, opacity: 0.9 }} />
+
             {/* Accent top bar */}
-            <div className="h-[2px] rounded-t-xl w-full" style={{ background: `linear-gradient(90deg, ${v.accent}, ${v.accent}99)`, opacity: 0.85 }} />
+            <div className="h-[3px] w-full shrink-0" style={{ background: `linear-gradient(90deg, ${v.accent} 0%, ${v.accent}aa 40%, ${v.accent}66 100%)`, boxShadow: `0 0 12px ${v.accent}40` }} />
 
             {/* Header */}
             <div
-                className="flex items-center justify-between px-3 py-2 rounded-none border-b cursor-grab active:cursor-grabbing"
-                style={{ background: v.headerBg, borderColor: v.border }}
+                className="flex items-center justify-between px-3 py-2.5 rounded-none border-b cursor-grab active:cursor-grabbing relative"
+                style={{ background: `linear-gradient(180deg, ${v.headerBg} 0%, transparent 100%)`, borderColor: v.border }}
             >
-                <div className="flex items-center gap-2">
-                    <Icon size={12} style={{ color: v.accent }} />
-                    <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: v.accent, opacity: 0.8 }}>
+                <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${v.accent}20`, border: `1px solid ${v.accent}40`, boxShadow: `0 0 12px ${v.accent}15` }}>
+                        <Icon size={14} style={{ color: v.accent }} />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: v.accent, opacity: 0.95, textShadow: `0 0 20px ${v.accent}30` }}>
                         {v.label}
                     </span>
                 </div>
                 <div className="flex items-center gap-1">
-                    <GripHorizontal size={12} className="text-white/15 group-hover:text-white/30 transition-colors" />
+                    <GripHorizontal size={12} className="text-white/20 group-hover:text-white/40 transition-colors" />
                     <button
                         onClick={handleDelete}
-                        className="nodrag md:opacity-0 md:group-hover:opacity-100 opacity-50 p-0.5 rounded text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                        className="nodrag md:opacity-0 md:group-hover:opacity-100 opacity-50 p-1 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all"
                         title="Delete idea"
                     >
                         <Trash2 size={12} />
@@ -121,9 +128,10 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
             </div>
 
             {/* Content */}
-            <div className="px-3 py-2.5 md:px-4 md:py-3">
+            <div className="px-3 py-3 md:px-4 md:py-4 relative">
+                <div className="absolute inset-0 pointer-events-none rounded-b-xl opacity-30" style={{ background: `radial-gradient(ellipse at 50% 0%, ${v.accent}08 0%, transparent 70%)` }} />
                 <textarea
-                    className="nodrag w-full bg-transparent text-white/85 placeholder-white/15 text-xs md:text-sm outline-none resize-none leading-relaxed min-h-[60px] md:min-h-[80px]"
+                    className="nodrag w-full bg-transparent text-white/90 placeholder-white/20 text-xs md:text-sm outline-none resize-none leading-relaxed min-h-[60px] md:min-h-[80px] relative"
                     value={(data?.label as string) || ''}
                     onChange={handleInputChange}
                     placeholder={variant === 'idea' ? 'Describe the idea...' : variant === 'question' ? 'What needs answering?' : 'What decision to make?'}
@@ -134,8 +142,8 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
 
             {/* Footer actions */}
             <div
-                className="px-3 py-2 border-t flex items-center"
-                style={{ borderColor: v.border, background: 'rgba(255,255,255,0.01)' }}
+                className="px-3 py-2 border-t flex items-center relative"
+                style={{ borderColor: v.border, background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(255,255,255,0.02) 100%)' }}
             >
                 {data.subCanvasId ? (
                     <button

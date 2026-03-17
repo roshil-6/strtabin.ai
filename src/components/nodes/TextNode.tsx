@@ -22,21 +22,28 @@ export default function TextNode({ id, data, selected }: NodeProps) {
         md:opacity-0 md:group-hover:opacity-100 opacity-50
     `;
 
+    const accent = 'rgba(163,163,163,0.6)';
     return (
         <div className={`
             relative group min-w-[160px] md:min-w-[220px] max-w-[320px]
             rounded-xl border transition-all duration-200 overflow-hidden
             ${selected
-                ? 'border-primary/50 shadow-[0_0_0_2px_rgba(249,115,22,0.12),0_0_24px_rgba(249,115,22,0.08),0_8px_24px_rgba(0,0,0,0.5)] bg-[#161410]'
-                : 'border-[#222] hover:border-[#333] bg-[#131313] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]'
+                ? 'border-primary/50 shadow-[0_0_0_1px_rgba(249,115,22,0.25),0_8px_32px_rgba(0,0,0,0.5),0_0_40px_rgba(249,115,22,0.12),inset_0_1px_0_rgba(255,255,255,0.03)]'
+                : 'border-white/[0.08] hover:border-white/[0.15]'
             }
-        `}>
-            {/* Subtle accent top bar */}
+        `}
+        style={{
+            background: selected ? 'linear-gradient(165deg, #1a1a18 0%, #141412 50%, #0f0f0e 100%)' : 'linear-gradient(165deg, #181818 0%, #131313 50%, #0e0e0e 100%)',
+            boxShadow: selected ? undefined : '0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.02)',
+        }}>
+            {/* Left accent stripe */}
+            <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl opacity-60" style={{ background: `linear-gradient(180deg, ${accent} 0%, transparent 100%)` }} />
+            {/* Accent top bar */}
             <div
-                className="h-[2px] w-full transition-opacity duration-200"
+                className="h-[3px] w-full transition-all duration-200"
                 style={{
-                    background: 'linear-gradient(90deg, rgba(249,115,22,0.6) 0%, rgba(249,115,22,0.2) 100%)',
-                    opacity: selected ? 1 : 0.3,
+                    background: selected ? 'linear-gradient(90deg, rgba(249,115,22,0.9) 0%, rgba(249,115,22,0.4) 100%)' : `linear-gradient(90deg, ${accent} 0%, transparent 100%)`,
+                    boxShadow: selected ? '0 0 12px rgba(249,115,22,0.3)' : 'none',
                 }}
             />
 
@@ -45,7 +52,8 @@ export default function TextNode({ id, data, selected }: NodeProps) {
             <Handle type="source" position={Position.Bottom} className={handleClass} style={{ bottom: -6, left: '50%', transform: 'translateX(-50%)' }} />
             <Handle type="target" position={Position.Left} className={handleClass} style={{ left: -6, top: '50%', transform: 'translateY(-50%)' }} />
 
-            <div className="px-3 py-2.5 md:px-4 md:py-3">
+            <div className="px-3 py-3 md:px-4 md:py-4 relative">
+                <div className="absolute inset-0 pointer-events-none rounded-b-xl opacity-20" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 70%)' }} />
                 <textarea
                     ref={textareaRef}
                     className="w-full bg-transparent text-white/90 placeholder-white/15 outline-none resize-none overflow-hidden font-sans text-sm md:text-base leading-relaxed nodrag"
