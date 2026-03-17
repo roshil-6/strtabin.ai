@@ -1455,10 +1455,25 @@ const useStore = create<RFState>()(
                     name,
                     createdAt: Date.now(),
                 };
-                set((state) => ({
-                    folders: { ...state.folders, [id]: newFolder },
-                    activeFolderId: id, // switch to newly created folder
-                }));
+                set((state) => {
+                    const newCanvases = { ...state.canvases };
+                    for (let i = 0; i < 10; i++) {
+                        const canvasId = generateId();
+                        newCanvases[canvasId] = {
+                            id: canvasId,
+                            name: '',
+                            nodes: [],
+                            edges: [],
+                            folderId: id,
+                            updatedAt: Date.now(),
+                        };
+                    }
+                    return {
+                        folders: { ...state.folders, [id]: newFolder },
+                        canvases: newCanvases,
+                        activeFolderId: id, // switch to newly created folder
+                    };
+                });
                 return id;
             },
 
