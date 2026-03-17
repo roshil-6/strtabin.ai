@@ -154,12 +154,12 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     // Guest trial expired — prompt to create account
     if (guestTrialExpired) {
         return (
-            <div className="min-h-screen bg-[var(--bg-page)] text-white flex items-center justify-center p-6 font-sans">
+            <div className="paywall-page min-h-screen bg-[var(--bg-page)] text-white flex items-center justify-center p-6 font-sans">
                 <div className="max-w-sm w-full flex flex-col items-center text-center gap-6">
                     <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center overflow-hidden border border-white/10">
                         <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
                     </div>
-                    <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                    <div className="paywall-icon-box w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
                         <UserX size={24} className="text-white/30" />
                     </div>
                     <div>
@@ -192,7 +192,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
         return (
             <>
                 {isDashboard && (
-                    <div className="fixed bottom-[72px] md:bottom-4 right-2 md:right-4 z-50 flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/[0.06] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] max-w-[calc(100vw-1rem)]">
+                    <div className="subscription-card fixed bottom-[72px] md:bottom-4 right-2 md:right-4 z-50 flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/[0.06] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] max-w-[calc(100vw-1rem)]">
                         <div className="flex items-center gap-2">
                             <Clock size={14} className="text-primary shrink-0" />
                             <span className="text-xs font-black text-white/60">Guest Trial: <span className="text-primary">{formatTimeLeft(guestTimeLeft)}</span></span>
@@ -217,7 +217,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
         return (
             <>
                 {status === 'trial' && isDashboard && (
-                    <div className="fixed bottom-[72px] md:bottom-4 right-2 md:right-4 z-50 flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/[0.06] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] max-w-[calc(100vw-1rem)]">
+                    <div className="subscription-card fixed bottom-[72px] md:bottom-4 right-2 md:right-4 z-50 flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/[0.06] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] max-w-[calc(100vw-1rem)]">
                         <div className="flex items-center gap-2">
                             <Clock size={14} className="text-primary shrink-0" />
                             <span className="text-xs font-black text-white/60">Trial: <span className="text-primary">{formatTimeLeft(timeLeft)}</span></span>
@@ -247,7 +247,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
 
     // Trial expired — show paywall
     return (
-        <div className="min-h-screen bg-[var(--bg-page)] text-white flex items-center justify-center p-6 font-sans">
+        <div className="paywall-page min-h-screen bg-[var(--bg-page)] text-white flex items-center justify-center p-6 font-sans">
             <div className="max-w-lg w-full flex flex-col items-center text-center gap-8">
                 {/* Logo */}
                 <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center overflow-hidden border border-white/10">
@@ -256,7 +256,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
 
                 {/* Lock icon */}
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                    <div className="paywall-icon-box w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
                         <Lock size={24} className="text-white/30" />
                     </div>
                     <div>
@@ -268,7 +268,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                 </div>
 
                 {/* Features reminder */}
-                <div className="w-full bg-white/[0.05] border border-white/10 rounded-2xl p-6 flex flex-col gap-3 text-left">
+                <div className="paywall-features-card w-full bg-white/[0.05] border border-white/10 rounded-2xl p-6 flex flex-col gap-3 text-left">
                     {[
                         'Unlimited strategy canvases & projects',
                         'AI-powered STRAB assistant',
@@ -307,7 +307,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                             I have already paid — verify access
                         </button>
                     ) : (
-                        <div className="flex flex-col gap-2 bg-white/[0.03] border border-white/10 rounded-2xl p-4">
+                        <div className="paywall-verify-card flex flex-col gap-2 bg-white/[0.03] border border-white/10 rounded-2xl p-4">
                             <p className="text-xs text-white/70 font-bold text-center">
                                 Enter your Razorpay Payment ID
                             </p>
