@@ -13,7 +13,7 @@ export default function Dashboard() {
     const {
         canvases, projectCalendarEvents, createCanvas, deleteCanvas, togglePinCanvas, toggleCurrentProject,
         mergeCanvases, folders, activeFolderId, createFolder, deleteFolder,
-        setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName,
+        setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName, initDefaultCanvas,
     } = useStore(useShallow(state => ({
         canvases: state.canvases,
         projectCalendarEvents: state.projectCalendarEvents,
@@ -30,6 +30,7 @@ export default function Dashboard() {
         moveItemToFolder: state.moveItemToFolder,
         duplicateCanvas: state.duplicateCanvas,
         updateCanvasName: state.updateCanvasName,
+        initDefaultCanvas: state.initDefaultCanvas,
     })));
 
     const { signOut } = useClerk();
@@ -50,9 +51,10 @@ export default function Dashboard() {
 
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
+        initDefaultCanvas();
         const t = setTimeout(() => setIsFirstLoad(false), 400);
         return () => { clearTimeout(t); document.title = 'Stratabin AI — Strategy Workspace'; };
-    }, []);
+    }, [initDefaultCanvas]);
 
     useEffect(() => {
         if (!showMoveMenu && !showDuplicateMenu) return;

@@ -18,40 +18,6 @@ import {
 import { NotificationManager } from '../services/NotificationManager';
 import { ONE_DAY, STORAGE_KEY, LEGACY_STORAGE_KEY, ONE_WEEK, GUEST_DATA_BACKUP_KEY } from '../constants';
 
-/** Default writing template with 10 sections so new projects never look empty */
-export const DEFAULT_WRITING_TEMPLATE = `## Overview
-Brief description of the project or strategy...
-
-## Goals
-- 
-- 
-- 
-
-## Context
-Background, market conditions, or situation...
-
-## Constraints
-Limitations, budget, timeline, or dependencies...
-
-## Key Stakeholders
-- 
-- 
-
-## Timeline
-Key milestones and deadlines...
-
-## Success Metrics
-How will you measure success?
-
-## Risks
-Potential blockers or risks to address...
-
-## Next Steps
-Immediate actions to take...
-
-## Notes
-Additional thoughts, references, or links...`;
-
 // Migrate data from the old misspelled localStorage key to the new one
 // Also restore guest-created projects if main storage was cleared during sign-up
 export function restoreGuestDataIfNeeded(): boolean {
@@ -118,31 +84,6 @@ function migrateStorage() {
             localStorage.removeItem(GUEST_DATA_BACKUP_KEY);
         }
 
-        // Populate empty canvases with default 10-section writing template (for existing projects)
-        if (mainData) {
-            try {
-                const parsed = JSON.parse(mainData) as Record<string, unknown>;
-                const state = (parsed?.state ?? parsed) as Record<string, unknown>;
-                const canvases = state?.canvases as Record<string, { writingContent?: string; updatedAt?: number }> | undefined;
-                if (canvases && typeof canvases === 'object') {
-                    let changed = false;
-                    const next: Record<string, unknown> = { ...canvases };
-                    for (const [id, c] of Object.entries(canvases)) {
-                        if (c && (c.writingContent === undefined || c.writingContent === null || String(c.writingContent).trim() === '')) {
-                            (next[id] as Record<string, unknown>) = { ...c, writingContent: DEFAULT_WRITING_TEMPLATE, updatedAt: Date.now() };
-                            changed = true;
-                        }
-                    }
-                    if (changed) {
-                        const hasNestedState = 'state' in parsed && parsed.state;
-                        const updated = hasNestedState
-                            ? { ...parsed, state: { ...state, canvases: next } }
-                            : { ...parsed, canvases: next };
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-                    }
-                }
-            } catch { /* ignore */ }
-        }
     } catch {
         // localStorage may be unavailable in some environments
     }
@@ -442,7 +383,7 @@ const useStore = create<RFState>()(
             initDefaultCanvas: () => {
                 const state = get();
                 if (Object.keys(state.canvases).length === 0) {
-                    state.createCanvas();
+                    for (let i = 0; i < 10; i++) state.createCanvas();
                 }
             },
 
@@ -469,7 +410,6 @@ const useStore = create<RFState>()(
                     edges: [],
                     folderId,
                     updatedAt: Date.now(),
-                    writingContent: DEFAULT_WRITING_TEMPLATE,
                 };
 
                 set((state) => ({
@@ -773,7 +713,6 @@ const useStore = create<RFState>()(
                     updatedAt: Date.now(),
                     attachments: [],
                     images: [],
-                    writingContent: DEFAULT_WRITING_TEMPLATE,
                 };
 
                 set((state) => ({

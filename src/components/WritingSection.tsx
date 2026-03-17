@@ -421,21 +421,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     {(() => {
                         const isEmpty = !content.trim() && !title.trim();
                         return (
-                            /* Outer box — attractive frame with gradients, accents, shadows (no inner outline) */
-                            <div className="relative rounded-2xl overflow-hidden transition-all duration-300 border border-white/[0.06] bg-gradient-to-b from-[#161616] via-[#111111] to-[#0c0c0c] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.03),inset_0_1px_0_rgba(255,255,255,0.02)]">
-                                {/* Left accent stripe — outside edge */}
-                                <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl opacity-90"
-                                    style={{ background: 'linear-gradient(180deg, rgba(249,115,22,0.95) 0%, rgba(249,115,22,0.5) 40%, rgba(249,115,22,0.2) 100%)', boxShadow: '2px 0 12px rgba(249,115,22,0.2)' }} />
-                                {/* Top accent bar with glow */}
-                                <div className="h-[4px] w-full opacity-90"
-                                    style={{ background: 'linear-gradient(90deg, rgba(249,115,22,0.9) 0%, rgba(249,115,22,0.6) 30%, rgba(249,115,22,0.3) 70%, rgba(249,115,22,0.1) 100%)', boxShadow: '0 0 20px rgba(249,115,22,0.3)' }} />
-                                {/* Corner accent — top-right */}
-                                <div className="absolute top-0 right-0 w-24 h-24 opacity-20 pointer-events-none"
-                                    style={{ background: 'radial-gradient(circle at 100% 0%, rgba(249,115,22,0.4) 0%, transparent 70%)' }} />
-                                {/* Corner accent — bottom-left */}
-                                <div className="absolute bottom-0 left-0 w-32 h-32 opacity-15 pointer-events-none"
-                                    style={{ background: 'radial-gradient(circle at 0% 100%, rgba(249,115,22,0.3) 0%, transparent 70%)' }} />
-
+                            <div className="relative rounded-2xl overflow-hidden transition-all duration-300 border border-white/[0.06] bg-[#0f0f0f]">
                                 <div className="relative pl-5 md:pl-6 pt-6 md:pt-8 pb-6 md:pb-8 pr-5 md:pr-6">
                                     {/* Title — no outline */}
                                     <input
