@@ -421,45 +421,33 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     {(() => {
                         const isEmpty = !content.trim() && !title.trim();
                         return (
-                            <div className={`relative rounded-2xl overflow-hidden transition-all duration-300 ${isEmpty
-                                ? 'border border-white/[0.08] bg-gradient-to-b from-[#141414] via-[#0f0f0f] to-[#0a0a0a] shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.02)]'
-                                : ''
-                            }`}>
-                                {/* Left accent stripe — prominent when empty */}
-                                <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl transition-opacity duration-300 ${isEmpty ? 'opacity-100' : 'opacity-40'}`}
-                                    style={{ background: 'linear-gradient(180deg, rgba(249,115,22,0.9) 0%, rgba(249,115,22,0.4) 50%, transparent 100%)' }} />
-                                {/* Top accent bar */}
-                                <div className={`h-[3px] w-full transition-opacity duration-300 ${isEmpty ? 'opacity-100' : 'opacity-50'}`}
-                                    style={{ background: 'linear-gradient(90deg, rgba(249,115,22,0.95) 0%, rgba(249,115,22,0.5) 50%, rgba(249,115,22,0.2) 100%)', boxShadow: '0 0 16px rgba(249,115,22,0.25)' }} />
+                            /* Outer box — attractive frame with gradients, accents, shadows (no inner outline) */
+                            <div className="relative rounded-2xl overflow-hidden transition-all duration-300 border border-white/[0.06] bg-gradient-to-b from-[#161616] via-[#111111] to-[#0c0c0c] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.03),inset_0_1px_0_rgba(255,255,255,0.02)]">
+                                {/* Left accent stripe — outside edge */}
+                                <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl opacity-90"
+                                    style={{ background: 'linear-gradient(180deg, rgba(249,115,22,0.95) 0%, rgba(249,115,22,0.5) 40%, rgba(249,115,22,0.2) 100%)', boxShadow: '2px 0 12px rgba(249,115,22,0.2)' }} />
+                                {/* Top accent bar with glow */}
+                                <div className="h-[4px] w-full opacity-90"
+                                    style={{ background: 'linear-gradient(90deg, rgba(249,115,22,0.9) 0%, rgba(249,115,22,0.6) 30%, rgba(249,115,22,0.3) 70%, rgba(249,115,22,0.1) 100%)', boxShadow: '0 0 20px rgba(249,115,22,0.3)' }} />
+                                {/* Corner accent — top-right */}
+                                <div className="absolute top-0 right-0 w-24 h-24 opacity-20 pointer-events-none"
+                                    style={{ background: 'radial-gradient(circle at 100% 0%, rgba(249,115,22,0.4) 0%, transparent 70%)' }} />
+                                {/* Corner accent — bottom-left */}
+                                <div className="absolute bottom-0 left-0 w-32 h-32 opacity-15 pointer-events-none"
+                                    style={{ background: 'radial-gradient(circle at 0% 100%, rgba(249,115,22,0.3) 0%, transparent 70%)' }} />
 
-                                <div className={`relative pl-5 md:pl-6 pt-6 md:pt-8 pb-6 md:pb-8 ${isEmpty ? 'pr-5 md:pr-6' : 'pr-2 md:pr-4'}`}>
-                                    {/* Title */}
+                                <div className="relative pl-5 md:pl-6 pt-6 md:pt-8 pb-6 md:pb-8 pr-5 md:pr-6">
+                                    {/* Title — no outline */}
                                     <input
                                         type="text"
                                         value={title}
                                         onChange={handleTitleChange}
                                         placeholder={isEmpty ? "Give your strategy a name..." : "Untitled Strategy"}
-                                        className={`w-full bg-transparent outline-none leading-tight mb-6 md:mb-8 transition-colors ${isEmpty
-                                            ? 'text-4xl md:text-5xl font-black text-[var(--text)] placeholder-white/25 tracking-tight'
-                                            : 'text-4xl font-bold text-[var(--text)] placeholder-[var(--text-muted)]'
-                                        }`}
+                                        className="w-full bg-transparent outline-none ring-0 border-0 focus:ring-0 focus:border-0 text-4xl md:text-5xl font-bold text-[var(--text)] placeholder-[var(--text-muted)] leading-tight mb-6 md:mb-8"
                                     />
 
-                                    {/* Empty state guidance */}
-                                    {isEmpty && (
-                                        <div className="mb-6 md:mb-8 flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                                            <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                                                <FileText size={16} className="text-primary" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-bold text-white/60 mb-1">Your writing canvas</p>
-                                                <p className="text-[11px] text-white/40 leading-relaxed">Map ideas on the canvas, then expand them here. Start with a headline, then write freely — structure as you go.</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Writing Planner — collapsed by default, tap to expand */}
-                    <div className="mb-8 border border-white/[0.06] bg-white/[0.02] rounded-2xl overflow-hidden">
+                                    {/* Writing Planner — no inner border/outline */}
+                    <div className="mb-8 rounded-2xl overflow-hidden bg-transparent">
                         <button
                             onClick={() => setPlannerOpen(!plannerOpen)}
                             className="w-full flex items-center gap-2 px-4 md:px-5 py-3 md:py-4 hover:bg-white/[0.02] active:bg-white/[0.04] transition-all"
@@ -598,18 +586,15 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         </div>
                     )}
 
-                    {/* Main Writing Textarea — always visible */}
+                    {/* Main Writing Textarea — no outline */}
                     <textarea
                         ref={textareaRef}
                         value={content}
                         onCompositionStart={() => { isComposingRef.current = true; }}
                         onCompositionEnd={() => { isComposingRef.current = false; }}
                         onChange={handleContentChange}
-                        placeholder={!content.trim() && !title.trim()
-                            ? "Expand your strategy here — goals, context, constraints, and next steps. Write freely; you can structure and refine later. Use the canvas for ideas, then develop them here."
-                            : "Start simple, write everything here..."
-                        }
-                        className={`w-full bg-transparent text-base md:text-lg text-[var(--text)] leading-relaxed outline-none resize-none font-sans min-h-[200px] ${!content.trim() && !title.trim() ? 'placeholder-white/30' : 'placeholder-[var(--text-muted)]'}`}
+                        placeholder="Start simple, write everything here..."
+                        className="w-full bg-transparent text-base md:text-lg text-[var(--text)] leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none font-sans min-h-[200px] placeholder-[var(--text-muted)]"
                         spellCheck={false}
                     />
 

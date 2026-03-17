@@ -18,6 +18,40 @@ import {
 import { NotificationManager } from '../services/NotificationManager';
 import { ONE_DAY, STORAGE_KEY, LEGACY_STORAGE_KEY, ONE_WEEK, GUEST_DATA_BACKUP_KEY } from '../constants';
 
+/** Default writing template with 10 sections so new projects never look empty */
+export const DEFAULT_WRITING_TEMPLATE = `## Overview
+Brief description of the project or strategy...
+
+## Goals
+- 
+- 
+- 
+
+## Context
+Background, market conditions, or situation...
+
+## Constraints
+Limitations, budget, timeline, or dependencies...
+
+## Key Stakeholders
+- 
+- 
+
+## Timeline
+Key milestones and deadlines...
+
+## Success Metrics
+How will you measure success?
+
+## Risks
+Potential blockers or risks to address...
+
+## Next Steps
+Immediate actions to take...
+
+## Notes
+Additional thoughts, references, or links...`;
+
 // Migrate data from the old misspelled localStorage key to the new one
 // Also restore guest-created projects if main storage was cleared during sign-up
 export function restoreGuestDataIfNeeded(): boolean {
@@ -409,6 +443,7 @@ const useStore = create<RFState>()(
                     edges: [],
                     folderId,
                     updatedAt: Date.now(),
+                    writingContent: DEFAULT_WRITING_TEMPLATE,
                 };
 
                 set((state) => ({
@@ -712,7 +747,7 @@ const useStore = create<RFState>()(
                     updatedAt: Date.now(),
                     attachments: [],
                     images: [],
-                    writingContent: ''
+                    writingContent: DEFAULT_WRITING_TEMPLATE,
                 };
 
                 set((state) => ({
