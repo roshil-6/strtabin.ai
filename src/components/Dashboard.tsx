@@ -168,7 +168,6 @@ export default function Dashboard() {
     };
 
     const activeFolder = activeFolderId ? folders[activeFolderId] : null;
-
     function timeAgo(ts: number): string {
         const d = Date.now() - ts;
         if (d < 60_000) return 'Just now';
@@ -837,45 +836,49 @@ export default function Dashboard() {
                         <h3 className="text-sm md:text-base font-bold text-white mb-3 truncate leading-snug tracking-tight"
                             onDoubleClick={e => handleStartRename(e, p.id, p.name || p.title || '')}
                             title="Double-click to rename">
-                            {p.title || p.name || 'Name your project'}
+                            {(() => {
+                                const n = (p.title || p.name || '').trim();
+                                if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Name your project';
+                                return n;
+                            })()}
                         </h3>
                     )}
 
                     {/* Stats row */}
-                    <div className="flex items-center gap-3 mb-4 flex-wrap">
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
-                            <Clock size={10} className="opacity-60" />
+                    <div className="flex items-center gap-3 mb-3 flex-wrap">
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/40">
+                            <Clock size={10} className="opacity-70" />
                             {timeAgo(p.updatedAt)}
                         </span>
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
-                            <Target size={10} className="opacity-60" />
-                            {completionRate}% focus
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/40">
+                            <Target size={10} className="opacity-70" />
+                            {todoCount > 0 ? `${completionRate}% done` : 'No tasks'}
                         </span>
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
-                            <PenTool size={10} className="opacity-60" />
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/40">
+                            <PenTool size={10} className="opacity-70" />
                             {wc} words
                         </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 mb-3">
-                        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+                        <div className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 py-2.5">
                             <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-white/35">Tasks</span>
-                                <span className="text-[10px] font-bold text-white/55">{completedTodoCount}/{todoCount}</span>
+                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-white/40">Tasks</span>
+                                <span className="text-[10px] font-bold text-white/60">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
                             </div>
-                            <div className="h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
+                            <div className="h-1.5 rounded-full bg-white/[0.1] overflow-hidden">
                                 <div
-                                    className="h-full rounded-full bg-primary/70 transition-all duration-300"
+                                    className="h-full rounded-full bg-primary/80 transition-all duration-300"
                                     style={{ width: `${completionRate}%` }}
                                 />
                             </div>
                         </div>
-                        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+                        <div className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 py-2.5">
                             <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-white/35">Structure</span>
-                                <span className="text-[10px] font-bold text-white/55">{nodeCount} nodes</span>
+                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-white/40">Structure</span>
+                                <span className="text-[10px] font-bold text-white/60">{nodeCount} nodes</span>
                             </div>
-                            <div className="flex items-center justify-between text-[10px] font-semibold text-white/45">
+                            <div className="flex items-center justify-between text-[10px] font-semibold text-white/50">
                                 <span className="inline-flex items-center gap-1">
                                     <ListTodo size={10} className="opacity-60" />
                                     {todoCount} tasks
