@@ -418,17 +418,47 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             {/* Content Area */}
             <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-5 md:p-8 custom-scrollbar">
                 <div className="mx-auto max-w-4xl pb-8">
+                    {(() => {
+                        const isEmpty = !content.trim() && !title.trim();
+                        return (
+                            <div className={`relative rounded-2xl overflow-hidden transition-all duration-300 ${isEmpty
+                                ? 'border border-white/[0.08] bg-gradient-to-b from-[#141414] via-[#0f0f0f] to-[#0a0a0a] shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.02)]'
+                                : ''
+                            }`}>
+                                {/* Left accent stripe — prominent when empty */}
+                                <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl transition-opacity duration-300 ${isEmpty ? 'opacity-100' : 'opacity-40'}`}
+                                    style={{ background: 'linear-gradient(180deg, rgba(249,115,22,0.9) 0%, rgba(249,115,22,0.4) 50%, transparent 100%)' }} />
+                                {/* Top accent bar */}
+                                <div className={`h-[3px] w-full transition-opacity duration-300 ${isEmpty ? 'opacity-100' : 'opacity-50'}`}
+                                    style={{ background: 'linear-gradient(90deg, rgba(249,115,22,0.95) 0%, rgba(249,115,22,0.5) 50%, rgba(249,115,22,0.2) 100%)', boxShadow: '0 0 16px rgba(249,115,22,0.25)' }} />
 
-                    {/* Title */}
-                    <input
-                        type="text"
-                        value={title}
-                        onChange={handleTitleChange}
-                        placeholder="Untitled Strategy"
-                        className="w-full bg-transparent text-4xl font-bold text-[var(--text)] placeholder-[var(--text-muted)] outline-none leading-tight mb-8"
-                    />
+                                <div className={`relative pl-5 md:pl-6 pt-6 md:pt-8 pb-6 md:pb-8 ${isEmpty ? 'pr-5 md:pr-6' : 'pr-2 md:pr-4'}`}>
+                                    {/* Title */}
+                                    <input
+                                        type="text"
+                                        value={title}
+                                        onChange={handleTitleChange}
+                                        placeholder={isEmpty ? "Give your strategy a name..." : "Untitled Strategy"}
+                                        className={`w-full bg-transparent outline-none leading-tight mb-6 md:mb-8 transition-colors ${isEmpty
+                                            ? 'text-4xl md:text-5xl font-black text-[var(--text)] placeholder-white/25 tracking-tight'
+                                            : 'text-4xl font-bold text-[var(--text)] placeholder-[var(--text-muted)]'
+                                        }`}
+                                    />
 
-                    {/* Writing Planner — collapsed by default, tap to expand */}
+                                    {/* Empty state guidance */}
+                                    {isEmpty && (
+                                        <div className="mb-6 md:mb-8 flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                                            <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                                                <FileText size={16} className="text-primary" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-white/60 mb-1">Your writing canvas</p>
+                                                <p className="text-[11px] text-white/40 leading-relaxed">Map ideas on the canvas, then expand them here. Start with a headline, then write freely — structure as you go.</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Writing Planner — collapsed by default, tap to expand */}
                     <div className="mb-8 border border-white/[0.06] bg-white/[0.02] rounded-2xl overflow-hidden">
                         <button
                             onClick={() => setPlannerOpen(!plannerOpen)}
@@ -575,8 +605,11 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         onCompositionStart={() => { isComposingRef.current = true; }}
                         onCompositionEnd={() => { isComposingRef.current = false; }}
                         onChange={handleContentChange}
-                        placeholder="Start simple, write everything here..."
-                        className="w-full bg-transparent text-base md:text-lg text-[var(--text)] leading-relaxed outline-none resize-none placeholder-[var(--text-muted)] font-sans min-h-[200px]"
+                        placeholder={!content.trim() && !title.trim()
+                            ? "Expand your strategy here — goals, context, constraints, and next steps. Write freely; you can structure and refine later. Use the canvas for ideas, then develop them here."
+                            : "Start simple, write everything here..."
+                        }
+                        className={`w-full bg-transparent text-base md:text-lg text-[var(--text)] leading-relaxed outline-none resize-none font-sans min-h-[200px] ${!content.trim() && !title.trim() ? 'placeholder-white/30' : 'placeholder-[var(--text-muted)]'}`}
                         spellCheck={false}
                     />
 
@@ -646,6 +679,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                             </div>
                         </div>
                     )}
+                                </div>
+                </div>
+            );
+                    })()}
                 </div>
             </div>
 
