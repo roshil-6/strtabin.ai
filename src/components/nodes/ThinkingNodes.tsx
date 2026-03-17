@@ -12,7 +12,8 @@ type ThinkingNodeProps = NodeProps<Node<ThinkingNodeData>>;
 
 type NodeVariant = 'idea' | 'question' | 'decision';
 
-const ORANGE_BORDER = 'rgba(249,115,22,0.7)';
+const ORANGE_BORDER = 'rgba(249,115,22,0.85)';
+const ORANGE_GLOW = '0 0 16px rgba(249,115,22,0.25), 0 0 4px rgba(249,115,22,0.15)';
 
 const VARIANTS: Record<NodeVariant, {
     label: string;
@@ -28,27 +29,27 @@ const VARIANTS: Record<NodeVariant, {
         icon: Lightbulb,
         accent: '#f97316',
         headerBg: 'rgba(249,115,22,0.07)',
-        border: '#1e120a',
+        border: 'rgba(249,115,22,0.35)',
         selectedBorder: ORANGE_BORDER,
-        selectedGlow: '0 2px 12px rgba(0,0,0,0.3)',
+        selectedGlow: ORANGE_GLOW,
     },
     question: {
         label: 'Question',
         icon: HelpCircle,
         accent: '#f59e0b',
         headerBg: 'rgba(245,158,11,0.08)',
-        border: '#292218',
+        border: 'rgba(249,115,22,0.3)',
         selectedBorder: ORANGE_BORDER,
-        selectedGlow: '0 2px 12px rgba(0,0,0,0.3)',
+        selectedGlow: ORANGE_GLOW,
     },
     decision: {
         label: 'Decision',
         icon: GitBranch,
         accent: '#f97316',
         headerBg: 'rgba(249,115,22,0.08)',
-        border: '#29180a',
+        border: 'rgba(249,115,22,0.35)',
         selectedBorder: ORANGE_BORDER,
-        selectedGlow: '0 2px 12px rgba(0,0,0,0.3)',
+        selectedGlow: ORANGE_GLOW,
     },
 };
 
@@ -90,10 +91,10 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
             className="relative group flex flex-col min-w-[160px] md:min-w-[240px] max-w-[320px] rounded-xl transition-all duration-200 overflow-hidden"
             style={{
                 background: `linear-gradient(165deg, #1a1a1a 0%, #141414 50%, #0f0f0f 100%)`,
-                border: `1px solid ${selected ? v.selectedBorder : v.border}`,
+                border: `1.5px solid ${selected ? v.selectedBorder : v.border}`,
                 boxShadow: selected
-                    ? `0 0 0 1px ${v.accent}40, 0 8px 32px rgba(0,0,0,0.5), 0 0 40px ${v.accent}15, inset 0 1px 0 rgba(255,255,255,0.03)`
-                    : '0 4px 20px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03)',
+                    ? `0 0 0 1px ${v.accent}40, 0 8px 32px rgba(0,0,0,0.5), 0 0 40px ${v.accent}25, inset 0 1px 0 rgba(255,255,255,0.03)`
+                    : `0 4px 20px rgba(0,0,0,0.35), 0 0 12px rgba(249,115,22,0.12), 0 0 4px rgba(249,115,22,0.08), inset 0 1px 0 rgba(255,255,255,0.03)`,
             }}
         >
             {/* Left accent stripe */}
