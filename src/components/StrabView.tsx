@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
@@ -12,6 +12,7 @@ import MobileNav from './MobileNav';
 export default function StrabView() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { user } = useUser();
     const { getToken } = useAuth();
     const paidUsers = useStore(state => state.paidUsers);
@@ -35,10 +36,16 @@ export default function StrabView() {
 
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'chat' | 'reports'>('chat');
+    const tabParam = searchParams.get('tab');
+    const [activeTab, setActiveTab] = useState<'chat' | 'reports'>(tabParam === 'reports' ? 'reports' : 'chat');
     const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
     const [proAiRemaining, setProAiRemaining] = useState(() => (user?.id ? getProAiRemaining(user.id) : PRO_AI_DAILY_LIMIT));
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (searchParams.get('tab') === 'reports') setActiveTab('reports');
+        else if (searchParams.get('tab') === 'chat') setActiveTab('chat');
+    }, [searchParams]);
 
     useEffect(() => {
         if (isGuest) setGuestAiRemaining(getGuestAiRemaining());

@@ -226,7 +226,7 @@ export default function Dashboard() {
             case 'timeline': return `/timeline/${id}`;
             case 'calendar': return `/calendar/${id}`;
             case 'planner': return `/calendar/${id}?mode=week`;
-            case 'reports': return `/strab/${id}`;
+            case 'reports': return `/strab/${id}?tab=reports`;
             case 'monitor': return `/calendar/${id}`;
             case 'strab': return `/strab/${id}`;
             default: return `/strategy/${id}`;
