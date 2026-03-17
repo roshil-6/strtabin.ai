@@ -415,7 +415,7 @@ export default function Dashboard() {
                             </button>
 
                             <button
-                                onClick={() => setActiveTab('reports')}
+                                onClick={() => navigate('/reports')}
                                 className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-5 md:py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/15 rounded-xl active:scale-95 transition-all font-black text-[11px] md:text-sm shrink-0"
                             >
                                 <BarChart2 size={14} />
@@ -538,7 +538,7 @@ export default function Dashboard() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div
-                                    onClick={() => navigate('/strab')}
+                                    onClick={() => navigate('/reports')}
                                     className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-emerald-500/50 transition-all cursor-pointer hover:bg-emerald-500/[0.02]"
                                 >
                                     <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
@@ -550,7 +550,7 @@ export default function Dashboard() {
                                     </p>
                                 </div>
                                 <p className="text-sm text-zinc-500 md:col-span-2">
-                                    Select a project below to open STRAB AI and view or generate reports.
+                                    Select a project to see the report.
                                 </p>
                             </div>
 

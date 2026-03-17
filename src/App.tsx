@@ -9,6 +9,7 @@ import StrabHome from './components/StrabHome';
 import CalendarView from './components/CalendarView';
 import LandingPage from './components/LandingPage';
 import FolderWorkflow from './components/FolderWorkflow';
+import ReportsSelectPage from './components/ReportsSelectPage';
 import AuthGate from './components/AuthGate';
 import PaywallGate from './components/PaywallGate';
 import ProjectBackground from './components/ProjectBackground';
@@ -20,7 +21,8 @@ function App() {
   const isStrategyRoute = pathname.startsWith('/strategy') || pathname.startsWith('/canvas');
   const isStrabRoute = pathname.startsWith('/strab');
   const isDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/folder-workflow');
-  const showGrid = isProjectRoute && (isStrategyRoute || isStrabRoute || isDashboardRoute);
+  const isReportsRoute = pathname === '/reports';
+  const showGrid = isProjectRoute && (isStrategyRoute || isStrabRoute || isDashboardRoute || isReportsRoute);
 
   return (
     <div className="min-h-screen w-full theme-page relative">
@@ -36,6 +38,7 @@ function App() {
       <Route path="/todo/:id" element={<AuthGate><PaywallGate><TodoSection /></PaywallGate></AuthGate>} />
       <Route path="/calendar/:id" element={<AuthGate><PaywallGate><CalendarView /></PaywallGate></AuthGate>} />
       <Route path="/calendar" element={<AuthGate><PaywallGate><CalendarView /></PaywallGate></AuthGate>} />
+      <Route path="/reports" element={<AuthGate><PaywallGate><ReportsSelectPage /></PaywallGate></AuthGate>} />
       <Route path="/strab" element={<AuthGate><PaywallGate><StrabHome /></PaywallGate></AuthGate>} />
       <Route path="/strab/:id" element={<AuthGate><PaywallGate><StrabView /></PaywallGate></AuthGate>} />
       <Route path="*" element={<NotFoundPage />} />
