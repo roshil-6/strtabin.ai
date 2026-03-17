@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import type { CanvasData } from '../store/useStore';
 
@@ -36,7 +36,7 @@ export default function Dashboard() {
     const { signOut } = useClerk();
     const { user } = useUser();
 
-    const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab'>('strategy');
+    const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab' | 'reports' | 'monitor'>('strategy');
     const [tabKey, setTabKey] = useState(0);
     const [isFirstLoad, setIsFirstLoad] = useState(true);
     const [selectionMode, setSelectionMode] = useState(false);
@@ -212,6 +212,8 @@ export default function Dashboard() {
         { id: 'timeline', label: 'Timelines', icon: Clock, color: 'text-orange-400' },
         { id: 'calendar', label: 'Strategic Calendar', icon: Calendar, color: 'text-white' },
         { id: 'planner', label: 'Project Weekly Planner', icon: CheckCircle2, color: 'text-orange-500' },
+        { id: 'reports', label: 'Reports', icon: BarChart2, color: 'text-emerald-500' },
+        { id: 'monitor', label: 'Monitor your work', icon: Activity, color: 'text-cyan-500' },
         { id: 'strab', label: 'STRAB AI', icon: Bot, color: 'text-orange-500' },
     ];
 
@@ -222,6 +224,8 @@ export default function Dashboard() {
             case 'timeline': return `/timeline/${id}`;
             case 'calendar': return `/calendar/${id}`;
             case 'planner': return `/calendar/${id}?mode=week`;
+            case 'reports': return `/strab/${id}`;
+            case 'monitor': return `/calendar/${id}`;
             case 'strab': return `/strab/${id}`;
             default: return `/strategy/${id}`;
         }
@@ -234,6 +238,8 @@ export default function Dashboard() {
             case 'timeline': return Clock;
             case 'calendar': return Calendar;
             case 'planner': return CheckCircle2;
+            case 'reports': return BarChart2;
+            case 'monitor': return Activity;
             case 'strab': return Bot;
             default: return Layout;
         }
@@ -407,6 +413,22 @@ export default function Dashboard() {
                             </button>
 
                             <button
+                                onClick={() => setActiveTab('reports')}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-5 md:py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/15 rounded-xl active:scale-95 transition-all font-black text-[11px] md:text-sm shrink-0"
+                            >
+                                <BarChart2 size={14} />
+                                <span>Reports</span>
+                            </button>
+
+                            <button
+                                onClick={() => setActiveTab('monitor')}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-5 md:py-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 hover:bg-cyan-500/15 rounded-xl active:scale-95 transition-all font-black text-[11px] md:text-sm shrink-0"
+                            >
+                                <Activity size={14} />
+                                <span>Monitor</span>
+                            </button>
+
+                            <button
                                 onClick={() => navigate(`/folder-workflow/${activeFolderId || 'general'}`)}
                                 className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-6 md:py-3 bg-white/[0.03] text-white/40 hover:text-white border border-white/[0.05] rounded-xl active:scale-95 transition-all font-bold text-[11px] md:text-sm group shrink-0"
                             >
@@ -448,7 +470,7 @@ export default function Dashboard() {
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
-                                onClick={() => { setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab'); setTabKey(k => k + 1); }}
+                                onClick={() => { setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab' | 'reports' | 'monitor'); setTabKey(k => k + 1); }}
                                 className={`group flex items-center gap-1.5 md:gap-3 pb-2.5 md:pb-4 relative transition-all duration-300 min-w-max ${activeTab === tab.id
                                     ? 'text-white'
                                     : 'text-white/25 hover:text-white/60'
@@ -501,6 +523,87 @@ export default function Dashboard() {
                                         7-day focused tactical execution and day-by-day task lists.
                                     </p>
                                 </div>
+                            </div>
+                        </div>
+                    ) : activeTab === 'reports' ? (
+                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-8">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
+                                <div>
+                                    <h2 className="text-2xl font-black text-white">Reports</h2>
+                                    <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-bold">AI analysis & project insights</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div
+                                    onClick={() => navigate('/strab')}
+                                    className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-emerald-500/50 transition-all cursor-pointer hover:bg-emerald-500/[0.02]"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                        <BarChart2 size={24} className="text-emerald-500" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-white mb-2">STRAB AI Reports</h3>
+                                    <p className="text-sm text-white/40 leading-relaxed font-bold">
+                                        Generate comprehensive analysis, gap identification, and actionable recommendations for any project.
+                                    </p>
+                                </div>
+                                <p className="text-sm text-zinc-500 md:col-span-2">
+                                    Select a project below to open STRAB AI and view or generate reports.
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-3 mb-4 px-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
+                                <div className="flex-1 h-px bg-white/5 ml-2" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+                                {filteredCanvases.map(p => renderProjectCard(p))}
+                            </div>
+                        </div>
+                    ) : activeTab === 'monitor' ? (
+                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-8">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
+                                <div>
+                                    <h2 className="text-2xl font-black text-white">Monitor your work</h2>
+                                    <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-bold">Track progress & execution</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div
+                                    onClick={() => navigate('/calendar')}
+                                    className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-cyan-500/50 transition-all cursor-pointer hover:bg-cyan-500/[0.02]"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                        <Activity size={24} className="text-cyan-500" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-white mb-2">Strategic Calendar</h3>
+                                    <p className="text-sm text-white/40 leading-relaxed font-bold">
+                                        Month-view progress, daily check-ins, and execution tracking across projects.
+                                    </p>
+                                </div>
+                                <div
+                                    onClick={() => navigate('/calendar?mode=week')}
+                                    className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-cyan-500/50 transition-all cursor-pointer hover:bg-cyan-500/[0.02]"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                        <CheckCircle2 size={24} className="text-cyan-500" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-white mb-2">Weekly Planner</h3>
+                                    <p className="text-sm text-white/40 leading-relaxed font-bold">
+                                        Day-by-day task lists and tactical execution for the current week.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 mb-4 px-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
+                                <div className="flex-1 h-px bg-white/5 ml-2" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+                                {filteredCanvases.map(p => renderProjectCard(p))}
                             </div>
                         </div>
                     ) : (
