@@ -12,8 +12,7 @@ type ThinkingNodeProps = NodeProps<Node<ThinkingNodeData>>;
 
 type NodeVariant = 'idea' | 'question' | 'decision';
 
-const ORANGE_BORDER = 'rgba(249,115,22,0.85)';
-const ORANGE_GLOW = '0 0 16px rgba(249,115,22,0.25), 0 0 4px rgba(249,115,22,0.15)';
+const ORANGE_BORDER = 'rgba(249,115,22,0.7)';
 
 const VARIANTS: Record<NodeVariant, {
     label: string;
@@ -29,27 +28,27 @@ const VARIANTS: Record<NodeVariant, {
         icon: Lightbulb,
         accent: '#f97316',
         headerBg: 'rgba(249,115,22,0.07)',
-        border: 'rgba(249,115,22,0.35)',
+        border: '#1e120a',
         selectedBorder: ORANGE_BORDER,
-        selectedGlow: ORANGE_GLOW,
+        selectedGlow: '0 2px 12px rgba(0,0,0,0.3)',
     },
     question: {
         label: 'Question',
         icon: HelpCircle,
         accent: '#f59e0b',
         headerBg: 'rgba(245,158,11,0.08)',
-        border: 'rgba(249,115,22,0.3)',
+        border: '#292218',
         selectedBorder: ORANGE_BORDER,
-        selectedGlow: ORANGE_GLOW,
+        selectedGlow: '0 2px 12px rgba(0,0,0,0.3)',
     },
     decision: {
         label: 'Decision',
         icon: GitBranch,
         accent: '#f97316',
         headerBg: 'rgba(249,115,22,0.08)',
-        border: 'rgba(249,115,22,0.35)',
+        border: '#29180a',
         selectedBorder: ORANGE_BORDER,
-        selectedGlow: ORANGE_GLOW,
+        selectedGlow: '0 2px 12px rgba(0,0,0,0.3)',
     },
 };
 
@@ -90,26 +89,29 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
         <div
             className="relative group flex flex-col min-w-[160px] md:min-w-[240px] max-w-[320px] rounded-xl transition-all duration-200 overflow-hidden"
             style={{
-                background: `linear-gradient(165deg, #1a1a1a 0%, #141414 50%, #0f0f0f 100%)`,
-                border: `1.5px solid ${selected ? v.selectedBorder : v.border}`,
+                background: `linear-gradient(165deg, #1c1c1c 0%, #161616 40%, #121212 100%)`,
+                border: `1px solid ${selected ? v.selectedBorder : v.border}`,
                 boxShadow: selected
-                    ? `0 0 0 1px ${v.accent}40, 0 8px 32px rgba(0,0,0,0.5), 0 0 40px ${v.accent}25, inset 0 1px 0 rgba(255,255,255,0.03)`
-                    : `0 4px 20px rgba(0,0,0,0.35), 0 0 12px rgba(249,115,22,0.12), 0 0 4px rgba(249,115,22,0.08), inset 0 1px 0 rgba(255,255,255,0.03)`,
+                    ? `0 0 0 1px ${v.accent}40, 0 8px 32px rgba(0,0,0,0.5), 0 0 40px ${v.accent}15, inset 0 1px 0 rgba(255,255,255,0.04)`
+                    : '0 6px 24px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.2)',
             }}
         >
-            {/* Left accent stripe */}
-            <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: `linear-gradient(180deg, ${v.accent} 0%, ${v.accent}66 50%, transparent 100%)`, opacity: 0.9 }} />
+            {/* Left accent stripe — warm gradient */}
+            <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl opacity-95" style={{ background: `linear-gradient(180deg, ${v.accent} 0%, ${v.accent}99 30%, ${v.accent}55 70%, transparent 100%)`, boxShadow: `2px 0 8px ${v.accent}25` }} />
 
-            {/* Accent top bar */}
-            <div className="h-[3px] w-full shrink-0" style={{ background: `linear-gradient(90deg, ${v.accent} 0%, ${v.accent}aa 40%, ${v.accent}66 100%)`, boxShadow: `0 0 12px ${v.accent}40` }} />
+            {/* Accent top bar with soft glow */}
+            <div className="h-[4px] w-full shrink-0" style={{ background: `linear-gradient(90deg, ${v.accent} 0%, ${v.accent}cc 35%, ${v.accent}88 70%, ${v.accent}44 100%)`, boxShadow: `0 0 16px ${v.accent}35, 0 1px 0 rgba(255,255,255,0.06)` }} />
+
+            {/* Corner accent — top-right subtle highlight */}
+            <div className="absolute top-0 right-0 w-20 h-20 pointer-events-none opacity-40" style={{ background: `radial-gradient(circle at 100% 0%, ${v.accent}20 0%, transparent 65%)` }} />
 
             {/* Header */}
             <div
                 className="flex items-center justify-between px-3 py-2.5 rounded-none border-b cursor-grab active:cursor-grabbing relative"
-                style={{ background: `linear-gradient(180deg, ${v.headerBg} 0%, transparent 100%)`, borderColor: v.border }}
+                style={{ background: `linear-gradient(180deg, ${v.headerBg} 0%, rgba(0,0,0,0.15) 100%)`, borderColor: v.border }}
             >
                 <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${v.accent}20`, border: `1px solid ${v.accent}40`, boxShadow: `0 0 12px ${v.accent}15` }}>
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${v.accent}25 0%, ${v.accent}10 100%)`, border: `1px solid ${v.accent}50`, boxShadow: `0 0 14px ${v.accent}20, inset 0 1px 0 rgba(255,255,255,0.08)` }}>
                         <Icon size={14} style={{ color: v.accent }} />
                     </div>
                     <span className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: v.accent, opacity: 0.95, textShadow: `0 0 20px ${v.accent}30` }}>
@@ -130,7 +132,7 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
 
             {/* Content */}
             <div className="px-3 py-3 md:px-4 md:py-4 relative">
-                <div className="absolute inset-0 pointer-events-none rounded-b-xl opacity-30" style={{ background: `radial-gradient(ellipse at 50% 0%, ${v.accent}08 0%, transparent 70%)` }} />
+                <div className="absolute inset-0 pointer-events-none rounded-b-xl opacity-50" style={{ background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${v.accent}12 0%, ${v.accent}04 40%, transparent 70%)` }} />
                 <textarea
                     className="nodrag w-full bg-transparent text-white/90 placeholder-white/20 text-xs md:text-sm outline-none resize-none leading-relaxed min-h-[60px] md:min-h-[80px] relative"
                     value={(data?.label as string) || ''}
@@ -144,7 +146,7 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
             {/* Footer actions */}
             <div
                 className="px-3 py-2 border-t flex items-center relative"
-                style={{ borderColor: v.border, background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(255,255,255,0.02) 100%)' }}
+                style={{ borderColor: v.border, background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(255,255,255,0.02) 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.02)' }}
             >
                 {data.subCanvasId ? (
                     <button

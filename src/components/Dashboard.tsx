@@ -728,24 +728,24 @@ export default function Dashboard() {
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
                 className={`dashboard-project-card group relative rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.99] overflow-visible flex flex-col
-                    ${isSelected ? 'border-orange-500/70 ring-2 ring-orange-500/30' : 'border-orange-500/20 hover:border-orange-500/40'}
+                    ${isSelected ? 'border-orange-500/60 ring-2 ring-orange-500/25' : 'border-white/[0.08] hover:border-white/[0.18]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
                 style={{
-                    background: 'linear-gradient(180deg, #121212 0%, #0d0d0d 50%, #0a0a0a 100%)',
+                    background: 'linear-gradient(180deg, #0d0d0d 0%, #0a0a0a 100%)',
                     boxShadow: isSelected
-                        ? '0 0 0 1px rgba(249,115,22,0.3), 0 8px 32px rgba(0,0,0,0.4), 0 0 28px rgba(249,115,22,0.15), inset 0 1px 0 rgba(255,255,255,0.03)'
-                        : '0 4px 16px rgba(0,0,0,0.3), 0 0 12px rgba(249,115,22,0.08), inset 0 1px 0 rgba(255,255,255,0.02)',
+                        ? '0 0 0 1px rgba(249,115,22,0.2), 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(249,115,22,0.08)'
+                        : '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.02)',
                 }}
                 onMouseEnter={e => {
                     const el = e.currentTarget as HTMLDivElement;
-                    if (!isSelected) el.style.boxShadow = '0 8px 32px rgba(0,0,0,0.35), 0 0 20px rgba(249,115,22,0.12), 0 0 8px rgba(249,115,22,0.06), inset 0 1px 0 rgba(255,255,255,0.03)';
+                    if (!isSelected) el.style.boxShadow = '0 8px 32px rgba(0,0,0,0.35), 0 0 20px rgba(249,115,22,0.06), inset 0 1px 0 rgba(255,255,255,0.03)';
                 }}
                 onMouseLeave={e => {
                     const el = e.currentTarget as HTMLDivElement;
                     el.style.boxShadow = isSelected
-                        ? '0 0 0 1px rgba(249,115,22,0.3), 0 8px 32px rgba(0,0,0,0.4), 0 0 28px rgba(249,115,22,0.15), inset 0 1px 0 rgba(255,255,255,0.03)'
-                        : '0 4px 16px rgba(0,0,0,0.3), 0 0 12px rgba(249,115,22,0.08), inset 0 1px 0 rgba(255,255,255,0.02)';
+                        ? '0 0 0 1px rgba(249,115,22,0.2), 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(249,115,22,0.08)'
+                        : '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.02)';
                 }}
             >
                 {/* Accent top strip — refined */}

@@ -52,35 +52,6 @@ Immediate actions to take...
 ## Notes
 Additional thoughts, references, or links...`;
 
-/** Default 10 canvas nodes so new projects have a starter flow (ideas, questions, decisions) */
-function createDefaultCanvasNodes(): { nodes: Node[]; edges: Edge[] } {
-    const ids = Array.from({ length: 10 }, () => generateId());
-    const nodes: Node[] = [
-        { id: ids[0], type: 'default', position: { x: 80, y: 80 }, data: { label: 'Project Vision' } },
-        { id: ids[1], type: 'question', position: { x: 320, y: 80 }, data: { label: 'What are the key goals?' } },
-        { id: ids[2], type: 'decision', position: { x: 560, y: 80 }, data: { label: 'Feasibility Check' } },
-        { id: ids[3], type: 'default', position: { x: 80, y: 260 }, data: { label: 'Project Phases' } },
-        { id: ids[4], type: 'default', position: { x: 280, y: 260 }, data: { label: 'Phase 1: Discovery' } },
-        { id: ids[5], type: 'default', position: { x: 480, y: 260 }, data: { label: 'Phase 2: Planning' } },
-        { id: ids[6], type: 'default', position: { x: 680, y: 260 }, data: { label: 'Phase 3: Execution' } },
-        { id: ids[7], type: 'default', position: { x: 80, y: 440 }, data: { label: 'Risks & Mitigations' } },
-        { id: ids[8], type: 'default', position: { x: 320, y: 440 }, data: { label: 'Scope creep' } },
-        { id: ids[9], type: 'default', position: { x: 560, y: 440 }, data: { label: 'Budget overruns' } },
-    ];
-    const edges: Edge[] = [
-        { id: `e-${ids[0]}-${ids[1]}`, source: ids[0], target: ids[1], type: 'smoothstep' },
-        { id: `e-${ids[1]}-${ids[2]}`, source: ids[1], target: ids[2], type: 'smoothstep' },
-        { id: `e-${ids[0]}-${ids[3]}`, source: ids[0], target: ids[3], type: 'smoothstep' },
-        { id: `e-${ids[3]}-${ids[4]}`, source: ids[3], target: ids[4], type: 'smoothstep' },
-        { id: `e-${ids[4]}-${ids[5]}`, source: ids[4], target: ids[5], type: 'smoothstep' },
-        { id: `e-${ids[5]}-${ids[6]}`, source: ids[5], target: ids[6], type: 'smoothstep' },
-        { id: `e-${ids[2]}-${ids[7]}`, source: ids[2], target: ids[7], type: 'smoothstep' },
-        { id: `e-${ids[7]}-${ids[8]}`, source: ids[7], target: ids[8], type: 'smoothstep' },
-        { id: `e-${ids[8]}-${ids[9]}`, source: ids[8], target: ids[9], type: 'smoothstep' },
-    ];
-    return { nodes, edges };
-}
-
 // Migrate data from the old misspelled localStorage key to the new one
 // Also restore guest-created projects if main storage was cleared during sign-up
 export function restoreGuestDataIfNeeded(): boolean {
@@ -147,32 +118,18 @@ function migrateStorage() {
             localStorage.removeItem(GUEST_DATA_BACKUP_KEY);
         }
 
-        // Populate empty canvases with default template + 10 nodes (for existing projects)
+        // Populate empty canvases with default 10-section writing template (for existing projects)
         if (mainData) {
             try {
                 const parsed = JSON.parse(mainData) as Record<string, unknown>;
                 const state = (parsed?.state ?? parsed) as Record<string, unknown>;
-                const canvases = state?.canvases as Record<string, { writingContent?: string; nodes?: unknown[]; edges?: unknown[]; updatedAt?: number }> | undefined;
+                const canvases = state?.canvases as Record<string, { writingContent?: string; updatedAt?: number }> | undefined;
                 if (canvases && typeof canvases === 'object') {
                     let changed = false;
                     const next: Record<string, unknown> = { ...canvases };
                     for (const [id, c] of Object.entries(canvases)) {
-                        if (!c) continue;
-                        let needsUpdate = false;
-                        const updates: Record<string, unknown> = { ...c, updatedAt: Date.now() };
-                        if (c.writingContent === undefined || c.writingContent === null || String(c.writingContent).trim() === '') {
-                            updates.writingContent = DEFAULT_WRITING_TEMPLATE;
-                            needsUpdate = true;
-                        }
-                        const nodeCount = Array.isArray(c.nodes) ? c.nodes.length : 0;
-                        if (nodeCount === 0) {
-                            const { nodes: defaultNodes, edges: defaultEdges } = createDefaultCanvasNodes();
-                            updates.nodes = defaultNodes;
-                            updates.edges = defaultEdges;
-                            needsUpdate = true;
-                        }
-                        if (needsUpdate) {
-                            next[id] = updates;
+                        if (c && (c.writingContent === undefined || c.writingContent === null || String(c.writingContent).trim() === '')) {
+                            (next[id] as Record<string, unknown>) = { ...c, writingContent: DEFAULT_WRITING_TEMPLATE, updatedAt: Date.now() };
                             changed = true;
                         }
                     }
@@ -505,12 +462,11 @@ const useStore = create<RFState>()(
             createCanvas: (initialName?: string) => {
                 const id = generateId();
                 const folderId = get().activeFolderId;
-                const { nodes: defaultNodes, edges: defaultEdges } = createDefaultCanvasNodes();
                 const newCanvas: CanvasData = {
                     id,
                     name: initialName || 'New Project',
-                    nodes: defaultNodes,
-                    edges: defaultEdges,
+                    nodes: [],
+                    edges: [],
                     folderId,
                     updatedAt: Date.now(),
                     writingContent: DEFAULT_WRITING_TEMPLATE,
@@ -519,8 +475,8 @@ const useStore = create<RFState>()(
                 set((state) => ({
                     canvases: { ...state.canvases, [id]: newCanvas },
                     currentCanvasId: id,
-                    nodes: defaultNodes,
-                    edges: defaultEdges,
+                    nodes: [],
+                    edges: [],
                 }));
                 return id;
             },
@@ -808,12 +764,11 @@ const useStore = create<RFState>()(
                 const state = get();
                 if (state.canvases[id]) return;
 
-                const { nodes: defaultNodes, edges: defaultEdges } = createDefaultCanvasNodes();
                 const newCanvas: CanvasData = {
                     id,
                     name: 'Untitled Strategy',
-                    nodes: defaultNodes,
-                    edges: defaultEdges,
+                    nodes: [],
+                    edges: [],
                     folderId: state.activeFolderId,
                     updatedAt: Date.now(),
                     attachments: [],
