@@ -225,12 +225,18 @@ app.post('/api/payments/verify', async (req, res) => {
             }
 
             // Verify the payer email matches this Clerk account to prevent sharing payment IDs
+            // CRITICAL: Do not allow verification if payment email is missing or does not match
             const clerkEmails = clerkUser.emailAddresses.map(e => e.emailAddress.toLowerCase());
-            const paymentEmail = (payment.email || '').toLowerCase();
-            if (paymentEmail && !clerkEmails.includes(paymentEmail)) {
+            const paymentEmail = (payment.email || '').toLowerCase().trim();
+            if (!paymentEmail) {
+                return res.status(400).json({
+                    error: 'This payment has no email on file. Please log in with the account that made the payment, or contact support.',
+                });
+            }
+            if (!clerkEmails.includes(paymentEmail)) {
                 console.warn(`Payment ${paymentId} email (${paymentEmail}) does not match Clerk user ${userId} emails (${clerkEmails.join(', ')})`);
                 return res.status(400).json({
-                    error: 'The email on this payment does not match your account. Please contact support.',
+                    error: 'The email on this payment does not match your account. Please log in with the account that made the payment.',
                 });
             }
 
