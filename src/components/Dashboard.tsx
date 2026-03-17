@@ -6,9 +6,11 @@ import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
 
 export default function Dashboard() {
+    const { resolved: theme } = useTheme();
     const navigate = useNavigate();
     const {
         canvases, projectCalendarEvents, createCanvas, deleteCanvas, togglePinCanvas, toggleCurrentProject,
@@ -838,20 +840,28 @@ export default function Dashboard() {
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
                 style={{
-                    background: 'linear-gradient(180deg, #111 0%, #0d0d0d 100%)',
+                    background: theme === 'light'
+                        ? 'linear-gradient(180deg, #3d3d3d 0%, #2d2d2d 100%)'
+                        : 'linear-gradient(180deg, #111 0%, #0d0d0d 100%)',
                     boxShadow: isSelected
                         ? '0 0 0 1px rgba(249,115,22,0.3), 0 4px 16px rgba(0,0,0,0.4)'
-                        : '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)',
+                        : theme === 'light'
+                            ? '0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.08)'
+                            : '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)',
                 }}
                 onMouseEnter={e => {
                     const el = e.currentTarget as HTMLDivElement;
-                    if (!isSelected) el.style.boxShadow = '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)';
+                    if (!isSelected) el.style.boxShadow = theme === 'light'
+                        ? '0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+                        : '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)';
                 }}
                 onMouseLeave={e => {
                     const el = e.currentTarget as HTMLDivElement;
                     el.style.boxShadow = isSelected
                         ? '0 0 0 1px rgba(249,115,22,0.3), 0 4px 16px rgba(0,0,0,0.4)'
-                        : '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)';
+                        : theme === 'light'
+                            ? '0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.08)'
+                            : '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)';
                 }}
             >
                 {/* Accent top strip */}

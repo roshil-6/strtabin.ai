@@ -158,6 +158,17 @@
   color: var(--text) !important;
 }
 
+/* Light theme: dashboard project cards stay dark grey — keep white/light text */
+[data-theme="light"] .dashboard-project-card .text-white { color: #ffffff !important; }
+[data-theme="light"] .dashboard-project-card .text-zinc-200 { color: #e5e5e5 !important; }
+[data-theme="light"] .dashboard-project-card .text-zinc-300 { color: #d4d4d4 !important; }
+[data-theme="light"] .dashboard-project-card .text-zinc-400 { color: #a3a3a3 !important; }
+[data-theme="light"] .dashboard-project-card .text-zinc-500 { color: #737373 !important; }
+[data-theme="light"] .dashboard-project-card .text-primary { color: #f97316 !important; }
+[data-theme="light"] .dashboard-project-card .text-emerald-400 { color: #34d399 !important; }
+[data-theme="light"] .dashboard-project-card .text-amber-400 { color: #fbbf24 !important; }
+[data-theme="light"] .dashboard-project-card .text-orange-400 { color: #fb923c !important; }
+
 /* Light theme: flow nodes stay dark — keep white text (override global dark-text overrides) */
 [data-theme="light"] .react-flow__node .text-white { color: #ffffff !important; }
 [data-theme="light"] .react-flow__node .text-white\/90 { color: rgba(255,255,255,0.9) !important; }
