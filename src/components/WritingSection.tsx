@@ -351,7 +351,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const projectName = canvas?.name || canvas?.title || 'Untitled';
 
     return (
-        <div className="h-full w-full theme-page flex flex-col border-r border-[var(--border)] relative">
+        <div className="h-full w-full bg-transparent flex flex-col relative">
             {/* Toolbar */}
             <div className="h-11 md:h-14 border-b border-[var(--border)] flex items-center px-2 md:px-4 gap-1 theme-panel backdrop-blur-2xl sticky top-0 z-20">
                 <div className="flex items-center gap-2 mr-auto min-w-0">
@@ -416,13 +416,13 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             </div>
 
             {/* Content Area */}
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-5 md:p-8 custom-scrollbar">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-5 py-5 md:px-8 md:py-7 custom-scrollbar">
                 <div className="mx-auto max-w-4xl pb-8">
                     {(() => {
                         const isEmpty = !content.trim() && !title.trim();
                         return (
-                            <div className="relative rounded-2xl overflow-hidden transition-all duration-300 border border-white/[0.06] bg-[#0f0f0f]">
-                                <div className="relative pl-5 md:pl-6 pt-6 md:pt-8 pb-6 md:pb-8 pr-5 md:pr-6">
+                            <div className="relative rounded-2xl overflow-hidden transition-all duration-300 bg-gradient-to-b from-white/[0.03] to-transparent">
+                                <div className="relative px-3 md:px-4 pt-4 md:pt-5 pb-6 md:pb-8">
                                     {/* Title — no outline */}
                                     <input
                                         type="text"
@@ -433,7 +433,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     />
 
                                     {/* Writing Planner — no inner border/outline */}
-                    <div className="mb-8 rounded-2xl overflow-hidden bg-transparent">
+                    <div className="mb-8 rounded-2xl overflow-hidden bg-white/[0.02]">
                         <button
                             onClick={() => setPlannerOpen(!plannerOpen)}
                             className="w-full flex items-center gap-2 px-4 md:px-5 py-3 md:py-4 hover:bg-white/[0.02] active:bg-white/[0.04] transition-all"
