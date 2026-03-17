@@ -169,7 +169,6 @@ export default function Dashboard() {
 
     const activeFolder = activeFolderId ? folders[activeFolderId] : null;
 
-    const ORANGE_ACCENT = '#f97316';
     function timeAgo(ts: number): string {
         const d = Date.now() - ts;
         if (d < 60_000) return 'Just now';
@@ -719,11 +718,14 @@ export default function Dashboard() {
         const Icon = getActiveIcon();
         const isSelected = selectedIds.includes(p.id);
         const isMerged = !!p.mergedCanvasIds;
-        const accent = ORANGE_ACCENT;
         const nodeCount = p.nodes?.length ?? 0;
         const streak = computeStreak(p.id);
         const todoCount = p.todos?.length ?? 0;
+        const completedTodoCount = p.todos?.filter(todo => todo.completed).length ?? 0;
+        const completionRate = todoCount > 0 ? Math.round((completedTodoCount / todoCount) * 100) : 0;
         const wc = wordCount(p.writingContent);
+        const previewText = (p.writingContent || '').replace(/\s+/g, ' ').trim();
+        const hasContent = nodeCount > 0 || todoCount > 0 || wc > 0;
 
         return (
             <div
@@ -734,24 +736,24 @@ export default function Dashboard() {
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
                 style={{
-                    background: 'linear-gradient(180deg, #0d0d0d 0%, #0a0a0a 100%)',
+                    background: 'linear-gradient(180deg, #111 0%, #0d0d0d 100%)',
                     boxShadow: isSelected
-                        ? '0 0 0 1px rgba(249,115,22,0.2), 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(249,115,22,0.08)'
-                        : '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.02)',
+                        ? '0 0 0 1px rgba(249,115,22,0.3), 0 4px 16px rgba(0,0,0,0.4)'
+                        : '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)',
                 }}
                 onMouseEnter={e => {
                     const el = e.currentTarget as HTMLDivElement;
-                    if (!isSelected) el.style.boxShadow = '0 8px 32px rgba(0,0,0,0.35), 0 0 20px rgba(249,115,22,0.06), inset 0 1px 0 rgba(255,255,255,0.03)';
+                    if (!isSelected) el.style.boxShadow = '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)';
                 }}
                 onMouseLeave={e => {
                     const el = e.currentTarget as HTMLDivElement;
                     el.style.boxShadow = isSelected
-                        ? '0 0 0 1px rgba(249,115,22,0.2), 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(249,115,22,0.08)'
-                        : '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.02)';
+                        ? '0 0 0 1px rgba(249,115,22,0.3), 0 4px 16px rgba(0,0,0,0.4)'
+                        : '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)';
                 }}
             >
-                {/* Accent top strip — refined */}
-                <div className="h-[2px] w-full shrink-0 rounded-t-2xl" style={{ background: `linear-gradient(90deg, ${accent}, ${accent}88)`, opacity: 0.9 }} />
+                {/* Accent top strip */}
+                <div className="h-[2px] w-full shrink-0 rounded-t-2xl bg-primary/60" />
 
                 <div className="p-4 md:p-5 flex flex-col flex-1">
                     {/* Selection Overlay */}
@@ -835,11 +837,70 @@ export default function Dashboard() {
                         <h3 className="text-sm md:text-base font-bold text-white mb-3 truncate leading-snug tracking-tight"
                             onDoubleClick={e => handleStartRename(e, p.id, p.name || p.title || '')}
                             title="Double-click to rename">
-                            {p.title || p.name || 'Untitled Project'}
+                            {p.title || p.name || 'Name your project'}
                         </h3>
                     )}
 
                     {/* Stats row */}
+                    <div className="flex items-center gap-3 mb-4 flex-wrap">
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
+                            <Clock size={10} className="opacity-60" />
+                            {timeAgo(p.updatedAt)}
+                        </span>
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
+                            <Target size={10} className="opacity-60" />
+                            {completionRate}% focus
+                        </span>
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
+                            <PenTool size={10} className="opacity-60" />
+                            {wc} words
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-white/35">Tasks</span>
+                                <span className="text-[10px] font-bold text-white/55">{completedTodoCount}/{todoCount}</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
+                                <div
+                                    className="h-full rounded-full bg-primary/70 transition-all duration-300"
+                                    style={{ width: `${completionRate}%` }}
+                                />
+                            </div>
+                        </div>
+                        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-white/35">Structure</span>
+                                <span className="text-[10px] font-bold text-white/55">{nodeCount} nodes</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] font-semibold text-white/45">
+                                <span className="inline-flex items-center gap-1">
+                                    <ListTodo size={10} className="opacity-60" />
+                                    {todoCount} tasks
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                    <FileText size={10} className="opacity-60" />
+                                    {wc}w
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2.5 mb-4 min-h-[70px]">
+                        <p className="text-[9px] uppercase tracking-[0.16em] font-black text-white/35 mb-1.5">Project brief</p>
+                        <p className="text-[11px] leading-relaxed text-white/55 line-clamp-3">
+                            {previewText || 'Add your core idea, goals, and execution notes to turn this into a full strategy card.'}
+                        </p>
+                    </div>
+
+                    {!hasContent && (
+                        <div className="mb-4 rounded-lg border border-dashed border-white/[0.12] px-2.5 py-2 text-[10px] font-semibold text-white/35">
+                            Start by adding nodes, tasks, or notes to enrich this project.
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-3 mb-4 flex-wrap">
                         {nodeCount > 0 && (
                             <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
@@ -869,7 +930,9 @@ export default function Dashboard() {
 
                     {/* Footer */}
                     <div className="mt-auto flex items-center justify-between">
-                        <span className="text-[10px] text-white/20 font-medium">{timeAgo(p.updatedAt)}</span>
+                        <span className="text-[10px] text-white/20 font-medium">
+                            {p.folderId ? (folders[p.folderId]?.name || 'Workspace project') : 'General project'}
+                        </span>
                         <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 text-primary">
                             {selectionMode ? (isSelected ? 'Deselect' : 'Select') : 'Open'}
                             <ArrowRight size={11} />
