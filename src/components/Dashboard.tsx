@@ -808,17 +808,17 @@ export default function Dashboard() {
 
                     {/* Icon + badges row */}
                     <div className="flex items-start justify-between mb-3">
-                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 bg-white/[0.04] border border-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 bg-primary/10 border border-primary/20">
                             {isMerged
-                                ? <GitMerge size={20} className="text-white/80" />
-                                : <Icon size={20} className="text-white/80" />
+                                ? <GitMerge size={20} className="text-primary" />
+                                : <Icon size={20} className="text-primary" />
                             }
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            {p.isPinned && <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-black uppercase tracking-wider text-white/30">Pinned</span>}
-                            {p.isCurrent && <span className="px-1.5 py-0.5 rounded-md bg-yellow-500/10 text-[9px] font-black uppercase tracking-wider text-yellow-500/70">Active</span>}
-                            {isMerged && <span className="px-1.5 py-0.5 rounded-md bg-orange-500/10 text-[9px] font-black uppercase tracking-wider text-orange-400">Merged</span>}
-                            {streak > 0 && <span className="px-1.5 py-0.5 rounded-md bg-green-500/10 text-[9px] font-black uppercase tracking-wider text-green-400">{streak}d streak</span>}
+                            {p.isPinned && <span className="px-1.5 py-0.5 rounded-md bg-primary/15 text-[9px] font-black uppercase tracking-wider text-primary">Pinned</span>}
+                            {p.isCurrent && <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-[9px] font-black uppercase tracking-wider text-amber-400">Active</span>}
+                            {isMerged && <span className="px-1.5 py-0.5 rounded-md bg-orange-500/20 text-[9px] font-black uppercase tracking-wider text-orange-400">Merged</span>}
+                            {streak > 0 && <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-[9px] font-black uppercase tracking-wider text-emerald-400">{streak}d streak</span>}
                         </div>
                     </div>
 
@@ -846,86 +846,86 @@ export default function Dashboard() {
 
                     {/* Stats row */}
                     <div className="flex items-center gap-3 mb-3 flex-wrap">
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/40">
-                            <Clock size={10} className="opacity-70" />
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
+                            <Clock size={11} className="text-primary/90" />
                             {timeAgo(p.updatedAt)}
                         </span>
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/40">
-                            <Target size={10} className="opacity-70" />
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
+                            <Target size={11} className="text-primary/90" />
                             {todoCount > 0 ? `${completionRate}% done` : 'No tasks'}
                         </span>
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-white/40">
-                            <PenTool size={10} className="opacity-70" />
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
+                            <PenTool size={11} className="text-primary/90" />
                             {wc} words
                         </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 mb-3">
-                        <div className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 py-2.5">
+                        <div className="rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2.5">
                             <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-white/40">Tasks</span>
-                                <span className="text-[10px] font-bold text-white/60">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
+                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-primary">Tasks</span>
+                                <span className="text-[10px] font-bold text-zinc-200">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
                             </div>
-                            <div className="h-1.5 rounded-full bg-white/[0.1] overflow-hidden">
+                            <div className="h-1.5 rounded-full bg-zinc-700/80 overflow-hidden">
                                 <div
-                                    className="h-full rounded-full bg-primary/80 transition-all duration-300"
+                                    className="h-full rounded-full bg-primary transition-all duration-300"
                                     style={{ width: `${completionRate}%` }}
                                 />
                             </div>
                         </div>
-                        <div className="rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 py-2.5">
+                        <div className="rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2.5">
                             <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-white/40">Structure</span>
-                                <span className="text-[10px] font-bold text-white/60">{nodeCount} nodes</span>
+                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-primary">Structure</span>
+                                <span className="text-[10px] font-bold text-zinc-200">{nodeCount} nodes</span>
                             </div>
-                            <div className="flex items-center justify-between text-[10px] font-semibold text-white/50">
+                            <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-400">
                                 <span className="inline-flex items-center gap-1">
-                                    <ListTodo size={10} className="opacity-60" />
+                                    <ListTodo size={10} className="text-primary/80" />
                                     {todoCount} tasks
                                 </span>
                                 <span className="inline-flex items-center gap-1">
-                                    <FileText size={10} className="opacity-60" />
+                                    <FileText size={10} className="text-primary/80" />
                                     {wc}w
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2.5 mb-4 min-h-[70px]">
-                        <p className="text-[9px] uppercase tracking-[0.16em] font-black text-white/35 mb-1.5">Project brief</p>
-                        <p className="text-[11px] leading-relaxed text-white/55 line-clamp-3">
+                    <div className="rounded-xl border border-white/[0.1] bg-zinc-900/50 px-3 py-2.5 mb-4 min-h-[70px]">
+                        <p className="text-[9px] uppercase tracking-[0.16em] font-black text-primary mb-1.5">Project brief</p>
+                        <p className="text-[11px] leading-relaxed text-zinc-300 line-clamp-3">
                             {previewText || 'Add your core idea, goals, and execution notes to turn this into a full strategy card.'}
                         </p>
                     </div>
 
                     {!hasContent && (
-                        <div className="mb-4 rounded-lg border border-dashed border-white/[0.12] px-2.5 py-2 text-[10px] font-semibold text-white/35">
+                        <div className="mb-4 rounded-lg border border-dashed border-primary/30 px-2.5 py-2 text-[10px] font-semibold text-zinc-500">
                             Start by adding nodes, tasks, or notes to enrich this project.
                         </div>
                     )}
 
                     <div className="flex items-center gap-3 mb-4 flex-wrap">
                         {nodeCount > 0 && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
-                                <span className="w-1 h-1 rounded-full inline-block bg-white/30" />
+                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary/70" />
                                 {nodeCount} idea{nodeCount !== 1 ? 's' : ''}
                             </span>
                         )}
                         {todoCount > 0 && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
-                                <CheckSquare size={10} className="opacity-60" />
+                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
+                                <CheckSquare size={10} className="text-primary/80" />
                                 {todoCount} task{todoCount !== 1 ? 's' : ''}
                             </span>
                         )}
                         {wc > 0 && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
-                                <FileText size={10} className="opacity-60" />
+                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
+                                <FileText size={10} className="text-primary/80" />
                                 {wc}w
                             </span>
                         )}
                         {isMerged && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-white/25">
-                                <Layers size={10} className="opacity-60" />
+                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
+                                <Layers size={10} className="text-primary/80" />
                                 {p.mergedCanvasIds?.length ?? 0} canvases
                             </span>
                         )}
@@ -933,7 +933,7 @@ export default function Dashboard() {
 
                     {/* Footer */}
                     <div className="mt-auto flex items-center justify-between">
-                        <span className="text-[10px] text-white/20 font-medium">
+                        <span className="text-[10px] text-zinc-500 font-medium">
                             {p.folderId ? (folders[p.folderId]?.name || 'Workspace project') : 'General project'}
                         </span>
                         <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 text-primary">
