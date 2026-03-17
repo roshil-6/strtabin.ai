@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stratabin-v3';
+const CACHE_NAME = 'stratabin-v4';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/favicon.png'];
 
 // Install: cache static assets
