@@ -117,6 +117,32 @@ function migrateStorage() {
             }
             localStorage.removeItem(GUEST_DATA_BACKUP_KEY);
         }
+
+        // Populate empty canvases with default 10-section template (for existing projects)
+        if (mainData) {
+            try {
+                const parsed = JSON.parse(mainData) as Record<string, unknown>;
+                const state = (parsed?.state ?? parsed) as Record<string, unknown>;
+                const canvases = state?.canvases as Record<string, { writingContent?: string; updatedAt?: number }> | undefined;
+                if (canvases && typeof canvases === 'object') {
+                    let changed = false;
+                    const next: Record<string, unknown> = { ...canvases };
+                    for (const [id, c] of Object.entries(canvases)) {
+                        if (c && (c.writingContent === undefined || c.writingContent === null || String(c.writingContent).trim() === '')) {
+                            (next[id] as Record<string, unknown>) = { ...c, writingContent: DEFAULT_WRITING_TEMPLATE, updatedAt: Date.now() };
+                            changed = true;
+                        }
+                    }
+                    if (changed) {
+                        const hasNestedState = 'state' in parsed && parsed.state;
+                        const updated = hasNestedState
+                            ? { ...parsed, state: { ...state, canvases: next } }
+                            : { ...parsed, canvases: next };
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+                    }
+                }
+            } catch { /* ignore */ }
+        }
     } catch {
         // localStorage may be unavailable in some environments
     }
