@@ -574,15 +574,15 @@ export default function Dashboard() {
                                 </section>
                             )}
 
-                            {/* All Projects / Other Projects */}
+                            {/* Start your project / All Projects */}
                             <section>
-                                {(pinnedProjects.length > 0 || currentProjects.length > 0 || mergedProjects.length > 0) && (
-                                    <div className="flex items-center gap-3 mb-4 md:mb-6 px-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">All Projects</h2>
-                                        <div className="flex-1 h-px bg-white/5 ml-2" />
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-3 mb-4 md:mb-6 px-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                    <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
+                                        {pinnedProjects.length > 0 || currentProjects.length > 0 || mergedProjects.length > 0 ? 'All Projects' : 'Start your project'}
+                                    </h2>
+                                    <div className="flex-1 h-px bg-white/5 ml-2" />
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
                                     {(pinnedProjects.length > 0 || currentProjects.length > 0 ? otherProjects : regularProjects).map(p => renderProjectCard(p))}
 

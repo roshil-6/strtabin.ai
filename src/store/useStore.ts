@@ -405,7 +405,7 @@ const useStore = create<RFState>()(
                 const folderId = get().activeFolderId;
                 const newCanvas: CanvasData = {
                     id,
-                    name: initialName || 'New Project',
+                    name: initialName || '',
                     nodes: [],
                     edges: [],
                     folderId,
@@ -706,7 +706,7 @@ const useStore = create<RFState>()(
 
                 const newCanvas: CanvasData = {
                     id,
-                    name: 'Untitled Strategy',
+                    name: '',
                     nodes: [],
                     edges: [],
                     folderId: state.activeFolderId,
