@@ -214,7 +214,7 @@ export default function LandingPage() {
                     <div className="w-full max-w-3xl mx-auto mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400">
                         <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-2xl aspect-video">
                             <video
-                                src="/strtabin%20ad%20video%20raw.mp4"
+                                src="/strtabin%20ad%203.mp4"
                                 controls
                                 playsInline
                                 className="w-full h-full object-contain"
