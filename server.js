@@ -109,18 +109,23 @@ app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json
             return res.status(200).json({ ok: true, ignored: true, event: eventName });
         }
 
+        // Extract payment entity — support payment.captured, order.paid, payment_link.paid
+        const plink = payload?.payload?.payment_link?.entity;
         const payment =
             payload?.payload?.payment?.entity ||
             payload?.payload?.order?.entity?.payments?.[0] ||
+            (plink?.payments && plink.payments[0]) ||
             null;
 
         const notes = payment?.notes && typeof payment.notes === 'object' ? payment.notes : {};
         const clerkUserId = typeof notes.clerkUserId === 'string'
             ? notes.clerkUserId
             : (typeof notes.clerk_user_id === 'string' ? notes.clerk_user_id : '');
-        const payerEmail = typeof payment?.email === 'string'
-            ? payment.email
-            : (typeof notes.email === 'string' ? notes.email : '');
+        const payerEmail = (
+            typeof payment?.email === 'string' ? payment.email :
+            (plink?.customer?.email && typeof plink.customer.email === 'string') ? plink.customer.email :
+            typeof notes.email === 'string' ? notes.email : ''
+        ).trim().toLowerCase();
 
         let resolvedUserId = clerkUserId;
         if (!resolvedUserId && payerEmail) {
@@ -132,6 +137,23 @@ app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json
             return res.status(202).json({
                 ok: true,
                 warning: 'Payment received but no Clerk user could be resolved. Include notes.clerkUserId in Razorpay payments.',
+            });
+        }
+
+        // Safeguard: verify the resolved user's email matches payer (prevents wrong-user updates)
+        const targetUser = await clerk.users.getUser(resolvedUserId);
+        const targetEmails = (targetUser.emailAddresses || []).map(e => (e.emailAddress || '').toLowerCase().trim());
+        if (payerEmail && !targetEmails.includes(payerEmail)) {
+            console.warn(`Webhook: resolved user ${resolvedUserId} email (${targetEmails.join(',')}) does not match payment email (${payerEmail}). Skipping update.`);
+            return res.status(202).json({
+                ok: true,
+                warning: 'Payment email does not match any Stratabin account. User must log in with the email used for payment.',
+            });
+        }
+        if (!payerEmail && !clerkUserId) {
+            return res.status(202).json({
+                ok: true,
+                warning: 'Payment has no email. Cannot attribute to a user. Include notes.clerkUserId when creating the payment link.',
             });
         }
 
@@ -224,16 +246,15 @@ app.post('/api/payments/verify', async (req, res) => {
                 return res.status(400).json({ error: `Payment status is "${payment.status}", not captured yet.` });
             }
 
-            // Verify the payer email matches this Clerk account to prevent sharing payment IDs
-            // CRITICAL: Do not allow verification if payment email is missing or does not match
-            const clerkEmails = clerkUser.emailAddresses.map(e => e.emailAddress.toLowerCase());
-            const paymentEmail = (payment.email || '').toLowerCase().trim();
-            if (!paymentEmail) {
-                return res.status(400).json({
-                    error: 'This payment has no email on file. Please log in with the account that made the payment, or contact support.',
-                });
-            }
-            if (!clerkEmails.includes(paymentEmail)) {
+            // When payment has email: verify it matches this account (prevents sharing payment IDs)
+            // When payment has no email: allow verification (some payment methods don't include email)
+            const clerkEmails = clerkUser.emailAddresses.map(e => (e.emailAddress || '').toLowerCase().trim());
+            const paymentEmail = (
+                payment.email ||
+                (payment.customer && payment.customer.email) ||
+                ''
+            ).toLowerCase().trim();
+            if (paymentEmail && !clerkEmails.includes(paymentEmail)) {
                 console.warn(`Payment ${paymentId} email (${paymentEmail}) does not match Clerk user ${userId} emails (${clerkEmails.join(', ')})`);
                 return res.status(400).json({
                     error: 'The email on this payment does not match your account. Please log in with the account that made the payment.',

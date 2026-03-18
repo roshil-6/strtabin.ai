@@ -106,11 +106,11 @@ function WorkflowContent() {
             <Panel position="top-right" className="m-3 md:m-6 flex gap-2 md:gap-3">
                 <button
                     onClick={handleAddStep}
-                    className="flex items-center gap-1.5 md:gap-2 bg-primary hover:bg-orange-500 text-black px-3 py-2 md:px-4 md:py-2.5 rounded-xl transition-all shadow-lg active:scale-95 font-bold text-xs md:text-sm tracking-wide"
+                    className="flex items-center gap-1.5 md:gap-2 bg-primary hover:bg-orange-500 text-black px-4 py-3 md:px-4 md:py-2.5 rounded-xl transition-all shadow-lg active:scale-95 font-bold text-sm tracking-wide min-h-[44px] touch-manipulation"
+                    aria-label="Add workflow step"
                 >
-                    <Plus size={16} />
-                    <span className="hidden sm:inline">Add Box</span>
-                    <span className="sm:hidden">Add</span>
+                    <Plus size={18} />
+                    <span>Add Box</span>
                 </button>
             </Panel>
         </ReactFlow>

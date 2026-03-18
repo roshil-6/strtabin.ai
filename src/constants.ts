@@ -95,11 +95,9 @@ export function refundGuestAiMessage(): void {
     if (used > 0) localStorage.setItem(GUEST_AI_COUNT_KEY, String(used - 1));
 }
 
-// API
+// API — build-time URL. For mobile (Capacitor): set VITE_API_URL to your deployed backend when building.
 const _apiUrl = import.meta.env.VITE_API_URL;
 if (!_apiUrl && import.meta.env.PROD) {
-  console.error(
-    '⚠️  VITE_API_URL is not set. AI features will not work. Add it to your Vercel environment variables.'
-  );
+  console.warn('⚠️  VITE_API_URL not set. AI may not work. Set it when building for production/mobile.');
 }
 export const API_BASE_URL = _apiUrl || 'http://localhost:3001';

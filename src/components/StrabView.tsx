@@ -576,13 +576,13 @@ export default function StrabView() {
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSend()}
                                     placeholder="Ask STRAB anything…"
-                                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-2xl py-3 md:py-3.5 pl-4 pr-12 text-sm md:text-base text-white focus:border-primary/30 focus:bg-white/[0.06] outline-none transition-all placeholder-white/15"
+                                    className="w-full bg-white/[0.04] border border-white/[0.06] rounded-2xl py-3.5 md:py-3.5 pl-4 pr-14 md:pr-12 text-base md:text-base text-white focus:border-primary/30 focus:bg-white/[0.06] outline-none transition-all placeholder-white/15 min-h-[48px] touch-manipulation"
                                     aria-label="Message STRAB"
                                 />
                                 <button
                                     onClick={handleSend}
                                     disabled={!input.trim() || isLoading}
-                                    className="absolute right-1.5 md:right-2 top-1/2 -translate-y-1/2 w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-primary text-black rounded-xl disabled:opacity-20 disabled:cursor-not-allowed active:scale-90 transition-all"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 md:w-9 md:h-9 flex items-center justify-center bg-primary text-black rounded-xl disabled:opacity-20 disabled:cursor-not-allowed active:scale-90 transition-all min-w-[44px] min-h-[44px] touch-manipulation"
                                     aria-label="Send message"
                                 >
                                     {isLoading

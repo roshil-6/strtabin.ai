@@ -6,6 +6,8 @@ import {
     Controls,
     BackgroundVariant,
     type Node,
+    type Edge,
+    MarkerType,
     useReactFlow,
     ReactFlowProvider,
 } from '@xyflow/react';
@@ -19,7 +21,7 @@ import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen, ZoomIn, ZoomOut, Move } from 'lucide-react';
+import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen, ZoomIn, ZoomOut, Move, GitBranch, Split, Type, Lightbulb, HelpCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
@@ -31,7 +33,7 @@ function CanvasContent() {
     const navigate = useNavigate();
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
-        addNode, setCurrentCanvas, initDefaultCanvas, canvases,
+        addNode, addEdge, setCurrentCanvas, initDefaultCanvas, canvases,
         addSubCanvasToMerged, syncSubProjectNodes, ensureCanvasExists
     } = useStore(useShallow((state: RFState) => ({
         nodes: state.nodes,
@@ -40,6 +42,7 @@ function CanvasContent() {
         onEdgesChange: state.onEdgesChange,
         onConnect: state.onConnect,
         addNode: state.addNode,
+        addEdge: state.addEdge,
         setCurrentCanvas: state.setCurrentCanvas,
         initDefaultCanvas: state.initDefaultCanvas,
         canvases: state.canvases,
@@ -134,6 +137,62 @@ function CanvasContent() {
         };
         addNode(newNode);
     };
+
+    // Branch: add connected node from selected
+    const handleBranch = useCallback(() => {
+        const selectedNode = nodes.find(n => n.selected);
+        if (!selectedNode) {
+            toast('Select a node first', { icon: '👆' });
+            return;
+        }
+        const newNodeId = `node-${Date.now()}`;
+        const newNode: Node = {
+            id: newNodeId,
+            type: 'text',
+            position: { x: selectedNode.position.x + 220, y: selectedNode.position.y },
+            data: { label: '' },
+            selected: true,
+        };
+        const newEdge: Edge = {
+            id: `edge-${Date.now()}`,
+            source: selectedNode.id,
+            target: newNodeId,
+            type: 'default',
+            style: { stroke: '#00ff87', strokeWidth: 2, opacity: 0.6 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#00ff87' },
+        };
+        addNode(newNode);
+        addEdge(newEdge);
+    }, [nodes, addNode, addEdge]);
+
+    // Split (Option): add Option A & B from selected
+    const handleSplit = useCallback(() => {
+        const selectedNode = nodes.find(n => n.selected);
+        if (!selectedNode) {
+            toast('Select a node first', { icon: '👆' });
+            return;
+        }
+        const time = Date.now();
+        const idA = `node-${time}-a`;
+        const idB = `node-${time}-b`;
+        const nodeA: Node = {
+            id: idA,
+            type: 'text',
+            position: { x: selectedNode.position.x + 220, y: selectedNode.position.y - 90 },
+            data: { label: 'Option A' },
+        };
+        const nodeB: Node = {
+            id: idB,
+            type: 'text',
+            position: { x: selectedNode.position.x + 220, y: selectedNode.position.y + 90 },
+            data: { label: 'Option B' },
+        };
+        addNode(nodeA);
+        addNode(nodeB);
+        addEdge({ id: `edge-${time}-a`, source: selectedNode.id, target: idA, style: { stroke: '#00ff87', strokeWidth: 2, opacity: 0.6 } });
+        addEdge({ id: `edge-${time}-b`, source: selectedNode.id, target: idB, style: { stroke: '#00ff87', strokeWidth: 2, opacity: 0.6 } });
+        toast.success('Added Option A & B');
+    }, [nodes, addNode, addEdge]);
 
     // Selector needs to be updated to include createCanvas and updateNodeData
     // ... (Use a more complete selector or individual hooks if needed, but for now assuming selector provides these)
@@ -462,49 +521,71 @@ function CanvasContent() {
                             </div>
                         </ReactFlow>}
 
-                        {/* Mobile floating toolbar — replaces confusing default controls */}
+                        {/* Mobile floating toolbar — Add Box, Branch, Option, node types, zoom */}
                         {isMobile && mobileTab === 'map' && (
-                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-[#0e0e0e]/95 backdrop-blur-2xl px-2 py-1.5 rounded-2xl border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
-                                <button
-                                    onClick={() => handleAddNode('default')}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/15 text-primary border border-primary/20 active:scale-90 transition-all"
-                                    aria-label="Add new section"
-                                >
-                                    <Plus size={16} strokeWidth={2.5} />
-                                    <span className="text-[10px] font-black tracking-wide">Add</span>
-                                </button>
-
-                                <div className="w-px h-6 bg-white/[0.06]" />
-
-                                <button
-                                    onClick={() => fitView({ duration: 400, padding: 0.25 })}
-                                    className="p-2.5 rounded-xl text-white/50 active:scale-90 active:bg-white/10 transition-all"
-                                    aria-label="Fit all nodes in view"
-                                >
-                                    <Maximize size={17} />
-                                </button>
-
-                                <button
-                                    onClick={() => zoomIn({ duration: 200 })}
-                                    className="p-2.5 rounded-xl text-white/50 active:scale-90 active:bg-white/10 transition-all"
-                                    aria-label="Zoom in"
-                                >
-                                    <ZoomIn size={17} />
-                                </button>
-
-                                <button
-                                    onClick={() => zoomOut({ duration: 200 })}
-                                    className="p-2.5 rounded-xl text-white/50 active:scale-90 active:bg-white/10 transition-all"
-                                    aria-label="Zoom out"
-                                >
-                                    <ZoomOut size={17} />
-                                </button>
-
-                                <div className="w-px h-6 bg-white/[0.06]" />
-
-                                <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/[0.03]">
-                                    <Move size={11} className="text-white/20" />
-                                    <span className="text-[8px] font-bold text-white/20 tracking-wider">DRAG TO PAN</span>
+                            <div className="absolute bottom-2 left-2 right-2 z-50 flex flex-col gap-2">
+                                {/* Row 1: Add actions — Box, Branch, Option, Note, Idea */}
+                                <div className="flex items-center justify-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar-hide">
+                                    <div className="flex items-center gap-1.5 bg-[#0e0e0e]/95 backdrop-blur-2xl px-2 py-2 rounded-2xl border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.6)] shrink-0">
+                                        <button
+                                            onClick={() => handleAddNode('default')}
+                                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-primary/15 text-primary border border-primary/20 active:scale-90 transition-all"
+                                            aria-label="Add idea"
+                                        >
+                                            <Lightbulb size={15} />
+                                            <span className="text-[10px] font-bold">Idea</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleAddNode('text')}
+                                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-white/[0.06] text-white/80 border border-white/[0.08] active:scale-90 transition-all"
+                                            aria-label="Add note"
+                                        >
+                                            <Type size={15} />
+                                            <span className="text-[10px] font-bold">Note</span>
+                                        </button>
+                                        <button
+                                            onClick={handleBranch}
+                                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 active:scale-90 transition-all"
+                                            aria-label="Branch from selected"
+                                        >
+                                            <GitBranch size={15} />
+                                            <span className="text-[10px] font-bold">Branch</span>
+                                        </button>
+                                        <button
+                                            onClick={handleSplit}
+                                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 active:scale-90 transition-all"
+                                            aria-label="Split into Option A & B"
+                                        >
+                                            <Split size={15} />
+                                            <span className="text-[10px] font-bold">Option</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleAddNode('question')}
+                                            className="flex items-center gap-1 px-2 py-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 active:scale-90 transition-all"
+                                            aria-label="Add question"
+                                        >
+                                            <HelpCircle size={15} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleAddNode('decision')}
+                                            className="flex items-center gap-1 px-2 py-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 active:scale-90 transition-all"
+                                            aria-label="Add decision"
+                                        >
+                                            <GitBranch size={15} />
+                                        </button>
+                                    </div>
+                                </div>
+                                {/* Row 2: Zoom + fit */}
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#0e0e0e]/80 text-white/30">
+                                        <Move size={10} />
+                                        <span className="text-[8px] font-bold tracking-wider">DRAG TO PAN</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 bg-[#0e0e0e]/95 backdrop-blur-2xl px-2 py-1.5 rounded-xl border border-white/[0.06]">
+                                        <button onClick={() => fitView({ duration: 400, padding: 0.25 })} className="p-2 rounded-lg text-white/50 active:bg-white/10" aria-label="Fit view"><Maximize size={15} /></button>
+                                        <button onClick={() => zoomIn({ duration: 200 })} className="p-2 rounded-lg text-white/50 active:bg-white/10" aria-label="Zoom in"><ZoomIn size={15} /></button>
+                                        <button onClick={() => zoomOut({ duration: 200 })} className="p-2 rounded-lg text-white/50 active:bg-white/10" aria-label="Zoom out"><ZoomOut size={15} /></button>
+                                    </div>
                                 </div>
                             </div>
                         )}
