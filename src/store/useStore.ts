@@ -141,6 +141,7 @@ export type CanvasData = {
     mergedCanvasIds?: string[]; // IDs of canvases that are part of this merged project
     folderId?: string | null; // Associated folder ID
     goals?: CanvasGoal[]; // Outcome/metric tracking
+    createdAt?: number; // Creation time (for sorting newest first)
     updatedAt: number;
 };
 
@@ -403,13 +404,15 @@ const useStore = create<RFState>()(
             createCanvas: (initialName?: string, targetFolderId?: string | null) => {
                 const id = generateId();
                 const folderId = targetFolderId !== undefined ? targetFolderId : get().activeFolderId;
+                const now = Date.now();
                 const newCanvas: CanvasData = {
                     id,
                     name: initialName || '',
                     nodes: [],
                     edges: [],
                     folderId,
-                    updatedAt: Date.now(),
+                    createdAt: now,
+                    updatedAt: now,
                 };
 
                 set((state) => ({
@@ -513,12 +516,14 @@ const useStore = create<RFState>()(
                     if (!canvasToCopy) return state;
 
                     const newId = generateId();
+                    const now = Date.now();
                     const newCanvas: CanvasData = {
                         ...canvasToCopy,
                         id: newId,
                         name: `${canvasToCopy.name} (Copy)`,
                         folderId: targetFolderId,
-                        updatedAt: Date.now()
+                        createdAt: now,
+                        updatedAt: now,
                     };
 
                     return {
@@ -544,6 +549,7 @@ const useStore = create<RFState>()(
             mergeCanvases: (ids, title) => {
                 const id = generateId();
                 const folderId = get().activeFolderId;
+                const now = Date.now();
                 const newCanvas: CanvasData = {
                     id,
                     name: title || 'Merged Project',
@@ -551,7 +557,8 @@ const useStore = create<RFState>()(
                     edges: [],
                     mergedCanvasIds: ids,
                     folderId,
-                    updatedAt: Date.now(),
+                    createdAt: now,
+                    updatedAt: now,
                 };
 
                 set((state) => ({

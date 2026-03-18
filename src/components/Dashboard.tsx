@@ -208,6 +208,12 @@ export default function Dashboard() {
     const otherProjects = regularProjects.filter(p => !p.isPinned && !p.isCurrent);
     const mergedProjects = filteredCanvases.filter(p => p.mergedCanvasIds);
 
+    // Sort non-pinned, non-merged, non-current by newest first (createdAt || updatedAt desc)
+    const sortByNewest = (arr: typeof filteredCanvases) =>
+        [...arr].sort((a, b) => (b.createdAt ?? b.updatedAt) - (a.createdAt ?? a.updatedAt));
+    const sortedOtherProjects = sortByNewest(otherProjects);
+    const sortedRegularProjects = sortByNewest(regularProjects);
+
     const tabs = [
         { id: 'strategy', label: 'Writing & Flow', icon: FileText, color: 'text-primary' },
         { id: 'todo', label: 'Task Lists', icon: ListTodo, color: 'text-orange-400' },
@@ -687,7 +693,7 @@ export default function Dashboard() {
                                     <div className="flex-1 h-px bg-white/5 ml-2" />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
-                                    {(pinnedProjects.length > 0 || currentProjects.length > 0 ? otherProjects : regularProjects).map(p => renderProjectCard(p))}
+                                    {(pinnedProjects.length > 0 || currentProjects.length > 0 ? sortedOtherProjects : sortedRegularProjects).map(p => renderProjectCard(p))}
 
                                     {isFirstLoad && Object.keys(canvases).length === 0 && (
                                         <div className="col-span-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
