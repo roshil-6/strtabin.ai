@@ -8,6 +8,7 @@ import StrabView from './components/StrabView';
 import StrabHome from './components/StrabHome';
 import CalendarView from './components/CalendarView';
 import LandingPage from './components/LandingPage';
+import FeaturesPage from './components/FeaturesPage';
 import FolderWorkflow from './components/FolderWorkflow';
 import ReportsSelectPage from './components/ReportsSelectPage';
 import AuthGate from './components/AuthGate';
@@ -29,6 +30,7 @@ function App() {
     {showGrid && <ProjectBackground />}
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/features" element={<FeaturesPage />} />
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
       <Route path="/dashboard" element={<AuthGate><PaywallGate><Dashboard /></PaywallGate></AuthGate>} />
       <Route path="/folder-workflow/:folderId" element={<AuthGate><PaywallGate><FolderWorkflow /></PaywallGate></AuthGate>} />
