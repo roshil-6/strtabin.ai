@@ -210,6 +210,21 @@ export default function LandingPage() {
                         Stratabin is the AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI — unscatter your thoughts and turn them into execution plans.
                     </p>
 
+                    {/* Demo Video */}
+                    <div className="w-full max-w-3xl mx-auto mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400">
+                        <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-2xl aspect-video">
+                            <video
+                                src="/strtabin%20ad%20video%20raw.mp4"
+                                controls
+                                playsInline
+                                className="w-full h-full object-contain"
+                            >
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <p className="text-center text-white/30 text-xs mt-3 font-medium">See Stratabin in action</p>
+                    </div>
+
                     <div className="flex items-center justify-center gap-2 mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300">
                         <div className="px-3 py-1 bg-white/[0.04] border border-white/[0.06] rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.15em] text-primary flex items-center gap-2">
                             <Zap size={10} fill="currentColor" />
