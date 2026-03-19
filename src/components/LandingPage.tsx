@@ -4,6 +4,7 @@ import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-react';
 import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, UserX } from 'lucide-react';
 
 export const GUEST_TRIAL_KEY = 'guest-trial-start';
+const LAST_LOGIN_EMAIL_KEY = 'strtabin-last-email';
 import { fetchPaymentLink } from '../constants';
 import { restoreGuestDataIfNeeded } from '../store/useStore';
 import HexagonBackground from './HexagonBackground';
@@ -53,13 +54,13 @@ export default function LandingPage() {
         }
     }, []);
 
-    const handleEmailSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const sendCodeToEmail = async (emailToUse: string) => {
         if (!isLoaded || !signIn || !signUp) return;
         setLoading(true);
         setAuthError(null);
+        setEmail(emailToUse);
         try {
-            const result = await signIn.create({ identifier: email, strategy: 'email_code' });
+            const result = await signIn.create({ identifier: emailToUse, strategy: 'email_code' });
             if (result.status === 'needs_first_factor') {
                 setIsSignUpFlow(false);
                 setAuthStep('code');
@@ -69,7 +70,7 @@ export default function LandingPage() {
             const errCode = clerkErr?.errors?.[0]?.code;
             if (errCode === 'form_identifier_not_found') {
                 try {
-                    await signUp.create({ emailAddress: email });
+                    await signUp.create({ emailAddress: emailToUse });
                     await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
                     setIsSignUpFlow(true);
                     setAuthStep('code');
@@ -85,6 +86,11 @@ export default function LandingPage() {
         }
     };
 
+    const handleEmailSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await sendCodeToEmail(email);
+    };
+
     const handleCodeSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isLoaded || !signIn || !signUp) return;
@@ -94,6 +100,7 @@ export default function LandingPage() {
             if (isSignUpFlow) {
                 const result = await signUp.attemptEmailAddressVerification({ code });
                 if (result.status === 'complete') {
+                    try { localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email); } catch { /* ignore */ }
                     await setSignUpActive({ session: result.createdSessionId });
                     // carry over guest trial if exists — prevents double free trial
                     transferGuestTrial(result.createdUserId);
@@ -107,6 +114,7 @@ export default function LandingPage() {
             } else {
                 const result = await signIn.attemptFirstFactor({ strategy: 'email_code', code });
                 if (result.status === 'complete') {
+                    try { localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email); } catch { /* ignore */ }
                     await setSignInActive({ session: result.createdSessionId });
                     transferGuestTrial(result.createdSessionId);
                     if (restoreGuestDataIfNeeded()) {
@@ -258,10 +266,16 @@ export default function LandingPage() {
                                                 Continue as Guest
                                             </button>
                                             <button
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     setShowGetStartedDropdown(false);
                                                     setAuthStep('email');
-                                                    document.getElementById('hero-cta')?.scrollIntoView({ behavior: 'smooth' });
+                                                    const lastEmail = localStorage.getItem(LAST_LOGIN_EMAIL_KEY);
+                                                    if (lastEmail) {
+                                                        await sendCodeToEmail(lastEmail);
+                                                    }
+                                                    requestAnimationFrame(() => {
+                                                        document.getElementById('login-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                    });
                                                 }}
                                                 className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
                                             >
@@ -322,6 +336,7 @@ export default function LandingPage() {
                         </div>
                     </div>
 
+                    <div id="login-form" className="scroll-mt-24">
                     {!isLoaded ? (
                         <div className="flex items-center justify-center gap-3 px-8 py-4 bg-white/5 border border-white/10 rounded-2xl animate-pulse mx-auto w-fit">
                             <div className="w-5 h-5 border-2 border-white/10 border-t-white rounded-full animate-spin" />
@@ -402,6 +417,7 @@ export default function LandingPage() {
                             Continue as Guest — 24hr free trial, no sign-up
                         </button>
                     )}
+                    </div>
                 </div>
             </section>
 
