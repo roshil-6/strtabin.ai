@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { Zap, Clock, ArrowRight, CheckCircle2, Lock, ReceiptText, UserX } from 'lucide-react';
+import { Zap, Clock, ArrowRight, CheckCircle2, Lock, RefreshCw, UserX } from 'lucide-react';
 import { fetchPaymentLink, ONE_DAY, API_BASE_URL, backupGuestData } from '../constants';
 import { GUEST_TRIAL_KEY } from './LandingPage';
 import toast from 'react-hot-toast';
@@ -21,6 +21,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     const [paymentLinkLoading, setPaymentLinkLoading] = useState(false);
     const { pathname } = useLocation();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const isDashboard = pathname === '/dashboard';
 
     // ── Guest mode: no Clerk user, trial tracked in localStorage ──────────────
@@ -32,8 +33,7 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
     const [isRefreshingPayment, setIsRefreshingPayment] = useState(false);
-    const [showPaymentIdInput, setShowPaymentIdInput] = useState(false);
-    const [paymentIdInput, setPaymentIdInput] = useState('');
+    const [autoRetryIn, setAutoRetryIn] = useState<number | null>(null);
     const rafRef = useRef<number | null>(null);
 
     // Primary paid check: Clerk server-side metadata (set by webhook or verify endpoint).
@@ -130,10 +130,9 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
             const token = await getToken();
             if (!token) throw new Error('No auth token.');
 
-            // Step 2: call the backend verify endpoint (checks Clerk + optionally Razorpay API)
+            // Step 2: call the backend verify endpoint (checks Clerk; paymentId only from URL callback)
             const body: Record<string, string> = {};
-            const trimmedId = (paymentId !== undefined ? paymentId : paymentIdInput).trim();
-            if (trimmedId) body.paymentId = trimmedId;
+            if (typeof paymentId === 'string' && paymentId.startsWith('pay_')) body.paymentId = paymentId;
 
             const res = await fetch(`${API_BASE_URL}/api/payments/verify`, {
                 method: 'POST',
@@ -147,16 +146,20 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
             const data = await res.json();
 
             if (data.paid) {
-                // Cache paid status locally so it persists across reloads.
+                // Grant access immediately — no delay.
                 setPaidUser(user.id);
-                // Also reload Clerk session so publicMetadata is fresh.
-                await user.reload();
                 setStatus('paid');
-                setShowPaymentIdInput(false);
+                setAutoRetryIn(null);
                 toast.success('Payment verified. Full access unlocked!');
+                // Reload Clerk in background so metadata is fresh for next session.
+                user.reload().catch(() => {});
             } else {
                 const msg = data.error || data.message || 'Payment not verified yet.';
                 toast.error(msg);
+                // Auto-retry in 10s when webhook may have processed (status 202 = "still processing")
+                if (res.status === 202) {
+                    setAutoRetryIn(10);
+                }
             }
         } catch {
             toast.error('Could not reach verification server. Please try again.');
@@ -164,6 +167,38 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
             setIsRefreshingPayment(false);
         }
     };
+
+    // Auto-verify when returning from Razorpay redirect with payment_id in URL (instant access)
+    useEffect(() => {
+        const paymentId = searchParams.get('razorpay_payment_id');
+        if (user && paymentId && paymentId.startsWith('pay_') && !isPaid && !isRefreshingPayment) {
+            setSearchParams({}, { replace: true });
+            refreshPaymentStatus(paymentId);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, searchParams.get('razorpay_payment_id')]);
+
+    // Auto-retry countdown when payment is "still processing"
+    useEffect(() => {
+        if (autoRetryIn === null || autoRetryIn <= 0) return;
+        const t = setTimeout(() => {
+            if (autoRetryIn === 1) {
+                setAutoRetryIn(null);
+                refreshPaymentStatus();
+            } else {
+                setAutoRetryIn(autoRetryIn - 1);
+            }
+        }, 1000);
+        return () => clearTimeout(t);
+    }, [autoRetryIn]);
+
+    // Auto-poll when on paywall (user likely just paid, waiting for webhook)
+    useEffect(() => {
+        if (status !== 'expired' || !user || isRefreshingPayment) return;
+        const interval = setInterval(() => refreshPaymentStatus(), 10_000);
+        return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [status, user?.id]);
 
     // Guest trial expired — prompt to create account
     if (guestTrialExpired) {
@@ -237,6 +272,9 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                             <span className="text-xs font-black text-white/60">Trial: <span className="text-primary">{formatTimeLeft(timeLeft)}</span></span>
                         </div>
                         <div className="flex items-center gap-2">
+                            {autoRetryIn !== null && (
+                                <span className="text-[10px] text-primary font-bold">Retry in {autoRetryIn}s</span>
+                            )}
                             <button
                                 onClick={() => refreshPaymentStatus()}
                                 className="text-xs font-black uppercase tracking-wider px-3 py-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all min-h-[36px]"
@@ -310,49 +348,18 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                         <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                     </button>
 
-                    {/* Already paid verification */}
-                    {!showPaymentIdInput ? (
-                        <button
-                            onClick={() => setShowPaymentIdInput(true)}
-                            className="text-xs text-white/55 hover:text-white/80 transition-colors py-2 font-bold flex items-center justify-center gap-2"
-                            disabled={isRefreshingPayment}
-                        >
-                            <ReceiptText size={13} />
-                            I have already paid — verify access
-                        </button>
-                    ) : (
-                        <div className="paywall-verify-card flex flex-col gap-2 bg-white/[0.03] border border-white/10 rounded-2xl p-4">
-                            <p className="text-xs text-white/70 font-bold text-center">
-                                Enter your Razorpay Payment ID
-                            </p>
-                            <p className="text-[10px] text-white/55 text-center leading-relaxed">
-                                Find it in your payment confirmation email or SMS. Starts with <span className="text-white/70 font-mono">pay_</span>
-                            </p>
-                            <input
-                                type="text"
-                                value={paymentIdInput}
-                                onChange={e => setPaymentIdInput(e.target.value.trim())}
-                                placeholder="pay_xxxxxxxxxxxxxxxxxx"
-                                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-4 py-3 text-sm text-white font-mono placeholder-white/40 outline-none focus:border-primary/50 transition-all"
-                                autoFocus
-                            />
-                            <div className="flex gap-2 mt-1">
-                                <button
-                                    onClick={() => refreshPaymentStatus()}
-                                    disabled={isRefreshingPayment || !paymentIdInput.startsWith('pay_')}
-                                    className="flex-1 py-2.5 bg-primary text-black text-xs font-black rounded-xl hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                                >
-                                    {isRefreshingPayment ? 'Verifying...' : 'Verify Payment'}
-                                </button>
-                                <button
-                                    onClick={() => { setShowPaymentIdInput(false); setPaymentIdInput(''); refreshPaymentStatus(''); }}
-                                    disabled={isRefreshingPayment}
-                                    className="px-3 py-2.5 text-xs text-white/55 hover:text-white/80 font-bold transition-colors disabled:opacity-30"
-                                >
-                                    Skip
-                                </button>
-                            </div>
-                        </div>
+                    <button
+                        onClick={() => refreshPaymentStatus()}
+                        disabled={isRefreshingPayment}
+                        className="flex items-center justify-center gap-2 py-2 text-xs text-white/55 hover:text-white/80 font-bold transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw size={13} className={isRefreshingPayment ? 'animate-spin' : ''} />
+                        {isRefreshingPayment ? 'Checking...' : 'Just paid? Check status'}
+                    </button>
+                    {autoRetryIn !== null && (
+                        <p className="text-[10px] text-primary font-bold text-center">
+                            Checking again in {autoRetryIn}s…
+                        </p>
                     )}
                 </div>
             </div>

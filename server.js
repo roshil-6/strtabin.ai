@@ -15,6 +15,7 @@ const CLERK_SECRET_KEY  = process.env.CLERK_SECRET_KEY;
 const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+const FRONTEND_URL = process.env.FRONTEND_URL || process.env.ALLOWED_ORIGIN?.split(',')[0]?.trim() || 'https://stratabin.com';
 const PORT = process.env.PORT || 3001;
 
 if (!ANTHROPIC_API_KEY) {
@@ -202,10 +203,13 @@ app.post('/api/payments/create-link', async (req, res) => {
 
     try {
         const rzpAuth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64');
+        const callbackUrl = `${FRONTEND_URL.replace(/\/$/, '')}/dashboard`;
         const body = {
             amount: 6400, // ₹64 in paise
             currency: 'INR',
             description: 'Stratabin — Lifetime access (one-time payment)',
+            callback_url: callbackUrl,
+            callback_method: 'get',
             ...(clerkUserId && { notes: { clerkUserId } }),
         };
         const rzpRes = await fetch('https://api.razorpay.com/v1/payment_links', {
@@ -338,7 +342,7 @@ app.post('/api/payments/verify', async (req, res) => {
         return res.status(202).json({
             ok: false,
             paid: false,
-            message: 'Payment not yet reflected. Please wait 1-2 minutes for the payment to process, then try again.',
+            message: 'Payment still processing. You will be redirected automatically after payment, or check again in a few seconds.',
         });
 
     } catch (error) {
