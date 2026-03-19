@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { Zap, Clock, ArrowRight, CheckCircle2, Lock, RefreshCw, UserX } from 'lucide-react';
+import { Zap, Clock, ArrowRight, CheckCircle2, Lock, RefreshCw, ReceiptText, UserX } from 'lucide-react';
 import { fetchPaymentLink, ONE_DAY, API_BASE_URL, backupGuestData } from '../constants';
 import { GUEST_TRIAL_KEY } from './LandingPage';
 import toast from 'react-hot-toast';
@@ -33,6 +33,8 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     const [status, setStatus] = useState<'loading' | 'trial' | 'expired' | 'paid'>('loading');
     const [timeLeft, setTimeLeft] = useState(0);
     const [isRefreshingPayment, setIsRefreshingPayment] = useState(false);
+    const [showPaymentIdInput, setShowPaymentIdInput] = useState(false);
+    const [paymentIdInput, setPaymentIdInput] = useState('');
     const [autoRetryIn, setAutoRetryIn] = useState<number | null>(null);
     const rafRef = useRef<number | null>(null);
 
@@ -130,9 +132,10 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
             const token = await getToken();
             if (!token) throw new Error('No auth token.');
 
-            // Step 2: call the backend verify endpoint (checks Clerk; paymentId only from URL callback)
+            // Step 2: call the backend verify endpoint (checks Clerk; paymentId from URL callback or manual entry)
             const body: Record<string, string> = {};
-            if (typeof paymentId === 'string' && paymentId.startsWith('pay_')) body.paymentId = paymentId;
+            const idToUse = typeof paymentId === 'string' ? paymentId : paymentIdInput.trim();
+            if (idToUse && idToUse.startsWith('pay_')) body.paymentId = idToUse;
 
             const res = await fetch(`${API_BASE_URL}/api/payments/verify`, {
                 method: 'POST',
@@ -150,6 +153,8 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                 setPaidUser(user.id);
                 setStatus('paid');
                 setAutoRetryIn(null);
+                setShowPaymentIdInput(false);
+                setPaymentIdInput('');
                 toast.success('Payment verified. Full access unlocked!');
                 // Reload Clerk in background so metadata is fresh for next session.
                 user.reload().catch(() => {});
@@ -360,6 +365,45 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                         <p className="text-[10px] text-primary font-bold text-center">
                             Checking again in {autoRetryIn}s…
                         </p>
+                    )}
+
+                    {/* For users who paid before the fix — verify with Payment ID from confirmation email */}
+                    {!showPaymentIdInput ? (
+                        <button
+                            onClick={() => setShowPaymentIdInput(true)}
+                            className="flex items-center justify-center gap-2 py-1.5 text-[11px] text-white/40 hover:text-white/60 transition-colors"
+                        >
+                            <ReceiptText size={12} />
+                            Paid earlier? Verify with Payment ID
+                        </button>
+                    ) : (
+                        <div className="paywall-verify-card flex flex-col gap-2 bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-left">
+                            <p className="text-[11px] text-white/70 font-bold">
+                                Enter Payment ID from your confirmation email (starts with pay_)
+                            </p>
+                            <input
+                                type="text"
+                                value={paymentIdInput}
+                                onChange={e => setPaymentIdInput(e.target.value.trim())}
+                                placeholder="pay_xxxxxxxxxxxxxxxxxx"
+                                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-4 py-2.5 text-sm font-mono placeholder-white/40 outline-none focus:border-primary/50 transition-all"
+                            />
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => refreshPaymentStatus()}
+                                    disabled={isRefreshingPayment || !paymentIdInput.startsWith('pay_')}
+                                    className="flex-1 py-2 bg-primary text-black text-xs font-black rounded-xl hover:bg-white transition-all disabled:opacity-30"
+                                >
+                                    {isRefreshingPayment ? 'Verifying...' : 'Verify'}
+                                </button>
+                                <button
+                                    onClick={() => { setShowPaymentIdInput(false); setPaymentIdInput(''); setAutoRetryIn(null); }}
+                                    className="px-3 py-2 text-xs text-white/50 hover:text-white/80 font-bold"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
