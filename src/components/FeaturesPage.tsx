@@ -41,6 +41,9 @@ export default function FeaturesPage() {
                         <Link to="/" className="text-xs md:text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5">
                             Home
                         </Link>
+                        <Link to="/#pricing" className="text-xs md:text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5">
+                            Pricing
+                        </Link>
                     </nav>
                 </div>
             </header>

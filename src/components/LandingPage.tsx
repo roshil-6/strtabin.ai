@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-react';
 import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, UserX } from 'lucide-react';
@@ -22,14 +22,34 @@ export default function LandingPage() {
     const [code, setCode] = useState('');
     const [authStep, setAuthStep] = useState<'email' | 'code'>('email');
     const [isSignUpFlow, setIsSignUpFlow] = useState(false);
+    const [showGetStartedDropdown, setShowGetStartedDropdown] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const isLoaded = signInLoaded && signUpLoaded;
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setShowGetStartedDropdown(false);
+            }
+        };
+        if (showGetStartedDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showGetStartedDropdown]);
 
     useEffect(() => {
         if (authLoaded && isSignedIn) {
             navigate('/dashboard', { replace: true });
         }
     }, [authLoaded, isSignedIn, navigate]);
+
+    useEffect(() => {
+        if (window.location.hash === '#pricing') {
+            document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, []);
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -177,18 +197,76 @@ export default function LandingPage() {
                         >
                             Features
                         </Link>
+                        <Link
+                            to="/#pricing"
+                            onClick={(e) => {
+                                if (window.location.pathname === '/') {
+                                    e.preventDefault();
+                                    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                                }
+                            }}
+                            className="flex text-xs md:text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 items-center"
+                        >
+                            Pricing
+                        </Link>
                         <button
                             onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
                             className="hidden md:flex text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 items-center"
                         >
                             FAQ
                         </button>
+                        <div className="relative" ref={dropdownRef}>
+                            {isSignedIn ? (
+                                <button
+                                    onClick={() => navigate('/dashboard')}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
+                                >
+                                    Go to Dashboard
+                                    <ArrowRight size={14} />
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setShowGetStartedDropdown(!showGetStartedDropdown)}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
+                                    >
+                                        Get Started
+                                        <ChevronDown size={14} className={`transition-transform ${showGetStartedDropdown ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {showGetStartedDropdown && (
+                                        <div className="absolute right-0 top-full mt-2 py-2 min-w-[200px] bg-[var(--bg-muted)] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                                            <button
+                                                onClick={() => {
+                                                    setShowGetStartedDropdown(false);
+                                                    handleGuestAccess();
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
+                                            >
+                                                <UserX size={16} className="text-primary" />
+                                                Continue as Guest
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowGetStartedDropdown(false);
+                                                    setAuthStep('email');
+                                                    document.getElementById('hero-cta')?.scrollIntoView({ behavior: 'smooth' });
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
+                                            >
+                                                <Mail size={16} className="text-primary" />
+                                                Email Login
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </nav>
                 </div>
             </header>
 
             {/* H1 Hero — primary keyword in first 100 words */}
-            <section className="pt-32 md:pt-40 pb-16 md:pb-20 px-4 md:px-6 text-center">
+            <section id="hero-cta" className="pt-32 md:pt-40 pb-16 md:pb-20 px-4 md:px-6 text-center">
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-10 flex justify-center animate-in fade-in zoom-in duration-1000">
                         <div className="relative w-20 h-20 md:w-24 md:h-24 bg-white rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center overflow-hidden shadow-2xl border-4 border-white/5">
@@ -398,7 +476,7 @@ export default function LandingPage() {
             </section>
 
             {/* H2 — Pricing */}
-            <section className="py-16 md:py-24 px-4 md:px-6 relative overflow-hidden">
+            <section id="pricing" className="py-16 md:py-24 px-4 md:px-6 relative overflow-hidden">
                 <div className="max-w-3xl mx-auto relative z-10">
                     <div className="text-center mb-10 md:mb-16">
                         <h2 className="text-2xl md:text-3xl font-black mb-3">Simple, One-Time Pricing</h2>
