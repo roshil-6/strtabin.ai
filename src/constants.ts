@@ -1,5 +1,8 @@
 // Time constants
 export const ONE_DAY = 24 * 60 * 60 * 1000;
+
+/** localStorage key for guest trial start timestamp */
+export const GUEST_TRIAL_KEY = 'guest-trial-start';
 export const ONE_WEEK = 7 * ONE_DAY;
 
 // Storage

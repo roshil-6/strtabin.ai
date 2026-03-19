@@ -2,7 +2,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { serverWarmup } from '../services/serverWarmup';
-import { GUEST_TRIAL_KEY } from './LandingPage';
+import { GUEST_TRIAL_KEY } from '../constants';
 import { ONE_DAY } from '../constants';
 
 function isGuestTrialActive(): boolean {

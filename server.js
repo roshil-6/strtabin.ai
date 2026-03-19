@@ -351,6 +351,44 @@ app.post('/api/payments/verify', async (req, res) => {
     }
 });
 
+// ─── Set Username & Password (for paid users — easier login) ─────────────────
+app.post('/api/user/set-credentials', async (req, res) => {
+    if (!clerk) return res.status(503).json({ error: 'Auth service not configured.' });
+    const authHeader = req.headers['authorization'] || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    if (!token) return res.status(401).json({ error: 'Missing authorization token.' });
+    let userId;
+    try {
+        const payloadB64 = token.split('.')[1];
+        if (!payloadB64) throw new Error('Malformed token.');
+        const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+        userId = decoded.sub;
+        if (!userId) throw new Error('No sub claim.');
+        await clerk.users.getUser(userId);
+    } catch (err) {
+        return res.status(401).json({ error: 'Invalid or expired token.' });
+    }
+    const { username, password } = req.body || {};
+    if (!password || typeof password !== 'string' || password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    }
+    try {
+        const updates = { password };
+        if (username && typeof username === 'string' && /^[a-zA-Z0-9_-]{3,30}$/.test(username)) {
+            updates.username = username;
+        }
+        await clerk.users.updateUser(userId, updates);
+        return res.status(200).json({ ok: true });
+    } catch (error) {
+        const msg = error?.errors?.[0]?.message || error?.message || String(error);
+        if (msg.includes('username') && msg.toLowerCase().includes('taken')) {
+            return res.status(400).json({ error: 'Username is already taken.' });
+        }
+        console.error('Set credentials error:', error);
+        return res.status(400).json({ error: msg || 'Could not update credentials.' });
+    }
+});
+
 // ─── Security Headers (helmet) ────────────────────────────────────────────
 app.use(helmet({
     crossOriginEmbedderPolicy: false,

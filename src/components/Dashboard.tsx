@@ -4,10 +4,12 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
+import { API_BASE_URL } from '../constants';
+import { useAuth } from '@clerk/clerk-react';
 
 export default function Dashboard() {
     const { resolved: theme } = useTheme();
@@ -37,6 +39,7 @@ export default function Dashboard() {
 
     const { signOut } = useClerk();
     const { user } = useUser();
+    const { getToken } = useAuth();
 
     const [activeTab, setActiveTab] = useState<'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab' | 'reports' | 'monitor'>('strategy');
     const [tabKey, setTabKey] = useState(0);
@@ -50,6 +53,10 @@ export default function Dashboard() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState('');
+    const [showCredentialsModal, setShowCredentialsModal] = useState(false);
+    const [credentialsUsername, setCredentialsUsername] = useState('');
+    const [credentialsPassword, setCredentialsPassword] = useState('');
+    const [credentialsLoading, setCredentialsLoading] = useState(false);
 
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
@@ -68,6 +75,33 @@ export default function Dashboard() {
     const handleCreate = () => {
         const id = createCanvas();
         navigate(`/strategy/${id}`);
+    };
+
+    const handleSetCredentials = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const token = await getToken();
+        if (!token) return;
+        setCredentialsLoading(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/user/set-credentials`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ username: credentialsUsername.trim() || undefined, password: credentialsPassword }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                toast.success('Username & password set. You can now sign in with them.');
+                setShowCredentialsModal(false);
+                setCredentialsUsername('');
+                setCredentialsPassword('');
+            } else {
+                toast.error(data.error || 'Could not update credentials.');
+            }
+        } catch {
+            toast.error('Could not reach server.');
+        } finally {
+            setCredentialsLoading(false);
+        }
     };
 
     const handleTogglePin = (e: React.MouseEvent, id: string) => {
@@ -255,6 +289,56 @@ export default function Dashboard() {
 
     return (
         <div className="flex h-screen font-sans overflow-hidden relative bg-transparent">
+            {/* Set Username & Password Modal */}
+            {showCredentialsModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-2xl p-6 shadow-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                <User size={18} />
+                                Set username & password
+                            </h3>
+                            <button onClick={() => setShowCredentialsModal(false)} className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <p className="text-xs text-white/50 mb-4">Sign in with username & password next time — no email code needed.</p>
+                        <form onSubmit={handleSetCredentials} className="flex flex-col gap-3">
+                            <div className="relative">
+                                <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                                <input
+                                    type="text"
+                                    value={credentialsUsername}
+                                    onChange={e => setCredentialsUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30))}
+                                    placeholder="Username (optional)"
+                                    className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm placeholder-white/30 focus:outline-none focus:border-primary/50"
+                                />
+                            </div>
+                            <div className="relative">
+                                <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                                <input
+                                    type="password"
+                                    required
+                                    value={credentialsPassword}
+                                    onChange={e => setCredentialsPassword(e.target.value)}
+                                    placeholder="Password (min 8 characters)"
+                                    minLength={8}
+                                    className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm placeholder-white/30 focus:outline-none focus:border-primary/50"
+                                />
+                            </div>
+                            <div className="flex gap-2 mt-1">
+                                <button type="submit" disabled={credentialsLoading || !credentialsPassword} className="flex-1 py-2.5 bg-primary text-black text-sm font-black rounded-xl hover:bg-white transition-all disabled:opacity-50">
+                                    {credentialsLoading ? 'Saving...' : 'Save'}
+                                </button>
+                                <button type="button" onClick={() => setShowCredentialsModal(false)} className="px-4 py-2.5 text-white/50 hover:text-white text-sm font-bold">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
@@ -368,6 +452,13 @@ export default function Dashboard() {
                                 <p className="opacity-50 tracking-wide">{user?.primaryEmailAddress?.emailAddress || 'Signed in'}</p>
                             </div>
                         </div>
+                        <button
+                            onClick={() => setShowCredentialsModal(true)}
+                            className="p-2 hover:bg-white/10 text-white/40 hover:text-white rounded-lg transition-colors"
+                            title="Set username & password for easier login"
+                        >
+                            <User size={16} />
+                        </button>
                         <button
                             onClick={() => signOut({ redirectUrl: '/' })}
                             className="p-2 hover:bg-red-500/10 text-white/20 hover:text-red-500 rounded-lg transition-colors"

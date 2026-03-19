@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { Zap, Clock, ArrowRight, CheckCircle2, Lock, RefreshCw, ReceiptText, UserX } from 'lucide-react';
 import { fetchPaymentLink, ONE_DAY, API_BASE_URL, backupGuestData } from '../constants';
-import { GUEST_TRIAL_KEY } from './LandingPage';
+import { GUEST_TRIAL_KEY } from '../constants';
 import toast from 'react-hot-toast';
 
 function formatTimeLeft(ms: number): string {

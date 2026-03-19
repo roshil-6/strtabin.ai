@@ -1,12 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/clerk-react';
 import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, UserX } from 'lucide-react';
 
-export const GUEST_TRIAL_KEY = 'guest-trial-start';
-const LAST_LOGIN_EMAIL_KEY = 'strtabin-last-email';
-import { fetchPaymentLink } from '../constants';
-import { restoreGuestDataIfNeeded } from '../store/useStore';
+import { fetchPaymentLink, GUEST_TRIAL_KEY } from '../constants';
 import HexagonBackground from './HexagonBackground';
 import ThemeToggle from './ThemeToggle';
 import toast from 'react-hot-toast';
@@ -14,21 +11,13 @@ import toast from 'react-hot-toast';
 export default function LandingPage() {
     const navigate = useNavigate();
     const { isSignedIn, isLoaded: authLoaded, getToken } = useAuth();
-    const { signIn, isLoaded: signInLoaded, setActive: setSignInActive } = useSignIn();
-    const { signUp, isLoaded: signUpLoaded, setActive: setSignUpActive } = useSignUp();
-    const [loading, setLoading] = useState(false);
-    const [authError, setAuthError] = useState<string | null>(null);
     const [showHowTo, setShowHowTo] = useState(false);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
-    const [email, setEmail] = useState('');
-    const [code, setCode] = useState('');
-    const [authStep, setAuthStep] = useState<'email' | 'code'>('email');
-    const [isSignUpFlow, setIsSignUpFlow] = useState(false);
     const [showGetStartedDropdown, setShowGetStartedDropdown] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const isLoaded = signInLoaded && signUpLoaded;
+    const isLoaded = authLoaded;
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -53,94 +42,6 @@ export default function LandingPage() {
             document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
         }
     }, []);
-
-    const sendCodeToEmail = async (emailToUse: string) => {
-        if (!isLoaded || !signIn || !signUp) return;
-        setLoading(true);
-        setAuthError(null);
-        setEmail(emailToUse);
-        try {
-            const result = await signIn.create({ identifier: emailToUse, strategy: 'email_code' });
-            if (result.status === 'needs_first_factor') {
-                setIsSignUpFlow(false);
-                setAuthStep('code');
-            }
-        } catch (err: unknown) {
-            const clerkErr = err as { errors?: Array<{ code?: string; longMessage?: string }> };
-            const errCode = clerkErr?.errors?.[0]?.code;
-            if (errCode === 'form_identifier_not_found') {
-                try {
-                    await signUp.create({ emailAddress: emailToUse });
-                    await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-                    setIsSignUpFlow(true);
-                    setAuthStep('code');
-                } catch (signUpErr: unknown) {
-                    const signUpClerkErr = signUpErr as { errors?: Array<{ longMessage?: string }> };
-                    setAuthError(signUpClerkErr?.errors?.[0]?.longMessage || 'Sign-up failed. Please try again.');
-                }
-            } else {
-                setAuthError(clerkErr?.errors?.[0]?.longMessage || 'Sign-in failed. Please try again.');
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleEmailSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        await sendCodeToEmail(email);
-    };
-
-    const handleCodeSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!isLoaded || !signIn || !signUp) return;
-        setLoading(true);
-        setAuthError(null);
-        try {
-            if (isSignUpFlow) {
-                const result = await signUp.attemptEmailAddressVerification({ code });
-                if (result.status === 'complete') {
-                    try { localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email); } catch { /* ignore */ }
-                    await setSignUpActive({ session: result.createdSessionId });
-                    // carry over guest trial if exists — prevents double free trial
-                    transferGuestTrial(result.createdUserId);
-                    // restore guest-created projects if main storage was cleared during auth
-                    if (restoreGuestDataIfNeeded()) {
-                        window.location.href = '/dashboard';
-                        return;
-                    }
-                    navigate('/dashboard', { replace: true });
-                }
-            } else {
-                const result = await signIn.attemptFirstFactor({ strategy: 'email_code', code });
-                if (result.status === 'complete') {
-                    try { localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email); } catch { /* ignore */ }
-                    await setSignInActive({ session: result.createdSessionId });
-                    transferGuestTrial(result.createdSessionId);
-                    if (restoreGuestDataIfNeeded()) {
-                        window.location.href = '/dashboard';
-                        return;
-                    }
-                    navigate('/dashboard', { replace: true });
-                }
-            }
-        } catch (err: unknown) {
-            const clerkErr = err as { errors?: Array<{ longMessage?: string }> };
-            setAuthError(clerkErr?.errors?.[0]?.longMessage || 'Invalid code. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Moves guest trial timestamp into a user-scoped key so they can't double-dip
-    const transferGuestTrial = (userId?: string | null) => {
-        const guestStart = localStorage.getItem(GUEST_TRIAL_KEY);
-        if (guestStart && userId) {
-            const key = `trial-handoff-${userId}`;
-            localStorage.setItem(key, guestStart);
-            localStorage.removeItem(GUEST_TRIAL_KEY);
-        }
-    };
 
     const handleGuestAccess = () => {
         if (!localStorage.getItem(GUEST_TRIAL_KEY)) {
@@ -266,16 +167,9 @@ export default function LandingPage() {
                                                 Continue as Guest
                                             </button>
                                             <button
-                                                onClick={async () => {
+                                                onClick={() => {
                                                     setShowGetStartedDropdown(false);
-                                                    setAuthStep('email');
-                                                    const lastEmail = localStorage.getItem(LAST_LOGIN_EMAIL_KEY);
-                                                    if (lastEmail) {
-                                                        await sendCodeToEmail(lastEmail);
-                                                    }
-                                                    requestAnimationFrame(() => {
-                                                        document.getElementById('login-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                    });
+                                                    navigate('/auth');
                                                 }}
                                                 className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
                                             >
@@ -336,7 +230,7 @@ export default function LandingPage() {
                         </div>
                     </div>
 
-                    <div id="login-form" className="scroll-mt-24">
+                    <div className="scroll-mt-24">
                     {!isLoaded ? (
                         <div className="flex items-center justify-center gap-3 px-8 py-4 bg-white/5 border border-white/10 rounded-2xl animate-pulse mx-auto w-fit">
                             <div className="w-5 h-5 border-2 border-white/10 border-t-white rounded-full animate-spin" />
@@ -351,70 +245,14 @@ export default function LandingPage() {
                             Go to Dashboard
                             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </button>
-                    ) : authStep === 'email' ? (
-                        <form onSubmit={handleEmailSubmit} className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
-                            <div className="relative w-full">
-                                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
-                                <input
-                                    type="email"
-                                    required
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    placeholder="Enter your email"
-                                    className="w-full pl-11 pr-4 py-3.5 bg-white/[0.04] border border-white/10 rounded-2xl text-white placeholder-white/25 text-sm font-medium focus:outline-none focus:border-primary/50 focus:bg-white/[0.06] transition-all"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={loading || !email}
-                                className="group w-full flex items-center justify-center gap-3 px-7 py-3.5 bg-white text-black font-black rounded-2xl hover:bg-primary hover:text-white transition-all shadow-[0_4px_30px_rgba(255,255,255,0.1)] active:scale-95 disabled:opacity-50 text-sm"
-                            >
-                                <Zap size={16} fill="currentColor" />
-                                {loading ? 'Sending code...' : 'Get Started Free'}
-                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                            </button>
-                        </form>
                     ) : (
-                        <form onSubmit={handleCodeSubmit} className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
-                            <p className="text-white/40 text-xs font-medium">
-                                We sent a 6-digit code to <span className="text-white/70 font-bold">{email}</span>
-                            </p>
-                            <input
-                                type="text"
-                                required
-                                value={code}
-                                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                placeholder="Enter 6-digit code"
-                                maxLength={6}
-                                className="w-full text-center tracking-[0.5em] px-4 py-3.5 bg-white/[0.04] border border-white/10 rounded-2xl text-white placeholder-white/25 text-lg font-black focus:outline-none focus:border-primary/50 focus:bg-white/[0.06] transition-all"
-                            />
-                            <button
-                                type="submit"
-                                disabled={loading || code.length < 6}
-                                className="group w-full flex items-center justify-center gap-3 px-7 py-3.5 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_4px_30px_rgba(255,119,86,0.3)] active:scale-95 disabled:opacity-50 text-sm"
-                            >
-                                {loading ? 'Verifying...' : 'Verify & Continue'}
-                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => { setAuthStep('email'); setCode(''); setAuthError(null); }}
-                                className="text-white/25 text-xs hover:text-white/50 transition-colors"
-                            >
-                                Use a different email
-                            </button>
-                        </form>
-                    )}
-                    {authError && (
-                        <p className="mt-4 text-red-400 text-sm font-bold text-center">{authError}</p>
-                    )}
-                    {!isSignedIn && authStep === 'email' && (
                         <button
-                            onClick={handleGuestAccess}
-                            className="mt-2 flex items-center gap-2 mx-auto text-xs text-white/25 hover:text-white/50 transition-colors font-medium"
+                            onClick={() => navigate('/auth')}
+                            className="group relative flex items-center gap-3 px-7 md:px-8 py-3.5 md:py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_4px_30px_rgba(255,119,86,0.3)] active:scale-95 mx-auto text-sm md:text-base"
                         >
-                            <UserX size={13} />
-                            Continue as Guest — 24hr free trial, no sign-up
+                            <Zap size={18} fill="currentColor" />
+                            Get Started
+                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                     )}
                     </div>
@@ -711,10 +549,10 @@ export default function LandingPage() {
                 </div>
             )}
 
-            {loading && (
+            {paymentLoading && (
                 <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center">
                     <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-                    <p className="text-primary font-black uppercase text-xs tracking-widest animate-pulse">Processing...</p>
+                    <p className="text-primary font-black uppercase text-xs tracking-widest animate-pulse">Opening payment...</p>
                 </div>
             )}
         </div>
