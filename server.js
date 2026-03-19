@@ -1,4 +1,4 @@
-import express from 'express';
+       import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -173,6 +173,63 @@ app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json
     } catch (error) {
         console.error('Payment webhook error:', error);
         return res.status(500).json({ error: 'Webhook processing failed.' });
+    }
+});
+
+// ─── Create Payment Link (fresh link per user — fixes "already paid" for shared links) ─
+// Razorpay payment links are single-use. A static link shows "already paid" after first use.
+// This endpoint creates a NEW link for each request so every user can pay.
+app.post('/api/payments/create-link', async (req, res) => {
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+        return res.status(503).json({ error: 'Payment links are not configured. Contact support.' });
+    }
+
+    let clerkUserId = null;
+    const authHeader = req.headers['authorization'] || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    if (token && clerk) {
+        try {
+            const payloadB64 = token.split('.')[1];
+            if (payloadB64) {
+                const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+                if (decoded.sub) {
+                    await clerk.users.getUser(decoded.sub);
+                    clerkUserId = decoded.sub;
+                }
+            }
+        } catch { /* ignore — create link without notes */ }
+    }
+
+    try {
+        const rzpAuth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64');
+        const body = {
+            amount: 6400, // ₹64 in paise
+            currency: 'INR',
+            description: 'Stratabin — Lifetime access (one-time payment)',
+            ...(clerkUserId && { notes: { clerkUserId } }),
+        };
+        const rzpRes = await fetch('https://api.razorpay.com/v1/payment_links', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Basic ${rzpAuth}`,
+            },
+            body: JSON.stringify(body),
+        });
+        if (!rzpRes.ok) {
+            const errText = await rzpRes.text();
+            console.error('Razorpay create-link error:', rzpRes.status, errText);
+            return res.status(502).json({ error: 'Could not create payment link. Please try again.' });
+        }
+        const data = await rzpRes.json();
+        const shortUrl = data.short_url;
+        if (!shortUrl || typeof shortUrl !== 'string') {
+            return res.status(502).json({ error: 'Invalid response from payment provider.' });
+        }
+        return res.status(200).json({ short_url: shortUrl });
+    } catch (error) {
+        console.error('Create payment link error:', error);
+        return res.status(500).json({ error: 'Could not create payment link. Please try again.' });
     }
 });
 

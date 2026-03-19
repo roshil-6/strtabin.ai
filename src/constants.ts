@@ -16,8 +16,22 @@ export function backupGuestData(): void {
     } catch { /* ignore */ }
 }
 
-// External links
+// External links (static link — single-use, prefer create-link API for fresh links)
 export const RAZORPAY_LINK = 'https://rzp.io/rzp/vxWpvWM';
+
+/** Fetches a fresh payment link from the API. Each user gets their own link (fixes "already paid" for shared links). */
+export async function fetchPaymentLink(token?: string | null): Promise<string> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE_URL}/api/payments/create-link`, {
+        method: 'POST',
+        headers,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Could not create payment link');
+    if (!data.short_url || typeof data.short_url !== 'string') throw new Error('Invalid response from server');
+    return data.short_url;
+}
 
 // Guest AI limit — 2 messages total before upgrade
 export const GUEST_AI_LIMIT = 2;

@@ -4,14 +4,15 @@ import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-react';
 import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, UserX } from 'lucide-react';
 
 export const GUEST_TRIAL_KEY = 'guest-trial-start';
-import { RAZORPAY_LINK } from '../constants';
+import { fetchPaymentLink } from '../constants';
 import { restoreGuestDataIfNeeded } from '../store/useStore';
 import HexagonBackground from './HexagonBackground';
 import ThemeToggle from './ThemeToggle';
+import toast from 'react-hot-toast';
 
 export default function LandingPage() {
     const navigate = useNavigate();
-    const { isSignedIn, isLoaded: authLoaded } = useAuth();
+    const { isSignedIn, isLoaded: authLoaded, getToken } = useAuth();
     const { signIn, isLoaded: signInLoaded, setActive: setSignInActive } = useSignIn();
     const { signUp, isLoaded: signUpLoaded, setActive: setSignUpActive } = useSignUp();
     const [loading, setLoading] = useState(false);
@@ -23,6 +24,7 @@ export default function LandingPage() {
     const [authStep, setAuthStep] = useState<'email' | 'code'>('email');
     const [isSignUpFlow, setIsSignUpFlow] = useState(false);
     const [showGetStartedDropdown, setShowGetStartedDropdown] = useState(false);
+    const [paymentLoading, setPaymentLoading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const isLoaded = signInLoaded && signUpLoaded;
@@ -139,8 +141,18 @@ export default function LandingPage() {
         navigate('/dashboard', { replace: true });
     };
 
-    const handlePayment = () => {
-        window.open(RAZORPAY_LINK, '_blank');
+    const handlePayment = async () => {
+        setPaymentLoading(true);
+        try {
+            const token = await getToken?.();
+            const url = await fetchPaymentLink(token ?? undefined);
+            window.open(url, '_blank');
+        } catch (err) {
+            console.error('Payment link error:', err);
+            toast.error((err as Error)?.message || 'Could not open payment. Please try again.');
+        } finally {
+            setPaymentLoading(false);
+        }
     };
 
     const faqs = [
@@ -529,10 +541,11 @@ export default function LandingPage() {
 
                         <button
                             onClick={() => handlePayment()}
-                            className="w-full py-4 md:py-5 bg-primary text-black rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest hover:bg-white transition-all shadow-[0_10px_40px_rgba(218,119,86,0.15)] flex items-center justify-center gap-3 active:scale-[0.98]"
+                            disabled={paymentLoading}
+                            className="w-full py-4 md:py-5 bg-primary text-black rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest hover:bg-white transition-all shadow-[0_10px_40px_rgba(218,119,86,0.15)] flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             <Zap size={18} fill="currentColor" />
-                            Get Full Access — ₹64 / $2
+                            {paymentLoading ? 'Opening payment...' : 'Get Full Access — ₹64 / $2'}
                         </button>
                         <p className="text-center text-white/55 text-[11px] md:text-xs mt-4">
                             Secured by Razorpay · No recurring charges

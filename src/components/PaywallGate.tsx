@@ -3,7 +3,7 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { Zap, Clock, ArrowRight, CheckCircle2, Lock, ReceiptText, UserX } from 'lucide-react';
-import { RAZORPAY_LINK, ONE_DAY, API_BASE_URL, backupGuestData } from '../constants';
+import { fetchPaymentLink, ONE_DAY, API_BASE_URL, backupGuestData } from '../constants';
 import { GUEST_TRIAL_KEY } from './LandingPage';
 import toast from 'react-hot-toast';
 
@@ -18,6 +18,7 @@ function formatTimeLeft(ms: number): string {
 export default function PaywallGate({ children }: { children: React.ReactNode }) {
     const { user } = useUser();
     const { getToken } = useAuth();
+    const [paymentLinkLoading, setPaymentLinkLoading] = useState(false);
     const { pathname } = useLocation();
     const navigate = useNavigate();
     const isDashboard = pathname === '/dashboard';
@@ -107,6 +108,19 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
     // isPaid covers both Clerk and local paid state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, isPaid]);
+
+    const openPaymentLink = async () => {
+        setPaymentLinkLoading(true);
+        try {
+            const token = await getToken?.();
+            const url = await fetchPaymentLink(token ?? undefined);
+            window.open(url, '_blank');
+        } catch (err) {
+            toast.error((err as Error)?.message || 'Could not open payment. Please try again.');
+        } finally {
+            setPaymentLinkLoading(false);
+        }
+    };
 
     const refreshPaymentStatus = async (paymentId?: string) => {
         if (!user) return;
@@ -232,10 +246,11 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
                                 {isRefreshingPayment ? 'Checking...' : 'Refresh Status'}
                             </button>
                             <button
-                                onClick={() => window.open(RAZORPAY_LINK, '_blank')}
-                                className="text-xs font-black uppercase tracking-wider px-4 py-2 bg-primary text-black rounded-xl hover:bg-white transition-all min-h-[36px]"
+                                onClick={openPaymentLink}
+                                disabled={paymentLinkLoading}
+                                className="text-xs font-black uppercase tracking-wider px-4 py-2 bg-primary text-black rounded-xl hover:bg-white transition-all min-h-[36px] disabled:opacity-70"
                             >
-                                Upgrade
+                                {paymentLinkLoading ? '...' : 'Upgrade'}
                             </button>
                         </div>
                     </div>
@@ -285,16 +300,15 @@ export default function PaywallGate({ children }: { children: React.ReactNode })
 
                 {/* CTA */}
                 <div className="flex flex-col gap-3 w-full">
-                    <a
-                        href={RAZORPAY_LINK}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center justify-center gap-3 w-full py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all active:scale-95 text-base"
+                    <button
+                        onClick={openPaymentLink}
+                        disabled={paymentLinkLoading}
+                        className="group flex items-center justify-center gap-3 w-full py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all active:scale-95 text-base disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         <Zap size={18} fill="currentColor" />
-                        Get Full Access
+                        {paymentLinkLoading ? 'Opening payment...' : 'Get Full Access'}
                         <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                    </a>
+                    </button>
 
                     {/* Already paid verification */}
                     {!showPaymentIdInput ? (
