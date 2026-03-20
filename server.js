@@ -1,4 +1,4 @@
-       import express from 'express';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 import { createClerkClient } from '@clerk/backend';
+import { registerWorkspaceRoutes } from './routes/workspaces.js';
 
 dotenv.config();
 
@@ -923,6 +924,9 @@ app.post('/api/strab-general', optionalAuth, guestOrAuthLimiter, async (req, res
         res.status(500).json({ error: 'Internal Server Error.' });
     }
 });
+
+// ─── Social + Team Workspace System (Phase 2) ───────────────────────────────
+registerWorkspaceRoutes(app, clerk);
 
 // ─── 404 handler ──────────────────────────────────────────────────────────
 app.use((_req, res) => {

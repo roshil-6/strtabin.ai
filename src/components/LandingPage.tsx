@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
-import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, UserX } from 'lucide-react';
+import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, UserX, Users } from 'lucide-react';
 
 import { fetchPaymentLink, GUEST_TRIAL_KEY } from '../constants';
 import HexagonBackground from './HexagonBackground';
@@ -80,6 +80,10 @@ export default function LandingPage() {
         {
             q: "How is Stratabin different from Notion, Miro, or Trello?",
             a: "Unlike task-only tools (Trello) or document tools (Notion) or whiteboard tools (Miro), Stratabin unifies all three: a distraction-free writing editor, an interactive flow canvas for visual mapping, and integrated task management — all powered by AI that understands your strategy context."
+        },
+        {
+            q: "Can I work with a team or share my projects?",
+            a: "Yes. Create Team Workspaces to invite members via email or username. Share public projects in the community feed, track execution streaks, and build strategies together. Individual workspaces stay private; team workspaces support roles (admin/member) and visibility (private/public)."
         },
         {
             q: "Can I merge or connect multiple strategy projects?",
@@ -204,9 +208,14 @@ export default function LandingPage() {
                         <span className="text-white/40">Notes, flows, and AI.</span>
                     </h1>
 
-                    <p className="text-base md:text-xl text-white/40 max-w-2xl mx-auto mb-10 md:mb-12 leading-relaxed font-medium px-2">
+                    <p className="text-base md:text-xl text-white/40 max-w-2xl mx-auto mb-6 leading-relaxed font-medium px-2">
                         Stratabin is the AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI — unscatter your thoughts and turn them into execution plans.
                     </p>
+
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+                        <Users size={13} />
+                        Now with Team Workspaces — Build & execute together
+                    </div>
 
                     {/* Demo Video */}
                     <div className="w-full max-w-3xl mx-auto mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400">
@@ -298,6 +307,7 @@ export default function LandingPage() {
                             { icon: GitBranch, title: "Branch & Merge Ideas", desc: "Split one idea into multiple branches, or merge separate strategy canvases into a unified project overview." },
                             { icon: Calendar, title: "Calendar & Timeline", desc: "Built-in calendar with event reminders and a timeline planner tied directly to your strategy projects." },
                             { icon: FolderOpen, title: "Folder Workspaces", desc: "Organize projects into custom folders with dedicated workflow maps showing inter-project relationships." },
+                            { icon: Users, title: "Team & Social Workspaces", desc: "Create team workspaces, invite members, share public projects, and build together. Streaks and progress scoring keep everyone accountable." },
                             { icon: Layers, title: "Project Merging", desc: "Combine multiple strategy canvases into one master view with tabbed sub-projects for complex initiatives." },
                             { icon: Sparkles, title: "Task Management", desc: "Integrated to-do lists for every project. Track progress alongside your strategy, not in a separate tool." },
                             { icon: Zap, title: "Works Everywhere", desc: "Progressive Web App that installs on phones, tablets, and desktops. Touch-optimized mobile interface with offline support." },
@@ -378,6 +388,7 @@ export default function LandingPage() {
                                 {[
                                     "Unlimited Strategy Canvases",
                                     "STRAB AI Intelligence — Full Access",
+                                    "Team & Social Workspaces",
                                     "Folder Workflow Maps",
                                     "Writing, Tasks & Calendar",
                                     "Install on Phone (PWA)",
@@ -447,7 +458,7 @@ export default function LandingPage() {
                         <span className="text-sm font-black tracking-tighter text-white/60">Stratabin</span>
                     </div>
                     <p className="text-[11px] text-white/15 text-center md:text-left">
-                        AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI.
+                        AI workspace and strategy planner for ideas. Notes, flows, STRAB AI, and team workspaces.
                     </p>
                     <p className="text-[11px] text-white/10">&copy; {new Date().getFullYear()} Stratabin. All rights reserved.</p>
                 </div>
@@ -528,6 +539,7 @@ export default function LandingPage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                                     {[
+                                        { name: "Team Workspaces", desc: "Invite members, share public projects, and build strategies together." },
                                         { name: "Project Merging", desc: "Combine strategy canvases into a unified intelligence view." },
                                         { name: "Folder Workspaces", desc: "Unlimited folders to segment professional and personal work." },
                                         { name: "STRAB Intelligence", desc: "Context-aware AI insights on your strategy flows." },
@@ -549,7 +561,7 @@ export default function LandingPage() {
                 </div>
             )}
 
-            {paymentLoading && (
+                   {paymentLoading && (
                 <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center">
                     <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
                     <p className="text-primary font-black uppercase text-xs tracking-widest animate-pulse">Opening payment...</p>

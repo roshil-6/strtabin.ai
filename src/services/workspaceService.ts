@@ -1,0 +1,173 @@
+/**
+ * Workspace, Project, Feed, Profile API client
+ */
+
+import { API_BASE_URL } from '../constants';
+
+async function fetchWithAuth(path: string, options: RequestInit = {}, token: string | null) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed: ${res.status}`);
+  return data;
+}
+
+export type WorkspaceType = 'individual' | 'team';
+export type Visibility = 'private' | 'public';
+export type ProjectStatus = 'idea' | 'planning' | 'executing' | 'completed';
+
+export type Workspace = {
+  id: number;
+  name: string;
+  type: WorkspaceType;
+  owner_id: number;
+  visibility: Visibility;
+  created_at: string;
+  updated_at: string;
+  role?: string;
+};
+
+export type Project = {
+  id: number;
+  workspace_id: number;
+  title: string;
+  description: string | null;
+  status: ProjectStatus;
+  canvas_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkspaceMember = {
+  id: number;
+  username: string | null;
+  email: string | null;
+  role: string;
+  joined_at: string;
+};
+
+export type ActivityLog = {
+  id: number;
+  user_id: number;
+  username: string | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+};
+
+export type Invitation = {
+  id: number;
+  workspace_id: number;
+  workspace_name: string;
+  inviter_username: string | null;
+  status: string;
+  created_at: string;
+};
+
+export type FeedItem = {
+  workspaces: Array<Workspace & { owner_username: string | null }>;
+  activities: Array<ActivityLog & { workspace_name: string; project_title: string | null }>;
+  projects: Array<Project & { workspace_name: string; owner_username: string | null }>;
+};
+
+export const workspaceService = {
+  async createWorkspace(
+    data: { name: string; type: WorkspaceType; visibility?: Visibility },
+    token: string | null
+  ) {
+    return fetchWithAuth('/api/workspaces', { method: 'POST', body: JSON.stringify(data) }, token);
+  },
+
+  async getWorkspaces(token: string | null) {
+    return fetchWithAuth('/api/workspaces', {}, token);
+  },
+
+  async getWorkspace(id: number, token: string | null) {
+    return fetchWithAuth(`/api/workspaces/${id}`, {}, token);
+  },
+
+  async inviteMember(
+    workspaceId: number,
+    data: { email?: string; username?: string },
+    token: string | null
+  ) {
+    return fetchWithAuth(
+      `/api/workspaces/${workspaceId}/invite`,
+      { method: 'POST', body: JSON.stringify(data) },
+      token
+    );
+  },
+
+  async acceptInvitation(id: number, token: string | null) {
+    return fetchWithAuth(`/api/invitations/${id}/accept`, { method: 'POST' }, token);
+  },
+
+  async rejectInvitation(id: number, token: string | null) {
+    return fetchWithAuth(`/api/invitations/${id}/reject`, { method: 'POST' }, token);
+  },
+
+  async getInvitations(token: string | null) {
+    return fetchWithAuth('/api/invitations', {}, token);
+  },
+
+  async createProject(
+    workspaceId: number,
+    data: { title: string; description?: string; status?: ProjectStatus; canvasId?: string },
+    token: string | null
+  ) {
+    return fetchWithAuth(
+      `/api/workspaces/${workspaceId}/projects`,
+      { method: 'POST', body: JSON.stringify(data) },
+      token
+    );
+  },
+
+  async updateProject(
+    projectId: number,
+    data: { title?: string; description?: string; status?: ProjectStatus },
+    token: string | null
+  ) {
+    return fetchWithAuth(
+      `/api/projects/${projectId}`,
+      { method: 'PATCH', body: JSON.stringify(data) },
+      token
+    );
+  },
+
+  async getFeed() {
+    return fetchWithAuth('/api/feed', {}, null);
+  },
+
+  async getProfile(username: string) {
+    return fetchWithAuth(`/api/profile/${encodeURIComponent(username)}`, {}, null);
+  },
+
+  async getMe(token: string | null) {
+    return fetchWithAuth('/api/me', {}, token);
+  },
+
+  async updateProfile(data: { bio?: string }, token: string | null) {
+    return fetchWithAuth('/api/me/profile', { method: 'PATCH', body: JSON.stringify(data) }, token);
+  },
+
+  async logExecution(
+    data: { projectId?: number; workspaceId?: number; action?: string; score?: number },
+    token: string | null
+  ) {
+    return fetchWithAuth('/api/execution', { method: 'POST', body: JSON.stringify(data) }, token);
+  },
+
+  async getNotifications(token: string | null, unreadOnly = false) {
+    return fetchWithAuth(`/api/notifications${unreadOnly ? '?unread=true' : ''}`, {}, token);
+  },
+
+  async markNotificationRead(id: number, token: string | null) {
+    return fetchWithAuth(`/api/notifications/${id}/read`, { method: 'POST' }, token);
+  },
+};

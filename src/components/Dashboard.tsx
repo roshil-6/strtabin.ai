@@ -4,12 +4,14 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Globe } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
 import { API_BASE_URL } from '../constants';
 import { useAuth } from '@clerk/clerk-react';
+import CreateWorkspaceModal from './CreateWorkspaceModal';
+import { workspaceService, type Workspace } from '../services/workspaceService';
 
 export default function Dashboard() {
     const { resolved: theme } = useTheme();
@@ -57,6 +59,10 @@ export default function Dashboard() {
     const [credentialsUsername, setCredentialsUsername] = useState('');
     const [credentialsPassword, setCredentialsPassword] = useState('');
     const [credentialsLoading, setCredentialsLoading] = useState(false);
+    const [showCreateWorkspaceModal, setShowCreateWorkspaceModal] = useState(false);
+    const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>([]);
+    const [myUsername, setMyUsername] = useState<string | null>(null);
+    const [invitations, setInvitations] = useState<Array<{ id: number; workspace_id: number; workspace_name: string; inviter_username: string | null }>>([]);
 
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
@@ -64,6 +70,18 @@ export default function Dashboard() {
         const t = setTimeout(() => setIsFirstLoad(false), 400);
         return () => { clearTimeout(t); document.title = 'Stratabin AI — Strategy Workspace'; };
     }, [initDefaultCanvas]);
+
+    useEffect(() => {
+        getToken().then((token) => {
+            if (token) {
+                workspaceService.getWorkspaces(token).then((d) => setTeamWorkspaces(d.workspaces || [])).catch(() => {});
+                workspaceService.getMe(token).then((d) => {
+                    setMyUsername(d.user?.username || null);
+                    setInvitations(d.invitations || []);
+                }).catch(() => {});
+            }
+        });
+    }, [getToken]);
 
     useEffect(() => {
         if (!showMoveMenu && !showDuplicateMenu) return;
@@ -289,6 +307,21 @@ export default function Dashboard() {
 
     return (
         <div className="flex h-screen font-sans overflow-hidden relative bg-transparent">
+            {/* Create Workspace Modal */}
+            {showCreateWorkspaceModal && (
+                <CreateWorkspaceModal
+                    onClose={() => setShowCreateWorkspaceModal(false)}
+                    onCreate={async (data) => {
+                        const token = await getToken();
+                        const { id } = await workspaceService.createWorkspace(data, token);
+                        const d = await workspaceService.getWorkspaces(token);
+                        setTeamWorkspaces(d.workspaces || []);
+                        toast.success('Workspace created');
+                        navigate(`/workspace/${id}`);
+                    }}
+                />
+            )}
+
             {/* Set Username & Password Modal */}
             {showCredentialsModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -434,6 +467,51 @@ export default function Dashboard() {
                                 )}
                             </div>
                         </div>
+
+                        <div className="pt-6 pb-2">
+                            <div className="flex items-center justify-between px-3 mb-4">
+                                <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-white/20">Team Workspaces</h2>
+                                <button
+                                    onClick={() => setShowCreateWorkspaceModal(true)}
+                                    className="p-1 hover:bg-white/10 rounded-lg text-white/30 hover:text-primary transition-all"
+                                    title="Create workspace"
+                                >
+                                    <FolderPlus size={16} />
+                                </button>
+                            </div>
+                            <div className="space-y-1 max-h-[20vh] overflow-y-auto custom-scrollbar">
+                                {teamWorkspaces.map((ws) => (
+                                    <button
+                                        key={ws.id}
+                                        onClick={() => { navigate(`/workspace/${ws.id}`); setIsSidebarOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-white/40 hover:bg-white/5 hover:text-white"
+                                    >
+                                        <Users size={18} className="text-white/20 group-hover:text-white" />
+                                        <span className="font-bold text-sm truncate flex-1 text-left">{ws.name}</span>
+                                    </button>
+                                ))}
+                                {teamWorkspaces.length === 0 && (
+                                    <p className="px-3 py-4 text-[11px] text-white/10 italic">No workspaces yet.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="pt-4 space-y-1">
+                            <button
+                                onClick={() => { navigate(`/profile/${myUsername || user?.username || user?.firstName || 'me'}`); setIsSidebarOpen(false); }}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-white/40 hover:bg-white/5 hover:text-white"
+                            >
+                                <User size={18} className="text-white/20 group-hover:text-white" />
+                                <span className="font-bold text-sm text-left">Profile</span>
+                            </button>
+                            <button
+                                onClick={() => { navigate('/feed'); setIsSidebarOpen(false); }}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-white/40 hover:bg-white/5 hover:text-white"
+                            >
+                                <Globe size={18} className="text-white/20 group-hover:text-white" />
+                                <span className="font-bold text-sm text-left">Feed</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -473,6 +551,38 @@ export default function Dashboard() {
             {/* Main Content Area — transparent so grid shows through */}
             <main className="flex-1 overflow-y-auto custom-scrollbar bg-transparent">
                 <div className="max-w-7xl mx-auto px-3 pt-4 pb-24 md:px-10 md:pt-10 md:pb-10">
+                    {/* Invitations banner */}
+                    {invitations.length > 0 && (
+                        <div className="mb-4 p-4 bg-primary/10 border border-primary/30 rounded-xl flex flex-wrap items-center justify-between gap-3">
+                            <p className="text-sm font-bold text-white">
+                                You have {invitations.length} workspace invitation{invitations.length > 1 ? 's' : ''}
+                            </p>
+                            <div className="flex gap-2">
+                                {invitations.slice(0, 3).map((inv) => (
+                                    <div key={inv.id} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg">
+                                        <span className="text-xs text-white/70">{inv.workspace_name}</span>
+                                        <button
+                                            onClick={async () => {
+                                                const token = await getToken();
+                                                if (token) {
+                                                    await workspaceService.acceptInvitation(inv.id, token);
+                                                    toast.success('Joined workspace');
+                                                    const d = await workspaceService.getMe(token);
+                                                    setInvitations(d.invitations || []);
+                                                    setTeamWorkspaces((await workspaceService.getWorkspaces(token)).workspaces || []);
+                                                    navigate(`/workspace/${inv.workspace_id}`);
+                                                }
+                                            }}
+                                            className="text-xs font-bold text-primary hover:underline"
+                                        >
+                                            Accept
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Header */}
                     <header className="mb-5 md:mb-10">
                         <div className="flex items-center gap-2.5 md:gap-3 mb-3 md:mb-0">
