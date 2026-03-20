@@ -5,7 +5,10 @@
 import {
     getOrCreateUser,
     getUserById,
+    getUsersWhoShareWorkspaceWith,
     searchUsers,
+    searchUsersForChat,
+    doUsersShareWorkspace,
     getOrCreateDirectChat,
     getChatsForUser,
     getChatWithParticipants,
@@ -48,14 +51,40 @@ export function registerChatRoutes(app, clerkClient) {
     app.locals.clerk = clerkClient;
     initDb();
 
-    // GET /api/users/search?q=username
+    // GET /api/users/chatable — list all users you can chat with (share a workspace)
+    app.get('/api/users/chatable', requireAuthMiddleware, (req, res) => {
+        try {
+            const users = getUsersWhoShareWorkspaceWith(req.userId, 100);
+            return res.json({ users });
+        } catch (err) {
+            console.error('Chatable users error:', err);
+            return res.status(500).json({ error: 'Failed to load users.' });
+        }
+    });
+
+    // GET /api/users/discover?q=username — search all users (for discovery, not chat)
+    app.get('/api/users/discover', requireAuthMiddleware, (req, res) => {
+        try {
+            const q = sanitize(req.query.q, 50);
+            if (!q || q.length < 2) {
+                return res.json({ users: [] });
+            }
+            const users = searchUsers(q, req.userId, 30);
+            return res.json({ users });
+        } catch (err) {
+            console.error('Discover error:', err);
+            return res.status(500).json({ error: 'Discover failed.' });
+        }
+    });
+
+    // GET /api/users/search?q=username — only returns users who share a workspace (request-accepted)
     app.get('/api/users/search', requireAuthMiddleware, (req, res) => {
         try {
             const q = sanitize(req.query.q, 50);
             if (!q || q.length < 2) {
                 return res.json({ users: [] });
             }
-            const users = searchUsers(q, req.userId, 20);
+            const users = searchUsersForChat(q, req.userId, 20);
             return res.json({ users });
         } catch (err) {
             console.error('Search error:', err);
@@ -63,15 +92,20 @@ export function registerChatRoutes(app, clerkClient) {
         }
     });
 
-    // GET /api/chats - list user's chats
+    // GET /api/chats - list user's chats (only with users who share a workspace)
     app.get('/api/chats', requireAuthMiddleware, (req, res) => {
         try {
             const chats = getChatsForUser(req.userId);
-            const enriched = chats.map(c => {
-                const detail = getChatWithParticipants(c.id, req.userId);
-                const unread = getUnreadCount(c.id, req.userId);
-                return { ...c, ...detail, unread };
-            });
+            const enriched = chats
+                .map(c => {
+                    const detail = getChatWithParticipants(c.id, req.userId);
+                    const unread = getUnreadCount(c.id, req.userId);
+                    return { ...c, ...detail, unread };
+                })
+                .filter(c => {
+                    const otherId = c.otherUser?.id;
+                    return !otherId || doUsersShareWorkspace(req.userId, otherId);
+                });
             return res.json({ chats: enriched });
         } catch (err) {
             console.error('Chats error:', err);
@@ -79,7 +113,7 @@ export function registerChatRoutes(app, clerkClient) {
         }
     });
 
-    // POST /api/chats/direct - create or get direct chat
+    // POST /api/chats/direct - create or get direct chat (only with users who share a workspace)
     app.post('/api/chats/direct', requireAuthMiddleware, (req, res) => {
         try {
             const { userId } = req.body || {};
@@ -89,6 +123,9 @@ export function registerChatRoutes(app, clerkClient) {
             }
             const other = getUserById(otherId);
             if (!other) return res.status(404).json({ error: 'User not found.' });
+            if (!doUsersShareWorkspace(req.userId, otherId)) {
+                return res.status(403).json({ error: 'You can only chat with workspace members. Invite them to a workspace first.' });
+            }
 
             const chatId = getOrCreateDirectChat(req.userId, otherId);
             const chat = getChatWithParticipants(chatId, req.userId);

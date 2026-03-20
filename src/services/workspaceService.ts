@@ -218,8 +218,8 @@ export const workspaceService = {
     return fetchWithAuth('/api/feed', {}, null);
   },
 
-  async getProfile(username: string) {
-    return fetchWithAuth(`/api/profile/${encodeURIComponent(username)}`, {}, null);
+  async getProfile(username: string, token?: string | null) {
+    return fetchWithAuth(`/api/profile/${encodeURIComponent(username)}`, {}, token ?? null);
   },
 
   async getMe(token: string | null) {

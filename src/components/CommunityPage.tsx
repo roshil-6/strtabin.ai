@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { io, type Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
@@ -19,6 +19,8 @@ import {
   ArrowLeft,
   CheckCheck,
   Loader2,
+  Users,
+  ExternalLink,
 } from 'lucide-react';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
 import { chatService, type Chat, type Message, type ChatUser } from '../services/chatService';
@@ -38,11 +40,15 @@ function formatTime(dateStr: string) {
 
 export default function CommunityPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { getToken } = useAuth();
-  const [tab, setTab] = useState<'feed' | 'chat'>('chat');
+  const [tab, setTab] = useState<'feed' | 'chat' | 'discover'>('chat');
+  const [chatableUsers, setChatableUsers] = useState<ChatUser[]>([]);
+  const [loadingChatable, setLoadingChatable] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<ChatUser[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [discoverQuery, setDiscoverQuery] = useState('');
+  const [discoverResults, setDiscoverResults] = useState<ChatUser[]>([]);
+  const [discovering, setDiscovering] = useState(false);
   const [feed, setFeed] = useState<FeedItem | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
@@ -61,10 +67,6 @@ export default function CommunityPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  const focusSearch = () => {
-    setTab('chat');
-    setTimeout(() => searchInputRef.current?.focus(), 50);
-  };
   activeChatRef.current = activeChat;
 
   useEffect(() => {
@@ -73,7 +75,19 @@ export default function CommunityPage() {
       if (t) {
         workspaceService.getFeed().then(setFeed).catch(() => setFeed({ workspaces: [], activities: [], projects: [] }));
         workspaceService.getMe(t).then((d) => setCurrentUserId(d?.user?.id ?? null));
-        chatService.getChats(t).then((d) => setChats(d.chats || [])).catch(() => setChats([])).finally(() => setLoadingChats(false));
+        chatService.getChats(t).then((d) => {
+          const chatsList = d.chats || [];
+          setChats(chatsList);
+          const openChat = (location.state as { openChat?: Chat })?.openChat;
+          if (openChat) {
+            setActiveChat(openChat);
+            setTab('chat');
+            const exists = chatsList.some((c) => c.id === openChat.id);
+            if (!exists) setChats((prev) => [openChat, ...prev]);
+            window.history.replaceState({}, '', location.pathname);
+          }
+        }).catch(() => setChats([])).finally(() => setLoadingChats(false));
+        chatService.getChatableUsers(t).then((d) => setChatableUsers(d.users || [])).catch(() => setChatableUsers([])).finally(() => setLoadingChatable(false));
       }
     });
   }, [getToken]);
@@ -133,19 +147,34 @@ export default function CommunityPage() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSearch = async () => {
-    if (searchQuery.trim().length < 2) return;
-    setSearching(true);
+  const chatPartnerIds = new Set(chats.map((c) => c.otherUser?.id).filter(Boolean));
+  const handleDiscover = async () => {
+    if (discoverQuery.trim().length < 2) return;
+    setDiscovering(true);
     try {
       const token = await getToken();
-      const { users } = await chatService.searchUsers(searchQuery.trim(), token);
-      setSearchResults(users || []);
+      const { users } = await chatService.discoverUsers(discoverQuery.trim(), token);
+      setDiscoverResults(users || []);
     } catch {
-      setSearchResults([]);
+      setDiscoverResults([]);
     } finally {
-      setSearching(false);
+      setDiscovering(false);
     }
   };
+
+  const chatableIds = new Set(chatableUsers.map((u) => u.id));
+  const feedPeople = [
+    ...(feed?.projects || []).map((p) => ({ id: (p as { owner_id?: number }).owner_id, username: p.owner_username })),
+    ...(feed?.workspaces || []).map((w) => ({ id: (w as { owner_id?: number }).owner_id, username: w.owner_username })),
+  ].filter((p, i, arr) => p.id && arr.findIndex((x) => x.id === p.id) === i) as { id: number; username: string | null }[];
+
+  const filteredChatable = (searchQuery.trim().length >= 2
+    ? chatableUsers.filter((u) => {
+        const q = searchQuery.trim().toLowerCase();
+        return (u.username?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
+      })
+    : chatableUsers
+  ).filter((u) => !chatPartnerIds.has(u.id));
 
   const handleStartChat = async (user: ChatUser) => {
     try {
@@ -158,7 +187,6 @@ export default function CommunityPage() {
       });
       setTab('chat');
       setSearchQuery('');
-      setSearchResults([]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to start chat');
     }
@@ -187,7 +215,7 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
-      {/* Header with back + search */}
+      {/* Header with back + filter */}
       <div className="sticky top-0 z-10 p-4 bg-[var(--bg-page)]/95 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
@@ -197,7 +225,6 @@ export default function CommunityPage() {
           >
             <ArrowLeft size={20} />
           </button>
-          <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
             <input
@@ -205,53 +232,18 @@ export default function CommunityPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search people to start a chat (min 2 chars)..."
+              placeholder="Filter by name (optional)..."
               className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary/50 text-sm"
             />
           </div>
-          <button
-            onClick={handleSearch}
-            disabled={searching || searchQuery.trim().length < 2}
-            className="px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all disabled:opacity-50"
-          >
-            {searching ? <Loader2 size={18} className="animate-spin" /> : 'Search'}
-          </button>
-          <button
-            onClick={focusSearch}
-            className="px-4 py-2.5 rounded-xl border-2 border-primary text-primary font-bold hover:bg-primary/10 transition-all shrink-0"
-            title="Start a new chat"
-          >
-            + New chat
-          </button>
-          </div>
         </div>
-        {searchResults.length > 0 && (
-          <div className="max-w-2xl mx-auto mt-2 p-2 bg-white/[0.03] rounded-xl border border-white/10 max-h-48 overflow-y-auto">
-            {searchResults.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => handleStartChat(u)}
-                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 text-left"
-              >
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User size={20} className="text-primary" />
-                </div>
-                <div>
-                  <p className="font-bold text-white">{u.username || u.email || 'User'}</p>
-                  {u.email && u.username && <p className="text-xs text-white/40">{u.email}</p>}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Tabs — Chat first for easy team communication */}
+      {/* Tabs */}
       <div className="flex border-b border-white/10 px-4 bg-white/[0.02]">
         <button
           onClick={() => setTab('chat')}
-          className={`flex items-center gap-2 px-6 py-3 font-bold text-sm border-b-2 transition-all ${
+          className={`flex items-center gap-2 px-4 py-3 font-bold text-sm border-b-2 transition-all ${
             tab === 'chat' ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white'
           }`}
         >
@@ -259,8 +251,17 @@ export default function CommunityPage() {
           Chats
         </button>
         <button
+          onClick={() => setTab('discover')}
+          className={`flex items-center gap-2 px-4 py-3 font-bold text-sm border-b-2 transition-all ${
+            tab === 'discover' ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white'
+          }`}
+        >
+          <Users size={18} />
+          Discover
+        </button>
+        <button
           onClick={() => setTab('feed')}
-          className={`flex items-center gap-2 px-6 py-3 font-bold text-sm border-b-2 transition-all ${
+          className={`flex items-center gap-2 px-4 py-3 font-bold text-sm border-b-2 transition-all ${
             tab === 'feed' ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white'
           }`}
         >
@@ -270,7 +271,101 @@ export default function CommunityPage() {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {tab === 'feed' ? (
+        {tab === 'discover' ? (
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-2xl mx-auto">
+              <h2 className="text-lg font-black text-white mb-4 flex items-center gap-2">
+                <Users size={22} />
+                Find people
+              </h2>
+              <p className="text-sm text-white/50 mb-6">Search by username or email to discover users and view their profiles.</p>
+              <div className="flex gap-2 mb-6">
+                <div className="relative flex-1">
+                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                  <input
+                    type="text"
+                    value={discoverQuery}
+                    onChange={(e) => setDiscoverQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleDiscover()}
+                    placeholder="Type username or email (min 2 chars)..."
+                    className="w-full pl-10 pr-4 py-3 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
+                  />
+                </div>
+                <button
+                  onClick={handleDiscover}
+                  disabled={discovering || discoverQuery.trim().length < 2}
+                  className="px-5 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all disabled:opacity-50"
+                >
+                  {discovering ? <Loader2 size={20} className="animate-spin" /> : 'Search'}
+                </button>
+              </div>
+              {discoverResults.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Results</p>
+                  {discoverResults.map((u) => (
+                    <div
+                      key={u.id}
+                      className="p-4 bg-white/[0.04] border border-white/10 rounded-xl flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                          <User size={24} className="text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white truncate">{u.username || u.email || 'User'}</p>
+                          {u.email && u.username && <p className="text-xs text-white/40 truncate">{u.email}</p>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {(u.username || u.email) && (
+                          <button
+                            onClick={() => navigate(`/profile/${u.username || u.email}`)}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 font-bold text-xs"
+                          >
+                            <ExternalLink size={14} />
+                            Profile
+                          </button>
+                        )}
+                        {chatableIds.has(u.id) && (
+                          <button
+                            onClick={() => handleStartChat(u)}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                          >
+                            <MessageCircle size={14} />
+                            Message
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {discoverQuery.trim().length >= 2 && !discovering && discoverResults.length === 0 && (
+                <p className="text-white/40 py-8 text-center">No users found. Try a different search.</p>
+              )}
+              {feedPeople.length > 0 && discoverQuery.trim().length < 2 && (
+                <div className="mt-8">
+                  <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">People from public feed</p>
+                  <div className="space-y-2">
+                    {feedPeople.slice(0, 10).map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => p.username && navigate(`/profile/${p.username}`)}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:border-primary/30 text-left"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                          <User size={20} className="text-primary" />
+                        </div>
+                        <p className="font-bold text-white truncate">{p.username || 'Anonymous'}</p>
+                        <ExternalLink size={14} className="text-white/40 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : tab === 'feed' ? (
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-2xl mx-auto space-y-8">
               <div className="flex items-center gap-3 mb-6">
@@ -395,51 +490,75 @@ export default function CommunityPage() {
             <div
               className={`w-full md:w-80 border-r border-white/10 flex flex-col ${activeChat ? 'hidden md:flex' : ''}`}
             >
-              {loadingChats ? (
+              {loadingChats && loadingChatable ? (
                 <div className="flex-1 flex items-center justify-center">
                   <Loader2 size={24} className="animate-spin text-primary" />
                 </div>
-              ) : chats.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                  <MessageCircle size={48} className="text-white/20 mb-4" />
-                  <p className="text-white/50 font-bold">No chats yet</p>
-                  <p className="text-sm text-white/30 mt-1 mb-4">Search for people above to start a conversation</p>
-                  <button
-                    onClick={focusSearch}
-                    className="mt-2 px-6 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all flex items-center gap-2"
-                  >
-                    <MessageCircle size={20} />
-                    Start chat
-                  </button>
-                  <p className="text-xs text-white/20 mt-4">Or browse the Feed and tap "Message" on any project to chat with the owner</p>
-                </div>
               ) : (
                 <div className="flex-1 overflow-y-auto">
-                  {chats.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => setActiveChat(c)}
-                      className={`w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-all text-left ${
-                        activeChat?.id === c.id ? 'bg-white/10' : ''
-                      }`}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                        <User size={24} className="text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-white truncate">{chatName(c)}</p>
-                        <p className="text-xs text-white/40 truncate">{c.last_message || 'No messages yet'}</p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-[10px] text-white/30">{c.last_message_at ? formatTime(c.last_message_at) : ''}</p>
-                        {c.unread && c.unread > 0 && (
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-black text-[10px] font-bold mt-1">
-                            {c.unread}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
+                  {chats.length > 0 && (
+                    <>
+                      <p className="px-4 py-2 text-[10px] font-bold text-white/40 uppercase tracking-wider">Conversations</p>
+                      {chats.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => setActiveChat(c)}
+                          className={`w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-all text-left ${
+                            activeChat?.id === c.id ? 'bg-white/10' : ''
+                          }`}
+                        >
+                          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                            <User size={24} className="text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-white truncate">{chatName(c)}</p>
+                            <p className="text-xs text-white/40 truncate">{c.last_message || 'No messages yet'}</p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-[10px] text-white/30">{c.last_message_at ? formatTime(c.last_message_at) : ''}</p>
+                            {c.unread && c.unread > 0 && (
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-black text-[10px] font-bold mt-1">
+                                {c.unread}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  <p className="px-4 py-2 mt-2 text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                    People you can chat with
+                  </p>
+                  {loadingChatable ? (
+                    <div className="p-4 flex justify-center">
+                      <Loader2 size={20} className="animate-spin text-primary" />
+                    </div>
+                  ) : filteredChatable.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <p className="text-sm text-white/40">
+                        {chatableUsers.length === 0
+                          ? 'Invite people to a workspace first, then they’ll appear here.'
+                          : 'No matches. Try a different filter.'}
+                      </p>
+                    </div>
+                  ) : (
+                    filteredChatable.map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => handleStartChat(u)}
+                        className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-all text-left"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                          <User size={24} className="text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-white truncate">{u.username || u.email || 'User'}</p>
+                          {u.email && u.username && <p className="text-xs text-white/40 truncate">{u.email}</p>}
+                        </div>
+                        <MessageCircle size={18} className="text-primary/60 shrink-0" />
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -531,14 +650,7 @@ export default function CommunityPage() {
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <MessageCircle size={64} className="text-white/10 mb-4" />
                   <p className="text-white/40 font-bold">Select a chat</p>
-                  <p className="text-sm text-white/20 mt-1 mb-4">Choose a conversation or start a new one</p>
-                  <button
-                    onClick={focusSearch}
-                    className="px-6 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all flex items-center gap-2"
-                  >
-                    <MessageCircle size={20} />
-                    Start new chat
-                  </button>
+                  <p className="text-sm text-white/20 mt-1">Click a person from the list to start chatting</p>
                 </div>
               )}
             </div>

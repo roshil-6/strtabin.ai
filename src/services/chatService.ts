@@ -39,6 +39,14 @@ export type Chat = {
 };
 
 export const chatService = {
+  getChatableUsers(token: string | null) {
+    return fetchWithAuth('/api/users/chatable', {}, token);
+  },
+
+  discoverUsers(q: string, token: string | null) {
+    return fetchWithAuth(`/api/users/discover?q=${encodeURIComponent(q)}`, {}, token);
+  },
+
   searchUsers(q: string, token: string | null) {
     return fetchWithAuth(`/api/users/search?q=${encodeURIComponent(q)}`, {}, token);
   },

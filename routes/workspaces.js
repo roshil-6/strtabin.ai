@@ -42,6 +42,7 @@ import {
     updateMemberDailyTask,
     deleteMemberDailyTask,
     getMemberDailyTaskById,
+    doUsersShareWorkspace,
 } from '../db/models.js';
 import { initDb } from '../db/index.js';
 
@@ -519,8 +520,8 @@ export function registerWorkspaceRoutes(app, clerkClient) {
         }
     });
 
-    // GET /api/profile/:username — public profile
-    app.get('/api/profile/:username', (req, res) => {
+    // GET /api/profile/:username — public profile (sends canChat when Authorization header present)
+    app.get('/api/profile/:username', async (req, res) => {
         try {
             const username = sanitizeStr(req.params.username, 50);
             if (!username) return res.status(400).json({ error: 'Username required.' });
@@ -534,13 +535,35 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const activities = getProfileActivity(user.id, 20);
             const projects = getProfileProjects(user.id, 20);
 
+            let canChat = false;
+            const authHeader = req.headers.authorization;
+            if (authHeader?.startsWith('Bearer ')) {
+                const token = authHeader.slice(7).trim();
+                const clerk = req.app.locals?.clerk;
+                if (clerk && token) {
+                    try {
+                        const payloadB64 = token.split('.')[1];
+                        if (payloadB64) {
+                            const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+                            const clerkId = decoded.sub;
+                            if (clerkId) {
+                                const clerkUser = await clerk.users.getUser(clerkId);
+                                const viewerId = getOrCreateUser(clerkUser);
+                                canChat = viewerId !== user.id && doUsersShareWorkspace(viewerId, user.id);
+                            }
+                        }
+                    } catch { /* ignore */ }
+                }
+            }
+
             return res.json({
                 user: { id: user.id, username: user.username, email: user.email ? undefined : null },
-                profile: profile || { bio: null },
+                profile: profile || { bio: null, avatar_url: null },
                 streak,
                 progress,
                 activities,
                 projects,
+                canChat,
             });
         } catch (err) {
             console.error('Profile error:', err);

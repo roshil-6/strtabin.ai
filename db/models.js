@@ -488,6 +488,44 @@ export function markNotificationRead(notificationId, userId) {
 }
 
 // ─── User Search ───────────────────────────────────────────────────────────
+/** Returns true if both users share at least one workspace (request-accepted members) */
+export function doUsersShareWorkspace(userId1, userId2) {
+    const db = getDb();
+    const row = db.prepare(`
+        SELECT 1 FROM workspace_members wm1
+        JOIN workspace_members wm2 ON wm2.workspace_id = wm1.workspace_id AND wm2.user_id = ?
+        WHERE wm1.user_id = ?
+        LIMIT 1
+    `).get(userId2, userId1);
+    return !!row;
+}
+
+/** Get all users who share a workspace with currentUserId (for chat list - no search) */
+export function getUsersWhoShareWorkspaceWith(currentUserId, limit = 100) {
+    const db = getDb();
+    return db.prepare(`
+        SELECT DISTINCT u.id, u.username, u.email FROM users u
+        JOIN workspace_members wm1 ON wm1.user_id = u.id
+        JOIN workspace_members wm2 ON wm2.workspace_id = wm1.workspace_id AND wm2.user_id = ?
+        WHERE u.id != ?
+        ORDER BY u.username ASC, u.id ASC
+        LIMIT ?
+    `).all(currentUserId, currentUserId, limit);
+}
+
+/** Search users for chat: only returns users who share a workspace with currentUserId */
+export function searchUsersForChat(query, currentUserId, limit = 20) {
+    const db = getDb();
+    const q = `%${String(query).trim()}%`;
+    return db.prepare(`
+        SELECT DISTINCT u.id, u.username, u.email FROM users u
+        JOIN workspace_members wm1 ON wm1.user_id = u.id
+        JOIN workspace_members wm2 ON wm2.workspace_id = wm1.workspace_id AND wm2.user_id = ?
+        WHERE u.id != ? AND (LOWER(COALESCE(u.username,'')) LIKE LOWER(?) OR LOWER(COALESCE(u.email,'')) LIKE LOWER(?))
+        ORDER BY u.username ASC LIMIT ?
+    `).all(currentUserId, currentUserId, q, q, limit);
+}
+
 export function searchUsers(query, excludeUserId = null, limit = 20) {
     const db = getDb();
     const q = `%${String(query).trim()}%`;
