@@ -16,6 +16,7 @@ import {
   Activity,
   User,
   ChevronLeft,
+  ArrowLeft,
   CheckCheck,
   Loader2,
 } from 'lucide-react';
@@ -181,9 +182,17 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
-      {/* Search bar */}
+      {/* Header with back + search */}
       <div className="sticky top-0 z-10 p-4 bg-[var(--bg-page)]/95 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-2xl mx-auto flex gap-2">
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 -ml-2 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all"
+            title="Go back"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
             <input
@@ -202,6 +211,7 @@ export default function CommunityPage() {
           >
             {searching ? <Loader2 size={18} className="animate-spin" /> : 'Search'}
           </button>
+          </div>
         </div>
         {searchResults.length > 0 && (
           <div className="max-w-2xl mx-auto mt-2 p-2 bg-white/[0.03] rounded-xl border border-white/10 max-h-48 overflow-y-auto">
@@ -250,6 +260,16 @@ export default function CommunityPage() {
         {tab === 'feed' ? (
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-2xl mx-auto space-y-8">
+              <div className="flex items-center gap-3 mb-6">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all"
+                  title="Go back"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <span className="text-sm text-white/50">Feed</span>
+              </div>
               {feed?.projects && feed.projects.length > 0 && (
                 <section>
                   <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -367,8 +387,12 @@ export default function CommunityPage() {
               {activeChat ? (
                 <>
                   <div className="flex items-center gap-3 p-4 border-b border-white/10 bg-white/[0.02]">
-                    <button onClick={() => setActiveChat(null)} className="md:hidden p-2 -ml-2">
-                      <ChevronLeft size={20} className="text-white" />
+                    <button
+                      onClick={() => setActiveChat(null)}
+                      className="p-2 -ml-2 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all"
+                      title="Back to chats"
+                    >
+                      <ChevronLeft size={20} />
                     </button>
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                       <User size={20} className="text-primary" />

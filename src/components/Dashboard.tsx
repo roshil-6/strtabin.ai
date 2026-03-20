@@ -592,106 +592,9 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    {/* Work Insights */}
-                    <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-500/15 to-orange-600/5 border border-orange-500/20 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
-                                <Flame size={24} className="text-orange-400" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-black text-white">{workInsights?.streak ?? 0}</p>
-                                <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Day Streak</p>
-                            </div>
-                        </div>
-                        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 border border-emerald-500/20 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-                                <TrendingUp size={24} className="text-emerald-400" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-black text-white">{workInsights?.progress?.total ?? 0}</p>
-                                <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Progress Pts</p>
-                            </div>
-                        </div>
-                        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                                <FileText size={24} className="text-primary" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-black text-white">{filteredCanvases.length}</p>
-                                <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Projects</p>
-                            </div>
-                        </div>
-                        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center shrink-0">
-                                <CheckSquare size={24} className="text-cyan-400" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-black text-white">
-                                    {filteredCanvases.reduce((acc, p) => acc + (p.todos?.filter(t => t.completed).length ?? 0), 0)}
-                                </p>
-                                <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Tasks Done</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Project Options — Quick Actions */}
-                    <div className="mb-6">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-3">Quick Actions</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                            <button
-                                onClick={() => navigate('/strab')}
-                                className="group p-4 rounded-xl bg-primary/10 border border-primary/25 hover:border-primary/50 hover:bg-primary/15 transition-all text-left"
-                            >
-                                <Bot size={20} className="text-primary mb-2 group-hover:scale-110 transition-transform" />
-                                <p className="text-xs font-bold text-white">STRAB AI</p>
-                                <p className="text-[10px] text-white/40">Build & chat</p>
-                            </button>
-                            <button
-                                onClick={() => navigate('/reports')}
-                                className="group p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/40 transition-all text-left"
-                            >
-                                <BarChart2 size={20} className="text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
-                                <p className="text-xs font-bold text-white">Reports</p>
-                                <p className="text-[10px] text-white/40">AI analysis</p>
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('monitor')}
-                                className="group p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20 hover:border-cyan-500/40 transition-all text-left"
-                            >
-                                <Activity size={20} className="text-cyan-400 mb-2 group-hover:scale-110 transition-transform" />
-                                <p className="text-xs font-bold text-white">Monitor</p>
-                                <p className="text-[10px] text-white/40">Track progress</p>
-                            </button>
-                            <button
-                                onClick={() => navigate(`/folder-workflow/${activeFolderId || 'general'}`)}
-                                className="group p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all text-left"
-                            >
-                                <Network size={20} className="text-white/60 mb-2 group-hover:text-white transition-colors" />
-                                <p className="text-xs font-bold text-white">Map</p>
-                                <p className="text-[10px] text-white/40">Workflow view</p>
-                            </button>
-                            <button
-                                onClick={() => navigate('/calendar')}
-                                className="group p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all text-left"
-                            >
-                                <Calendar size={20} className="text-white/60 mb-2 group-hover:text-white transition-colors" />
-                                <p className="text-xs font-bold text-white">Calendar</p>
-                                <p className="text-[10px] text-white/40">Month view</p>
-                            </button>
-                            <button
-                                onClick={handleCreate}
-                                className="group p-4 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 transition-all text-left"
-                            >
-                                <Plus size={20} className="text-white mb-2 group-hover:scale-110 transition-transform" />
-                                <p className="text-xs font-bold text-white">New Project</p>
-                                <p className="text-[10px] text-white/40">Create canvas</p>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Header */}
-                    <header className="mb-5 md:mb-10">
-                        <div className="flex items-center gap-2.5 md:gap-3 mb-3 md:mb-0">
+                    {/* Header — folder name + action bar */}
+                    <header className="mb-4 md:mb-6">
+                        <div className="flex items-center gap-2.5 md:gap-3 mb-2 md:mb-3">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
                                 className="md:hidden p-2 bg-white/[0.04] rounded-xl border border-white/[0.05] text-white/40 hover:text-white active:scale-95 transition-all shrink-0"
@@ -715,7 +618,33 @@ export default function Dashboard() {
                             </button>
                         </div>
 
-                        <div className="flex flex-row items-center gap-1.5 md:gap-2 mt-2.5 md:mt-6 overflow-x-auto custom-scrollbar-hide">
+                        {/* Compact stats row */}
+                        <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-4">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                                <Flame size={14} className="text-orange-400" />
+                                <span className="text-xs font-black text-white">{workInsights?.streak ?? 0}</span>
+                                <span className="text-[10px] text-white/50">streak</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                <TrendingUp size={14} className="text-emerald-400" />
+                                <span className="text-xs font-black text-white">{workInsights?.progress?.total ?? 0}</span>
+                                <span className="text-[10px] text-white/50">pts</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10">
+                                <FileText size={14} className="text-primary" />
+                                <span className="text-xs font-black text-white">{filteredCanvases.length}</span>
+                                <span className="text-[10px] text-white/50">projects</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10">
+                                <CheckSquare size={14} className="text-cyan-400" />
+                                <span className="text-xs font-black text-white">
+                                    {filteredCanvases.reduce((acc, p) => acc + (p.todos?.filter(t => t.completed).length ?? 0), 0)}
+                                </span>
+                                <span className="text-[10px] text-white/50">tasks done</span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-row items-center gap-1.5 md:gap-2 overflow-x-auto custom-scrollbar-hide">
 
                             {/* STRAB AI Builder — general chat */}
                             <button
@@ -751,6 +680,14 @@ export default function Dashboard() {
                                 <span>Map</span>
                             </button>
 
+                            <button
+                                onClick={() => navigate('/calendar')}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-5 md:py-3 bg-white/[0.03] text-white/40 hover:text-white border border-white/[0.05] rounded-xl active:scale-95 transition-all font-bold text-[11px] md:text-sm shrink-0"
+                            >
+                                <Calendar size={14} />
+                                <span>Calendar</span>
+                            </button>
+
                             {activeTab === 'strategy' && (
                                 <button
                                     onClick={() => {
@@ -781,7 +718,7 @@ export default function Dashboard() {
                     </header>
 
                     {/* Navigation Tabs */}
-                    <div className="flex items-center gap-2 md:gap-8 mb-5 md:mb-10 border-b border-white/[0.04] pb-0 overflow-x-auto custom-scrollbar-hide">
+                    <div className="flex items-center gap-2 md:gap-6 mb-4 md:mb-6 border-b border-white/[0.04] pb-0 overflow-x-auto custom-scrollbar-hide">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}

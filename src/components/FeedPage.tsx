@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, FolderOpen, Activity } from 'lucide-react';
+import { Globe, FolderOpen, Activity, ArrowLeft } from 'lucide-react';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
 
 export default function FeedPage() {
@@ -24,7 +24,14 @@ export default function FeedPage() {
     <div className="min-h-screen bg-[var(--bg-page)]">
       <div className="max-w-2xl mx-auto p-6">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all shrink-0"
+            title="Go back"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
             <Globe size={24} className="text-primary" />
           </div>
           <div>
