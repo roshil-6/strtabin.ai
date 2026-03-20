@@ -53,6 +53,21 @@ CREATE TABLE IF NOT EXISTS workspace_members (
 CREATE INDEX IF NOT EXISTS idx_wm_workspace ON workspace_members(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_wm_user ON workspace_members(user_id);
 
+-- Member daily tasks: assigned by admins, visible to assignee
+CREATE TABLE IF NOT EXISTS member_daily_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    task_text TEXT NOT NULL,
+    task_date TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'done')),
+    assigned_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_mdt_workspace_user_date ON member_daily_tasks(workspace_id, user_id, task_date);
+
 -- Invitations: pending invites to workspaces
 CREATE TABLE IF NOT EXISTS invitations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,6 +94,7 @@ CREATE TABLE IF NOT EXISTS projects (
     description TEXT,
     status TEXT NOT NULL DEFAULT 'idea' CHECK (status IN ('idea', 'planning', 'executing', 'completed')),
     canvas_id TEXT,
+    assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );

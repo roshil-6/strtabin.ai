@@ -21,6 +21,7 @@ import {
     rejectInvitation,
     createProject,
     getProject,
+    getProjectWithAssignee,
     getProjectsForWorkspace,
     updateProject,
     logActivity,
@@ -35,6 +36,12 @@ import {
     createNotification,
     getNotifications,
     markNotificationRead,
+    updateMemberRole,
+    getMemberDailyTasks,
+    createMemberDailyTask,
+    updateMemberDailyTask,
+    deleteMemberDailyTask,
+    getMemberDailyTaskById,
 } from '../db/models.js';
 import { initDb } from '../db/index.js';
 
@@ -164,6 +171,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 members,
                 projects,
                 currentUserRole,
+                currentUserId: req.userId,
                 activities: activities.map(a => ({
                     ...a,
                     metadata: a.metadata ? JSON.parse(a.metadata) : null,
@@ -261,6 +269,108 @@ export function registerWorkspaceRoutes(app, clerkClient) {
         }
     });
 
+    // PATCH /api/workspaces/:id/members/:userId/role — update member role (admin only)
+    app.patch('/api/workspaces/:id/members/:userId/role', requireAuthMiddleware, (req, res) => {
+        try {
+            const workspaceId = parseInt(req.params.id, 10);
+            const targetUserId = parseInt(req.params.userId, 10);
+            if (isNaN(workspaceId) || isNaN(targetUserId)) return res.status(400).json({ error: 'Invalid ID.' });
+            if (!canManageMembers(req.userId, workspaceId)) return res.status(403).json({ error: 'Only admins can change roles.' });
+            const { role } = req.body || {};
+            const newRole = role === 'admin' || role === 'member' ? role : null;
+            if (!newRole) return res.status(400).json({ error: 'Role must be admin or member.' });
+            const ok = updateMemberRole(workspaceId, targetUserId, newRole);
+            if (!ok) return res.status(400).json({ error: 'Could not update role.' });
+            logActivity({ userId: req.userId, workspaceId, action: 'updated_member_role', entityType: 'member', entityId: String(targetUserId), metadata: { role: newRole } });
+            return res.json({ ok: true, members: getWorkspaceMembers(workspaceId) });
+        } catch (err) {
+            console.error('Update role error:', err);
+            return res.status(500).json({ error: 'Failed to update role.' });
+        }
+    });
+
+    // GET /api/workspaces/:id/daily-tasks — list daily tasks (?userId= & ?date= optional)
+    app.get('/api/workspaces/:id/daily-tasks', requireAuthMiddleware, (req, res) => {
+        try {
+            const workspaceId = parseInt(req.params.id, 10);
+            if (isNaN(workspaceId)) return res.status(400).json({ error: 'Invalid workspace ID.' });
+            if (!hasWorkspaceAccess(req.userId, workspaceId)) return res.status(403).json({ error: 'Access denied.' });
+            const userId = req.query.userId ? parseInt(req.query.userId, 10) : null;
+            const taskDate = sanitizeStr(req.query.date, 20) || null;
+            const tasks = getMemberDailyTasks(workspaceId, isNaN(userId) ? null : userId, taskDate);
+            return res.json({ tasks });
+        } catch (err) {
+            console.error('Daily tasks error:', err);
+            return res.status(500).json({ error: 'Failed to load daily tasks.' });
+        }
+    });
+
+    // POST /api/workspaces/:id/daily-tasks — create daily task (admin only, or member for self)
+    app.post('/api/workspaces/:id/daily-tasks', requireAuthMiddleware, (req, res) => {
+        try {
+            const workspaceId = parseInt(req.params.id, 10);
+            if (isNaN(workspaceId)) return res.status(400).json({ error: 'Invalid workspace ID.' });
+            if (!hasWorkspaceAccess(req.userId, workspaceId)) return res.status(403).json({ error: 'Access denied.' });
+            const { userId: targetUserId, taskText, taskDate } = req.body || {};
+            const text = sanitizeStr(taskText, 2000);
+            if (!text) return res.status(400).json({ error: 'Task text required.' });
+            const date = sanitizeStr(taskDate, 20) || new Date().toISOString().slice(0, 10);
+            const userId = targetUserId ? parseInt(targetUserId, 10) : req.userId;
+            if (userId !== req.userId && !canManageMembers(req.userId, workspaceId)) return res.status(403).json({ error: 'Only admins can assign tasks to others.' });
+            const member = getWorkspaceMembers(workspaceId).find(m => m.id === userId);
+            if (!member) return res.status(400).json({ error: 'User is not a workspace member.' });
+            const taskId = createMemberDailyTask({ workspaceId, userId, taskText: text, taskDate: date, assignedBy: req.userId });
+            const task = getMemberDailyTaskById(taskId);
+            return res.status(201).json({ task, taskId });
+        } catch (err) {
+            console.error('Create daily task error:', err);
+            return res.status(500).json({ error: 'Failed to create task.' });
+        }
+    });
+
+    // PATCH /api/workspaces/:id/daily-tasks/:taskId — update task (assignee can update status)
+    app.patch('/api/workspaces/:id/daily-tasks/:taskId', requireAuthMiddleware, (req, res) => {
+        try {
+            const workspaceId = parseInt(req.params.id, 10);
+            const taskId = parseInt(req.params.taskId, 10);
+            if (isNaN(workspaceId) || isNaN(taskId)) return res.status(400).json({ error: 'Invalid ID.' });
+            if (!hasWorkspaceAccess(req.userId, workspaceId)) return res.status(403).json({ error: 'Access denied.' });
+            const task = getMemberDailyTaskById(taskId);
+            if (!task || task.workspace_id !== workspaceId) return res.status(404).json({ error: 'Task not found.' });
+            const isAdmin = canManageMembers(req.userId, workspaceId);
+            const isAssignee = task.user_id === req.userId;
+            if (!isAdmin && !isAssignee) return res.status(403).json({ error: 'Access denied.' });
+            const { taskText, status } = req.body || {};
+            const updates = {};
+            if (taskText !== undefined && isAdmin) updates.taskText = taskText;
+            if (status !== undefined && (isAdmin || isAssignee)) updates.status = status;
+            if (Object.keys(updates).length === 0) return res.json({ task });
+            updateMemberDailyTask(taskId, req.userId, updates);
+            const updated = getMemberDailyTaskById(taskId);
+            return res.json({ task: updated });
+        } catch (err) {
+            console.error('Update daily task error:', err);
+            return res.status(500).json({ error: 'Failed to update task.' });
+        }
+    });
+
+    // DELETE /api/workspaces/:id/daily-tasks/:taskId — delete task (admin only)
+    app.delete('/api/workspaces/:id/daily-tasks/:taskId', requireAuthMiddleware, (req, res) => {
+        try {
+            const workspaceId = parseInt(req.params.id, 10);
+            const taskId = parseInt(req.params.taskId, 10);
+            if (isNaN(workspaceId) || isNaN(taskId)) return res.status(400).json({ error: 'Invalid ID.' });
+            if (!canManageMembers(req.userId, workspaceId)) return res.status(403).json({ error: 'Only admins can delete tasks.' });
+            const task = getMemberDailyTaskById(taskId);
+            if (!task) return res.status(404).json({ error: 'Task not found.' });
+            deleteMemberDailyTask(taskId, req.userId);
+            return res.json({ ok: true });
+        } catch (err) {
+            console.error('Delete daily task error:', err);
+            return res.status(500).json({ error: 'Failed to delete task.' });
+        }
+    });
+
     // POST /api/invitations/:id/accept
     app.post('/api/invitations/:id/accept', requireAuthMiddleware, (req, res) => {
         try {
@@ -312,9 +422,11 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 return res.status(403).json({ error: 'Access denied.' });
             }
 
-            const { title, description, status, canvasId } = req.body || {};
+            const { title, description, status, canvasId, assignedTo } = req.body || {};
             const titleStr = sanitizeStr(title, 200);
             if (!titleStr) return res.status(400).json({ error: 'Project title is required.' });
+            let assignId = assignedTo != null && assignedTo !== '' ? parseInt(assignedTo, 10) : null;
+            if (assignId && !getWorkspaceMembers(workspaceId).some(m => m.id === assignId)) assignId = null;
 
             const projectId = createProject({
                 workspaceId,
@@ -322,6 +434,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 description: sanitizeStr(description, 2000),
                 status: validateProjectStatus(status),
                 canvasId: sanitizeStr(canvasId, 100),
+                assignedTo: assignId,
             });
 
             logActivity({
@@ -336,7 +449,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
 
             logExecution({ userId: req.userId, projectId, workspaceId, action: 'create_project', score: 5 });
 
-            const project = getProject(projectId);
+            const project = getProjectWithAssignee(projectId);
             return res.status(201).json({ project, id: projectId });
         } catch (err) {
             console.error('Create project error:', err);
@@ -357,15 +470,21 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 return res.status(403).json({ error: 'Access denied.' });
             }
 
-            const { title, description, status } = req.body || {};
+            const { title, description, status, assignedTo } = req.body || {};
             const updates = {};
             if (title !== undefined) updates.title = sanitizeStr(title, 200);
             if (description !== undefined) updates.description = sanitizeStr(description, 2000);
             if (status !== undefined) updates.status = validateProjectStatus(status);
+            if (assignedTo !== undefined) {
+                const assignId = assignedTo === null || assignedTo === '' ? null : parseInt(assignedTo, 10);
+                if (assignId === null || getWorkspaceMembers(project.workspace_id).some(m => m.id === assignId)) {
+                    updates.assignedTo = assignId;
+                }
+            }
 
             updateProject(id, updates);
 
-            const action = status ? 'updated_project_status' : 'updated_project';
+            const action = updates.assignedTo !== undefined ? 'assigned_project' : (status ? 'updated_project_status' : 'updated_project');
             logActivity({
                 userId: req.userId,
                 workspaceId: project.workspace_id,
@@ -381,7 +500,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 logExecution({ userId: req.userId, projectId: id, workspaceId: project.workspace_id, action: 'status_update', score: scoreMap[status] || 0 });
             }
 
-            return res.json({ project: getProject(id) });
+            return res.json({ project: getProjectWithAssignee(id) });
         } catch (err) {
             console.error('Update project error:', err);
             return res.status(500).json({ error: 'Failed to update project.' });

@@ -19,8 +19,12 @@ import {
   CheckCircle2,
   MoreVertical,
   X,
+  ListTodo,
+  ChevronDown,
+  Trash2,
+  UserCheck,
 } from 'lucide-react';
-import { workspaceService, type Workspace, type Project, type WorkspaceMember, type ActivityLog, type ProjectStatus } from '../services/workspaceService';
+import { workspaceService, type Workspace, type Project, type WorkspaceMember, type ActivityLog, type ProjectStatus, type MemberDailyTask } from '../services/workspaceService';
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
   idea: 'Idea',
@@ -45,6 +49,8 @@ export default function WorkspacePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [showOnlyMyTasks, setShowOnlyMyTasks] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
   const [showNewProject, setShowNewProject] = useState(false);
@@ -52,8 +58,15 @@ export default function WorkspacePage() {
   const [inviteUsername, setInviteUsername] = useState('');
   const [newProjectTitle, setNewProjectTitle] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [newProjectAssignTo, setNewProjectAssignTo] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [editingProject, setEditingProject] = useState<number | null>(null);
+  const [assigningProject, setAssigningProject] = useState<number | null>(null);
+  const [dailyTasks, setDailyTasks] = useState<MemberDailyTask[]>([]);
+  const [taskDate, setTaskDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newTaskText, setNewTaskText] = useState('');
+  const [newTaskUserId, setNewTaskUserId] = useState<number | null>(null);
+  const [roleMenuOpen, setRoleMenuOpen] = useState<number | null>(null);
 
   const workspaceId = id ? parseInt(id, 10) : NaN;
   const isTeam = workspace?.type === 'team';
@@ -69,6 +82,7 @@ export default function WorkspacePage() {
       setProjects(data.projects || []);
       setActivities(data.activities || []);
       setCurrentUserRole(data.currentUserRole || null);
+      setCurrentUserId(data.currentUserId ?? null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to load workspace');
       navigate('/dashboard');
@@ -77,9 +91,38 @@ export default function WorkspacePage() {
     }
   };
 
+  const loadDailyTasks = async () => {
+    if (isNaN(workspaceId)) return;
+    const token = await getToken();
+    try {
+      const { tasks } = await workspaceService.getDailyTasks(workspaceId, token, { date: taskDate });
+      setDailyTasks(tasks || []);
+    } catch {
+      setDailyTasks([]);
+    }
+  };
+
   useEffect(() => {
     load();
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (workspace && isTeam) loadDailyTasks();
+  }, [workspaceId, taskDate, workspace, isTeam]);
+
+  useEffect(() => {
+    if (!roleMenuOpen) return;
+    const close = () => setRoleMenuOpen(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [roleMenuOpen]);
+
+  useEffect(() => {
+    if (!assigningProject) return;
+    const close = () => setAssigningProject(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [assigningProject]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,17 +152,35 @@ export default function WorkspacePage() {
     setSubmitting(true);
     try {
       const token = await getToken();
-      const { project } = await workspaceService.createProject(workspaceId, { title: newProjectTitle.trim(), description: newProjectDesc.trim() || undefined }, token);
+      const { project } = await workspaceService.createProject(
+        workspaceId,
+        { title: newProjectTitle.trim(), description: newProjectDesc.trim() || undefined, assignedTo: newProjectAssignTo ?? undefined },
+        token
+      );
       toast.success('Project created');
       setShowNewProject(false);
       setNewProjectTitle('');
       setNewProjectDesc('');
+      setNewProjectAssignTo(null);
       setProjects((p) => [project, ...p]);
       load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create project');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAssignProject = async (projectId: number, userId: number | null) => {
+    setAssigningProject(null);
+    try {
+      const token = await getToken();
+      await workspaceService.updateProject(projectId, { assignedTo: userId }, token);
+      const data = await workspaceService.getWorkspace(workspaceId, token);
+      setProjects(data.projects || []);
+      toast.success('Assignee updated');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update');
     }
   };
 
@@ -142,6 +203,68 @@ export default function WorkspacePage() {
       navigate(`/dashboard`);
     }
   };
+
+  const handleUpdateRole = async (userId: number, role: 'admin' | 'member') => {
+    setRoleMenuOpen(null);
+    try {
+      const token = await getToken();
+      await workspaceService.updateMemberRole(workspaceId, userId, role, token);
+      toast.success('Role updated');
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update role');
+    }
+  };
+
+  const handleAddDailyTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskText.trim()) return;
+    setSubmitting(true);
+    try {
+      const token = await getToken();
+      await workspaceService.createDailyTask(
+        workspaceId,
+        { userId: newTaskUserId || undefined, taskText: newTaskText.trim(), taskDate },
+        token
+      );
+      toast.success('Task added');
+      setNewTaskText('');
+      setNewTaskUserId(null);
+      loadDailyTasks();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add task');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleToggleTaskStatus = async (task: MemberDailyTask) => {
+    try {
+      const token = await getToken();
+      await workspaceService.updateDailyTask(
+        workspaceId,
+        task.id,
+        { status: task.status === 'done' ? 'pending' : 'done' },
+        token
+      );
+      loadDailyTasks();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update');
+    }
+  };
+
+  const handleDeleteTask = async (taskId: number) => {
+    try {
+      const token = await getToken();
+      await workspaceService.deleteDailyTask(workspaceId, taskId, token);
+      toast.success('Task removed');
+      loadDailyTasks();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete');
+    }
+  };
+
+  const isOwner = (m: WorkspaceMember) => workspace?.owner_id === m.id;
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
@@ -211,10 +334,52 @@ export default function WorkspacePage() {
                               </div>
                               <div className="min-w-0">
                                 <p className="font-bold text-white truncate">{project.title}</p>
-                                <p className="text-xs text-white/40">{STATUS_LABELS[project.status]}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <p className="text-xs text-white/40">{STATUS_LABELS[project.status]}</p>
+                                  {(project as Project & { assigned_to_username?: string }).assigned_to_username && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold">
+                                      {(project as Project & { assigned_to_username?: string }).assigned_to_username}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
+                              {isTeam && isAdmin && (
+                                <div className="relative">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setAssigningProject(assigningProject === project.id ? null : project.id); }}
+                                    className="p-2 text-white/30 hover:text-primary hover:bg-white/5 rounded-lg"
+                                    title="Assign to"
+                                  >
+                                    <UserCheck size={16} />
+                                  </button>
+                                  {assigningProject === project.id && (
+                                    <div className="absolute right-0 top-full mt-1 py-1 bg-[var(--bg-panel)] border border-white/10 rounded-xl shadow-xl z-20 min-w-[140px] max-h-40 overflow-y-auto">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); handleAssignProject(project.id, null); }}
+                                        className="w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 text-white/60"
+                                      >
+                                        Unassigned
+                                      </button>
+                                      {members.map((m) => (
+                                        <button
+                                          key={m.id}
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); handleAssignProject(project.id, m.id); }}
+                                          className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 flex items-center gap-2 ${
+                                            (project as Project & { assigned_to?: number }).assigned_to === m.id ? 'text-primary' : 'text-white/70'
+                                          }`}
+                                        >
+                                          {m.username || m.email || 'User'}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                               {editingProject === project.id ? (
                                 <div className="flex gap-1">
                                   {(['idea', 'planning', 'executing', 'completed'] as const).map((s) => (
@@ -266,18 +431,152 @@ export default function WorkspacePage() {
                     </h2>
                     <div className="space-y-2">
                       {members.map((m) => (
-                        <div key={m.id} className="flex items-center justify-between p-3 bg-white/[0.03] rounded-xl">
+                        <div key={m.id} className="flex items-center justify-between p-3 bg-white/[0.03] rounded-xl group">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">
                               {m.username?.[0] || m.email?.[0] || '?'}
                             </div>
                             <div>
                               <p className="text-sm font-bold text-white">{m.username || m.email || 'Unknown'}</p>
-                              <p className="text-[10px] text-white/40">{m.role}</p>
+                              <p className="text-[10px] text-white/40">{isOwner(m) ? 'Owner' : m.role}</p>
                             </div>
                           </div>
+                          {isAdmin && !isOwner(m) && (
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setRoleMenuOpen(roleMenuOpen === m.id ? null : m.id); }}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-bold transition-all"
+                              >
+                                {m.role}
+                                <ChevronDown size={12} />
+                              </button>
+                              {roleMenuOpen === m.id && (
+                                <div className="absolute right-0 top-full mt-1 py-1 bg-[var(--bg-panel)] border border-white/10 rounded-xl shadow-xl z-10 min-w-[100px]">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'admin'); }}
+                                    className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'admin' ? 'text-primary' : 'text-white/70'}`}
+                                  >
+                                    Admin
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'member'); }}
+                                    className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'member' ? 'text-primary' : 'text-white/70'}`}
+                                  >
+                                    Member
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
+                    </div>
+                  </section>
+                )}
+
+                {isTeam && (
+                  <section>
+                    <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <ListTodo size={16} />
+                      Daily tasks
+                    </h2>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          type="date"
+                          value={taskDate}
+                          onChange={(e) => setTaskDate(e.target.value)}
+                          className="px-3 py-2 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary/50"
+                        />
+                        {!isAdmin && currentUserId && (
+                          <button
+                            type="button"
+                            onClick={() => setShowOnlyMyTasks(!showOnlyMyTasks)}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${showOnlyMyTasks ? 'bg-primary/20 text-primary' : 'bg-white/5 text-white/60'}`}
+                          >
+                            My tasks only
+                          </button>
+                        )}
+                      </div>
+                      <form onSubmit={handleAddDailyTask} className="flex flex-col gap-2">
+                          {isAdmin && (
+                            <select
+                              value={newTaskUserId ?? ''}
+                              onChange={(e) => setNewTaskUserId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                              className="px-3 py-2 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary/50"
+                            >
+                              <option value="">Assign to...</option>
+                              {members.map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.username || m.email || 'Unknown'}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newTaskText}
+                              onChange={(e) => setNewTaskText(e.target.value)}
+                              placeholder="Task description..."
+                              className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:border-primary/50"
+                            />
+                            <button
+                              type="submit"
+                              disabled={submitting || !newTaskText.trim()}
+                              className="px-4 py-2 bg-primary text-black font-bold rounded-xl text-sm disabled:opacity-50"
+                            >
+                              Add
+                            </button>
+                          </div>
+                      </form>
+                      <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                        {(() => {
+                          const displayedTasks = showOnlyMyTasks && currentUserId ? dailyTasks.filter((t) => t.user_id === currentUserId) : dailyTasks;
+                          return displayedTasks.length === 0 ? (
+                            <p className="text-white/30 text-xs py-4">No tasks for this date.</p>
+                          ) : (
+                            displayedTasks.map((t) => (
+                            <div
+                              key={t.id}
+                              className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                                t.status === 'done' ? 'bg-white/[0.02] border-white/5' : 'bg-white/[0.03] border-white/10'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <button
+                                  onClick={() => handleToggleTaskStatus(t)}
+                                  className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                                    t.status === 'done' ? 'bg-primary border-primary' : 'border-white/30 hover:border-white/50'
+                                  }`}
+                                >
+                                  {t.status === 'done' && <CheckCircle2 size={12} className="text-black" />}
+                                </button>
+                                <div className="min-w-0">
+                                  <p className={`text-sm ${t.status === 'done' ? 'text-white/50 line-through' : 'text-white'}`}>
+                                    {t.task_text}
+                                  </p>
+                                  <p className="text-[10px] text-white/40">
+                                    {t.assignee_username || 'Unknown'} • {t.assigned_by_username ? `by ${t.assigned_by_username}` : ''}
+                                  </p>
+                                </div>
+                              </div>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleDeleteTask(t.id)}
+                                  className="p-1.5 text-white/30 hover:text-red-400"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
+                            ))
+                          );
+                        })()}
+                      </div>
                     </div>
                   </section>
                 )}
@@ -356,6 +655,18 @@ export default function WorkspacePage() {
                 className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-primary/50"
                 required
               />
+              {isTeam && members.length > 0 && (
+                <select
+                  value={newProjectAssignTo ?? ''}
+                  onChange={(e) => setNewProjectAssignTo(e.target.value ? parseInt(e.target.value, 10) : null)}
+                  className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary/50"
+                >
+                  <option value="">Assign to (optional)</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>{m.username || m.email || 'User'}</option>
+                  ))}
+                </select>
+              )}
               <textarea
                 value={newProjectDesc}
                 onChange={(e) => setNewProjectDesc(e.target.value)}

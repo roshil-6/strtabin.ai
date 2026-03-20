@@ -38,6 +38,8 @@ export type Project = {
   description: string | null;
   status: ProjectStatus;
   canvas_id: string | null;
+  assigned_to?: number | null;
+  assigned_to_username?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -48,6 +50,20 @@ export type WorkspaceMember = {
   email: string | null;
   role: string;
   joined_at: string;
+};
+
+export type MemberDailyTask = {
+  id: number;
+  workspace_id: number;
+  user_id: number;
+  task_text: string;
+  task_date: string;
+  status: 'pending' | 'done';
+  assigned_by: number | null;
+  assignee_username: string | null;
+  assigned_by_username: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ActivityLog = {
@@ -73,7 +89,7 @@ export type Invitation = {
 export type FeedItem = {
   workspaces: Array<Workspace & { owner_username: string | null }>;
   activities: Array<ActivityLog & { workspace_name: string; project_title: string | null }>;
-  projects: Array<Project & { workspace_name: string; owner_username: string | null }>;
+  projects: Array<Project & { workspace_name: string; owner_username: string | null; owner_id?: number; assigned_to_username?: string | null }>;
 };
 
 export const workspaceService = {
@@ -104,6 +120,64 @@ export const workspaceService = {
     );
   },
 
+  async updateMemberRole(
+    workspaceId: number,
+    userId: number,
+    role: 'admin' | 'member',
+    token: string | null
+  ) {
+    return fetchWithAuth(
+      `/api/workspaces/${workspaceId}/members/${userId}/role`,
+      { method: 'PATCH', body: JSON.stringify({ role }) },
+      token
+    );
+  },
+
+  async getDailyTasks(
+    workspaceId: number,
+    token: string | null,
+    opts?: { userId?: number; date?: string }
+  ) {
+    const params = new URLSearchParams();
+    if (opts?.userId) params.set('userId', String(opts.userId));
+    if (opts?.date) params.set('date', opts.date);
+    const q = params.toString() ? `?${params}` : '';
+    return fetchWithAuth(`/api/workspaces/${workspaceId}/daily-tasks${q}`, {}, token);
+  },
+
+  async createDailyTask(
+    workspaceId: number,
+    data: { userId?: number; taskText: string; taskDate?: string },
+    token: string | null
+  ) {
+    return fetchWithAuth(
+      `/api/workspaces/${workspaceId}/daily-tasks`,
+      { method: 'POST', body: JSON.stringify(data) },
+      token
+    );
+  },
+
+  async updateDailyTask(
+    workspaceId: number,
+    taskId: number,
+    data: { taskText?: string; status?: 'pending' | 'done' },
+    token: string | null
+  ) {
+    return fetchWithAuth(
+      `/api/workspaces/${workspaceId}/daily-tasks/${taskId}`,
+      { method: 'PATCH', body: JSON.stringify(data) },
+      token
+    );
+  },
+
+  async deleteDailyTask(workspaceId: number, taskId: number, token: string | null) {
+    return fetchWithAuth(
+      `/api/workspaces/${workspaceId}/daily-tasks/${taskId}`,
+      { method: 'DELETE' },
+      token
+    );
+  },
+
   async acceptInvitation(id: number, token: string | null) {
     return fetchWithAuth(`/api/invitations/${id}/accept`, { method: 'POST' }, token);
   },
@@ -118,7 +192,7 @@ export const workspaceService = {
 
   async createProject(
     workspaceId: number,
-    data: { title: string; description?: string; status?: ProjectStatus; canvasId?: string },
+    data: { title: string; description?: string; status?: ProjectStatus; canvasId?: string; assignedTo?: number | null },
     token: string | null
   ) {
     return fetchWithAuth(
@@ -130,7 +204,7 @@ export const workspaceService = {
 
   async updateProject(
     projectId: number,
-    data: { title?: string; description?: string; status?: ProjectStatus },
+    data: { title?: string; description?: string; status?: ProjectStatus; assignedTo?: number | null },
     token: string | null
   ) {
     return fetchWithAuth(

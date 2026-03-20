@@ -234,8 +234,8 @@ export default function CommunityPage() {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-white/10 px-4">
+      {/* Tabs — Chat first for easy team communication */}
+      <div className="flex border-b border-white/10 px-4 bg-white/[0.02]">
         <button
           onClick={() => setTab('chat')}
           className={`flex items-center gap-2 px-6 py-3 font-bold text-sm border-b-2 transition-all ${
@@ -276,19 +276,43 @@ export default function CommunityPage() {
                     <FolderOpen size={16} />
                     Public projects
                   </h2>
-                  <div className="space-y-2">
-                    {feed.projects.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => navigate(`/workspace/${p.workspace_id}`)}
-                        className="w-full p-4 bg-white/[0.03] border border-white/10 rounded-xl hover:border-primary/30 text-left transition-all"
-                      >
-                        <p className="font-bold text-white">{p.title}</p>
-                        <p className="text-xs text-white/40 mt-1">
-                          {p.workspace_name} • by {p.owner_username || 'Anonymous'}
-                        </p>
-                      </button>
-                    ))}
+                  <div className="space-y-3">
+                    {feed.projects.map((p) => {
+                      const proj = p as typeof p & { owner_id?: number; assigned_to_username?: string };
+                      return (
+                        <div
+                          key={p.id}
+                          className="p-4 bg-white/[0.04] border border-white/10 rounded-xl hover:border-primary/30 transition-all group"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <button
+                              onClick={() => navigate(`/workspace/${p.workspace_id}`)}
+                              className="flex-1 text-left min-w-0"
+                            >
+                              <p className="font-bold text-white">{p.title}</p>
+                              <p className="text-xs text-white/40 mt-1">
+                                {p.workspace_name} • by {p.owner_username || 'Anonymous'}
+                              </p>
+                              {proj.assigned_to_username && (
+                                <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded bg-primary/20 text-primary font-bold">
+                                  In charge: {proj.assigned_to_username}
+                                </span>
+                              )}
+                            </button>
+                            {proj.owner_id && proj.owner_id !== currentUserId && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleStartChat({ id: proj.owner_id!, username: p.owner_username || null, email: null }); setTab('chat'); }}
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                              >
+                                <MessageCircle size={14} />
+                                Message
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
               )}
@@ -298,17 +322,34 @@ export default function CommunityPage() {
                     <Globe size={16} />
                     Public workspaces
                   </h2>
-                  <div className="space-y-2">
-                    {feed.workspaces.map((w) => (
-                      <button
-                        key={w.id}
-                        onClick={() => navigate(`/workspace/${w.id}`)}
-                        className="w-full p-4 bg-white/[0.03] border border-white/10 rounded-xl hover:border-primary/30 text-left transition-all"
-                      >
-                        <p className="font-bold text-white">{w.name}</p>
-                        <p className="text-xs text-white/40 mt-1">by {w.owner_username || 'Anonymous'}</p>
-                      </button>
-                    ))}
+                  <div className="space-y-3">
+                    {feed.workspaces.map((w) => {
+                      const ws = w as typeof w & { owner_id?: number };
+                      return (
+                        <div
+                          key={w.id}
+                          className="p-4 bg-white/[0.04] border border-white/10 rounded-xl hover:border-primary/30 transition-all flex items-center justify-between gap-3"
+                        >
+                          <button
+                            onClick={() => navigate(`/workspace/${w.id}`)}
+                            className="flex-1 text-left min-w-0"
+                          >
+                            <p className="font-bold text-white">{w.name}</p>
+                            <p className="text-xs text-white/40 mt-1">by {w.owner_username || 'Anonymous'}</p>
+                          </button>
+                          {ws.owner_id && ws.owner_id !== currentUserId && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleStartChat({ id: ws.owner_id!, username: w.owner_username || null, email: null }); setTab('chat'); }}
+                              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                            >
+                              <MessageCircle size={14} />
+                              Message
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
               )}
@@ -349,7 +390,8 @@ export default function CommunityPage() {
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <MessageCircle size={48} className="text-white/20 mb-4" />
                   <p className="text-white/50 font-bold">No chats yet</p>
-                  <p className="text-sm text-white/30 mt-1">Search for people above to start a conversation</p>
+                  <p className="text-sm text-white/30 mt-1 mb-4">Search for people above to start a conversation</p>
+                  <p className="text-xs text-white/20">Or browse the Feed and tap "Message" on any project to chat with the owner</p>
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto">

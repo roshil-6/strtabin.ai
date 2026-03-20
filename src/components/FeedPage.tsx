@@ -52,19 +52,31 @@ export default function FeedPage() {
                   <FolderOpen size={16} />
                   Public projects
                 </h2>
-                <div className="space-y-2">
-                  {feed.projects.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => navigate(`/workspace/${p.workspace_id}`)}
-                      className="w-full p-4 bg-white/[0.03] border border-white/10 rounded-xl hover:border-primary/30 text-left transition-all"
-                    >
-                      <p className="font-bold text-white">{p.title}</p>
-                      <p className="text-xs text-white/40 mt-1">
-                        {p.workspace_name} • by {p.owner_username || 'Anonymous'}
-                      </p>
-                    </button>
-                  ))}
+                <div className="space-y-3">
+                  {feed.projects.map((p) => {
+                    const proj = p as typeof p & { assigned_to_username?: string };
+                    return (
+                      <div
+                        key={p.id}
+                        className="p-4 bg-white/[0.04] border border-white/10 rounded-xl hover:border-primary/30 transition-all"
+                      >
+                        <button
+                          onClick={() => navigate(`/workspace/${p.workspace_id}`)}
+                          className="w-full text-left"
+                        >
+                          <p className="font-bold text-white">{p.title}</p>
+                          <p className="text-xs text-white/40 mt-1">
+                            {p.workspace_name} • by {p.owner_username || 'Anonymous'}
+                          </p>
+                          {proj.assigned_to_username && (
+                            <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded bg-primary/20 text-primary font-bold">
+                              In charge: {proj.assigned_to_username}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}

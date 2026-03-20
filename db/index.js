@@ -31,6 +31,15 @@ export function initDb() {
     const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
     db.exec(schema);
 
+    // Migration: add assigned_to to projects if missing
+    try {
+        const cols = db.prepare("PRAGMA table_info(projects)").all();
+        if (!cols.some(c => c.name === 'assigned_to')) {
+            db.exec('ALTER TABLE projects ADD COLUMN assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL');
+            console.log('📦 Migration: added assigned_to to projects');
+        }
+    } catch (e) { /* column may already exist */ }
+
     console.log(`📦 Database initialized at ${DB_PATH}`);
     return db;
 }

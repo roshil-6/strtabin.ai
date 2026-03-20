@@ -192,11 +192,11 @@ export function rejectInvitation(userId, invitationId) {
 }
 
 // ─── Projects ──────────────────────────────────────────────────────────────
-export function createProject({ workspaceId, title, description, status = 'idea', canvasId }) {
+export function createProject({ workspaceId, title, description, status = 'idea', canvasId, assignedTo }) {
     const db = getDb();
     const result = db.prepare(`
-        INSERT INTO projects (workspace_id, title, description, status, canvas_id) VALUES (?, ?, ?, ?, ?)
-    `).run(workspaceId, title, description || null, status, canvasId || null);
+        INSERT INTO projects (workspace_id, title, description, status, canvas_id, assigned_to) VALUES (?, ?, ?, ?, ?, ?)
+    `).run(workspaceId, title, description || null, status, canvasId || null, assignedTo || null);
     return result.lastInsertRowid;
 }
 
@@ -205,9 +205,25 @@ export function getProject(id) {
     return db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
 }
 
+export function getProjectWithAssignee(id) {
+    const db = getDb();
+    return db.prepare(`
+        SELECT p.*, u.username as assigned_to_username
+        FROM projects p
+        LEFT JOIN users u ON u.id = p.assigned_to
+        WHERE p.id = ?
+    `).get(id);
+}
+
 export function getProjectsForWorkspace(workspaceId) {
     const db = getDb();
-    return db.prepare('SELECT * FROM projects WHERE workspace_id = ? ORDER BY updated_at DESC').all(workspaceId);
+    return db.prepare(`
+        SELECT p.*, u.username as assigned_to_username
+        FROM projects p
+        LEFT JOIN users u ON u.id = p.assigned_to
+        WHERE p.workspace_id = ?
+        ORDER BY p.updated_at DESC
+    `).all(workspaceId);
 }
 
 export function updateProjectStatus(projectId, status) {
@@ -215,13 +231,14 @@ export function updateProjectStatus(projectId, status) {
     db.prepare('UPDATE projects SET status = ?, updated_at = datetime(\'now\') WHERE id = ?').run(status, projectId);
 }
 
-export function updateProject(projectId, { title, description, status }) {
+export function updateProject(projectId, { title, description, status, assignedTo }) {
     const db = getDb();
     const updates = [];
     const params = [];
     if (title !== undefined) { updates.push('title = ?'); params.push(title); }
     if (description !== undefined) { updates.push('description = ?'); params.push(description); }
     if (status !== undefined) { updates.push('status = ?'); params.push(status); }
+    if (assignedTo !== undefined) { updates.push('assigned_to = ?'); params.push(assignedTo === null || assignedTo === '' ? null : assignedTo); }
     if (updates.length === 0) return;
     updates.push("updated_at = datetime('now')");
     params.push(projectId);
@@ -335,6 +352,78 @@ export function getWorkspaceMembers(workspaceId) {
     `).all(workspaceId);
 }
 
+export function updateMemberRole(workspaceId, userId, newRole) {
+    const db = getDb();
+    const ws = getWorkspace(workspaceId);
+    if (!ws) return false;
+    if (ws.owner_id === userId) return false;
+    const member = db.prepare('SELECT * FROM workspace_members WHERE workspace_id = ? AND user_id = ?').get(workspaceId, userId);
+    if (!member) return false;
+    if (newRole !== 'admin' && newRole !== 'member') return false;
+    db.prepare('UPDATE workspace_members SET role = ? WHERE workspace_id = ? AND user_id = ?').run(newRole, workspaceId, userId);
+    return true;
+}
+
+// ─── Member daily tasks ────────────────────────────────────────────────────
+export function getMemberDailyTasks(workspaceId, userId = null, taskDate = null) {
+    const db = getDb();
+    let sql = `
+        SELECT t.*, u.username as assignee_username, a.username as assigned_by_username
+        FROM member_daily_tasks t
+        JOIN users u ON u.id = t.user_id
+        LEFT JOIN users a ON a.id = t.assigned_by
+        WHERE t.workspace_id = ?
+    `;
+    const params = [workspaceId];
+    if (userId) { sql += ' AND t.user_id = ?'; params.push(userId); }
+    if (taskDate) { sql += ' AND t.task_date = ?'; params.push(taskDate); }
+    sql += ' ORDER BY t.task_date DESC, t.created_at DESC';
+    return db.prepare(sql).all(...params);
+}
+
+export function createMemberDailyTask({ workspaceId, userId, taskText, taskDate, assignedBy }) {
+    const db = getDb();
+    const result = db.prepare(`
+        INSERT INTO member_daily_tasks (workspace_id, user_id, task_text, task_date, assigned_by)
+        VALUES (?, ?, ?, ?, ?)
+    `).run(workspaceId, userId, taskText, taskDate, assignedBy || null);
+    return result.lastInsertRowid;
+}
+
+export function updateMemberDailyTask(taskId, userId, { taskText, status }) {
+    const db = getDb();
+    const task = db.prepare('SELECT * FROM member_daily_tasks WHERE id = ?').get(taskId);
+    if (!task) return false;
+    const updates = [];
+    const params = [];
+    if (taskText !== undefined) { updates.push('task_text = ?'); params.push(String(taskText).trim().slice(0, 2000)); }
+    if (status !== undefined) { updates.push('status = ?'); params.push(status === 'done' ? 'done' : 'pending'); }
+    if (updates.length === 0) return true;
+    updates.push("updated_at = datetime('now')");
+    params.push(taskId);
+    db.prepare(`UPDATE member_daily_tasks SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+    return true;
+}
+
+export function getMemberDailyTaskById(taskId) {
+    const db = getDb();
+    return db.prepare(`
+        SELECT t.*, u.username as assignee_username, a.username as assigned_by_username
+        FROM member_daily_tasks t
+        JOIN users u ON u.id = t.user_id
+        LEFT JOIN users a ON a.id = t.assigned_by
+        WHERE t.id = ?
+    `).get(taskId);
+}
+
+export function deleteMemberDailyTask(taskId, userId) {
+    const db = getDb();
+    const task = db.prepare('SELECT * FROM member_daily_tasks WHERE id = ?').get(taskId);
+    if (!task) return false;
+    db.prepare('DELETE FROM member_daily_tasks WHERE id = ?').run(taskId);
+    return true;
+}
+
 // ─── Feed (public projects + activity) ─────────────────────────────────────
 export function getPublicFeed(limit = 50) {
     const db = getDb();
@@ -359,10 +448,11 @@ export function getPublicFeed(limit = 50) {
     `).all(limit);
 
     const projects = db.prepare(`
-        SELECT p.*, w.name as workspace_name, u.username as owner_username
+        SELECT p.*, w.name as workspace_name, w.owner_id, u.username as owner_username, a.username as assigned_to_username
         FROM projects p
         JOIN workspaces w ON w.id = p.workspace_id AND w.visibility = 'public'
         JOIN users u ON u.id = w.owner_id
+        LEFT JOIN users a ON a.id = p.assigned_to
         ORDER BY p.updated_at DESC
         LIMIT ?
     `).all(limit);
