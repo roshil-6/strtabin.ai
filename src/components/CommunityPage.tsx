@@ -82,7 +82,7 @@ export default function CommunityPage() {
           if (openChat) {
             setActiveChat(openChat);
             setTab('chat');
-            const exists = chatsList.some((c) => c.id === openChat.id);
+            const exists = chatsList.some((c: Chat) => c.id === openChat.id);
             if (!exists) setChats((prev) => [openChat, ...prev]);
             window.history.replaceState({}, '', location.pathname);
           }
