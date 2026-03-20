@@ -42,7 +42,8 @@ export function getUserById(id) {
 
 export function getUserByUsername(username) {
     const db = getDb();
-    return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    if (!username) return null;
+    return db.prepare('SELECT * FROM users WHERE LOWER(username) = LOWER(?)').get(username);
 }
 
 export function getUserByIdOrUsername(idOrUsername) {

@@ -16,6 +16,7 @@ import WorkspacePage from './components/WorkspacePage';
 import ProfilePage from './components/ProfilePage';
 import FeedPage from './components/FeedPage';
 import AuthGate from './components/AuthGate';
+import UserSyncOnLoad from './components/UserSyncOnLoad';
 import PaywallGate from './components/PaywallGate';
 import ProjectBackground from './components/ProjectBackground';
 import NotFoundPage from './components/NotFoundPage';
@@ -31,6 +32,7 @@ function App() {
 
   return (
     <div className="min-h-screen w-full theme-page relative">
+    <UserSyncOnLoad />
     {showGrid && <ProjectBackground />}
     <Routes>
       <Route path="/" element={<LandingPage />} />

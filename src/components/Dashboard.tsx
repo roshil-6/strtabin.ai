@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Globe } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Globe, Flame, TrendingUp } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
@@ -63,6 +63,7 @@ export default function Dashboard() {
     const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>([]);
     const [myUsername, setMyUsername] = useState<string | null>(null);
     const [invitations, setInvitations] = useState<Array<{ id: number; workspace_id: number; workspace_name: string; inviter_username: string | null }>>([]);
+    const [workInsights, setWorkInsights] = useState<{ streak: number; progress: { total: number; count: number } } | null>(null);
 
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
@@ -78,6 +79,7 @@ export default function Dashboard() {
                 workspaceService.getMe(token).then((d) => {
                     setMyUsername(d.user?.username || null);
                     setInvitations(d.invitations || []);
+                    setWorkInsights({ streak: d.streak ?? 0, progress: d.progress ?? { total: 0, count: 0 } });
                 }).catch(() => {});
             }
         });
@@ -582,6 +584,103 @@ export default function Dashboard() {
                             </div>
                         </div>
                     )}
+
+                    {/* Work Insights */}
+                    <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-500/15 to-orange-600/5 border border-orange-500/20 flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
+                                <Flame size={24} className="text-orange-400" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-black text-white">{workInsights?.streak ?? 0}</p>
+                                <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Day Streak</p>
+                            </div>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 border border-emerald-500/20 flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                                <TrendingUp size={24} className="text-emerald-400" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-black text-white">{workInsights?.progress?.total ?? 0}</p>
+                                <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Progress Pts</p>
+                            </div>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                                <FileText size={24} className="text-primary" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-black text-white">{filteredCanvases.length}</p>
+                                <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Projects</p>
+                            </div>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center shrink-0">
+                                <CheckSquare size={24} className="text-cyan-400" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-black text-white">
+                                    {filteredCanvases.reduce((acc, p) => acc + (p.todos?.filter(t => t.completed).length ?? 0), 0)}
+                                </p>
+                                <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Tasks Done</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Project Options — Quick Actions */}
+                    <div className="mb-6">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-3">Quick Actions</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                            <button
+                                onClick={() => navigate('/strab')}
+                                className="group p-4 rounded-xl bg-primary/10 border border-primary/25 hover:border-primary/50 hover:bg-primary/15 transition-all text-left"
+                            >
+                                <Bot size={20} className="text-primary mb-2 group-hover:scale-110 transition-transform" />
+                                <p className="text-xs font-bold text-white">STRAB AI</p>
+                                <p className="text-[10px] text-white/40">Build & chat</p>
+                            </button>
+                            <button
+                                onClick={() => navigate('/reports')}
+                                className="group p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/40 transition-all text-left"
+                            >
+                                <BarChart2 size={20} className="text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
+                                <p className="text-xs font-bold text-white">Reports</p>
+                                <p className="text-[10px] text-white/40">AI analysis</p>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('monitor')}
+                                className="group p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20 hover:border-cyan-500/40 transition-all text-left"
+                            >
+                                <Activity size={20} className="text-cyan-400 mb-2 group-hover:scale-110 transition-transform" />
+                                <p className="text-xs font-bold text-white">Monitor</p>
+                                <p className="text-[10px] text-white/40">Track progress</p>
+                            </button>
+                            <button
+                                onClick={() => navigate(`/folder-workflow/${activeFolderId || 'general'}`)}
+                                className="group p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all text-left"
+                            >
+                                <Network size={20} className="text-white/60 mb-2 group-hover:text-white transition-colors" />
+                                <p className="text-xs font-bold text-white">Map</p>
+                                <p className="text-[10px] text-white/40">Workflow view</p>
+                            </button>
+                            <button
+                                onClick={() => navigate('/calendar')}
+                                className="group p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all text-left"
+                            >
+                                <Calendar size={20} className="text-white/60 mb-2 group-hover:text-white transition-colors" />
+                                <p className="text-xs font-bold text-white">Calendar</p>
+                                <p className="text-[10px] text-white/40">Month view</p>
+                            </button>
+                            <button
+                                onClick={handleCreate}
+                                className="group p-4 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 transition-all text-left"
+                            >
+                                <Plus size={20} className="text-white mb-2 group-hover:scale-110 transition-transform" />
+                                <p className="text-xs font-bold text-white">New Project</p>
+                                <p className="text-[10px] text-white/40">Create canvas</p>
+                            </button>
+                        </div>
+                    </div>
 
                     {/* Header */}
                     <header className="mb-5 md:mb-10">

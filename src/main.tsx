@@ -75,7 +75,11 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+      <ClerkProvider
+        publishableKey={PUBLISHABLE_KEY}
+        afterSignOutUrl="/"
+        telemetry={false}
+      >
         <ThemeProvider>
           <BrowserRouter>
             <App />
