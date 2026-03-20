@@ -345,7 +345,15 @@ export default function ProfilePage() {
             </p>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {workspaces.length === 0 ? (
-                <p className="text-white/40 text-sm py-4">No team workspaces where you can invite. Create a team workspace first.</p>
+                <div className="py-4">
+                  <p className="text-white/40 text-sm mb-4">You need a team workspace to invite people. Create one from the Dashboard.</p>
+                  <button
+                    onClick={() => { setInviteModal(false); navigate('/dashboard'); }}
+                    className="w-full px-4 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
+                  >
+                    Go to Dashboard
+                  </button>
+                </div>
               ) : (
                 workspaces.map((w) => (
                   <button

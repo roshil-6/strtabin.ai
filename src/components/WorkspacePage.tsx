@@ -84,7 +84,8 @@ export default function WorkspacePage() {
       setCurrentUserRole(data.currentUserRole || null);
       setCurrentUserId(data.currentUserId ?? null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to load workspace');
+      const msg = err instanceof Error ? err.message : 'Failed to load workspace';
+      toast.error(msg === 'Workspace not found.' ? 'This workspace doesn\'t exist or was removed.' : msg);
       navigate('/dashboard');
     } finally {
       setLoading(false);
