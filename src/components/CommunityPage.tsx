@@ -21,6 +21,8 @@ import {
   Loader2,
   Users,
   ExternalLink,
+  UserPlus,
+  X,
 } from 'lucide-react';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
 import { chatService, type Chat, type Message, type ChatUser } from '../services/chatService';
@@ -49,6 +51,9 @@ export default function CommunityPage() {
   const [discoverQuery, setDiscoverQuery] = useState('');
   const [discoverResults, setDiscoverResults] = useState<ChatUser[]>([]);
   const [discovering, setDiscovering] = useState(false);
+  const [inviteUser, setInviteUser] = useState<{ id: number; username: string | null; email: string | null } | null>(null);
+  const [workspaces, setWorkspaces] = useState<Array<{ id: number; name: string; type: string; role?: string }>>([]);
+  const [invitingWs, setInvitingWs] = useState<number | null>(null);
   const [feed, setFeed] = useState<FeedItem | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
@@ -147,7 +152,9 @@ export default function CommunityPage() {
     scrollToBottom();
   }, [messages]);
 
+  const chatableIds = new Set(chatableUsers.map((u) => u.id));
   const chatPartnerIds = new Set(chats.map((c) => c.otherUser?.id).filter(Boolean));
+
   const handleDiscover = async () => {
     if (discoverQuery.trim().length < 2) return;
     setDiscovering(true);
@@ -162,7 +169,32 @@ export default function CommunityPage() {
     }
   };
 
-  const chatableIds = new Set(chatableUsers.map((u) => u.id));
+  const openInviteModal = async (user: { id: number; username: string | null; email: string | null }) => {
+    setInviteUser(user);
+    try {
+      const token = await getToken();
+      const { workspaces: ws } = await workspaceService.getWorkspaces(token);
+      setWorkspaces((ws || []).filter((w: { type: string; role?: string }) => w.type === 'team' && w.role === 'admin'));
+    } catch {
+      setWorkspaces([]);
+    }
+  };
+
+  const handleSendInvite = async (workspaceId: number) => {
+    if (!inviteUser) return;
+    setInvitingWs(workspaceId);
+    try {
+      const token = await getToken();
+      await workspaceService.inviteMember(workspaceId, { userId: inviteUser.id }, token);
+      toast.success('Invitation sent');
+      setInviteUser(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send invite');
+    } finally {
+      setInvitingWs(null);
+    }
+  };
+
   const feedPeople = [
     ...(feed?.projects || []).map((p) => ({ id: (p as { owner_id?: number }).owner_id, username: p.owner_username })),
     ...(feed?.workspaces || []).map((w) => ({ id: (w as { owner_id?: number }).owner_id, username: w.owner_username })),
@@ -278,7 +310,7 @@ export default function CommunityPage() {
                 <Users size={22} />
                 Find people
               </h2>
-              <p className="text-sm text-white/50 mb-6">Search by username or email to discover users and view their profiles.</p>
+              <p className="text-sm text-white/50 mb-6">Search workspace members by username or email.</p>
               <div className="flex gap-2 mb-6">
                 <div className="relative flex-1">
                   <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
@@ -287,7 +319,7 @@ export default function CommunityPage() {
                     value={discoverQuery}
                     onChange={(e) => setDiscoverQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleDiscover()}
-                    placeholder="Type username or email (min 2 chars)..."
+                    placeholder="Search workspace members (min 2 chars)..."
                     className="w-full pl-10 pr-4 py-3 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
                   />
                 </div>
@@ -326,13 +358,21 @@ export default function CommunityPage() {
                             Profile
                           </button>
                         )}
-                        {chatableIds.has(u.id) && (
+                        {chatableIds.has(u.id) ? (
                           <button
                             onClick={() => handleStartChat(u)}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
                           >
                             <MessageCircle size={14} />
                             Message
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => openInviteModal(u)}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                          >
+                            <UserPlus size={14} />
+                            Send invite
                           </button>
                         )}
                       </div>
@@ -341,24 +381,35 @@ export default function CommunityPage() {
                 </div>
               )}
               {discoverQuery.trim().length >= 2 && !discovering && discoverResults.length === 0 && (
-                <p className="text-white/40 py-8 text-center">No users found. Try a different search.</p>
+                <p className="text-white/40 py-8 text-center">No workspace members found. Invite people to a workspace first, then they&apos;ll appear here.</p>
               )}
               {feedPeople.length > 0 && discoverQuery.trim().length < 2 && (
                 <div className="mt-8">
                   <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">People from public feed</p>
                   <div className="space-y-2">
                     {feedPeople.slice(0, 10).map((p) => (
-                      <button
+                      <div
                         key={p.id}
-                        onClick={() => p.username && navigate(`/profile/${p.username}`)}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:border-primary/30 text-left"
+                        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:border-primary/30"
                       >
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                          <User size={20} className="text-primary" />
-                        </div>
-                        <p className="font-bold text-white truncate">{p.username || 'Anonymous'}</p>
-                        <ExternalLink size={14} className="text-white/40 shrink-0" />
-                      </button>
+                        <button
+                          onClick={() => p.username && navigate(`/profile/${p.username}`)}
+                          className="flex-1 flex items-center gap-3 text-left min-w-0"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                            <User size={20} className="text-primary" />
+                          </div>
+                          <p className="font-bold text-white truncate">{p.username || 'Anonymous'}</p>
+                          <ExternalLink size={14} className="text-white/40 shrink-0" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openInviteModal({ id: p.id, username: p.username, email: null }); }}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs shrink-0"
+                        >
+                          <UserPlus size={14} />
+                          Send invite
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -408,14 +459,25 @@ export default function CommunityPage() {
                               )}
                             </button>
                             {proj.owner_id && proj.owner_id !== currentUserId && (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); handleStartChat({ id: proj.owner_id!, username: p.owner_username || null, email: null }); setTab('chat'); }}
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
-                              >
-                                <MessageCircle size={14} />
-                                Message
-                              </button>
+                              chatableIds.has(proj.owner_id) ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleStartChat({ id: proj.owner_id!, username: p.owner_username || null, email: null }); setTab('chat'); }}
+                                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                                >
+                                  <MessageCircle size={14} />
+                                  Message
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); openInviteModal({ id: proj.owner_id!, username: p.owner_username || null, email: null }); }}
+                                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                                >
+                                  <UserPlus size={14} />
+                                  Send invite
+                                </button>
+                              )
                             )}
                           </div>
                         </div>
@@ -446,14 +508,25 @@ export default function CommunityPage() {
                             <p className="text-xs text-white/40 mt-1">by {w.owner_username || 'Anonymous'}</p>
                           </button>
                           {ws.owner_id && ws.owner_id !== currentUserId && (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleStartChat({ id: ws.owner_id!, username: w.owner_username || null, email: null }); setTab('chat'); }}
-                              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
-                            >
-                              <MessageCircle size={14} />
-                              Message
-                            </button>
+                            chatableIds.has(ws.owner_id) ? (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleStartChat({ id: ws.owner_id!, username: w.owner_username || null, email: null }); setTab('chat'); }}
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                              >
+                                <MessageCircle size={14} />
+                                Message
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); openInviteModal({ id: ws.owner_id!, username: w.owner_username || null, email: null }); }}
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                              >
+                                <UserPlus size={14} />
+                                Send invite
+                              </button>
+                            )
                           )}
                         </div>
                       );
@@ -657,6 +730,40 @@ export default function CommunityPage() {
           </>
         )}
       </div>
+
+      {/* Invite to workspace modal */}
+      {inviteUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setInviteUser(null)}>
+          <div className="bg-[var(--bg-page)] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Invite to workspace</h3>
+              <button onClick={() => setInviteUser(null)} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-white/60 mb-4">
+              Invite <span className="font-bold text-white">{inviteUser.username || inviteUser.email || 'this user'}</span> to a team workspace.
+            </p>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {workspaces.length === 0 ? (
+                <p className="text-white/40 text-sm py-4">No team workspaces where you can invite. Create a team workspace first.</p>
+              ) : (
+                workspaces.map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => handleSendInvite(w.id)}
+                    disabled={invitingWs !== null}
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] border border-white/10 hover:border-primary/30 text-left disabled:opacity-50"
+                  >
+                    <span className="font-bold text-white">{w.name}</span>
+                    {invitingWs === w.id ? <Loader2 size={18} className="animate-spin text-primary" /> : <UserPlus size={18} className="text-primary" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

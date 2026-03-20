@@ -17,6 +17,8 @@ import {
   Pencil,
   Loader2,
   Users,
+  UserPlus,
+  X,
 } from 'lucide-react';
 import { workspaceService } from '../services/workspaceService';
 import { chatService } from '../services/chatService';
@@ -42,6 +44,9 @@ export default function ProfilePage() {
   const [editingBio, setEditingBio] = useState(false);
   const [bioDraft, setBioDraft] = useState('');
   const [saving, setSaving] = useState(false);
+  const [inviteModal, setInviteModal] = useState(false);
+  const [workspaces, setWorkspaces] = useState<Array<{ id: number; name: string; type: string; role?: string }>>([]);
+  const [invitingWs, setInvitingWs] = useState<number | null>(null);
 
   const isOwnProfile = data && currentUserId === data.user.id;
 
@@ -117,6 +122,32 @@ export default function ProfilePage() {
       navigate('/community', { state: { openChat: chat } });
     } catch {
       toast.error('Could not start chat');
+    }
+  };
+
+  const openInviteModal = async () => {
+    setInviteModal(true);
+    try {
+      const token = await getToken();
+      const { workspaces: ws } = await workspaceService.getWorkspaces(token);
+      setWorkspaces((ws || []).filter((w: { type: string; role?: string }) => w.type === 'team' && w.role === 'admin'));
+    } catch {
+      setWorkspaces([]);
+    }
+  };
+
+  const handleSendInvite = async (workspaceId: number) => {
+    if (!data?.user?.id) return;
+    setInvitingWs(workspaceId);
+    try {
+      const token = await getToken();
+      await workspaceService.inviteMember(workspaceId, { userId: data.user.id }, token);
+      toast.success('Invitation sent');
+      setInviteModal(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send invite');
+    } finally {
+      setInvitingWs(null);
     }
   };
 
@@ -217,14 +248,22 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   {!isOwnProfile && (
-                    <div className="flex gap-3 mt-6">
-                      {data.canChat && (
+                    <div className="flex flex-wrap gap-3 mt-6">
+                      {data.canChat ? (
                         <button
                           onClick={handleMessage}
                           className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
                         >
                           <MessageCircle size={18} />
                           Message
+                        </button>
+                      ) : (
+                        <button
+                          onClick={openInviteModal}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
+                        >
+                          <UserPlus size={18} />
+                          Send invite
                         </button>
                       )}
                       <button
@@ -291,6 +330,39 @@ export default function ProfilePage() {
           </>
         ) : null}
       </div>
+
+      {inviteModal && data && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setInviteModal(false)}>
+          <div className="bg-[var(--bg-page)] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Invite to workspace</h3>
+              <button onClick={() => setInviteModal(false)} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-white/60 mb-4">
+              Invite <span className="font-bold text-white">{data.user.username || data.user.email || 'this user'}</span> to a team workspace.
+            </p>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {workspaces.length === 0 ? (
+                <p className="text-white/40 text-sm py-4">No team workspaces where you can invite. Create a team workspace first.</p>
+              ) : (
+                workspaces.map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => handleSendInvite(w.id)}
+                    disabled={invitingWs !== null}
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] border border-white/10 hover:border-primary/30 text-left disabled:opacity-50"
+                  >
+                    <span className="font-bold text-white">{w.name}</span>
+                    {invitingWs === w.id ? <Loader2 size={18} className="animate-spin text-primary" /> : <UserPlus size={18} className="text-primary" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

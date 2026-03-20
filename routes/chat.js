@@ -6,7 +6,6 @@ import {
     getOrCreateUser,
     getUserById,
     getUsersWhoShareWorkspaceWith,
-    searchUsers,
     searchUsersForChat,
     doUsersShareWorkspace,
     getOrCreateDirectChat,
@@ -62,14 +61,14 @@ export function registerChatRoutes(app, clerkClient) {
         }
     });
 
-    // GET /api/users/discover?q=username — search all users (for discovery, not chat)
+    // GET /api/users/discover?q=username — search users (only workspace members + feed people)
     app.get('/api/users/discover', requireAuthMiddleware, (req, res) => {
         try {
             const q = sanitize(req.query.q, 50);
             if (!q || q.length < 2) {
                 return res.json({ users: [] });
             }
-            const users = searchUsers(q, req.userId, 30);
+            const users = searchUsersForChat(q, req.userId, 30);
             return res.json({ users });
         } catch (err) {
             console.error('Discover error:', err);

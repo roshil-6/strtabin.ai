@@ -226,15 +226,19 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 return res.status(400).json({ error: 'Only team workspaces support invitations.' });
             }
 
-            const { email, username } = req.body || {};
+            const { email, username, userId } = req.body || {};
             const inviteeEmail = sanitizeStr(email, 255);
             let inviteeUserId = null;
-            if (username) {
+            if (userId != null) {
+                const uid = parseInt(userId, 10);
+                if (!isNaN(uid) && getUserById(uid)) inviteeUserId = uid;
+            }
+            if (!inviteeUserId && username) {
                 const u = getUserByUsername(sanitizeStr(username, 50));
                 if (u) inviteeUserId = u.id;
             }
             if (!inviteeEmail && !inviteeUserId) {
-                return res.status(400).json({ error: 'Provide email or username to invite.' });
+                return res.status(400).json({ error: 'Provide email, username, or userId to invite.' });
             }
 
             createInvitation({

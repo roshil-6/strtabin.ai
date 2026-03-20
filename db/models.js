@@ -532,14 +532,14 @@ export function searchUsers(query, excludeUserId = null, limit = 20) {
     if (excludeUserId) {
         return db.prepare(`
             SELECT id, username, email FROM users
-            WHERE id != ? AND (LOWER(username) LIKE LOWER(?) OR LOWER(email) LIKE LOWER(?))
-            ORDER BY username ASC LIMIT ?
+            WHERE id != ? AND (LOWER(COALESCE(username,'')) LIKE LOWER(?) OR LOWER(COALESCE(email,'')) LIKE LOWER(?))
+            ORDER BY COALESCE(username, email) ASC LIMIT ?
         `).all(excludeUserId, q, q, limit);
     }
     return db.prepare(`
         SELECT id, username, email FROM users
         WHERE LOWER(COALESCE(username,'')) LIKE LOWER(?) OR LOWER(COALESCE(email,'')) LIKE LOWER(?)
-        ORDER BY username ASC LIMIT ?
+        ORDER BY COALESCE(username, email) ASC LIMIT ?
     `).all(q, q, limit);
 }
 

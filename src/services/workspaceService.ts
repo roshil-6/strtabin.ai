@@ -110,7 +110,7 @@ export const workspaceService = {
 
   async inviteMember(
     workspaceId: number,
-    data: { email?: string; username?: string },
+    data: { email?: string; username?: string; userId?: number },
     token: string | null
   ) {
     return fetchWithAuth(
