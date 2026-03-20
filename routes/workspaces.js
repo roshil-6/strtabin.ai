@@ -7,6 +7,7 @@ import {
     getOrCreateUser,
     getUserById,
     getUserByUsername,
+    getUserByEmail,
     updateWorkspace,
     getProfile,
     updateProfile,
@@ -524,13 +525,14 @@ export function registerWorkspaceRoutes(app, clerkClient) {
         }
     });
 
-    // GET /api/profile/:username — public profile (sends canChat when Authorization header present)
+    // GET /api/profile/:usernameOrEmail — public profile (looks up by username or email)
     app.get('/api/profile/:username', async (req, res) => {
         try {
-            const username = sanitizeStr(req.params.username, 50);
-            if (!username) return res.status(400).json({ error: 'Username required.' });
+            const param = sanitizeStr(req.params.username, 255);
+            if (!param) return res.status(400).json({ error: 'Username or email required.' });
 
-            const user = getUserByUsername(username);
+            let user = getUserByUsername(param);
+            if (!user && param.includes('@')) user = getUserByEmail(param);
             if (!user) return res.status(404).json({ error: 'User not found.' });
 
             const profile = getProfile(user.id);

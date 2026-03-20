@@ -46,6 +46,13 @@ export function getUserByUsername(username) {
     return db.prepare('SELECT * FROM users WHERE LOWER(username) = LOWER(?)').get(username);
 }
 
+export function getUserByEmail(email) {
+    const db = getDb();
+    if (!email) return null;
+    const norm = String(email).trim().toLowerCase();
+    return db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').get(norm);
+}
+
 export function getUserByIdOrUsername(idOrUsername) {
     const db = getDb();
     const byId = db.prepare('SELECT * FROM users WHERE id = ?').get(parseInt(idOrUsername, 10));
