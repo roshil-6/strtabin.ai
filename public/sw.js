@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stratabin-v5';
+const CACHE_NAME = 'stratabin-v6';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/favicon.png'];
 
 // Install: cache static assets
@@ -29,8 +29,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         fetch(event.request)
             .then((response) => {
-                const clone = response.clone();
-                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                // Cache API rejects 206 (Partial Content) and other non-200 responses
+                if (response.status === 200 && response.type === 'basic') {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                }
                 return response;
             })
             .catch(() =>

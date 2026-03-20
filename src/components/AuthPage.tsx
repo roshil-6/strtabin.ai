@@ -97,6 +97,8 @@ export default function AuthPage() {
             const msg = clerkErr?.errors?.[0]?.longMessage || 'Invalid username or password.';
             if (errCode === 'form_identifier_not_found') {
                 setAuthError('No account with this username. Sign up with email first.');
+            } else if (msg.toLowerCase().includes('password') && msg.toLowerCase().includes('strategy')) {
+                setAuthError('Password sign-in not available. Use email sign-in above, or enable Username + Password in Clerk Dashboard → User & Authentication.');
             } else {
                 setAuthError(msg);
             }

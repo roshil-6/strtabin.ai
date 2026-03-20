@@ -385,6 +385,9 @@ app.post('/api/user/set-credentials', async (req, res) => {
         if (msg.includes('username') && msg.toLowerCase().includes('taken')) {
             return res.status(400).json({ error: 'Username is already taken.' });
         }
+        if (msg.includes('password') && msg.toLowerCase().includes('strategy')) {
+            return res.status(400).json({ error: 'Password sign-in is not enabled. Enable it in Clerk Dashboard → User & Authentication → Authentication strategies.' });
+        }
         console.error('Set credentials error:', error);
         return res.status(400).json({ error: msg || 'Could not update credentials.' });
     }
