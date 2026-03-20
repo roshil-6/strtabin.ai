@@ -396,3 +396,122 @@ export function markNotificationRead(notificationId, userId) {
     db.prepare('UPDATE notifications SET read_at = datetime(\'now\') WHERE id = ? AND user_id = ?')
         .run(notificationId, userId);
 }
+
+// ─── User Search ───────────────────────────────────────────────────────────
+export function searchUsers(query, excludeUserId = null, limit = 20) {
+    const db = getDb();
+    const q = `%${String(query).trim()}%`;
+    if (excludeUserId) {
+        return db.prepare(`
+            SELECT id, username, email FROM users
+            WHERE id != ? AND (LOWER(username) LIKE LOWER(?) OR LOWER(email) LIKE LOWER(?))
+            ORDER BY username ASC LIMIT ?
+        `).all(excludeUserId, q, q, limit);
+    }
+    return db.prepare(`
+        SELECT id, username, email FROM users
+        WHERE LOWER(COALESCE(username,'')) LIKE LOWER(?) OR LOWER(COALESCE(email,'')) LIKE LOWER(?)
+        ORDER BY username ASC LIMIT ?
+    `).all(q, q, limit);
+}
+
+// ─── Chats ────────────────────────────────────────────────────────────────
+export function getOrCreateDirectChat(userId1, userId2) {
+    const db = getDb();
+    const [u1, u2] = userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
+    const existing = db.prepare(`
+        SELECT c.id FROM chats c
+        JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = ?
+        JOIN chat_participants cp2 ON cp2.chat_id = c.id AND cp2.user_id = ?
+        WHERE c.type = 'direct'
+    `).get(u1, u2);
+    if (existing) return existing.id;
+
+    const result = db.prepare('INSERT INTO chats (type) VALUES (?)').run('direct');
+    const chatId = result.lastInsertRowid;
+    db.prepare('INSERT INTO chat_participants (chat_id, user_id) VALUES (?, ?), (?, ?)').run(chatId, userId1, chatId, userId2);
+    return chatId;
+}
+
+export function getChatsForUser(userId) {
+    const db = getDb();
+    return db.prepare(`
+        SELECT c.id, c.type, c.name, c.updated_at,
+               (SELECT content FROM messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message,
+               (SELECT created_at FROM messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_at
+        FROM chats c
+        JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = ?
+        ORDER BY c.updated_at DESC
+    `).all(userId);
+}
+
+export function getChatWithParticipants(chatId, userId) {
+    const db = getDb();
+    const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(chatId);
+    if (!chat) return null;
+    const isMember = db.prepare('SELECT 1 FROM chat_participants WHERE chat_id = ? AND user_id = ?').get(chatId, userId);
+    if (!isMember) return null;
+
+    const participants = db.prepare(`
+        SELECT u.id, u.username, u.email FROM chat_participants cp
+        JOIN users u ON u.id = cp.user_id
+        WHERE cp.chat_id = ?
+    `).all(chatId);
+
+    const otherUser = participants.find(p => p.id !== userId);
+    return { ...chat, participants, otherUser: otherUser || null };
+}
+
+export function getMessages(chatId, userId, beforeId = null, limit = 50) {
+    const db = getDb();
+    const isMember = db.prepare('SELECT 1 FROM chat_participants WHERE chat_id = ? AND user_id = ?').get(chatId, userId);
+    if (!isMember) return [];
+
+    let sql = `
+        SELECT m.*, u.username as sender_username FROM messages m
+        JOIN users u ON u.id = m.sender_id
+        WHERE m.chat_id = ?
+    `;
+    const params = [chatId];
+    if (beforeId) {
+        sql += ' AND m.id < ?';
+        params.push(beforeId);
+    }
+    sql += ' ORDER BY m.created_at DESC LIMIT ?';
+    params.push(limit);
+
+    return db.prepare(sql).all(...params).reverse();
+}
+
+export function createMessage(chatId, senderId, content, type = 'text', replyToId = null) {
+    const db = getDb();
+    const isMember = db.prepare('SELECT 1 FROM chat_participants WHERE chat_id = ? AND user_id = ?').get(chatId, senderId);
+    if (!isMember) return null;
+
+    const meta = replyToId ? JSON.stringify({ replyToId }) : null;
+    const result = db.prepare(`
+        INSERT INTO messages (chat_id, sender_id, content, type, reply_to_id, metadata) VALUES (?, ?, ?, ?, ?, ?)
+    `).run(chatId, senderId, content, type, replyToId || null, meta);
+    db.prepare("UPDATE chats SET updated_at = datetime('now') WHERE id = ?").run(chatId);
+    return result.lastInsertRowid;
+}
+
+export function getMessage(id) {
+    const db = getDb();
+    return db.prepare('SELECT m.*, u.username as sender_username FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.id = ?').get(id);
+}
+
+export function markChatRead(chatId, userId) {
+    const db = getDb();
+    db.prepare("UPDATE chat_participants SET last_read_at = datetime('now') WHERE chat_id = ? AND user_id = ?").run(chatId, userId);
+}
+
+export function getUnreadCount(chatId, userId) {
+    const db = getDb();
+    const cp = db.prepare('SELECT last_read_at FROM chat_participants WHERE chat_id = ? AND user_id = ?').get(chatId, userId);
+    if (!cp || !cp.last_read_at) {
+        const count = db.prepare('SELECT COUNT(*) as c FROM messages WHERE chat_id = ? AND sender_id != ?').get(chatId, userId);
+        return count?.c || 0;
+    }
+    return db.prepare('SELECT COUNT(*) as c FROM messages WHERE chat_id = ? AND sender_id != ? AND created_at > ?').get(chatId, userId, cp.last_read_at)?.c || 0;
+}

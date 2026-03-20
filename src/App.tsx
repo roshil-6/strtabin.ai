@@ -15,6 +15,7 @@ import ReportsSelectPage from './components/ReportsSelectPage';
 import WorkspacePage from './components/WorkspacePage';
 import ProfilePage from './components/ProfilePage';
 import FeedPage from './components/FeedPage';
+import CommunityPage from './components/CommunityPage';
 import AuthGate from './components/AuthGate';
 import UserSyncOnLoad from './components/UserSyncOnLoad';
 import PaywallGate from './components/PaywallGate';
@@ -52,6 +53,7 @@ function App() {
       <Route path="/strab/:id" element={<AuthGate><PaywallGate><StrabView /></PaywallGate></AuthGate>} />
       <Route path="/workspace/:id" element={<AuthGate><PaywallGate><WorkspacePage /></PaywallGate></AuthGate>} />
       <Route path="/feed" element={<AuthGate><PaywallGate><FeedPage /></PaywallGate></AuthGate>} />
+      <Route path="/community" element={<AuthGate><PaywallGate><CommunityPage /></PaywallGate></AuthGate>} />
       <Route path="/profile/:username" element={<ProfilePage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

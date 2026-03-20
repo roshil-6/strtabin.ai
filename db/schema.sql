@@ -132,3 +132,44 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, read_at);
+
+-- Chats: direct (1:1) or group
+CREATE TABLE IF NOT EXISTS chats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL DEFAULT 'direct' CHECK (type IN ('direct', 'group')),
+    name TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_chats_updated ON chats(updated_at DESC);
+
+-- Chat participants
+CREATE TABLE IF NOT EXISTS chat_participants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_read_at TEXT,
+    joined_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(chat_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cp_chat ON chat_participants(chat_id);
+CREATE INDEX IF NOT EXISTS idx_cp_user ON chat_participants(user_id);
+
+-- Messages
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+    sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'text' CHECK (type IN ('text', 'image', 'file')),
+    metadata TEXT,
+    reply_to_id INTEGER REFERENCES messages(id) ON DELETE SET NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id);
+CREATE INDEX IF NOT EXISTS idx_messages_chat_created ON messages(chat_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);

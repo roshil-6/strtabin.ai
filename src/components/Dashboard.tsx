@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Globe, Flame, TrendingUp } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Globe, Flame, TrendingUp, MessageCircle } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
@@ -512,6 +512,13 @@ export default function Dashboard() {
                             >
                                 <Globe size={18} className="text-white/20 group-hover:text-white" />
                                 <span className="font-bold text-sm text-left">Feed</span>
+                            </button>
+                            <button
+                                onClick={() => { navigate('/community'); setIsSidebarOpen(false); }}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-white/40 hover:bg-white/5 hover:text-white"
+                            >
+                                <MessageCircle size={18} className="text-white/20 group-hover:text-white" />
+                                <span className="font-bold text-sm text-left">Community</span>
                             </button>
                         </div>
                     </div>

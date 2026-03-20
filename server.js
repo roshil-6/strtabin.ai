@@ -1,4 +1,6 @@
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -7,6 +9,9 @@ import fetch from 'node-fetch';
 import crypto from 'crypto';
 import { createClerkClient } from '@clerk/backend';
 import { registerWorkspaceRoutes } from './routes/workspaces.js';
+import { registerChatRoutes } from './routes/chat.js';
+import { getOrCreateUser } from './db/models.js';
+import { initDb } from './db/index.js';
 
 dotenv.config();
 
@@ -930,13 +935,66 @@ app.post('/api/strab-general', optionalAuth, guestOrAuthLimiter, async (req, res
 
 // ─── Social + Team Workspace System (Phase 2) ───────────────────────────────
 registerWorkspaceRoutes(app, clerk);
+registerChatRoutes(app, clerk);
 
 // ─── 404 handler ──────────────────────────────────────────────────────────
 app.use((_req, res) => {
     res.status(404).json({ error: 'Not found.' });
 });
 
-// ─── Start ────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+// ─── HTTP + Socket.io ──────────────────────────────────────────────────────
+const httpServer = createServer(app);
+const allowedOriginsSocket = process.env.ALLOWED_ORIGIN
+    ? process.env.ALLOWED_ORIGIN.split(',').map(s => s.trim())
+    : ['http://localhost:5173', 'http://localhost:5174', 'https://stratabin.com', 'https://www.stratabin.com'];
+
+const io = new Server(httpServer, {
+    cors: { origin: allowedOriginsSocket, credentials: true },
+    path: '/socket.io',
+});
+app.locals.io = io;
+
+initDb();
+
+io.on('connection', async (socket) => {
+    const token = socket.handshake.auth?.token;
+    let userId = null;
+    if (token && clerk) {
+        try {
+            const payloadB64 = token.split('.')[1];
+            if (payloadB64) {
+                const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+                const clerkId = decoded.sub;
+                if (clerkId) {
+                    const clerkUser = await clerk.users.getUser(clerkId);
+                    userId = getOrCreateUser(clerkUser);
+                }
+            }
+        } catch { /* ignore */ }
+    }
+    if (!userId) {
+        socket.disconnect(true);
+        return;
+    }
+    socket.join(`user:${userId}`);
+    socket.userId = userId;
+
+    socket.on('chat:typing', ({ chatId }) => {
+        socket.to(`chat:${chatId}`).emit('chat:typing', { chatId, userId });
+    });
+    socket.on('chat:join', ({ chatId }) => {
+        socket.join(`chat:${chatId}`);
+    });
+    socket.on('chat:leave', ({ chatId }) => {
+        socket.leave(`chat:${chatId}`);
+    });
+});
+
+// Broadcast new messages to chat room (called from API)
+io.emitToChat = (chatId, event, data) => {
+    io.to(`chat:${chatId}`).emit(event, data);
+};
+
+httpServer.listen(PORT, () => {
     console.log(`STRAB AI Server running on port ${PORT}`);
 });
