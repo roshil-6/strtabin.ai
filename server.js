@@ -63,9 +63,10 @@ app.use(cors({
         }
         callback(new Error(`CORS: origin ${origin} not allowed`));
     },
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     credentials: true,
+    optionsSuccessStatus: 204,
 }));
 
 // ─── Body Parser (before all routes except raw webhook) ───────────────────

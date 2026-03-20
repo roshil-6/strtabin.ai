@@ -58,8 +58,13 @@ export default function CommunityPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const typingEmitRef = useRef<ReturnType<typeof setTimeout>>();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const focusSearch = () => {
+    setTab('chat');
+    setTimeout(() => searchInputRef.current?.focus(), 50);
+  };
   activeChatRef.current = activeChat;
 
   useEffect(() => {
@@ -196,11 +201,12 @@ export default function CommunityPage() {
           <div className="relative flex-1">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search people by username or email..."
+              placeholder="Search people to start a chat (min 2 chars)..."
               className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary/50 text-sm"
             />
           </div>
@@ -210,6 +216,13 @@ export default function CommunityPage() {
             className="px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all disabled:opacity-50"
           >
             {searching ? <Loader2 size={18} className="animate-spin" /> : 'Search'}
+          </button>
+          <button
+            onClick={focusSearch}
+            className="px-4 py-2.5 rounded-xl border-2 border-primary text-primary font-bold hover:bg-primary/10 transition-all shrink-0"
+            title="Start a new chat"
+          >
+            + New chat
           </button>
           </div>
         </div>
@@ -391,7 +404,14 @@ export default function CommunityPage() {
                   <MessageCircle size={48} className="text-white/20 mb-4" />
                   <p className="text-white/50 font-bold">No chats yet</p>
                   <p className="text-sm text-white/30 mt-1 mb-4">Search for people above to start a conversation</p>
-                  <p className="text-xs text-white/20">Or browse the Feed and tap "Message" on any project to chat with the owner</p>
+                  <button
+                    onClick={focusSearch}
+                    className="mt-2 px-6 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all flex items-center gap-2"
+                  >
+                    <MessageCircle size={20} />
+                    Start chat
+                  </button>
+                  <p className="text-xs text-white/20 mt-4">Or browse the Feed and tap "Message" on any project to chat with the owner</p>
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto">
@@ -511,7 +531,14 @@ export default function CommunityPage() {
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <MessageCircle size={64} className="text-white/10 mb-4" />
                   <p className="text-white/40 font-bold">Select a chat</p>
-                  <p className="text-sm text-white/20 mt-1">Choose a conversation or search for someone new</p>
+                  <p className="text-sm text-white/20 mt-1 mb-4">Choose a conversation or start a new one</p>
+                  <button
+                    onClick={focusSearch}
+                    className="px-6 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all flex items-center gap-2"
+                  >
+                    <MessageCircle size={20} />
+                    Start new chat
+                  </button>
                 </div>
               )}
             </div>
