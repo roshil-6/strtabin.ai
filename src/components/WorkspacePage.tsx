@@ -23,8 +23,12 @@ import {
   ChevronDown,
   Trash2,
   UserCheck,
+  MessageCircle,
+  ExternalLink,
+  Share2,
 } from 'lucide-react';
 import { workspaceService, type Workspace, type Project, type WorkspaceMember, type ActivityLog, type ProjectStatus, type MemberDailyTask } from '../services/workspaceService';
+import { chatService } from '../services/chatService';
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
   idea: 'Idea',
@@ -267,6 +271,26 @@ export default function WorkspacePage() {
 
   const isOwner = (m: WorkspaceMember) => workspace?.owner_id === m.id;
 
+  const getProjectsAssignedTo = (userId: number) =>
+    projects.filter((p) => (p as Project & { assigned_to?: number }).assigned_to === userId).length;
+
+  const handleMessageMember = async (member: WorkspaceMember) => {
+    if (member.id === currentUserId) return;
+    try {
+      const token = await getToken();
+      const { chat } = await chatService.createDirectChat(member.id, token);
+      navigate('/community', { state: { openChat: chat } });
+    } catch {
+      toast.error('Could not start chat');
+    }
+  };
+
+  const handleCopyWorkspaceLink = () => {
+    const url = `${window.location.origin}/workspace/${workspaceId}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Workspace link copied!');
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       <div className="max-w-6xl mx-auto p-6">
@@ -425,55 +449,98 @@ export default function WorkspacePage() {
 
               <div className="space-y-6">
                 {isTeam && (
-                  <section>
-                    <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <Users size={16} />
-                      Members ({members.length})
-                    </h2>
-                    <div className="space-y-2">
-                      {members.map((m) => (
-                        <div key={m.id} className="flex items-center justify-between p-3 bg-white/[0.03] rounded-xl group">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">
-                              {m.username?.[0] || m.email?.[0] || '?'}
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-white">{m.username || m.email || 'Unknown'}</p>
-                              <p className="text-[10px] text-white/40">{isOwner(m) ? 'Owner' : m.role}</p>
+                  <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-sm font-black text-white/50 uppercase tracking-wider flex items-center gap-2">
+                        <Users size={16} />
+                        Team ({members.length})
+                      </h2>
+                      {isAdmin && (
+                        <button
+                          onClick={handleCopyWorkspaceLink}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-bold transition-all"
+                        >
+                          <Share2 size={12} />
+                          Share link
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {members.map((m) => {
+                        const assignedCount = getProjectsAssignedTo(m.id);
+                        const canMessage = m.id !== currentUserId;
+                        const displayName = m.username || m.email || 'Unknown';
+                        return (
+                          <div key={m.id} className="p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-primary/20 transition-all group">
+                            <div className="flex items-start gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-lg font-black text-primary shrink-0">
+                                {(m.username || m.email || '?').slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-white truncate">{displayName}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${isOwner(m) ? 'bg-amber-500/20 text-amber-400' : m.role === 'admin' ? 'bg-primary/20 text-primary' : 'bg-white/10 text-white/50'}`}>
+                                    {isOwner(m) ? 'Owner' : m.role}
+                                  </span>
+                                  {assignedCount > 0 && (
+                                    <span className="text-[10px] text-white/40">{assignedCount} project{assignedCount !== 1 ? 's' : ''}</span>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  {canMessage && (
+                                    <button
+                                      onClick={() => handleMessageMember(m)}
+                                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 text-xs font-bold transition-all"
+                                    >
+                                      <MessageCircle size={12} />
+                                      Message
+                                    </button>
+                                  )}
+                                  {(m.username || m.email) && (
+                                    <button
+                                      onClick={() => navigate(`/profile/${m.username || m.email}`)}
+                                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-bold transition-all"
+                                    >
+                                      <ExternalLink size={12} />
+                                      Profile
+                                    </button>
+                                  )}
+                                  {isAdmin && !isOwner(m) && (
+                                    <div className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setRoleMenuOpen(roleMenuOpen === m.id ? null : m.id); }}
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-bold transition-all"
+                                      >
+                                        {m.role}
+                                        <ChevronDown size={12} />
+                                      </button>
+                                      {roleMenuOpen === m.id && (
+                                        <div className="absolute left-0 top-full mt-1 py-1 bg-[var(--bg-panel)] border border-white/10 rounded-xl shadow-xl z-10 min-w-[100px]">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'admin'); setRoleMenuOpen(null); }}
+                                            className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'admin' ? 'text-primary' : 'text-white/70'}`}
+                                          >
+                                            Admin
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'member'); setRoleMenuOpen(null); }}
+                                            className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'member' ? 'text-primary' : 'text-white/70'}`}
+                                          >
+                                            Member
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                          {isAdmin && !isOwner(m) && (
-                            <div className="relative">
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); setRoleMenuOpen(roleMenuOpen === m.id ? null : m.id); }}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-bold transition-all"
-                              >
-                                {m.role}
-                                <ChevronDown size={12} />
-                              </button>
-                              {roleMenuOpen === m.id && (
-                                <div className="absolute right-0 top-full mt-1 py-1 bg-[var(--bg-panel)] border border-white/10 rounded-xl shadow-xl z-10 min-w-[100px]">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'admin'); }}
-                                    className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'admin' ? 'text-primary' : 'text-white/70'}`}
-                                  >
-                                    Admin
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'member'); }}
-                                    className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'member' ? 'text-primary' : 'text-white/70'}`}
-                                  >
-                                    Member
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </section>
                 )}
@@ -613,7 +680,8 @@ export default function WorkspacePage() {
       {showInvite && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-2xl p-6">
-            <h3 className="text-lg font-black text-white mb-4">Invite to workspace</h3>
+            <h3 className="text-lg font-black text-white mb-1">Invite to workspace</h3>
+            <p className="text-xs text-white/40 mb-4">Invite by email or username. They can also be invited from Community.</p>
             <form onSubmit={handleInvite} className="space-y-3">
               <input
                 type="email"
@@ -638,6 +706,13 @@ export default function WorkspacePage() {
                 </button>
               </div>
             </form>
+            <button
+              onClick={() => { setShowInvite(false); navigate('/community'); }}
+              className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-sm font-bold transition-all"
+            >
+              <Users size={16} />
+              Discover people in Community
+            </button>
           </div>
         </div>
       )}
