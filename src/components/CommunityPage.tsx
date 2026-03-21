@@ -283,7 +283,7 @@ export default function CommunityPage() {
     }
     const projectOpts = attachProject
       ? attachProject.isCanvas
-        ? { canvasId: attachProject.canvas_id || String(attachProject.id), canvasName: attachProject.title }
+        ? { canvasId: attachProject.canvas_id || String(attachProject.id), canvasName: attachProject.title, _isCanvas: true }
         : {
             projectId: typeof attachProject.id === 'number' ? attachProject.id : undefined,
             projectTitle: attachProject.title,
@@ -295,7 +295,21 @@ export default function CommunityPage() {
     const content = text || (hasProject ? (attachProject!.isCanvas ? `Shared canvas: ${attachProject!.title}` : `Shared project: ${attachProject!.title}`) : '');
     try {
       const token = await getToken();
-      const { message } = await chatService.sendMessage(activeChat.id, content, token, { ...opts, ...projectOpts });
+      let finalOpts = { ...opts, ...projectOpts };
+      if ((finalOpts as { _isCanvas?: boolean })._isCanvas) {
+        const { _isCanvas, ...rest } = finalOpts as { _isCanvas?: boolean };
+        const c = canvases[(rest as { canvasId?: string }).canvasId || ''];
+        if (c) {
+          const { shareId } = await chatService.shareCanvas(
+            { name: c.name, nodes: c.nodes || [], edges: c.edges || [], writingContent: c.writingContent },
+            token
+          );
+          finalOpts = { ...rest, shareId, canvasName: (rest as { canvasName?: string }).canvasName };
+        } else {
+          finalOpts = rest;
+        }
+      }
+      const { message } = await chatService.sendMessage(activeChat.id, content, token, finalOpts);
       setMessages((prev) => [...prev, message]);
       if (attachProject) {
         setAttachProject(null);
@@ -774,7 +788,8 @@ export default function CommunityPage() {
                       messages.map((m) => {
                         const isMe = m.sender_id === currentUserId;
                         const meta = typeof m.metadata === 'string' ? (() => { try { return JSON.parse(m.metadata); } catch { return {}; } })() : (m.metadata || {});
-                        const hasCanvas = meta.canvasId || meta.canvasName;
+                        const hasShareId = meta.shareId;
+                        const hasCanvas = meta.canvasId || meta.canvasName || hasShareId;
                         const hasHighlight = meta.highlightText;
                         const hasProject = meta.projectId || meta.projectTitle;
                         const isImage = m.type === 'image';
@@ -795,14 +810,15 @@ export default function CommunityPage() {
                             >
                               {(hasCanvas || hasHighlight || hasProject) && (
                                 <div className="flex flex-wrap gap-1.5 mb-2">
-                                  {hasCanvas && (
-                                    <span
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 text-xs"
-                                      title={meta.canvasName || meta.canvasId}
+                                  {(hasCanvas || hasShareId) && (
+                                    <button
+                                      onClick={() => { if (hasShareId) navigate(`/strategy/shared_${meta.shareId}`); else if (meta.canvasId) navigate(`/strategy/${meta.canvasId}`); }}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 text-xs hover:bg-white/30"
+                                      title={meta.canvasName || meta.canvasId || meta.shareId}
                                     >
                                       <Link2 size={12} />
-                                      {meta.canvasName || meta.canvasId}
-                                    </span>
+                                      {meta.canvasName || meta.canvasId || 'View canvas'}
+                                    </button>
                                   )}
                                   {hasHighlight && (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 text-xs">
@@ -810,7 +826,7 @@ export default function CommunityPage() {
                                       {meta.highlightText}
                                     </span>
                                   )}
-                                  {hasProject && (
+                                  {hasProject && !hasShareId && (
                                     <button
                                       onClick={() => {
                                         if (meta.canvasId) navigate(`/strategy/${meta.canvasId}`);

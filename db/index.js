@@ -40,6 +40,20 @@ export function initDb() {
         }
     } catch (e) { /* column may already exist */ }
 
+    // Migration: shared_canvases table (for chat canvas sharing)
+    try {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS shared_canvases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                share_id TEXT UNIQUE NOT NULL,
+                name TEXT,
+                data TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        `);
+        db.exec('CREATE INDEX IF NOT EXISTS idx_shared_canvases_share_id ON shared_canvases(share_id)');
+    } catch (e) { /* table may already exist */ }
+
     console.log(`📦 Database initialized at ${DB_PATH}`);
     return db;
 }

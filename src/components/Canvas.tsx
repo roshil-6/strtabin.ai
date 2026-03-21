@@ -13,6 +13,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import useStore, { type RFState } from '../store/useStore';
+import { chatService } from '../services/chatService';
 import { useShallow } from 'zustand/react/shallow';
 import TextNode from './nodes/TextNode';
 import ImageNode from './nodes/ImageNode';
@@ -34,7 +35,7 @@ function CanvasContent() {
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
         addNode, addEdge, setCurrentCanvas, initDefaultCanvas, canvases,
-        addSubCanvasToMerged, syncSubProjectNodes, ensureCanvasExists
+        addSubCanvasToMerged, syncSubProjectNodes, ensureCanvasExists, loadSharedCanvas
     } = useStore(useShallow((state: RFState) => ({
         nodes: state.nodes,
         edges: state.edges,
@@ -49,6 +50,7 @@ function CanvasContent() {
         addSubCanvasToMerged: state.addSubCanvasToMerged,
         syncSubProjectNodes: state.syncSubProjectNodes,
         ensureCanvasExists: state.ensureCanvasExists,
+        loadSharedCanvas: state.loadSharedCanvas,
     })));
     const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow();
     const { resolved } = useTheme();
@@ -66,15 +68,34 @@ function CanvasContent() {
         smart: SmartEdge,
     }), []);
 
+    const [sharedLoading, setSharedLoading] = useState(false);
+    const [sharedError, setSharedError] = useState<string | null>(null);
+
     useEffect(() => {
-        if (id) {
-            ensureCanvasExists(id);
-            setCurrentCanvas(id);
-        } else {
+        if (!id) {
             initDefaultCanvas();
             setCurrentCanvas('default');
+            return;
         }
-    }, [id, setCurrentCanvas, initDefaultCanvas, ensureCanvasExists]);
+        if (id.startsWith('shared_')) {
+            const shareId = id.slice(7);
+            if (canvases[id]) {
+                setCurrentCanvas(id);
+                return;
+            }
+            setSharedLoading(true);
+            setSharedError(null);
+            chatService.getSharedCanvas(shareId)
+                .then((data) => {
+                    loadSharedCanvas(id, { name: data.name || undefined, nodes: (data.nodes || []) as Node[], edges: (data.edges || []) as Edge[], writingContent: data.writingContent });
+                })
+                .catch((err) => setSharedError(err instanceof Error ? err.message : 'Failed to load'))
+                .finally(() => setSharedLoading(false));
+            return;
+        }
+        ensureCanvasExists(id);
+        setCurrentCanvas(id);
+    }, [id, setCurrentCanvas, initDefaultCanvas, ensureCanvasExists, loadSharedCanvas, canvases]);
 
     // Update page title
     useEffect(() => {
@@ -328,6 +349,29 @@ function CanvasContent() {
         window.addEventListener('resize', handler, { passive: true });
         return () => window.removeEventListener('resize', handler);
     }, []);
+
+    if (id?.startsWith('shared_') && (sharedLoading || sharedError)) {
+        return (
+            <div className="w-screen h-screen theme-page flex items-center justify-center">
+                {sharedLoading ? (
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <p className="text-white/60">Loading shared canvas...</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center gap-4 text-center max-w-md">
+                        <p className="text-red-400 font-bold">{sharedError}</p>
+                        <button
+                            onClick={() => navigate('/dashboard')}
+                            className="px-4 py-2 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
+                        >
+                            Back to Dashboard
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="w-screen h-screen theme-page relative overflow-hidden flex flex-col md:flex-row">

@@ -34,6 +34,7 @@ export type Message = {
     workspaceId?: number;
     workspaceName?: string;
     fileName?: string;
+    shareId?: string;
   };
 };
 export type Chat = {
@@ -101,6 +102,7 @@ export const chatService = {
       replyToId?: number;
       canvasId?: string;
       canvasName?: string;
+      shareId?: string;
       highlightText?: string;
       type?: 'text' | 'image' | 'file';
       fileUrl?: string;
@@ -121,5 +123,20 @@ export const chatService = {
 
   markRead(chatId: number, token: string | null) {
     return fetchWithAuth(`/api/chats/${chatId}/read`, { method: 'POST' }, token);
+  },
+
+  async shareCanvas(data: { name: string; nodes: unknown[]; edges: unknown[]; writingContent?: string }, token: string | null) {
+    const res = await fetchWithAuth('/api/canvas/share', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, token);
+    return res as { shareId: string; name: string | null };
+  },
+
+  async getSharedCanvas(shareId: string) {
+    const res = await fetch(`${API_BASE_URL}/api/canvas/shared/${shareId}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to load shared canvas');
+    return data as { shareId: string; name: string | null; nodes: unknown[]; edges: unknown[]; writingContent?: string };
   },
 };

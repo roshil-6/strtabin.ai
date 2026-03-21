@@ -14,6 +14,7 @@ import crypto from 'crypto';
 import { createClerkClient } from '@clerk/backend';
 import { registerWorkspaceRoutes } from './routes/workspaces.js';
 import { registerChatRoutes } from './routes/chat.js';
+import { registerCanvasRoutes } from './routes/canvas.js';
 import { getOrCreateUser } from './db/models.js';
 import { initDb } from './db/index.js';
 
@@ -944,6 +945,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ─── Social + Team Workspace System (Phase 2) ───────────────────────────────
 registerWorkspaceRoutes(app, clerk);
 registerChatRoutes(app, clerk);
+registerCanvasRoutes(app, clerk);
 
 // ─── 404 handler ──────────────────────────────────────────────────────────
 app.use((_req, res) => {

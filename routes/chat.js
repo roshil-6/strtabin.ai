@@ -208,7 +208,7 @@ export function registerChatRoutes(app, clerkClient) {
         try {
             const id = parseInt(req.params.id, 10);
             if (isNaN(id)) return res.status(400).json({ error: 'Invalid chat.' });
-            const { content, replyToId, canvasId, canvasName, highlightText, type, fileUrl, fileName, projectId, projectTitle, workspaceId, workspaceName } = req.body || {};
+            const { content, replyToId, canvasId, canvasName, highlightText, type, fileUrl, fileName, projectId, projectTitle, workspaceId, workspaceName, shareId } = req.body || {};
             const text = sanitize(content, 10000);
             const msgType = type === 'image' || type === 'file' ? type : 'text';
             const contentOrUrl = msgType === 'text' ? text : sanitize(fileUrl, 500);
@@ -224,6 +224,7 @@ export function registerChatRoutes(app, clerkClient) {
             if (workspaceId) metadata.workspaceId = parseInt(workspaceId, 10);
             if (workspaceName) metadata.workspaceName = sanitize(workspaceName, 200);
             if (req.body?.canvasId) metadata.canvasId = sanitize(req.body.canvasId, 100);
+            if (shareId) metadata.shareId = sanitize(shareId, 50);
             if (fileName) metadata.fileName = sanitize(fileName, 200);
 
             const msgId = createMessage(id, req.userId, contentOrUrl || '[file]', msgType, replyToId || null, Object.keys(metadata).length ? metadata : null);

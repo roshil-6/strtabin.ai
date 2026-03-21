@@ -651,3 +651,15 @@ export function getUnreadCount(chatId, userId) {
     }
     return db.prepare('SELECT COUNT(*) as c FROM messages WHERE chat_id = ? AND sender_id != ? AND created_at > ?').get(chatId, userId, cp.last_read_at)?.c || 0;
 }
+
+// ─── Shared Canvases (for chat sharing) ─────────────────────────────────────
+export function createSharedCanvas({ shareId, name, data }) {
+    const db = getDb();
+    db.prepare('INSERT INTO shared_canvases (share_id, name, data) VALUES (?, ?, ?)').run(shareId, name || null, data);
+    return shareId;
+}
+
+export function getSharedCanvas(shareId) {
+    const db = getDb();
+    return db.prepare('SELECT share_id, name, data FROM shared_canvases WHERE share_id = ?').get(shareId);
+}

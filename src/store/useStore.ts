@@ -246,6 +246,7 @@ export type RFState = {
     addCanvasDoc: (id: string, doc: { name: string; url: string }) => void;
     deleteCanvasDoc: (id: string, docId: string) => void;
     ensureCanvasExists: (id: string) => void;
+    loadSharedCanvas: (id: string, data: { name?: string; nodes: Node[]; edges: Edge[]; writingContent?: string }) => void;
     updateCanvasTimeline: (id: string, content: string) => void;
     addCanvasTodo: (id: string, text: string) => void;
     toggleCanvasTodo: (id: string, todoId: string) => void;
@@ -724,6 +725,29 @@ const useStore = create<RFState>()(
 
                 set((state) => ({
                     canvases: { ...state.canvases, [id]: newCanvas }
+                }));
+            },
+
+            loadSharedCanvas: (id: string, data: { name?: string; nodes: Node[]; edges: Edge[]; writingContent?: string }) => {
+                const now = Date.now();
+                const nodes = Array.isArray(data.nodes) ? data.nodes : [];
+                const edges = Array.isArray(data.edges) ? data.edges : [];
+                const newCanvas: CanvasData = {
+                    id,
+                    name: data.name || 'Shared canvas',
+                    nodes,
+                    edges,
+                    writingContent: data.writingContent || '',
+                    folderId: null,
+                    updatedAt: now,
+                    attachments: [],
+                    images: [],
+                };
+                set((state) => ({
+                    canvases: { ...state.canvases, [id]: newCanvas },
+                    currentCanvasId: id,
+                    nodes,
+                    edges,
                 }));
             },
 
