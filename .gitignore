@@ -27,3 +27,6 @@ dist-ssr
 
 # SQLite database (runtime data)
 data/
+
+# Chat uploads (user photos/files)
+uploads/

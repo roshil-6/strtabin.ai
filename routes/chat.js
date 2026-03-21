@@ -1,6 +1,33 @@
 /**
- * Chat API: user search, chats, messages
+ * Chat API: user search, chats, messages, file upload
  */
+
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadDir = path.join(__dirname, '../uploads/chat');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+        const ext = (path.extname(file.originalname) || '.bin').toLowerCase().slice(0, 8);
+        const safe = `${Date.now()}_${(req.userId || 'anon')}_${Math.random().toString(36).slice(2, 10)}${ext}`;
+        cb(null, safe);
+    },
+});
+const upload = multer({
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        const allowed = /\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx|txt|md)$/i.test(file.originalname) ||
+            /^image\//.test(file.mimetype) || /^(application\/pdf|text\/)/.test(file.mimetype);
+        cb(null, !!allowed);
+    },
+});
 
 import {
     getOrCreateUser,
@@ -164,21 +191,42 @@ export function registerChatRoutes(app, clerkClient) {
         }
     });
 
+    // POST /api/chat/upload - upload photo or file for chat
+    app.post('/api/chat/upload', requireAuthMiddleware, upload.single('file'), (req, res) => {
+        try {
+            if (!req.file) return res.status(400).json({ error: 'No file provided.' });
+            const url = `/uploads/chat/${req.file.filename}`;
+            return res.json({ url, filename: req.file.originalname });
+        } catch (err) {
+            console.error('Upload error:', err);
+            return res.status(500).json({ error: 'Upload failed.' });
+        }
+    });
+
     // POST /api/chats/:id/messages - send message
     app.post('/api/chats/:id/messages', requireAuthMiddleware, (req, res) => {
         try {
             const id = parseInt(req.params.id, 10);
             if (isNaN(id)) return res.status(400).json({ error: 'Invalid chat.' });
-            const { content, replyToId, canvasId, canvasName, highlightText } = req.body || {};
+            const { content, replyToId, canvasId, canvasName, highlightText, type, fileUrl, fileName, projectId, projectTitle, workspaceId, workspaceName } = req.body || {};
             const text = sanitize(content, 10000);
-            if (!text) return res.status(400).json({ error: 'Message content required.' });
+            const msgType = type === 'image' || type === 'file' ? type : 'text';
+            const contentOrUrl = msgType === 'text' ? text : sanitize(fileUrl, 500);
+            if (msgType === 'text' && !contentOrUrl) return res.status(400).json({ error: 'Message content required.' });
+            if ((msgType === 'image' || msgType === 'file') && !contentOrUrl) return res.status(400).json({ error: 'File URL required for image/file message.' });
 
             const metadata = {};
             if (canvasId) metadata.canvasId = String(canvasId).slice(0, 100);
             if (canvasName) metadata.canvasName = sanitize(canvasName, 200);
             if (highlightText) metadata.highlightText = sanitize(highlightText, 500);
+            if (projectId) metadata.projectId = parseInt(projectId, 10);
+            if (projectTitle) metadata.projectTitle = sanitize(projectTitle, 200);
+            if (workspaceId) metadata.workspaceId = parseInt(workspaceId, 10);
+            if (workspaceName) metadata.workspaceName = sanitize(workspaceName, 200);
+            if (req.body?.canvasId) metadata.canvasId = sanitize(req.body.canvasId, 100);
+            if (fileName) metadata.fileName = sanitize(fileName, 200);
 
-            const msgId = createMessage(id, req.userId, text, 'text', replyToId || null, Object.keys(metadata).length ? metadata : null);
+            const msgId = createMessage(id, req.userId, contentOrUrl || '[file]', msgType, replyToId || null, Object.keys(metadata).length ? metadata : null);
             if (!msgId) return res.status(403).json({ error: 'Not found or access denied.' });
 
             const msg = getMessage(msgId);

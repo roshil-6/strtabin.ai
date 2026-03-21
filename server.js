@@ -2,6 +2,10 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
@@ -933,6 +937,9 @@ app.post('/api/strab-general', optionalAuth, guestOrAuthLimiter, async (req, res
         res.status(500).json({ error: 'Internal Server Error.' });
     }
 });
+
+// ─── Static uploads (chat photos/files) ─────────────────────────────────────
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── Social + Team Workspace System (Phase 2) ───────────────────────────────
 registerWorkspaceRoutes(app, clerk);

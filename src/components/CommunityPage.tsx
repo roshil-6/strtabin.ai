@@ -25,10 +25,14 @@ import {
   Network,
   Link2,
   Highlighter,
+  Image as ImageIcon,
+  Paperclip,
 } from 'lucide-react';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
 import { chatService, type Chat, type Message, type ChatUser } from '../services/chatService';
 import { API_BASE_URL } from '../constants';
+
+type ProjectItem = { id: number; title: string; workspace_id: number; workspace_name?: string; canvas_id?: string | null };
 
 /** Socket.io connects to same origin as API */
 const SOCKET_URL = API_BASE_URL;
@@ -65,6 +69,11 @@ export default function CommunityPage() {
   const [showAttach, setShowAttach] = useState(false);
   const [attachCanvas, setAttachCanvas] = useState('');
   const [attachHighlight, setAttachHighlight] = useState('');
+  const [attachProject, setAttachProject] = useState<ProjectItem | null>(null);
+  const [myProjects, setMyProjects] = useState<ProjectItem[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
@@ -84,7 +93,10 @@ export default function CommunityPage() {
     token.then((t) => {
       if (t) {
         workspaceService.getFeed().then(setFeed).catch(() => setFeed({ workspaces: [], activities: [], projects: [] }));
-        workspaceService.getMe(t).then((d) => setCurrentUserId(d?.user?.id ?? null));
+        workspaceService.getMe(t).then((d) => {
+          setCurrentUserId(d?.user?.id ?? null);
+          setMyProjects((d?.projects || []) as ProjectItem[]);
+        });
         chatService.getChats(t).then((d) => {
           const chatsList = d.chats || [];
           setChats(chatsList);
@@ -229,38 +241,76 @@ export default function CommunityPage() {
     }
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!messageInput.trim() || !activeChat || sending) return;
+  const handleSend = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!activeChat || sending || uploading) return;
     const text = messageInput.trim();
+    const hasProject = !!attachProject;
+    const hasContent = text || hasProject;
+    if (!hasContent) return;
     setMessageInput('');
     setSending(true);
     const canvasTrim = attachCanvas.trim();
     const highlightTrim = attachHighlight.trim();
     const canvasIdMatch = canvasTrim.match(/\/strategy\/([^/?#]+)|\/canvas\/([^/?#]+)/);
-    const opts =
-      canvasTrim || highlightTrim
-        ? {
-            canvasName: canvasTrim || undefined,
-            canvasId: canvasIdMatch?.[1] || canvasIdMatch?.[2] || (canvasTrim && /^[a-zA-Z0-9_-]{1,50}$/.test(canvasTrim) ? canvasTrim : undefined),
-            highlightText: highlightTrim || undefined,
-          }
-        : undefined;
+    const opts: Parameters<typeof chatService.sendMessage>[3] = canvasTrim || highlightTrim
+      ? {
+          canvasName: canvasTrim || undefined,
+          canvasId: canvasIdMatch?.[1] || canvasIdMatch?.[2] || (canvasTrim && /^[a-zA-Z0-9_-]{1,50}$/.test(canvasTrim) ? canvasTrim : undefined),
+          highlightText: highlightTrim || undefined,
+        }
+      : undefined;
     if (opts) {
       setAttachCanvas('');
       setAttachHighlight('');
       setShowAttach(false);
     }
+    const projectOpts = attachProject
+      ? {
+          projectId: attachProject.id,
+          projectTitle: attachProject.title,
+          workspaceId: attachProject.workspace_id,
+          workspaceName: attachProject.workspace_name,
+          canvasId: attachProject.canvas_id || undefined,
+        }
+      : {};
+    const content = text || (hasProject ? `Shared project: ${attachProject!.title}` : '');
     try {
       const token = await getToken();
-      const { message } = await chatService.sendMessage(activeChat.id, text, token, opts);
+      const { message } = await chatService.sendMessage(activeChat.id, content, token, { ...opts, ...projectOpts });
       setMessages((prev) => [...prev, message]);
+      if (attachProject) {
+        setAttachProject(null);
+        setShowAttach(false);
+      }
       scrollToBottom();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to send');
       setMessageInput(text);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleFileUpload = async (file: File, forceImage?: boolean) => {
+    if (!activeChat || sending || uploading) return;
+    setUploading(true);
+    try {
+      const token = await getToken();
+      const { url, filename } = await chatService.uploadFile(file, token);
+      const isImage = forceImage ?? file.type.startsWith('image/');
+      const { message } = await chatService.sendMessage(
+        activeChat.id,
+        url,
+        token,
+        { type: isImage ? 'image' : 'file', fileUrl: url, fileName: filename }
+      );
+      setMessages((prev) => [...prev, message]);
+      scrollToBottom();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -708,6 +758,11 @@ export default function CommunityPage() {
                         const meta = typeof m.metadata === 'string' ? (() => { try { return JSON.parse(m.metadata); } catch { return {}; } })() : (m.metadata || {});
                         const hasCanvas = meta.canvasId || meta.canvasName;
                         const hasHighlight = meta.highlightText;
+                        const hasProject = meta.projectId || meta.projectTitle;
+                        const isImage = m.type === 'image';
+                        const isFile = m.type === 'file';
+                        const imgUrl = isImage && m.content ? `${API_BASE_URL}${m.content.startsWith('/') ? '' : '/'}${m.content}` : null;
+                        const fileUrl = isFile && m.content ? `${API_BASE_URL}${m.content.startsWith('/') ? '' : '/'}${m.content}` : null;
                         return (
                           <div
                             key={m.id}
@@ -720,7 +775,7 @@ export default function CommunityPage() {
                                   : 'bg-white/10 text-white rounded-bl-md'
                               }`}
                             >
-                              {(hasCanvas || hasHighlight) && (
+                              {(hasCanvas || hasHighlight || hasProject) && (
                                 <div className="flex flex-wrap gap-1.5 mb-2">
                                   {hasCanvas && (
                                     <span
@@ -737,9 +792,37 @@ export default function CommunityPage() {
                                       {meta.highlightText}
                                     </span>
                                   )}
+                                  {hasProject && (
+                                    <button
+                                      onClick={() => {
+                                        if (meta.canvasId) navigate(`/strategy/${meta.canvasId}`);
+                                        else if (meta.workspaceId) navigate(`/workspace/${meta.workspaceId}`);
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 text-xs hover:bg-white/30"
+                                    >
+                                      <FolderOpen size={12} />
+                                      {meta.projectTitle || 'Project'}
+                                    </button>
+                                  )}
                                 </div>
                               )}
-                              <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+                              {imgUrl && (
+                                <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="block mb-2">
+                                  <img src={imgUrl} alt="Shared" className="max-w-full max-h-64 rounded-lg object-contain" />
+                                </a>
+                              )}
+                              {fileUrl && (
+                                <a
+                                  href={fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-2 px-2 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-sm mb-2"
+                                >
+                                  <Paperclip size={14} />
+                                  {meta.fileName || 'Download file'}
+                                </a>
+                              )}
+                              {!isImage && <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>}
                               <div className="flex items-center justify-end gap-1 mt-1">
                                 <span className="text-[10px] opacity-70">{formatTime(m.created_at)}</span>
                                 {isMe && <CheckCheck size={12} className="opacity-70" />}
@@ -775,16 +858,76 @@ export default function CommunityPage() {
                             className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
                           />
                         </div>
+                        {myProjects.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <FolderOpen size={16} className="text-primary shrink-0" />
+                            <select
+                              value={attachProject?.id ?? ''}
+                              onChange={(e) => {
+                                const id = parseInt(e.target.value, 10);
+                                setAttachProject(id ? myProjects.find((p) => p.id === id) ?? null : null);
+                              }}
+                              className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-primary/50"
+                            >
+                              <option value="">Share a project...</option>
+                              {myProjects.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.title} {p.workspace_name ? `(${p.workspace_name})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </div>
                     )}
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFileUpload(f, true);
+                        e.target.value = '';
+                      }}
+                    />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFileUpload(f);
+                        e.target.value = '';
+                      }}
+                    />
                     <div className="p-4 flex gap-2">
                       <button
                         type="button"
                         onClick={() => setShowAttach((v) => !v)}
                         className={`p-3 rounded-xl transition-all ${showAttach ? 'bg-primary/20 text-primary' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                        title="Mark canvas or highlight"
+                        title="Mark canvas, highlight, or project"
                       >
                         <Link2 size={20} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        disabled={uploading}
+                        className="p-3 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
+                        title="Share photo"
+                      >
+                        {uploading ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={20} />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="p-3 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
+                        title="Share file"
+                      >
+                        <Paperclip size={20} />
                       </button>
                       <input
                         type="text"
@@ -805,7 +948,7 @@ export default function CommunityPage() {
                       />
                       <button
                         type="submit"
-                        disabled={sending || !messageInput.trim()}
+                        disabled={sending || uploading || (!messageInput.trim() && !attachProject)}
                         className="p-3 bg-primary text-black rounded-xl hover:bg-white transition-all disabled:opacity-50"
                       >
                         {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}

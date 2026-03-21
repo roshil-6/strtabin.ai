@@ -25,7 +25,16 @@ export type Message = {
   type: string;
   sender_username: string | null;
   created_at: string;
-  metadata?: string | { canvasId?: string; canvasName?: string; highlightText?: string };
+  metadata?: string | {
+    canvasId?: string;
+    canvasName?: string;
+    highlightText?: string;
+    projectId?: number;
+    projectTitle?: string;
+    workspaceId?: number;
+    workspaceName?: string;
+    fileName?: string;
+  };
 };
 export type Chat = {
   id: number;
@@ -69,11 +78,39 @@ export const chatService = {
     return fetchWithAuth(`/api/chats/${chatId}/messages${q}`, {}, token);
   },
 
+  async uploadFile(file: File, token: string | null) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE_URL}/api/chat/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data as { url: string; filename: string };
+  },
+
   sendMessage(
     chatId: number,
     content: string,
     token: string | null,
-    opts?: { replyToId?: number; canvasId?: string; canvasName?: string; highlightText?: string }
+    opts?: {
+      replyToId?: number;
+      canvasId?: string;
+      canvasName?: string;
+      highlightText?: string;
+      type?: 'text' | 'image' | 'file';
+      fileUrl?: string;
+      fileName?: string;
+      projectId?: number;
+      projectTitle?: string;
+      workspaceId?: number;
+      workspaceName?: string;
+      canvasId?: string;
+    }
   ) {
     const body = { content, ...opts };
     return fetchWithAuth(
