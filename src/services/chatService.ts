@@ -25,6 +25,7 @@ export type Message = {
   type: string;
   sender_username: string | null;
   created_at: string;
+  metadata?: string | { canvasId?: string; canvasName?: string; highlightText?: string };
 };
 export type Chat = {
   id: number;
@@ -68,10 +69,16 @@ export const chatService = {
     return fetchWithAuth(`/api/chats/${chatId}/messages${q}`, {}, token);
   },
 
-  sendMessage(chatId: number, content: string, token: string | null, replyToId?: number) {
+  sendMessage(
+    chatId: number,
+    content: string,
+    token: string | null,
+    opts?: { replyToId?: number; canvasId?: string; canvasName?: string; highlightText?: string }
+  ) {
+    const body = { content, ...opts };
     return fetchWithAuth(
       `/api/chats/${chatId}/messages`,
-      { method: 'POST', body: JSON.stringify({ content, replyToId }) },
+      { method: 'POST', body: JSON.stringify(body) },
       token
     );
   },

@@ -13,7 +13,6 @@ import {
   Send,
   Globe,
   FolderOpen,
-  Activity,
   User,
   ChevronLeft,
   ArrowLeft,
@@ -23,6 +22,9 @@ import {
   ExternalLink,
   UserPlus,
   X,
+  Network,
+  Link2,
+  Highlighter,
 } from 'lucide-react';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
 import { chatService, type Chat, type Message, type ChatUser } from '../services/chatService';
@@ -60,6 +62,9 @@ export default function CommunityPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [showAttach, setShowAttach] = useState(false);
+  const [attachCanvas, setAttachCanvas] = useState('');
+  const [attachHighlight, setAttachHighlight] = useState('');
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
@@ -230,9 +235,25 @@ export default function CommunityPage() {
     const text = messageInput.trim();
     setMessageInput('');
     setSending(true);
+    const canvasTrim = attachCanvas.trim();
+    const highlightTrim = attachHighlight.trim();
+    const canvasIdMatch = canvasTrim.match(/\/strategy\/([^/?#]+)|\/canvas\/([^/?#]+)/);
+    const opts =
+      canvasTrim || highlightTrim
+        ? {
+            canvasName: canvasTrim || undefined,
+            canvasId: canvasIdMatch?.[1] || canvasIdMatch?.[2] || (canvasTrim && /^[a-zA-Z0-9_-]{1,50}$/.test(canvasTrim) ? canvasTrim : undefined),
+            highlightText: highlightTrim || undefined,
+          }
+        : undefined;
+    if (opts) {
+      setAttachCanvas('');
+      setAttachHighlight('');
+      setShowAttach(false);
+    }
     try {
       const token = await getToken();
-      const { message } = await chatService.sendMessage(activeChat.id, text, token);
+      const { message } = await chatService.sendMessage(activeChat.id, text, token, opts);
       setMessages((prev) => [...prev, message]);
       scrollToBottom();
     } catch (err) {
@@ -534,25 +555,42 @@ export default function CommunityPage() {
                   </div>
                 </section>
               )}
-              {feed?.activities && feed.activities.length > 0 && (
+              {chatableUsers.length > 0 && (
                 <section>
                   <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <Activity size={16} />
-                    Recent activity
+                    <Network size={16} />
+                    Explore connections
                   </h2>
                   <div className="space-y-2">
-                    {feed.activities.map((a) => (
-                      <div key={a.id} className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
-                        <p className="text-sm text-white/70">
-                          <span className="font-bold text-white">{a.username || 'User'}</span> {a.action.replace(/_/g, ' ')}
-                        </p>
-                        <p className="text-[10px] text-white/30 mt-1">{new Date(a.created_at).toLocaleString()}</p>
+                    {chatableUsers.slice(0, 15).map((u) => (
+                      <div
+                        key={u.id}
+                        className="p-4 bg-white/[0.04] border border-white/10 rounded-xl flex items-center justify-between gap-3 hover:border-primary/30 transition-all"
+                      >
+                        <button
+                          onClick={() => (u.username || u.email) && navigate(`/profile/${u.username || u.email}`)}
+                          className="flex-1 flex items-center gap-3 text-left min-w-0"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                            <User size={20} className="text-primary" />
+                          </div>
+                          <p className="font-bold text-white truncate">{u.username || u.email || 'User'}</p>
+                          <ExternalLink size={14} className="text-white/40 shrink-0" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleStartChat(u); setTab('chat'); }}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs shrink-0"
+                        >
+                          <MessageCircle size={14} />
+                          Message
+                        </button>
                       </div>
                     ))}
                   </div>
                 </section>
               )}
-              {(!feed?.projects?.length && !feed?.workspaces?.length && !feed?.activities?.length) && (
+              {(!feed?.projects?.length && !feed?.workspaces?.length && chatableUsers.length === 0) && (
                 <p className="text-white/40 text-center py-12">No public content yet.</p>
               )}
             </div>
@@ -667,6 +705,9 @@ export default function CommunityPage() {
                     ) : (
                       messages.map((m) => {
                         const isMe = m.sender_id === currentUserId;
+                        const meta = typeof m.metadata === 'string' ? (() => { try { return JSON.parse(m.metadata); } catch { return {}; } })() : (m.metadata || {});
+                        const hasCanvas = meta.canvasId || meta.canvasName;
+                        const hasHighlight = meta.highlightText;
                         return (
                           <div
                             key={m.id}
@@ -679,6 +720,25 @@ export default function CommunityPage() {
                                   : 'bg-white/10 text-white rounded-bl-md'
                               }`}
                             >
+                              {(hasCanvas || hasHighlight) && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                  {hasCanvas && (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 text-xs"
+                                      title={meta.canvasName || meta.canvasId}
+                                    >
+                                      <Link2 size={12} />
+                                      {meta.canvasName || meta.canvasId}
+                                    </span>
+                                  )}
+                                  {hasHighlight && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 text-xs">
+                                      <Highlighter size={12} />
+                                      {meta.highlightText}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                               <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
                               <div className="flex items-center justify-end gap-1 mt-1">
                                 <span className="text-[10px] opacity-70">{formatTime(m.created_at)}</span>
@@ -692,31 +752,65 @@ export default function CommunityPage() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  <form onSubmit={handleSend} className="p-4 border-t border-white/10 flex gap-2">
-                    <input
-                      type="text"
-                      value={messageInput}
-                      onChange={(e) => {
-                        setMessageInput(e.target.value);
-                        if (activeChat && socketRef.current) {
-                          if (typingEmitRef.current) clearTimeout(typingEmitRef.current);
-                          typingEmitRef.current = setTimeout(() => {
-                            socketRef.current?.emit('chat:typing', { chatId: activeChat.id });
-                            typingEmitRef.current = undefined;
-                          }, 300);
-                        }
-                      }}
-                      placeholder="Type a message..."
-                      className="flex-1 px-4 py-3 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
-                      onFocus={() => activeChat && socketRef.current?.emit('chat:typing', { chatId: activeChat.id })}
-                    />
-                    <button
-                      type="submit"
-                      disabled={sending || !messageInput.trim()}
-                      className="p-3 bg-primary text-black rounded-xl hover:bg-white transition-all disabled:opacity-50"
-                    >
-                      {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
-                    </button>
+                  <form onSubmit={handleSend} className="border-t border-white/10">
+                    {showAttach && (
+                      <div className="p-3 bg-white/[0.02] border-b border-white/5 flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <Link2 size={16} className="text-primary shrink-0" />
+                          <input
+                            type="text"
+                            value={attachCanvas}
+                            onChange={(e) => setAttachCanvas(e.target.value)}
+                            placeholder="Canvas name or link (e.g. /strategy/abc)"
+                            className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Highlighter size={16} className="text-primary shrink-0" />
+                          <input
+                            type="text"
+                            value={attachHighlight}
+                            onChange={(e) => setAttachHighlight(e.target.value)}
+                            placeholder="Highlight or snippet to discuss"
+                            className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <div className="p-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowAttach((v) => !v)}
+                        className={`p-3 rounded-xl transition-all ${showAttach ? 'bg-primary/20 text-primary' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                        title="Mark canvas or highlight"
+                      >
+                        <Link2 size={20} />
+                      </button>
+                      <input
+                        type="text"
+                        value={messageInput}
+                        onChange={(e) => {
+                          setMessageInput(e.target.value);
+                          if (activeChat && socketRef.current) {
+                            if (typingEmitRef.current) clearTimeout(typingEmitRef.current);
+                            typingEmitRef.current = setTimeout(() => {
+                              socketRef.current?.emit('chat:typing', { chatId: activeChat.id });
+                              typingEmitRef.current = undefined;
+                            }, 300);
+                          }
+                        }}
+                        placeholder="Type a message..."
+                        className="flex-1 px-4 py-3 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
+                        onFocus={() => activeChat && socketRef.current?.emit('chat:typing', { chatId: activeChat.id })}
+                      />
+                      <button
+                        type="submit"
+                        disabled={sending || !messageInput.trim()}
+                        className="p-3 bg-primary text-black rounded-xl hover:bg-white transition-all disabled:opacity-50"
+                      >
+                        {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+                      </button>
+                    </div>
                   </form>
                 </>
               ) : (

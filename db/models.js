@@ -618,12 +618,13 @@ export function getMessages(chatId, userId, beforeId = null, limit = 50) {
     return db.prepare(sql).all(...params).reverse();
 }
 
-export function createMessage(chatId, senderId, content, type = 'text', replyToId = null) {
+export function createMessage(chatId, senderId, content, type = 'text', replyToId = null, metadata = null) {
     const db = getDb();
     const isMember = db.prepare('SELECT 1 FROM chat_participants WHERE chat_id = ? AND user_id = ?').get(chatId, senderId);
     if (!isMember) return null;
 
-    const meta = replyToId ? JSON.stringify({ replyToId }) : null;
+    const metaObj = { ...(replyToId ? { replyToId } : {}), ...(metadata || {}) };
+    const meta = Object.keys(metaObj).length > 0 ? JSON.stringify(metaObj) : null;
     const result = db.prepare(`
         INSERT INTO messages (chat_id, sender_id, content, type, reply_to_id, metadata) VALUES (?, ?, ?, ?, ?, ?)
     `).run(chatId, senderId, content, type, replyToId || null, meta);

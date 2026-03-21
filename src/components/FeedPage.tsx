@@ -1,15 +1,19 @@
 /**
- * Public feed: workspaces, projects, activity
+ * Public feed: workspaces, projects, explore connections
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, FolderOpen, Activity, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
+import { Globe, FolderOpen, ArrowLeft, Network, User, MessageCircle, ExternalLink } from 'lucide-react';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
+import { chatService, type ChatUser } from '../services/chatService';
 
 export default function FeedPage() {
   const navigate = useNavigate();
+  const { getToken } = useAuth();
   const [feed, setFeed] = useState<FeedItem | null>(null);
+  const [connections, setConnections] = useState<ChatUser[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,6 +23,16 @@ export default function FeedPage() {
       .catch(() => setFeed({ workspaces: [], activities: [], projects: [] }))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    getToken().then((token) => {
+      if (token) {
+        chatService.getChatableUsers(token)
+          .then((d) => setConnections(d.users || []))
+          .catch(() => setConnections([]));
+      }
+    });
+  }, [getToken]);
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
@@ -102,24 +116,44 @@ export default function FeedPage() {
               </section>
             )}
 
-            {feed.activities && feed.activities.length > 0 && (
+            {connections.length > 0 && (
               <section>
                 <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Activity size={16} />
-                  Recent activity
+                  <Network size={16} />
+                  Explore connections
                 </h2>
                 <div className="space-y-2">
-                  {feed.activities.map((a) => (
-                    <div key={a.id} className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
-                      <p className="text-sm text-white/70">
-                        <span className="font-bold text-white">{a.username || 'User'}</span> {a.action.replace(/_/g, ' ')}
-                      </p>
-                      {(a.workspace_name || a.project_title) && (
-                        <p className="text-xs text-white/40 mt-1">
-                          {[a.workspace_name, a.project_title].filter(Boolean).join(' • ')}
-                        </p>
-                      )}
-                      <p className="text-[10px] text-white/30 mt-1">{new Date(a.created_at).toLocaleString()}</p>
+                  {connections.slice(0, 20).map((u) => (
+                    <div
+                      key={u.id}
+                      className="p-4 bg-white/[0.04] border border-white/10 rounded-xl flex items-center justify-between gap-3 hover:border-primary/30 transition-all"
+                    >
+                      <button
+                        onClick={() => (u.username || u.email) && navigate(`/profile/${u.username || u.email}`)}
+                        className="flex-1 flex items-center gap-3 text-left min-w-0"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                          <User size={20} className="text-primary" />
+                        </div>
+                        <p className="font-bold text-white truncate">{u.username || u.email || 'User'}</p>
+                        <ExternalLink size={14} className="text-white/40 shrink-0" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const token = await getToken();
+                            if (!token) return;
+                            const { chat } = await chatService.createDirectChat(u.id, token);
+                            navigate('/community', { state: { openChat: chat } });
+                          } catch {
+                            navigate('/community');
+                          }
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs shrink-0"
+                      >
+                        <MessageCircle size={14} />
+                        Message
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -128,7 +162,7 @@ export default function FeedPage() {
 
             {(!feed.projects || feed.projects.length === 0) &&
               (!feed.workspaces || feed.workspaces.length === 0) &&
-              (!feed.activities || feed.activities.length === 0) && (
+              connections.length === 0 && (
                 <p className="text-white/40 text-center py-12">No public content yet. Create a public workspace to get started.</p>
               )}
           </div>

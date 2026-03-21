@@ -169,11 +169,16 @@ export function registerChatRoutes(app, clerkClient) {
         try {
             const id = parseInt(req.params.id, 10);
             if (isNaN(id)) return res.status(400).json({ error: 'Invalid chat.' });
-            const { content, replyToId } = req.body || {};
+            const { content, replyToId, canvasId, canvasName, highlightText } = req.body || {};
             const text = sanitize(content, 10000);
             if (!text) return res.status(400).json({ error: 'Message content required.' });
 
-            const msgId = createMessage(id, req.userId, text, 'text', replyToId || null);
+            const metadata = {};
+            if (canvasId) metadata.canvasId = String(canvasId).slice(0, 100);
+            if (canvasName) metadata.canvasName = sanitize(canvasName, 200);
+            if (highlightText) metadata.highlightText = sanitize(highlightText, 500);
+
+            const msgId = createMessage(id, req.userId, text, 'text', replyToId || null, Object.keys(metadata).length ? metadata : null);
             if (!msgId) return res.status(403).json({ error: 'Not found or access denied.' });
 
             const msg = getMessage(msgId);
