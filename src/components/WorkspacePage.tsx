@@ -1,5 +1,6 @@
 /**
  * Workspace detail page: projects, members, activity feed
+ * Structured team workspace with tabs, tools, and overview
  */
 
 import { useState, useEffect } from 'react';
@@ -26,6 +27,9 @@ import {
   MessageCircle,
   ExternalLink,
   Share2,
+  LayoutDashboard,
+  Filter,
+  Zap,
 } from 'lucide-react';
 import { workspaceService, type Workspace, type Project, type WorkspaceMember, type ActivityLog, type ProjectStatus, type MemberDailyTask } from '../services/workspaceService';
 import { chatService } from '../services/chatService';
@@ -71,6 +75,8 @@ export default function WorkspacePage() {
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskUserId, setNewTaskUserId] = useState<number | null>(null);
   const [roleMenuOpen, setRoleMenuOpen] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'team' | 'tasks' | 'activity'>('overview');
+  const [projectStatusFilter, setProjectStatusFilter] = useState<ProjectStatus | 'all'>('all');
 
   const workspaceId = id ? parseInt(id, 10) : NaN;
   const isTeam = workspace?.type === 'team';
@@ -274,6 +280,13 @@ export default function WorkspacePage() {
   const getProjectsAssignedTo = (userId: number) =>
     projects.filter((p) => (p as Project & { assigned_to?: number }).assigned_to === userId).length;
 
+  const filteredProjects = projectStatusFilter === 'all'
+    ? projects
+    : projects.filter((p) => p.status === projectStatusFilter);
+
+  const pendingTasksCount = dailyTasks.filter((t) => t.status === 'pending').length;
+  const completedTasksCount = dailyTasks.filter((t) => t.status === 'done').length;
+
   const handleMessageMember = async (member: WorkspaceMember) => {
     if (member.id === currentUserId) return;
     try {
@@ -308,14 +321,14 @@ export default function WorkspacePage() {
           </div>
         ) : workspace ? (
           <>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-2xl md:text-3xl font-black text-white">{workspace.name}</h1>
                 <p className="text-white/50 text-sm mt-1">
                   {workspace.type === 'team' ? 'Team workspace' : 'Individual workspace'} • {workspace.visibility}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {isTeam && isAdmin && (
                   <button
                     onClick={() => setShowInvite(true)}
@@ -332,21 +345,190 @@ export default function WorkspacePage() {
                   <Plus size={16} />
                   New Project
                 </button>
+                {isTeam && (
+                  <button
+                    onClick={() => navigate('/community')}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold text-sm transition-all"
+                  >
+                    <MessageCircle size={16} />
+                    Community Chat
+                  </button>
+                )}
               </div>
             </div>
 
+            {/* Tab navigation */}
+            {isTeam && (
+              <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/10 mb-6 overflow-x-auto">
+                {[
+                  { id: 'overview' as const, label: 'Overview', icon: LayoutDashboard },
+                  { id: 'projects' as const, label: 'Projects', icon: FolderPlus },
+                  { id: 'team' as const, label: 'Team', icon: Users },
+                  { id: 'tasks' as const, label: 'Tasks', icon: ListTodo },
+                  { id: 'activity' as const, label: 'Activity', icon: Activity },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => setActiveTab(id)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shrink-0 ${
+                      activeTab === id ? 'bg-primary text-black' : 'text-white/60 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <Icon size={16} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="grid md:grid-cols-3 gap-6 items-start">
               <div className="md:col-span-2 space-y-6">
-                <section>
-                  <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <FolderPlus size={16} />
-                    Projects
-                  </h2>
+                {/* Overview tab */}
+                {isTeam && activeTab === 'overview' && (
+                  <section className="space-y-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
+                        <div className="flex items-center gap-2 text-white/50 mb-1">
+                          <FolderPlus size={14} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Projects</span>
+                        </div>
+                        <p className="text-2xl font-black text-white">{projects.length}</p>
+                        <p className="text-[10px] text-white/40 mt-0.5">{projects.filter((p) => p.status === 'executing').length} in progress</p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
+                        <div className="flex items-center gap-2 text-white/50 mb-1">
+                          <ListTodo size={14} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Tasks today</span>
+                        </div>
+                        <p className="text-2xl font-black text-white">{pendingTasksCount}</p>
+                        <p className="text-[10px] text-white/40 mt-0.5">{completedTasksCount} done</p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
+                        <div className="flex items-center gap-2 text-white/50 mb-1">
+                          <Users size={14} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Team</span>
+                        </div>
+                        <p className="text-2xl font-black text-white">{members.length}</p>
+                        <p className="text-[10px] text-white/40 mt-0.5">members</p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
+                        <div className="flex items-center gap-2 text-white/50 mb-1">
+                          <Zap size={14} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Quick</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          <button onClick={() => setShowNewProject(true)} className="px-2 py-1 text-[10px] font-bold bg-primary/20 text-primary rounded-lg hover:bg-primary/30">+ Project</button>
+                          {isAdmin && <button onClick={() => setShowInvite(true)} className="px-2 py-1 text-[10px] font-bold bg-white/10 text-white/60 rounded-lg hover:bg-white/20">+ Invite</button>}
+                          <button onClick={() => setActiveTab('tasks')} className="px-2 py-1 text-[10px] font-bold bg-white/10 text-white/60 rounded-lg hover:bg-white/20">+ Task</button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="rounded-xl bg-white/[0.02] border border-white/10 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-xs font-black text-white/50 uppercase tracking-wider flex items-center gap-2">
+                            <FolderPlus size={14} />
+                            Recent projects
+                          </h3>
+                          {projects.length > 5 && (
+                            <button onClick={() => setActiveTab('projects')} className="text-[10px] font-bold text-primary hover:text-primary/80">
+                              View all
+                            </button>
+                          )}
+                        </div>
+                        {projects.length === 0 ? (
+                          <p className="text-white/30 text-xs py-4">No projects yet.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {projects.slice(0, 5).map((p) => {
+                              const Icon = STATUS_ICONS[p.status];
+                              return (
+                                <button
+                                  key={p.id}
+                                  onClick={() => handleOpenProject(p)}
+                                  className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 text-left"
+                                >
+                                  <Icon size={14} className="text-primary shrink-0" />
+                                  <span className="text-sm font-bold text-white truncate flex-1">{p.title}</span>
+                                  <span className="text-[10px] text-white/40">{STATUS_LABELS[p.status]}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <div className="rounded-xl bg-white/[0.02] border border-white/10 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-xs font-black text-white/50 uppercase tracking-wider flex items-center gap-2">
+                            <Activity size={14} />
+                            Recent activity
+                          </h3>
+                          {activities.length > 4 && (
+                            <button onClick={() => setActiveTab('activity')} className="text-[10px] font-bold text-primary hover:text-primary/80">
+                              View all
+                            </button>
+                          )}
+                        </div>
+                        {activities.length === 0 ? (
+                          <p className="text-white/30 text-xs py-4">No activity yet.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {activities.slice(0, 4).map((a) => (
+                              <div key={a.id} className="p-2 rounded-lg border border-white/5">
+                                <p className="text-xs text-white/70">
+                                  <span className="font-bold text-white">{a.username || 'User'}</span>{' '}
+                                  {a.action.replace(/_/g, ' ')}
+                                </p>
+                                <p className="text-[10px] text-white/30 mt-0.5">{new Date(a.created_at).toLocaleString()}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {/* Projects section - for individual always; for team only on Projects tab */}
+                {(!isTeam || activeTab === 'projects') && (
+                  <section>
+                  {(!isTeam || activeTab === 'projects') && (
+                    <>
+                      {isTeam && (
+                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                          <h2 className="text-sm font-black text-white/50 uppercase tracking-wider flex items-center gap-2">
+                            <FolderPlus size={16} />
+                            Projects
+                          </h2>
+                          <div className="flex items-center gap-1 ml-auto">
+                            <Filter size={14} className="text-white/40" />
+                            {(['all', 'idea', 'planning', 'executing', 'completed'] as const).map((s) => (
+                              <button
+                                key={s}
+                                onClick={() => setProjectStatusFilter(s)}
+                                className={`px-2.5 py-1 text-xs rounded-lg font-bold transition-all ${
+                                  projectStatusFilter === s ? 'bg-primary text-black' : 'bg-white/5 text-white/60 hover:text-white'
+                                }`}
+                              >
+                                {s === 'all' ? 'All' : STATUS_LABELS[s]}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {!isTeam && (
+                        <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
+                          <FolderPlus size={16} />
+                          Projects
+                        </h2>
+                      )}
+                    </>
+                  )}
                   <div className="space-y-2">
                     {projects.length === 0 ? (
                       <p className="text-white/30 text-sm py-8 text-center">No projects yet. Create one to get started.</p>
                     ) : (
-                      projects.map((project) => {
+                      (isTeam ? filteredProjects : projects).map((project) => {
                         const Icon = STATUS_ICONS[project.status];
                         return (
                           <div
@@ -445,10 +627,240 @@ export default function WorkspacePage() {
                     )}
                   </div>
                 </section>
+                )}
+
+                {/* Team tab - full team section in main area */}
+                {isTeam && activeTab === 'team' && (
+                  <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                      <h2 className="text-sm font-black text-white/50 uppercase tracking-wider flex items-center gap-2">
+                        <Users size={16} />
+                        Team ({members.length})
+                      </h2>
+                      {isAdmin && (
+                        <button
+                          onClick={handleCopyWorkspaceLink}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-bold transition-all"
+                        >
+                          <Share2 size={12} />
+                          Share link
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {members.map((m) => {
+                        const assignedCount = getProjectsAssignedTo(m.id);
+                        const canMessage = m.id !== currentUserId;
+                        const displayName = m.username || m.email || 'Unknown';
+                        return (
+                          <div key={m.id} className="min-h-[120px] p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-primary/20 transition-all group flex flex-col">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-lg font-black text-primary shrink-0">
+                                {(m.username || m.email || '?').slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-white truncate">{displayName}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${isOwner(m) ? 'bg-amber-500/20 text-amber-400' : m.role === 'admin' ? 'bg-primary/20 text-primary' : 'bg-white/10 text-white/50'}`}>
+                                    {isOwner(m) ? 'Owner' : m.role}
+                                  </span>
+                                  {assignedCount > 0 && (
+                                    <span className="text-[10px] text-white/40">{assignedCount} project{assignedCount !== 1 ? 's' : ''}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-3 items-center">
+                              {canMessage && (
+                                <button
+                                  onClick={() => handleMessageMember(m)}
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 text-xs font-bold transition-all"
+                                >
+                                  <MessageCircle size={12} />
+                                  Message
+                                </button>
+                              )}
+                              {(m.username || m.email) && (
+                                <button
+                                  onClick={() => navigate(`/profile/${m.username || m.email}`)}
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-bold transition-all"
+                                >
+                                  <ExternalLink size={12} />
+                                  Profile
+                                </button>
+                              )}
+                              {isAdmin && !isOwner(m) && (
+                                <div className="relative">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setRoleMenuOpen(roleMenuOpen === m.id ? null : m.id); }}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-bold transition-all"
+                                  >
+                                    {m.role}
+                                    <ChevronDown size={12} />
+                                  </button>
+                                  {roleMenuOpen === m.id && (
+                                    <div className="absolute left-0 top-full mt-1 py-1 bg-[var(--bg-panel)] border border-white/10 rounded-xl shadow-xl z-10 min-w-[100px]">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'admin'); setRoleMenuOpen(null); }}
+                                        className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'admin' ? 'text-primary' : 'text-white/70'}`}
+                                      >
+                                        Admin
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'member'); setRoleMenuOpen(null); }}
+                                        className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'member' ? 'text-primary' : 'text-white/70'}`}
+                                      >
+                                        Member
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+
+                {/* Tasks tab - full tasks section in main area */}
+                {isTeam && activeTab === 'tasks' && (
+                  <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
+                    <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <ListTodo size={16} />
+                      Daily tasks
+                    </h2>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          type="date"
+                          value={taskDate}
+                          onChange={(e) => setTaskDate(e.target.value)}
+                          className="w-full sm:w-auto min-w-0 px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary/50"
+                        />
+                        {!isAdmin && currentUserId && (
+                          <button
+                            type="button"
+                            onClick={() => setShowOnlyMyTasks(!showOnlyMyTasks)}
+                            className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${showOnlyMyTasks ? 'bg-primary/20 text-primary' : 'bg-white/5 text-white/60'}`}
+                          >
+                            My tasks only
+                          </button>
+                        )}
+                      </div>
+                      <form onSubmit={handleAddDailyTask} className="flex flex-col gap-3">
+                        {isAdmin && (
+                          <select
+                            value={newTaskUserId ?? ''}
+                            onChange={(e) => setNewTaskUserId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                            className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary/50"
+                          >
+                            <option value="">Assign to...</option>
+                            {members.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.username || m.email || 'Unknown'}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            value={newTaskText}
+                            onChange={(e) => setNewTaskText(e.target.value)}
+                            placeholder="Task description..."
+                            className="flex-1 min-w-0 px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:border-primary/50"
+                          />
+                          <button
+                            type="submit"
+                            disabled={submitting || !newTaskText.trim()}
+                            className="px-4 py-2.5 bg-primary text-black font-bold rounded-xl text-sm disabled:opacity-50 shrink-0 h-[42px]"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </form>
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+                        {(() => {
+                          const displayedTasks = showOnlyMyTasks && currentUserId ? dailyTasks.filter((t) => t.user_id === currentUserId) : dailyTasks;
+                          return displayedTasks.length === 0 ? (
+                            <p className="text-white/30 text-xs py-4">No tasks for this date.</p>
+                          ) : (
+                            displayedTasks.map((t) => (
+                              <div
+                                key={t.id}
+                                className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                                  t.status === 'done' ? 'bg-white/[0.02] border-white/5' : 'bg-white/[0.03] border-white/10'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <button
+                                    onClick={() => handleToggleTaskStatus(t)}
+                                    className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                                      t.status === 'done' ? 'bg-primary border-primary' : 'border-white/30 hover:border-white/50'
+                                    }`}
+                                  >
+                                    {t.status === 'done' && <CheckCircle2 size={12} className="text-black" />}
+                                  </button>
+                                  <div className="min-w-0">
+                                    <p className={`text-sm ${t.status === 'done' ? 'text-white/50 line-through' : 'text-white'}`}>
+                                      {t.task_text}
+                                    </p>
+                                    <p className="text-[10px] text-white/40">
+                                      {t.assignee_username || 'Unknown'} • {t.assigned_by_username ? `by ${t.assigned_by_username}` : ''}
+                                    </p>
+                                  </div>
+                                </div>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => handleDeleteTask(t.id)}
+                                    className="p-1.5 text-white/30 hover:text-red-400"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            ))
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {/* Activity tab - full activity in main area */}
+                {isTeam && activeTab === 'activity' && (
+                  <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
+                    <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <Activity size={16} />
+                      Activity
+                    </h2>
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar">
+                      {activities.length === 0 ? (
+                        <p className="text-white/30 text-xs py-4">No activity yet.</p>
+                      ) : (
+                        activities.map((a) => (
+                          <div key={a.id} className="p-3 bg-white/[0.02] rounded-lg border border-white/5">
+                            <p className="text-xs text-white/70">
+                              <span className="font-bold text-white">{a.username || 'User'}</span>{' '}
+                              {a.action.replace(/_/g, ' ')}
+                            </p>
+                            <p className="text-[10px] text-white/30 mt-1">{new Date(a.created_at).toLocaleString()}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </section>
+                )}
               </div>
 
               <div className="space-y-6">
-                {isTeam && (
+                {/* Sidebar: Team - hide when Team tab (team is in main) */}
+                {isTeam && activeTab !== 'team' && (
                   <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
                     <div className="flex items-center justify-between gap-3 mb-4">
                       <h2 className="text-sm font-black text-white/50 uppercase tracking-wider flex items-center gap-2 shrink-0">
@@ -545,7 +957,8 @@ export default function WorkspacePage() {
                   </section>
                 )}
 
-                {isTeam && (
+                {/* Sidebar: Daily Tasks - hide when Tasks tab */}
+                {isTeam && activeTab !== 'tasks' && (
                   <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
                     <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
                       <ListTodo size={16} />
@@ -649,6 +1062,8 @@ export default function WorkspacePage() {
                   </section>
                 )}
 
+                {/* Sidebar: Activity - hide when Activity tab */}
+                {(activeTab !== 'activity' || !isTeam) && (
                 <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
                   <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <Activity size={16} />
@@ -670,6 +1085,7 @@ export default function WorkspacePage() {
                     )}
                   </div>
                 </section>
+                )}
               </div>
             </div>
           </>
