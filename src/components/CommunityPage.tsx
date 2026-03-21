@@ -28,7 +28,7 @@ import {
   Image as ImageIcon,
   Paperclip,
 } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
+import { useMemo } from 'react';
 import useStore from '../store/useStore';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
 import { chatService, type Chat, type Message, type ChatUser } from '../services/chatService';
@@ -73,8 +73,12 @@ export default function CommunityPage() {
   const [attachHighlight, setAttachHighlight] = useState('');
   const [attachProject, setAttachProject] = useState<ProjectItem | null>(null);
   const [myProjects, setMyProjects] = useState<ProjectItem[]>([]);
-  const storeCanvases = useStore(useShallow((s) => Object.values(s.canvases).map((c) => ({ id: c.id, title: c.name || 'Untitled', canvas_id: c.id, isCanvas: true } as ProjectItem))));
-  const allShareable = [...storeCanvases, ...myProjects];
+  const canvases = useStore((s) => s.canvases);
+  const storeCanvases = useMemo(
+    () => Object.values(canvases).map((c) => ({ id: c.id, title: c.name || 'Untitled', canvas_id: c.id, isCanvas: true } as ProjectItem)),
+    [canvases]
+  );
+  const allShareable = useMemo(() => [...storeCanvases, ...myProjects], [storeCanvases, myProjects]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
