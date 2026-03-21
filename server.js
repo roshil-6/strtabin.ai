@@ -14,7 +14,6 @@ import crypto from 'crypto';
 import { createClerkClient } from '@clerk/backend';
 import { registerWorkspaceRoutes } from './routes/workspaces.js';
 import { registerChatRoutes } from './routes/chat.js';
-import { registerCanvasRoutes } from './routes/canvas.js';
 import { getOrCreateUser } from './db/models.js';
 import { initDb } from './db/index.js';
 
@@ -77,8 +76,9 @@ app.use(cors({
 // ─── Body Parser (before all routes except raw webhook) ───────────────────
 // Register early so req.body is available in all JSON route handlers
 app.use((req, res, next) => {
-    // Skip for the raw webhook endpoint so its HMAC verification still works
     if (req.path === '/api/payments/razorpay/webhook') return next();
+    // Canvas share needs larger limit for nodes/edges payload
+    if (req.path === '/api/canvas/share') return express.json({ limit: '2mb' })(req, res, next);
     express.json({ limit: '50kb' })(req, res, next);
 });
 
@@ -945,7 +945,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ─── Social + Team Workspace System (Phase 2) ───────────────────────────────
 registerWorkspaceRoutes(app, clerk);
 registerChatRoutes(app, clerk);
-registerCanvasRoutes(app, clerk);
 
 // ─── 404 handler ──────────────────────────────────────────────────────────
 app.use((_req, res) => {

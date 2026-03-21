@@ -27,6 +27,7 @@ import {
   Highlighter,
   Image as ImageIcon,
   Paperclip,
+  ChevronDown,
 } from 'lucide-react';
 import { useMemo } from 'react';
 import useStore from '../store/useStore';
@@ -72,6 +73,8 @@ export default function CommunityPage() {
   const [attachCanvas, setAttachCanvas] = useState('');
   const [attachHighlight, setAttachHighlight] = useState('');
   const [attachProject, setAttachProject] = useState<ProjectItem | null>(null);
+  const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
+  const projectDropdownRef = useRef<HTMLDivElement>(null);
   const [myProjects, setMyProjects] = useState<ProjectItem[]>([]);
   const canvases = useStore((s) => s.canvases);
   const storeCanvases = useMemo(
@@ -184,6 +187,18 @@ export default function CommunityPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const onOutside = (e: MouseEvent) => {
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(e.target as Node)) {
+        setProjectDropdownOpen(false);
+      }
+    };
+    if (projectDropdownOpen) {
+      document.addEventListener('mousedown', onOutside);
+      return () => document.removeEventListener('mousedown', onOutside);
+    }
+  }, [projectDropdownOpen]);
 
   const chatableIds = new Set(chatableUsers.map((u) => u.id));
   const chatPartnerIds = new Set(chats.map((c) => c.otherUser?.id).filter(Boolean));
@@ -893,41 +908,61 @@ export default function CommunityPage() {
                           />
                         </div>
                         {allShareable.length > 0 && (
-                          <div className="flex items-center gap-2">
+                          <div ref={projectDropdownRef} className="flex items-center gap-2 relative">
                             <FolderOpen size={16} className="text-primary shrink-0" />
-                            <select
-                              value={attachProject ? (attachProject.isCanvas ? `c:${attachProject.id}` : `p:${attachProject.id}`) : ''}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                if (!v) { setAttachProject(null); return; }
-                                const [prefix, id] = v.includes(':') ? v.split(':', 2) : ['p', v];
-                                const item = prefix === 'c'
-                                  ? allShareable.find((x) => x.isCanvas && String(x.id) === id)
-                                  : allShareable.find((x) => !x.isCanvas && String(x.id) === id);
-                                setAttachProject(item ?? null);
-                              }}
-                              className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-primary/50"
-                            >
-                              <option value="">Share a project or canvas...</option>
-                              {storeCanvases.length > 0 && (
-                                <optgroup label="My canvases">
-                                  {storeCanvases.map((p) => (
-                                    <option key={p.id} value={`c:${p.id}`}>
-                                      {p.title}
-                                    </option>
-                                  ))}
-                                </optgroup>
+                            <div className="flex-1 relative">
+                              <button
+                                type="button"
+                                onClick={() => setProjectDropdownOpen((o) => !o)}
+                                className="w-full px-3 py-2.5 bg-[#1e1e1e] border border-white/20 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 flex items-center justify-between gap-2"
+                              >
+                                <span className={attachProject ? 'text-white' : 'text-white/60'}>
+                                  {attachProject ? attachProject.title + (attachProject.workspace_name ? ` (${attachProject.workspace_name})` : '') : 'Share a project or canvas...'}
+                                </span>
+                                <ChevronDown size={16} className={`shrink-0 text-white/60 transition-transform ${projectDropdownOpen ? 'rotate-180' : ''}`} />
+                              </button>
+                              {projectDropdownOpen && (
+                                <div className="absolute top-full left-0 right-0 mt-1 py-1.5 bg-[#252525] border border-white/15 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
+                                  <button
+                                    type="button"
+                                    onClick={() => { setAttachProject(null); setProjectDropdownOpen(false); }}
+                                    className="w-full px-3 py-2 text-left text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                                  >
+                                    Share a project or canvas...
+                                  </button>
+                                  {storeCanvases.length > 0 && (
+                                    <>
+                                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 border-t border-white/10 mt-1 pt-1.5">My canvases</div>
+                                      {storeCanvases.map((p) => (
+                                        <button
+                                          key={p.id}
+                                          type="button"
+                                          onClick={() => { setAttachProject(p); setProjectDropdownOpen(false); }}
+                                          className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 ${attachProject?.id === p.id && attachProject?.isCanvas ? 'text-primary bg-primary/10' : 'text-white'}`}
+                                        >
+                                          {p.title}
+                                        </button>
+                                      ))}
+                                    </>
+                                  )}
+                                  {myProjects.length > 0 && (
+                                    <>
+                                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 border-t border-white/10 mt-1 pt-1.5">Workspace projects</div>
+                                      {myProjects.map((p) => (
+                                        <button
+                                          key={p.id}
+                                          type="button"
+                                          onClick={() => { setAttachProject(p); setProjectDropdownOpen(false); }}
+                                          className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 ${attachProject?.id === p.id && !attachProject?.isCanvas ? 'text-primary bg-primary/10' : 'text-white'}`}
+                                        >
+                                          {p.title} {p.workspace_name ? `(${p.workspace_name})` : ''}
+                                        </button>
+                                      ))}
+                                    </>
+                                  )}
+                                </div>
                               )}
-                              {myProjects.length > 0 && (
-                                <optgroup label="Workspace projects">
-                                  {myProjects.map((p) => (
-                                    <option key={p.id} value={`p:${p.id}`}>
-                                      {p.title} {p.workspace_name ? `(${p.workspace_name})` : ''}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                              )}
-                            </select>
+                            </div>
                           </div>
                         )}
                       </div>
