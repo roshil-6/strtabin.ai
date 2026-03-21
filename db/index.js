@@ -19,7 +19,7 @@ let db = null;
 export function initDb() {
     if (db) return db;
 
-    const dataDir = join(__dirname, '..', 'data');
+    const dataDir = dirname(DB_PATH);
     if (!existsSync(dataDir)) {
         mkdirSync(dataDir, { recursive: true });
     }

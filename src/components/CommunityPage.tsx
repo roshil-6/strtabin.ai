@@ -139,7 +139,11 @@ export default function CommunityPage() {
       if (token) {
         s = io(SOCKET_URL, { auth: { token }, path: '/socket.io' });
         s.on('chat:message', ({ chatId, message }: { chatId: number; message: Message }) => {
-          setMessages((prev) => (activeChatRef.current?.id === chatId ? [...prev, message] : prev));
+          setMessages((prev) => {
+            if (activeChatRef.current?.id !== chatId) return prev;
+            if (prev.some((m) => m.id === message.id)) return prev; // avoid duplicate from API response
+            return [...prev, message];
+          });
           setChats((prev) =>
             prev.map((c) =>
               c.id === chatId
