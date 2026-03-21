@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Globe, Flame, TrendingUp, MessageCircle } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Globe, Flame, TrendingUp, MessageCircle, LogIn, Hash } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
@@ -60,6 +60,9 @@ export default function Dashboard() {
     const [credentialsPassword, setCredentialsPassword] = useState('');
     const [credentialsLoading, setCredentialsLoading] = useState(false);
     const [showCreateWorkspaceModal, setShowCreateWorkspaceModal] = useState(false);
+    const [showJoinWorkspaceModal, setShowJoinWorkspaceModal] = useState(false);
+    const [joinWorkspaceId, setJoinWorkspaceId] = useState('');
+    const [joinWorkspaceLoading, setJoinWorkspaceLoading] = useState(false);
     const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>([]);
     const [myUsername, setMyUsername] = useState<string | null>(null);
     const [invitations, setInvitations] = useState<Array<{ id: number; workspace_id: number; workspace_name: string; inviter_username: string | null }>>([]);
@@ -121,6 +124,30 @@ export default function Dashboard() {
             toast.error('Could not reach server.');
         } finally {
             setCredentialsLoading(false);
+        }
+    };
+
+    const handleJoinWorkspace = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const id = parseInt(joinWorkspaceId.trim(), 10);
+        if (isNaN(id) || id <= 0) {
+            toast.error('Enter a valid workspace ID');
+            return;
+        }
+        setJoinWorkspaceLoading(true);
+        try {
+            const token = await getToken();
+            const { workspace } = await workspaceService.joinWorkspace(id, token);
+            const d = await workspaceService.getWorkspaces(token);
+            setTeamWorkspaces(d.workspaces || []);
+            setShowJoinWorkspaceModal(false);
+            setJoinWorkspaceId('');
+            toast.success(`Joined "${workspace?.name || 'workspace'}"`);
+            navigate(`/workspace/${id}`);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Could not join workspace');
+        } finally {
+            setJoinWorkspaceLoading(false);
         }
     };
 
@@ -309,6 +336,52 @@ export default function Dashboard() {
 
     return (
         <div className="flex h-screen font-sans overflow-hidden relative bg-transparent">
+            {/* Join Workspace Modal */}
+            {showJoinWorkspaceModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-2xl p-6 shadow-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                <Hash size={20} className="text-primary" />
+                                Join workspace
+                            </h3>
+                            <button onClick={() => { setShowJoinWorkspaceModal(false); setJoinWorkspaceId(''); }} className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <p className="text-xs text-white/50 mb-4">Enter the workspace ID shared by your team admin. You can find it in the workspace Overview.</p>
+                        <form onSubmit={handleJoinWorkspace} className="space-y-3">
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={joinWorkspaceId}
+                                onChange={(e) => setJoinWorkspaceId(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                placeholder="Workspace ID (e.g. 42)"
+                                className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/30 font-mono text-lg focus:outline-none focus:border-primary/50"
+                                autoFocus
+                            />
+                            <div className="flex gap-2">
+                                <button
+                                    type="submit"
+                                    disabled={joinWorkspaceLoading || !joinWorkspaceId.trim()}
+                                    className="flex-1 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all disabled:opacity-50"
+                                >
+                                    {joinWorkspaceLoading ? 'Joining...' : 'Join'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowJoinWorkspaceModal(false); setJoinWorkspaceId(''); }}
+                                    className="px-4 py-2.5 text-white/50 hover:text-white font-bold"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Create Workspace Modal */}
             {showCreateWorkspaceModal && (
                 <CreateWorkspaceModal
@@ -473,13 +546,22 @@ export default function Dashboard() {
                         <div className="pt-6 pb-2">
                             <div className="flex items-center justify-between px-3 mb-4">
                                 <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-white/20">Team Workspaces</h2>
-                                <button
-                                    onClick={() => setShowCreateWorkspaceModal(true)}
-                                    className="p-1 hover:bg-white/10 rounded-lg text-white/30 hover:text-primary transition-all"
-                                    title="Create workspace"
-                                >
-                                    <FolderPlus size={16} />
-                                </button>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => setShowJoinWorkspaceModal(true)}
+                                        className="p-1 hover:bg-white/10 rounded-lg text-white/30 hover:text-primary transition-all"
+                                        title="Join workspace by ID"
+                                    >
+                                        <LogIn size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => setShowCreateWorkspaceModal(true)}
+                                        className="p-1 hover:bg-white/10 rounded-lg text-white/30 hover:text-primary transition-all"
+                                        title="Create workspace"
+                                    >
+                                        <FolderPlus size={16} />
+                                    </button>
+                                </div>
                             </div>
                             <div className="space-y-1 max-h-[20vh] overflow-y-auto custom-scrollbar">
                                 {teamWorkspaces.map((ws) => (

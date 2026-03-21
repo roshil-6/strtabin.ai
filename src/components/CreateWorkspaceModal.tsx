@@ -78,7 +78,7 @@ export default function CreateWorkspaceModal({ onClose, onCreate }: Props) {
                 </div>
                 <div>
                   <p className="font-bold text-white">Team</p>
-                  <p className="text-sm text-white/50">Collaborate with others. Invite via email or username.</p>
+                  <p className="text-sm text-white/50">Collaborate with others. Share the workspace ID or invite via email.</p>
                 </div>
               </button>
             </div>

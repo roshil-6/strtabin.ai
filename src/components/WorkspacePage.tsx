@@ -30,6 +30,8 @@ import {
   LayoutDashboard,
   Filter,
   Zap,
+  Hash,
+  Copy,
 } from 'lucide-react';
 import { workspaceService, type Workspace, type Project, type WorkspaceMember, type ActivityLog, type ProjectStatus, type MemberDailyTask } from '../services/workspaceService';
 import { chatService } from '../services/chatService';
@@ -304,6 +306,17 @@ export default function WorkspacePage() {
     toast.success('Workspace link copied!');
   };
 
+  const handleCopyWorkspaceId = () => {
+    navigator.clipboard.writeText(String(workspaceId));
+    toast.success('Workspace ID copied! Share this with your team to let them join.');
+  };
+
+  const handleCopyJoinLink = () => {
+    const url = `${window.location.origin}/join/${workspaceId}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Join link copied! Share this with your team.');
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       <div className="max-w-6xl mx-auto p-6">
@@ -386,6 +399,35 @@ export default function WorkspacePage() {
                 {/* Overview tab */}
                 {isTeam && activeTab === 'overview' && (
                   <section className="space-y-6">
+                    {/* Workspace ID - share with team to let them join */}
+                    {isAdmin && (
+                      <div className="p-4 rounded-xl bg-primary/10 border border-primary/30 flex flex-col sm:flex-row sm:items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <Hash size={20} className="text-primary" />
+                          <div>
+                            <p className="text-xs font-bold text-white/70 uppercase tracking-wider">Workspace ID</p>
+                            <p className="text-lg font-black text-white font-mono">{workspaceId}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={handleCopyWorkspaceId}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-black font-bold text-sm hover:bg-white transition-all"
+                          >
+                            <Copy size={14} />
+                            Copy ID
+                          </button>
+                          <button
+                            onClick={handleCopyJoinLink}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white font-bold text-sm hover:bg-white/20 transition-all"
+                          >
+                            <Share2 size={14} />
+                            Copy join link
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-white/50 sm:ml-auto">Share the ID or join link. Team members join via Dashboard → Join workspace, or visit the join link.</p>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
                         <div className="flex items-center gap-2 text-white/50 mb-1">

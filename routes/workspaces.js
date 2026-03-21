@@ -47,6 +47,7 @@ import {
     doUsersShareWorkspace,
     createSharedCanvas,
     getSharedCanvas,
+    joinWorkspaceById,
 } from '../db/models.js';
 import { initDb } from '../db/index.js';
 
@@ -104,6 +105,35 @@ function validateProjectStatus(s) {
 export function registerWorkspaceRoutes(app, clerkClient) {
     app.locals.clerk = clerkClient;
     initDb();
+
+    // POST /api/workspaces/join — join team workspace by ID (auth required)
+    app.post('/api/workspaces/join', requireAuthMiddleware, (req, res) => {
+        try {
+            const workspaceId = parseInt(req.body?.workspaceId ?? req.body?.id ?? 0, 10);
+            if (isNaN(workspaceId) || workspaceId <= 0) return res.status(400).json({ error: 'Valid workspace ID required.' });
+
+            const ws = getWorkspace(workspaceId);
+            if (!ws) return res.status(404).json({ error: 'Workspace not found.' });
+            if (ws.type !== 'team') return res.status(400).json({ error: 'Only team workspaces can be joined by ID.' });
+
+            const joined = joinWorkspaceById(workspaceId, req.userId);
+            if (!joined) return res.status(400).json({ error: 'You are already a member of this workspace.' });
+
+            logActivity({
+                userId: req.userId,
+                workspaceId,
+                action: 'joined_workspace',
+                entityType: 'workspace',
+                entityId: String(workspaceId),
+                metadata: { name: ws.name },
+            });
+
+            return res.json({ ok: true, workspace: getWorkspace(workspaceId), message: `Joined "${ws.name}".` });
+        } catch (err) {
+            console.error('Join workspace error:', err);
+            return res.status(500).json({ error: 'Failed to join workspace.' });
+        }
+    });
 
     // POST /api/workspaces — create workspace
     app.post('/api/workspaces', requireAuthMiddleware, (req, res) => {

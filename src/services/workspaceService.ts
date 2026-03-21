@@ -104,6 +104,14 @@ export const workspaceService = {
     return fetchWithAuth('/api/workspaces', {}, token);
   },
 
+  async joinWorkspace(workspaceId: number, token: string | null) {
+    return fetchWithAuth(
+      '/api/workspaces/join',
+      { method: 'POST', body: JSON.stringify({ workspaceId }) },
+      token
+    );
+  },
+
   async getWorkspace(id: number, token: string | null) {
     return fetchWithAuth(`/api/workspaces/${id}`, {}, token);
   },

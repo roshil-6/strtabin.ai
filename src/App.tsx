@@ -13,6 +13,7 @@ import FeaturesPage from './components/FeaturesPage';
 import FolderWorkflow from './components/FolderWorkflow';
 import ReportsSelectPage from './components/ReportsSelectPage';
 import WorkspacePage from './components/WorkspacePage';
+import JoinWorkspacePage from './components/JoinWorkspacePage';
 import ProfilePage from './components/ProfilePage';
 import FeedPage from './components/FeedPage';
 import CommunityPage from './components/CommunityPage';
@@ -52,6 +53,7 @@ function App() {
       <Route path="/strab" element={<AuthGate><PaywallGate><StrabHome /></PaywallGate></AuthGate>} />
       <Route path="/strab/:id" element={<AuthGate><PaywallGate><StrabView /></PaywallGate></AuthGate>} />
       <Route path="/workspace/:id" element={<AuthGate><PaywallGate><WorkspacePage /></PaywallGate></AuthGate>} />
+      <Route path="/join/:id" element={<AuthGate><PaywallGate><JoinWorkspacePage /></PaywallGate></AuthGate>} />
       <Route path="/feed" element={<AuthGate><PaywallGate><FeedPage /></PaywallGate></AuthGate>} />
       <Route path="/community" element={<AuthGate><PaywallGate><CommunityPage /></PaywallGate></AuthGate>} />
       <Route path="/profile/:username" element={<ProfilePage />} />

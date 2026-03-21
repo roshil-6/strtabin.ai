@@ -198,6 +198,17 @@ export function rejectInvitation(userId, invitationId) {
     return true;
 }
 
+/** Join workspace by ID (team workspaces only). Returns true if joined, false if already member or invalid. */
+export function joinWorkspaceById(workspaceId, userId) {
+    const db = getDb();
+    const ws = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(workspaceId);
+    if (!ws || ws.type !== 'team') return false;
+    const existing = db.prepare('SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?').get(workspaceId, userId);
+    if (existing) return false;
+    db.prepare('INSERT INTO workspace_members (workspace_id, user_id, role) VALUES (?, ?, ?)').run(workspaceId, userId, 'member');
+    return true;
+}
+
 // ─── Projects ──────────────────────────────────────────────────────────────
 export function createProject({ workspaceId, title, description, status = 'idea', canvasId, assignedTo }) {
     const db = getDb();
