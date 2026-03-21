@@ -563,7 +563,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             }
 
             return res.json({
-                user: { id: user.id, username: user.username, email: user.email ? undefined : null },
+                user: { id: user.id, username: user.username, email: user.email ? undefined : null, created_at: user.created_at },
                 profile: profile || { bio: null, avatar_url: null },
                 streak,
                 progress,
@@ -589,7 +589,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const projects = getProfileProjects(req.userId, 20);
 
             return res.json({
-                user: { id: user.id, username: user.username, email: user.email },
+                user: { id: user.id, username: user.username, email: user.email, created_at: user.created_at },
                 profile: profile || { bio: null },
                 streak,
                 progress,
