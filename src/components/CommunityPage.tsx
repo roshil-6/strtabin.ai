@@ -28,11 +28,13 @@ import {
   Image as ImageIcon,
   Paperclip,
 } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+import useStore from '../store/useStore';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
 import { chatService, type Chat, type Message, type ChatUser } from '../services/chatService';
 import { API_BASE_URL } from '../constants';
 
-type ProjectItem = { id: number; title: string; workspace_id: number; workspace_name?: string; canvas_id?: string | null };
+type ProjectItem = { id: number | string; title: string; workspace_id?: number; workspace_name?: string; canvas_id?: string | null; isCanvas?: boolean };
 
 /** Socket.io connects to same origin as API */
 const SOCKET_URL = API_BASE_URL;
@@ -71,6 +73,8 @@ export default function CommunityPage() {
   const [attachHighlight, setAttachHighlight] = useState('');
   const [attachProject, setAttachProject] = useState<ProjectItem | null>(null);
   const [myProjects, setMyProjects] = useState<ProjectItem[]>([]);
+  const storeCanvases = useStore(useShallow((s) => Object.values(s.canvases).map((c) => ({ id: c.id, title: c.name || 'Untitled', canvas_id: c.id, isCanvas: true } as ProjectItem))));
+  const allShareable = [...storeCanvases, ...myProjects];
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -95,7 +99,15 @@ export default function CommunityPage() {
         workspaceService.getFeed().then(setFeed).catch(() => setFeed({ workspaces: [], activities: [], projects: [] }));
         workspaceService.getMe(t).then((d) => {
           setCurrentUserId(d?.user?.id ?? null);
-          setMyProjects((d?.projects || []) as ProjectItem[]);
+          const wsProjects = (d?.projects || []).map((p: { id: number; title: string; workspace_id: number; workspace_name?: string; canvas_id?: string | null }) => ({
+            id: p.id,
+            title: p.title,
+            workspace_id: p.workspace_id,
+            workspace_name: p.workspace_name,
+            canvas_id: p.canvas_id,
+            isCanvas: false,
+          }));
+          setMyProjects(wsProjects);
         });
         chatService.getChats(t).then((d) => {
           const chatsList = d.chats || [];
@@ -266,15 +278,17 @@ export default function CommunityPage() {
       setShowAttach(false);
     }
     const projectOpts = attachProject
-      ? {
-          projectId: attachProject.id,
-          projectTitle: attachProject.title,
-          workspaceId: attachProject.workspace_id,
-          workspaceName: attachProject.workspace_name,
-          canvasId: attachProject.canvas_id || undefined,
-        }
+      ? attachProject.isCanvas
+        ? { canvasId: attachProject.canvas_id || String(attachProject.id), canvasName: attachProject.title }
+        : {
+            projectId: typeof attachProject.id === 'number' ? attachProject.id : undefined,
+            projectTitle: attachProject.title,
+            workspaceId: attachProject.workspace_id,
+            workspaceName: attachProject.workspace_name,
+            canvasId: attachProject.canvas_id || undefined,
+          }
       : {};
-    const content = text || (hasProject ? `Shared project: ${attachProject!.title}` : '');
+    const content = text || (hasProject ? (attachProject!.isCanvas ? `Shared canvas: ${attachProject!.title}` : `Shared project: ${attachProject!.title}`) : '');
     try {
       const token = await getToken();
       const { message } = await chatService.sendMessage(activeChat.id, content, token, { ...opts, ...projectOpts });
@@ -858,23 +872,41 @@ export default function CommunityPage() {
                             className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
                           />
                         </div>
-                        {myProjects.length > 0 && (
+                        {allShareable.length > 0 && (
                           <div className="flex items-center gap-2">
                             <FolderOpen size={16} className="text-primary shrink-0" />
                             <select
-                              value={attachProject?.id ?? ''}
+                              value={attachProject ? (attachProject.isCanvas ? `c:${attachProject.id}` : `p:${attachProject.id}`) : ''}
                               onChange={(e) => {
-                                const id = parseInt(e.target.value, 10);
-                                setAttachProject(id ? myProjects.find((p) => p.id === id) ?? null : null);
+                                const v = e.target.value;
+                                if (!v) { setAttachProject(null); return; }
+                                const [prefix, id] = v.includes(':') ? v.split(':', 2) : ['p', v];
+                                const item = prefix === 'c'
+                                  ? allShareable.find((x) => x.isCanvas && String(x.id) === id)
+                                  : allShareable.find((x) => !x.isCanvas && String(x.id) === id);
+                                setAttachProject(item ?? null);
                               }}
                               className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-primary/50"
                             >
-                              <option value="">Share a project...</option>
-                              {myProjects.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.title} {p.workspace_name ? `(${p.workspace_name})` : ''}
-                                </option>
-                              ))}
+                              <option value="">Share a project or canvas...</option>
+                              {storeCanvases.length > 0 && (
+                                <optgroup label="My canvases">
+                                  {storeCanvases.map((p) => (
+                                    <option key={p.id} value={`c:${p.id}`}>
+                                      {p.title}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
+                              {myProjects.length > 0 && (
+                                <optgroup label="Workspace projects">
+                                  {myProjects.map((p) => (
+                                    <option key={p.id} value={`p:${p.id}`}>
+                                      {p.title} {p.workspace_name ? `(${p.workspace_name})` : ''}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
                             </select>
                           </div>
                         )}
