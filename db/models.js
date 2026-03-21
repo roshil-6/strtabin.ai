@@ -249,7 +249,7 @@ export function updateProjectStatus(projectId, status) {
     db.prepare('UPDATE projects SET status = ?, updated_at = datetime(\'now\') WHERE id = ?').run(status, projectId);
 }
 
-export function updateProject(projectId, { title, description, status, assignedTo }) {
+export function updateProject(projectId, { title, description, status, assignedTo, canvasId }) {
     const db = getDb();
     const updates = [];
     const params = [];
@@ -257,10 +257,24 @@ export function updateProject(projectId, { title, description, status, assignedT
     if (description !== undefined) { updates.push('description = ?'); params.push(description); }
     if (status !== undefined) { updates.push('status = ?'); params.push(status); }
     if (assignedTo !== undefined) { updates.push('assigned_to = ?'); params.push(assignedTo === null || assignedTo === '' ? null : assignedTo); }
+    if (canvasId !== undefined) { updates.push('canvas_id = ?'); params.push(canvasId === null || canvasId === '' ? null : canvasId); }
     if (updates.length === 0) return;
     updates.push("updated_at = datetime('now')");
     params.push(projectId);
     db.prepare(`UPDATE projects SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+}
+
+export function saveProjectCanvas(projectId, data) {
+    const db = getDb();
+    const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
+    db.prepare(`
+        INSERT OR REPLACE INTO project_canvases (project_id, data, updated_at) VALUES (?, ?, datetime('now'))
+    `).run(projectId, dataStr);
+}
+
+export function getProjectCanvas(projectId) {
+    const db = getDb();
+    return db.prepare('SELECT data, updated_at FROM project_canvases WHERE project_id = ?').get(projectId);
 }
 
 // ─── Activity logs ─────────────────────────────────────────────────────────

@@ -212,12 +212,28 @@ export const workspaceService = {
 
   async updateProject(
     projectId: number,
-    data: { title?: string; description?: string; status?: ProjectStatus; assignedTo?: number | null },
+    data: { title?: string; description?: string; status?: ProjectStatus; assignedTo?: number | null; canvasId?: string | null },
     token: string | null
   ) {
     return fetchWithAuth(
       `/api/projects/${projectId}`,
       { method: 'PATCH', body: JSON.stringify(data) },
+      token
+    );
+  },
+
+  async getProjectCanvas(projectId: number, token: string | null) {
+    return fetchWithAuth(`/api/projects/${projectId}/canvas`, {}, token);
+  },
+
+  async saveProjectCanvas(
+    projectId: number,
+    data: { nodes: unknown[]; edges: unknown[]; writingContent?: string; name?: string },
+    token: string | null
+  ) {
+    return fetchWithAuth(
+      `/api/projects/${projectId}/canvas`,
+      { method: 'POST', body: JSON.stringify(data) },
       token
     );
   },

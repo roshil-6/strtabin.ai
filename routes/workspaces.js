@@ -47,6 +47,8 @@ import {
     doUsersShareWorkspace,
     createSharedCanvas,
     getSharedCanvas,
+    saveProjectCanvas,
+    getProjectCanvas,
     joinWorkspaceById,
 } from '../db/models.js';
 import { initDb } from '../db/index.js';
@@ -515,7 +517,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 return res.status(403).json({ error: 'Access denied.' });
             }
 
-            const { title, description, status, assignedTo } = req.body || {};
+            const { title, description, status, assignedTo, canvasId } = req.body || {};
             const updates = {};
             if (title !== undefined) updates.title = sanitizeStr(title, 200);
             if (description !== undefined) updates.description = sanitizeStr(description, 2000);
@@ -526,6 +528,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                     updates.assignedTo = assignId;
                 }
             }
+            if (canvasId !== undefined) updates.canvasId = sanitizeStr(canvasId, 100) || null;
 
             updateProject(id, updates);
 
@@ -591,6 +594,54 @@ export function registerWorkspaceRoutes(app, clerkClient) {
         } catch (err) {
             console.error('Get shared canvas error:', err);
             return res.status(500).json({ error: 'Failed to load canvas.' });
+        }
+    });
+
+    // GET /api/projects/:id/canvas — load team project canvas (auth, workspace member)
+    app.get('/api/projects/:id/canvas', requireAuthMiddleware, (req, res) => {
+        try {
+            const projectId = parseInt(req.params.id, 10);
+            if (isNaN(projectId)) return res.status(400).json({ error: 'Invalid project ID.' });
+            const project = getProject(projectId);
+            if (!project) return res.status(404).json({ error: 'Project not found.' });
+            if (!hasWorkspaceAccess(req.userId, project.workspace_id)) return res.status(403).json({ error: 'Access denied.' });
+            const row = getProjectCanvas(projectId);
+            if (!row) return res.status(404).json({ error: 'Canvas not found.' });
+            let data;
+            try {
+                data = JSON.parse(row.data);
+            } catch {
+                return res.status(500).json({ error: 'Invalid canvas data.' });
+            }
+            return res.json(data);
+        } catch (err) {
+            console.error('Get project canvas error:', err);
+            return res.status(500).json({ error: 'Failed to load canvas.' });
+        }
+    });
+
+    // POST /api/projects/:id/canvas — save team project canvas (auth, workspace member)
+    app.post('/api/projects/:id/canvas', requireAuthMiddleware, (req, res) => {
+        try {
+            const projectId = parseInt(req.params.id, 10);
+            if (isNaN(projectId)) return res.status(400).json({ error: 'Invalid project ID.' });
+            const project = getProject(projectId);
+            if (!project) return res.status(404).json({ error: 'Project not found.' });
+            if (!hasWorkspaceAccess(req.userId, project.workspace_id)) return res.status(403).json({ error: 'Access denied.' });
+            const { nodes, edges, writingContent, name } = req.body || {};
+            const data = {
+                nodes: Array.isArray(nodes) ? nodes : [],
+                edges: Array.isArray(edges) ? edges : [],
+                writingContent: typeof writingContent === 'string' ? writingContent.slice(0, 500000) : '',
+                name: typeof name === 'string' ? name.trim().slice(0, 200) : project.title,
+            };
+            const dataStr = JSON.stringify(data);
+            if (dataStr.length > 600000) return res.status(400).json({ error: 'Canvas too large.' });
+            saveProjectCanvas(projectId, dataStr);
+            return res.json({ ok: true });
+        } catch (err) {
+            console.error('Save project canvas error:', err);
+            return res.status(500).json({ error: 'Failed to save canvas.' });
         }
     });
 

@@ -178,11 +178,16 @@ export default function WorkspacePage() {
         { title: newProjectTitle.trim(), description: newProjectDesc.trim() || undefined, assignedTo: newProjectAssignTo ?? undefined },
         token
       );
-      const project = res?.project ?? res;
+      let project = res?.project ?? res;
       if (!project?.id) {
         toast.error('Project created but response was invalid. Refreshing…');
         await load();
       } else {
+        if (isTeam) {
+          const canvasId = `proj_${project.id}`;
+          await workspaceService.updateProject(project.id, { canvasId }, token);
+          project = { ...project, canvas_id: canvasId };
+        }
         setProjects((p) => [project, ...p]);
         await load();
       }
@@ -224,9 +229,20 @@ export default function WorkspacePage() {
     }
   };
 
-  const handleOpenProject = (project: Project) => {
+  const handleOpenProject = async (project: Project) => {
+    const workspaceContext = isTeam ? { state: { workspaceId } } : {};
     if (project.canvas_id) {
-      navigate(`/strategy/${project.canvas_id}`);
+      navigate(`/strategy/${project.canvas_id}`, workspaceContext);
+    } else if (isTeam) {
+      const canvasId = `proj_${project.id}`;
+      try {
+        const token = await getToken();
+        await workspaceService.updateProject(project.id, { canvasId }, token);
+        setProjects((p) => p.map((pr) => (pr.id === project.id ? { ...pr, canvas_id: canvasId } : pr)));
+      } catch {
+        /* ignore */
+      }
+      navigate(`/strategy/${canvasId}`, workspaceContext);
     } else {
       navigate(`/dashboard`);
     }

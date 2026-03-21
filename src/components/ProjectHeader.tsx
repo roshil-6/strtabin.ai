@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutGrid, CheckSquare, Calendar, Bot, ArrowLeft } from 'lucide-react';
 import useStore from '../store/useStore';
 
@@ -9,7 +9,10 @@ interface ProjectHeaderProps {
 
 export default function ProjectHeader({ canvasId, activeTab }: ProjectHeaderProps) {
     const navigate = useNavigate();
+    const location = useLocation();
     const canvas = useStore(state => state.canvases[canvasId]);
+    const workspaceId = (location.state as { workspaceId?: number })?.workspaceId;
+    const backTo = workspaceId ? `/workspace/${workspaceId}` : '/dashboard';
 
     const tabs = [
         { id: 'flow', label: 'Writing & Flow', icon: LayoutGrid, path: `/strategy/${canvasId}` },
@@ -24,9 +27,9 @@ export default function ProjectHeader({ canvasId, activeTab }: ProjectHeaderProp
             {/* Left: Back & Title */}
             <div className="flex items-center gap-2 md:gap-4 mr-2 md:mr-8 shrink-0">
                 <button
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => navigate(backTo)}
                     className="p-1.5 md:p-2 hover:bg-white/10 active:scale-95 rounded-xl text-white/50 hover:text-white transition-all"
-                    aria-label="Back to dashboard"
+                    aria-label={workspaceId ? 'Back to workspace' : 'Back to dashboard'}
                 >
                     <ArrowLeft size={18} />
                 </button>
@@ -48,7 +51,7 @@ export default function ProjectHeader({ canvasId, activeTab }: ProjectHeaderProp
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => navigate(tab.path)}
+                                onClick={() => navigate(tab.path, { state: location.state })}
                                 className={`
                                     flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 rounded-lg text-[11px] md:text-xs font-bold transition-all active:scale-95 whitespace-nowrap
                                     ${isActive

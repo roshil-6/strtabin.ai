@@ -78,7 +78,7 @@ app.use(cors({
 app.use((req, res, next) => {
     if (req.path === '/api/payments/razorpay/webhook') return next();
     // Canvas share needs larger limit for nodes/edges payload
-    if (req.path === '/api/canvas/share') return express.json({ limit: '2mb' })(req, res, next);
+    if (req.path === '/api/canvas/share' || req.path.match(/^\/api\/projects\/\d+\/canvas$/)) return express.json({ limit: '2mb' })(req, res, next);
     express.json({ limit: '50kb' })(req, res, next);
 });
 

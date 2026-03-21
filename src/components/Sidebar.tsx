@@ -57,6 +57,8 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
     if (!canvasId) return null;
 
     const { pathname, search } = location;
+    const workspaceId = (location.state as { workspaceId?: number })?.workspaceId;
+    const backTo = workspaceId ? `/workspace/${workspaceId}` : '/dashboard';
 
     return (
         <nav
@@ -66,10 +68,10 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
         >
             {/* Logo / Home */}
             <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate(backTo)}
                 className="group relative flex flex-col items-center gap-1 w-12 h-12 rounded-xl mb-3 transition-all duration-200 hover:bg-white/5 active:scale-90"
-                aria-label="Back to dashboard"
-                title="General Projects"
+                aria-label={workspaceId ? 'Back to workspace' : 'Back to dashboard'}
+                title={workspaceId ? 'Team Workspace' : 'General Projects'}
             >
                 <div className="w-full h-full flex items-center justify-center">
                     <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center overflow-hidden border border-white/10 shadow-sm group-hover:scale-105 transition-transform">
@@ -77,7 +79,7 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                     </div>
                 </div>
                 <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 theme-elevated border border-[var(--border)] text-[var(--text)] text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
-                    ← Dashboard
+                    ← {workspaceId ? 'Workspace' : 'Dashboard'}
                 </div>
             </button>
 
@@ -90,7 +92,7 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                     return (
                         <button
                             key={label}
-                            onClick={() => navigate(path(canvasId))}
+                            onClick={() => navigate(path(canvasId), { state: location.state })}
                             className="group relative flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl w-14 transition-all duration-200 active:scale-90"
                             style={{
                                 background: active ? activeBg : 'transparent',
@@ -134,7 +136,7 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                 const active = pathname.includes('/strab');
                 return (
                     <button
-                        onClick={() => navigate(`/strab/${canvasId}`)}
+                        onClick={() => navigate(`/strab/${canvasId}`, { state: location.state })}
                         className="group relative flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl w-14 transition-all duration-200 active:scale-90"
                         style={{
                             background: active ? 'rgba(249,115,22,0.12)' : 'transparent',

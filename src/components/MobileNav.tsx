@@ -9,14 +9,16 @@ interface MobileNavProps {
 export default function MobileNav({ canvasId }: MobileNavProps) {
     const navigate = useNavigate();
     const location = useLocation();
+    const workspaceId = (location.state as { workspaceId?: number })?.workspaceId;
+    const homePath = workspaceId ? `/workspace/${workspaceId}` : '/dashboard';
 
     const items = [
-        { label: 'Home',     icon: Home,        path: '/dashboard',              action: () => navigate('/dashboard'),                exact: true  },
-        { label: 'Canvas',   icon: Layout,       path: `/strategy/${canvasId}`,  action: () => navigate(`/strategy/${canvasId}`)              },
-        { label: 'Tasks',    icon: CheckSquare,  path: `/todo/${canvasId}`,      action: () => navigate(`/todo/${canvasId}`)                  },
-        { label: 'Calendar', icon: Calendar,     path: `/calendar/${canvasId}`,  action: () => navigate(`/calendar/${canvasId}`)              },
-        { label: 'Timeline', icon: Clock,        path: `/timeline/${canvasId}`,  action: () => navigate(`/timeline/${canvasId}`)              },
-        { label: 'STRAB',    icon: Bot,          path: `/strab/${canvasId}`,     action: () => navigate(`/strab/${canvasId}`)                 },
+        { label: workspaceId ? 'Workspace' : 'Home', icon: Home, path: homePath, action: () => navigate(homePath), exact: true },
+        { label: 'Canvas',   icon: Layout,       path: `/strategy/${canvasId}`,  action: () => navigate(`/strategy/${canvasId}`, { state: location.state })              },
+        { label: 'Tasks',    icon: CheckSquare,  path: `/todo/${canvasId}`,      action: () => navigate(`/todo/${canvasId}`, { state: location.state })                  },
+        { label: 'Calendar', icon: Calendar,     path: `/calendar/${canvasId}`,  action: () => navigate(`/calendar/${canvasId}`, { state: location.state })              },
+        { label: 'Timeline', icon: Clock,        path: `/timeline/${canvasId}`,  action: () => navigate(`/timeline/${canvasId}`, { state: location.state })              },
+        { label: 'STRAB',    icon: Bot,          path: `/strab/${canvasId}`,     action: () => navigate(`/strab/${canvasId}`, { state: location.state })                 },
     ];
 
     return (

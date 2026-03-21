@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     ReactFlow,
     Background,
@@ -14,6 +14,8 @@ import {
 import '@xyflow/react/dist/style.css';
 import useStore, { type RFState } from '../store/useStore';
 import { chatService } from '../services/chatService';
+import { workspaceService } from '../services/workspaceService';
+import { useAuth } from '@clerk/clerk-react';
 import { useShallow } from 'zustand/react/shallow';
 import TextNode from './nodes/TextNode';
 import ImageNode from './nodes/ImageNode';
@@ -32,6 +34,9 @@ import { useTheme } from '../context/ThemeContext';
 function CanvasContent() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
+    const { getToken } = useAuth();
+    const workspaceId = (location.state as { workspaceId?: number })?.workspaceId;
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
         addNode, addEdge, setCurrentCanvas, initDefaultCanvas, canvases,
@@ -98,9 +103,39 @@ function CanvasContent() {
             load();
             return;
         }
+        const projMatch = id.match(/^proj_(\d+)$/);
+        if (projMatch) {
+            const projectId = parseInt(projMatch[1], 10);
+            if (canvases[id]?.nodes?.length || canvases[id]?.edges?.length || (canvases[id]?.writingContent && canvases[id].writingContent.length > 0)) {
+                setCurrentCanvas(id);
+                return;
+            }
+            const load = async () => {
+                setSharedLoading(true);
+                setSharedError(null);
+                try {
+                    const token = await getToken();
+                    const data = await workspaceService.getProjectCanvas(projectId, token);
+                    loadSharedCanvas(id, {
+                        name: data.name || undefined,
+                        nodes: (data.nodes || []) as Node[],
+                        edges: (data.edges || []) as Edge[],
+                        writingContent: data.writingContent,
+                    });
+                } catch {
+                    ensureCanvasExists(id);
+                } finally {
+                    setSharedLoading(false);
+                }
+            };
+            retrySharedRef.current = load;
+            load();
+            setCurrentCanvas(id);
+            return;
+        }
         ensureCanvasExists(id);
         setCurrentCanvas(id);
-    }, [id, setCurrentCanvas, initDefaultCanvas, ensureCanvasExists, loadSharedCanvas, canvases]);
+    }, [id, setCurrentCanvas, initDefaultCanvas, ensureCanvasExists, loadSharedCanvas, canvases, getToken]);
 
     // Update page title
     useEffect(() => {
@@ -128,6 +163,34 @@ function CanvasContent() {
             setCurrentCanvas(id);
         }
     }, [activeSubCanvasId, id, setCurrentCanvas, isMerged]);
+
+    const projMatch = id?.match(/^proj_(\d+)$/);
+    const projectIdForSave = projMatch ? parseInt(projMatch[1], 10) : null;
+    const saveProjectCanvasRef = useRef<ReturnType<typeof setTimeout>>();
+    useEffect(() => {
+        if (!projectIdForSave || !currentCanvas) return;
+        saveProjectCanvasRef.current && clearTimeout(saveProjectCanvasRef.current);
+        saveProjectCanvasRef.current = setTimeout(async () => {
+            try {
+                const token = await getToken();
+                await workspaceService.saveProjectCanvas(
+                    projectIdForSave,
+                    {
+                        nodes,
+                        edges,
+                        writingContent: currentCanvas.writingContent || '',
+                        name: currentCanvas.name || currentCanvas.title || '',
+                    },
+                    token
+                );
+            } catch {
+                /* ignore save errors */
+            }
+        }, 1500);
+        return () => {
+            if (saveProjectCanvasRef.current) clearTimeout(saveProjectCanvasRef.current);
+        };
+    }, [projectIdForSave, nodes, edges, currentCanvas?.writingContent, currentCanvas?.name, currentCanvas?.title, getToken]);
 
     // Enhanced Nodes with Actions
     const enhancedNodes = useMemo(() => {
@@ -355,13 +418,15 @@ function CanvasContent() {
         return () => window.removeEventListener('resize', handler);
     }, []);
 
-    if (id?.startsWith('shared_') && (sharedLoading || sharedError)) {
+    const isSharedOrProj = id?.startsWith('shared_') || id?.match(/^proj_\d+$/);
+    if (isSharedOrProj && (sharedLoading || sharedError)) {
+        const backTo = workspaceId ? `/workspace/${workspaceId}` : '/dashboard';
         return (
             <div className="w-screen h-screen theme-page flex items-center justify-center">
                 {sharedLoading ? (
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                        <p className="text-white/60">Loading shared canvas...</p>
+                        <p className="text-white/60">{id?.startsWith('proj_') ? 'Loading project...' : 'Loading shared canvas...'}</p>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center gap-4 text-center max-w-md">
@@ -374,10 +439,10 @@ function CanvasContent() {
                                 Retry
                             </button>
                             <button
-                                onClick={() => navigate('/dashboard')}
+                                onClick={() => navigate(backTo)}
                                 className="px-4 py-2 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-all"
                             >
-                                Back to Dashboard
+                                Back to {workspaceId ? 'Workspace' : 'Dashboard'}
                             </button>
                         </div>
                     </div>

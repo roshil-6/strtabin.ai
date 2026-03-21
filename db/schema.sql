@@ -101,6 +101,14 @@ CREATE TABLE IF NOT EXISTS projects (
 
 CREATE INDEX IF NOT EXISTS idx_projects_workspace ON projects(workspace_id);
 
+-- Project canvases: team workspace canvas persistence (nodes, edges, writingContent)
+CREATE TABLE IF NOT EXISTS project_canvases (
+    project_id INTEGER PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+    data TEXT NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_project_canvases_project ON project_canvases(project_id);
+
 -- Execution tracking: for streaks and progress scoring
 CREATE TABLE IF NOT EXISTS execution_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

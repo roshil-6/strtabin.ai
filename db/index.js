@@ -58,6 +58,18 @@ export function initDb() {
         db.exec('CREATE INDEX IF NOT EXISTS idx_shared_canvases_share_id ON shared_canvases(share_id)');
     } catch (e) { /* table may already exist */ }
 
+    // Migration: project_canvases table (for team workspace canvas persistence)
+    try {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS project_canvases (
+                project_id INTEGER PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+                data TEXT NOT NULL,
+                updated_at TEXT DEFAULT (datetime('now'))
+            )
+        `);
+        db.exec('CREATE INDEX IF NOT EXISTS idx_project_canvases_project ON project_canvases(project_id)');
+    } catch (e) { /* table may already exist */ }
+
     console.log(`📦 Database initialized at ${DB_PATH}${process.env.DATABASE_PATH ? ' (persistent)' : ' (EPHEMERAL — data lost on redeploy)'}`);
     return db;
 }
