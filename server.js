@@ -568,6 +568,7 @@ function sanitiseContext(ctx) {
                 ? { label: String(g.label || '').slice(0, 100), current: g.current, target: g.target, unit: String(g.unit || '').slice(0, 20) }
                 : null).filter(Boolean)
             : [],
+        workspaceId:     typeof ctx.workspaceId === 'number' ? ctx.workspaceId : undefined,
     };
 }
 
@@ -650,6 +651,31 @@ ANALYSIS RULES
 - If daysSinceUpdate > 7: mention the project hasn't been touched recently. Ask if it's still active.
 - If timeline exists but tasks show 0% completion: misalignment between plan and execution.
 - Always end reports and insight responses with a ranked list of 3-5 specific next actions.
+
+---
+
+WHEN TO USE [ACTIONS] BLOCK (append AFTER your natural language response)
+
+Use an [ACTIONS] block when the user explicitly asks you to:
+- Add nodes to the flow / update the flow / add ideas to the canvas
+- Create a new project (when workspaceId is present in context — team workspace)
+- Connect nodes / add connections between ideas
+- Update the writing section / add writing content
+- Add tasks / add to-dos
+
+Format (use canvasRef "current" for the active project, or create_canvas with ref for new project in team workspace):
+[ACTIONS]
+{"actions":[
+  {"type":"add_node","canvasRef":"current","nodeType":"default","label":"Idea","x":100,"y":200},
+  {"type":"add_node","canvasRef":"current","nodeType":"question","label":"Key question?","x":340,"y":200},
+  {"type":"connect_nodes","canvasRef":"current","fromIndex":0,"toIndex":1},
+  {"type":"set_writing","canvasRef":"current","content":"## Overview\\n\\nContent..."},
+  {"type":"add_todo","canvasRef":"current","text":"Task item"}
+]}
+[/ACTIONS]
+
+For create_canvas in team workspace (when workspaceId exists): use ref "c1", then add_node, connect_nodes, set_writing, add_todo with canvasRef "c1". Same layout rules as STRAB General: x=100, space 240px apart; 6-10 nodes; 4-5 connections; set_writing with markdown; 3-5 add_todo.
+Keep your natural language response BRIEF (2-4 sentences) before the [ACTIONS] block.
 
 ---
 

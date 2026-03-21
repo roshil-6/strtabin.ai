@@ -1,18 +1,155 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
 import { sendStrabMessageStreaming, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
+import { workspaceService } from '../services/workspaceService';
 import { getGuestAiRemaining, consumeGuestAiMessage, refundGuestAiMessage, getProAiRemaining, consumeProAiMessage, refundProAiMessage, PRO_AI_DAILY_LIMIT } from '../constants';
 import { Network, Send, Sparkles, ArrowLeft, Trash2, Target, Plus } from 'lucide-react';
 import MobileNav from './MobileNav';
+import type { Node, Edge } from '@xyflow/react';
+
+// ── Action executor for current canvas (update flow, create project in team workspace) ──
+type StrabAction = {
+    type: 'create_canvas' | 'add_node' | 'connect_nodes' | 'set_writing' | 'add_todo';
+    name?: string; ref?: string; canvasRef?: string; nodeType?: string; label?: string; x?: number; y?: number;
+    fromIndex?: number; toIndex?: number; content?: string; text?: string;
+};
+async function parseAndExecuteForCurrentCanvas(
+    raw: string,
+    canvasId: string,
+    workspaceId: number | undefined,
+    getCanvas: () => { nodes: Node[]; edges: Edge[] } | undefined,
+    populateCanvas: (id: string, nodes: Node[], edges: Edge[]) => void,
+    updateCanvasWriting: (id: string, content: string) => void,
+    addCanvasTodo: (id: string, text: string) => void,
+    ensureCanvasExists: (id: string) => void,
+    createProjectInWorkspace: ((name: string, nodes: Node[], edges: Edge[], writing: string, todos: string[]) => Promise<string | null>) | null,
+): Promise<{ cleanText: string; didUpdate: boolean }> {
+    const actionMatch = raw.match(/\[ACTIONS\]([\s\S]*?)\[\/ACTIONS\]/);
+    const cleanText = actionMatch ? raw.replace(/\[ACTIONS\][\s\S]*?\[\/ACTIONS\]/, '').trim() : raw;
+    if (!actionMatch) return { cleanText: raw, didUpdate: false };
+
+    let actions: StrabAction[] = [];
+    try {
+        const parsed = JSON.parse(actionMatch[1].trim());
+        actions = Array.isArray(parsed.actions) ? parsed.actions : [];
+    } catch {
+        return { cleanText, didUpdate: false };
+    }
+
+    const refMap: Record<string, string> = {};
+    const nodesByRef: Record<string, Node[]> = {};
+    const edgesByRef: Record<string, Edge[]> = {};
+    const todosByRef: Record<string, string[]> = {};
+    const writingByRef: Record<string, string> = {};
+    const namesByRef: Record<string, string> = {};
+
+    const current = getCanvas();
+    const existingNodes = current?.nodes || [];
+    const existingEdges = current?.edges || [];
+    refMap['current'] = canvasId;
+    nodesByRef['current'] = [...existingNodes];
+    edgesByRef['current'] = [...existingEdges];
+
+    for (const action of actions) {
+        const ref = (action.canvasRef || action.ref || 'current').toLowerCase();
+        const targetRef = ref === '' ? 'current' : ref;
+
+        switch (action.type) {
+            case 'create_canvas':
+                if (workspaceId && action.ref) {
+                    refMap[action.ref] = '__pending__';
+                    nodesByRef[action.ref] = [];
+                    edgesByRef[action.ref] = [];
+                    todosByRef[action.ref] = [];
+                    writingByRef[action.ref] = '';
+                    namesByRef[action.ref] = action.name || 'New Project';
+                }
+                break;
+            case 'add_node': {
+                const r = targetRef === 'current' ? 'current' : (refMap[action.ref || ''] ? action.ref || 'current' : 'current');
+                if (!nodesByRef[r]) nodesByRef[r] = r === 'current' ? [...existingNodes] : [];
+                const node: Node = {
+                    id: `strab-node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                    type: (action.nodeType as Node['type']) || 'default',
+                    position: { x: action.x ?? 100, y: action.y ?? 200 },
+                    data: { label: action.label || '' },
+                };
+                nodesByRef[r].push(node);
+                break;
+            }
+            case 'connect_nodes': {
+                const r = targetRef === 'current' ? 'current' : (action.ref && refMap[action.ref] ? action.ref : 'current');
+                const nodes = nodesByRef[r] || [];
+                const src = nodes[action.fromIndex ?? 0];
+                const tgt = nodes[action.toIndex ?? 1];
+                if (src && tgt && !edgesByRef[r]) edgesByRef[r] = [];
+                if (src && tgt) edgesByRef[r].push({
+                    id: `strab-edge-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                    source: src.id,
+                    target: tgt.id,
+                    type: 'smoothstep',
+                    animated: true,
+                } as Edge);
+                break;
+            }
+            case 'set_writing':
+                if (targetRef === 'current') {
+                    if (action.content) updateCanvasWriting(canvasId, action.content);
+                } else if (action.ref && action.content) {
+                    writingByRef[action.ref] = action.content;
+                }
+                break;
+            case 'add_todo':
+                if (targetRef === 'current') {
+                    if (action.text) addCanvasTodo(canvasId, action.text);
+                } else if (action.ref && action.text) {
+                    if (!todosByRef[action.ref]) todosByRef[action.ref] = [];
+                    todosByRef[action.ref].push(action.text);
+                }
+                break;
+        }
+    }
+
+    let didUpdate = false;
+    if (nodesByRef['current']?.length !== existingNodes.length || edgesByRef['current']?.length !== existingEdges.length ||
+        actions.some(a => (a.type === 'set_writing' || a.type === 'add_todo') && ((a.canvasRef || 'current').toLowerCase() === 'current' || !a.canvasRef))) {
+        if (nodesByRef['current']) populateCanvas(canvasId, nodesByRef['current'], edgesByRef['current'] || []);
+        didUpdate = true;
+    }
+
+    if (createProjectInWorkspace && workspaceId) {
+        for (const ref of Object.keys(refMap)) {
+            if (ref === 'current' || refMap[ref] !== '__pending__') continue;
+            const newId = await createProjectInWorkspace(
+                namesByRef[ref] || 'New Project',
+                nodesByRef[ref] || [],
+                edgesByRef[ref] || [],
+                writingByRef[ref] || '',
+                todosByRef[ref] || [],
+            );
+            if (newId) {
+                ensureCanvasExists(newId);
+                populateCanvas(newId, nodesByRef[ref] || [], edgesByRef[ref] || []);
+                if (writingByRef[ref]) updateCanvasWriting(newId, writingByRef[ref]);
+                for (const t of todosByRef[ref] || []) addCanvasTodo(newId, t);
+                didUpdate = true;
+            }
+        }
+    }
+
+    return { cleanText, didUpdate };
+}
 
 export default function StrabView() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams] = useSearchParams();
+    const workspaceId = (location.state as { workspaceId?: number })?.workspaceId;
     const { user } = useUser();
     const { getToken } = useAuth();
     const paidUsers = useStore(state => state.paidUsers);
@@ -31,6 +168,10 @@ export default function StrabView() {
     const addChatMessage = useStore(state => state.addChatMessage);
     const updateLastChatMessage = useStore(state => state.updateLastChatMessage);
     const clearChatHistory = useStore(state => state.clearChatHistory);
+    const populateCanvas = useStore(state => state.populateCanvas);
+    const updateCanvasWriting = useStore(state => state.updateCanvasWriting);
+    const addCanvasTodo = useStore(state => state.addCanvasTodo);
+    const ensureCanvasExists = useStore(state => state.ensureCanvasExists);
     const chatHistoryMap = useStore(state => state.chatHistory);
     const chatHistory = useMemo(() => chatHistoryMap[id || ''] || [], [chatHistoryMap, id]);
 
@@ -135,8 +276,9 @@ export default function StrabView() {
                 target: g.targetValue,
                 unit: g.unit,
             })) || [],
+            workspaceId: workspaceId ?? undefined,
         };
-    }, [resolvedName, canvas, id, dailyExecutionLogs]);
+    }, [resolvedName, canvas, id, dailyExecutionLogs, workspaceId]);
 
     // Update page title
     useEffect(() => {
@@ -289,12 +431,51 @@ export default function StrabView() {
         try {
             const token = await getToken();
             const messagesForApi = [...chatHistory, userMsg];
+            let fullText = '';
             await sendStrabMessageStreaming(
                 messagesForApi,
                 projectContext,
-                (text) => updateLastChatMessage(id!, text),
+                (text) => {
+                    fullText = text;
+                    updateLastChatMessage(id!, text);
+                },
                 token ?? undefined,
             );
+            const createProjectInWorkspace = workspaceId && token
+                ? async (name: string, nodes: Node[], edges: Edge[], writing: string, _todos: string[]) => {
+                    try {
+                        const res = await workspaceService.createProject(workspaceId, { title: name }, token);
+                        const project = res?.project ?? res;
+                        if (!project?.id) return null;
+                        const canvasId = `proj_${project.id}`;
+                        await workspaceService.updateProject(project.id, { canvasId }, token);
+                        await workspaceService.saveProjectCanvas(project.id, {
+                            nodes,
+                            edges,
+                            writingContent: writing,
+                            name,
+                        }, token);
+                        return canvasId;
+                    } catch {
+                        return null;
+                    }
+                }
+                : null;
+            const { cleanText, didUpdate } = await parseAndExecuteForCurrentCanvas(
+                fullText,
+                id!,
+                workspaceId,
+                () => useStore.getState().canvases[id!],
+                populateCanvas,
+                updateCanvasWriting,
+                addCanvasTodo,
+                ensureCanvasExists,
+                createProjectInWorkspace,
+            );
+            if (didUpdate) {
+                updateLastChatMessage(id!, cleanText);
+                toast.success('Flow updated');
+            }
         } catch (err) {
             if (isGuest) {
                 refundGuestAiMessage();
@@ -312,7 +493,7 @@ export default function StrabView() {
         } finally {
             setIsLoading(false);
         }
-    }, [id, chatHistory, projectContext, addChatMessage, updateLastChatMessage, getToken, isLoading, isGuest, isPaid, user?.id, navigate]);
+    }, [id, chatHistory, projectContext, addChatMessage, updateLastChatMessage, populateCanvas, updateCanvasWriting, addCanvasTodo, ensureCanvasExists, workspaceId, getToken, isLoading, isGuest, isPaid, user?.id, navigate]);
 
     const handleSend = useCallback(() => {
         if (!input.trim()) return;
