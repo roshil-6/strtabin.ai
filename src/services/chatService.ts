@@ -109,7 +109,6 @@ export const chatService = {
       projectTitle?: string;
       workspaceId?: number;
       workspaceName?: string;
-      canvasId?: string;
     }
   ) {
     const body = { content, ...opts };
