@@ -161,7 +161,7 @@ export default function CommunityPage() {
         });
         s.on('connect', () => {
           const chat = activeChatRef.current;
-          if (chat?.id) s.emit('chat:join', { chatId: chat.id });
+          if (chat?.id) s?.emit('chat:join', { chatId: chat.id });
         });
         socketRef.current = s;
       }
