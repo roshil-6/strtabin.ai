@@ -458,6 +458,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (isNaN(workspaceId)) return res.status(400).json({ error: 'Invalid workspace ID.' });
 
             if (!hasWorkspaceAccess(req.userId, workspaceId)) {
+                console.warn('[projects] Access denied for user', req.userId, 'workspace', workspaceId);
                 return res.status(403).json({ error: 'Access denied.' });
             }
 
@@ -489,6 +490,11 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             logExecution({ userId: req.userId, projectId, workspaceId, action: 'create_project', score: 5 });
 
             const project = getProjectWithAssignee(projectId);
+            if (!project) {
+                console.error('[projects] Created project', projectId, 'but getProjectWithAssignee returned null');
+                return res.status(500).json({ error: 'Project created but failed to retrieve.' });
+            }
+            console.log('[projects] Created project', projectId, 'in workspace', workspaceId);
             return res.status(201).json({ project, id: projectId });
         } catch (err) {
             console.error('Create project error:', err);

@@ -32,6 +32,7 @@ import {
   Zap,
   Hash,
   Copy,
+  RefreshCw,
 } from 'lucide-react';
 import { workspaceService, type Workspace, type Project, type WorkspaceMember, type ActivityLog, type ProjectStatus, type MemberDailyTask } from '../services/workspaceService';
 import { chatService } from '../services/chatService';
@@ -79,6 +80,7 @@ export default function WorkspacePage() {
   const [roleMenuOpen, setRoleMenuOpen] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'team' | 'tasks' | 'activity'>('overview');
   const [projectStatusFilter, setProjectStatusFilter] = useState<ProjectStatus | 'all'>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   const workspaceId = id ? parseInt(id, 10) : NaN;
   const isTeam = workspace?.type === 'team';
@@ -118,6 +120,12 @@ export default function WorkspacePage() {
   useEffect(() => {
     load();
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (!workspace || !isTeam) return;
+    const interval = setInterval(() => load(), 30000);
+    return () => clearInterval(interval);
+  }, [workspaceId, workspace, isTeam]);
 
   useEffect(() => {
     if (workspace && isTeam) loadDailyTasks();
@@ -165,18 +173,25 @@ export default function WorkspacePage() {
     setSubmitting(true);
     try {
       const token = await getToken();
-      const { project } = await workspaceService.createProject(
+      const res = await workspaceService.createProject(
         workspaceId,
         { title: newProjectTitle.trim(), description: newProjectDesc.trim() || undefined, assignedTo: newProjectAssignTo ?? undefined },
         token
       );
+      const project = res?.project ?? res;
+      if (!project?.id) {
+        toast.error('Project created but response was invalid. Refreshing…');
+        await load();
+      } else {
+        setProjects((p) => [project, ...p]);
+        await load();
+      }
       toast.success('Project created');
       setShowNewProject(false);
       setNewProjectTitle('');
       setNewProjectDesc('');
       setNewProjectAssignTo(null);
-      setProjects((p) => [project, ...p]);
-      load();
+      if (isTeam) setActiveTab('projects');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create project');
     } finally {
@@ -351,6 +366,19 @@ export default function WorkspacePage() {
                     Invite
                   </button>
                 )}
+                <button
+                  onClick={async () => {
+                    setRefreshing(true);
+                    await load();
+                    setRefreshing(false);
+                  }}
+                  disabled={refreshing}
+                  title="Refresh to see updates from team members"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-50"
+                >
+                  <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                  Refresh
+                </button>
                 <button
                   onClick={() => setShowNewProject(true)}
                   className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white text-sm transition-all"

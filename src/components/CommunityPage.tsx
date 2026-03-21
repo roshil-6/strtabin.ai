@@ -141,7 +141,8 @@ export default function CommunityPage() {
         s.on('chat:message', ({ chatId, message }: { chatId: number; message: Message }) => {
           setMessages((prev) => {
             if (activeChatRef.current?.id !== chatId) return prev;
-            if (prev.some((m) => m.id === message.id)) return prev; // avoid duplicate from API response
+            const msgId = message?.id;
+            if (msgId != null && prev.some((m) => String(m.id) === String(msgId))) return prev;
             return [...prev, message];
           });
           setChats((prev) =>
@@ -157,6 +158,10 @@ export default function CommunityPage() {
           if (activeChatRef.current?.id === chatId) setTypingUser(String(userId));
           if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
           typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000);
+        });
+        s.on('connect', () => {
+          const chat = activeChatRef.current;
+          if (chat?.id) s.emit('chat:join', { chatId: chat.id });
         });
         socketRef.current = s;
       }
@@ -329,7 +334,7 @@ export default function CommunityPage() {
         }
       }
       const { message } = await chatService.sendMessage(activeChat.id, content, token, finalOpts);
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => (prev.some((m) => String(m.id) === String(message?.id)) ? prev : [...prev, message]));
       if (attachProject) {
         setAttachProject(null);
         setShowAttach(false);
@@ -356,7 +361,7 @@ export default function CommunityPage() {
         token,
         { type: isImage ? 'image' : 'file', fileUrl: url, fileName: filename }
       );
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => (prev.some((m) => String(m.id) === String(message?.id)) ? prev : [...prev, message]));
       scrollToBottom();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Upload failed');
@@ -366,6 +371,11 @@ export default function CommunityPage() {
   };
 
   const chatName = (c: Chat) => c.otherUser?.username || c.otherUser?.email || c.name || 'Unknown';
+
+  const uniqueMessages = useMemo(
+    () => messages.filter((m, i, arr) => arr.findIndex((x) => String(x.id) === String(m.id)) === i),
+    [messages]
+  );
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
@@ -804,7 +814,7 @@ export default function CommunityPage() {
                         <Loader2 size={24} className="animate-spin text-primary" />
                       </div>
                     ) : (
-                      messages.map((m) => {
+                      uniqueMessages.map((m) => {
                         const isMe = m.sender_id === currentUserId;
                         const meta = typeof m.metadata === 'string' ? (() => { try { return JSON.parse(m.metadata); } catch { return {}; } })() : (m.metadata || {});
                         const hasShareId = meta.shareId;
