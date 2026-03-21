@@ -11,6 +11,10 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.DATABASE_PATH || join(__dirname, '..', 'data', 'strategybox.db');
 
+if (!process.env.DATABASE_PATH) {
+    console.warn('⚠️  DATABASE_PATH not set — database will be lost on redeploy. Set DATABASE_PATH=/data/strategybox.db (or your disk mount path) in Render env.');
+}
+
 let db = null;
 
 /**
@@ -54,7 +58,7 @@ export function initDb() {
         db.exec('CREATE INDEX IF NOT EXISTS idx_shared_canvases_share_id ON shared_canvases(share_id)');
     } catch (e) { /* table may already exist */ }
 
-    console.log(`📦 Database initialized at ${DB_PATH}`);
+    console.log(`📦 Database initialized at ${DB_PATH}${process.env.DATABASE_PATH ? ' (persistent)' : ' (EPHEMERAL — data lost on redeploy)'}`);
     return db;
 }
 

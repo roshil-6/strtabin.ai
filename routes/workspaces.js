@@ -569,8 +569,9 @@ export function registerWorkspaceRoutes(app, clerkClient) {
 
     // GET /api/canvas/shared/:shareId — fetch shared canvas (no auth, public)
     app.get('/api/canvas/shared/:shareId', (req, res) => {
+        const shareId = String(req.params.shareId || '').trim();
+        console.log('[canvas] GET /api/canvas/shared/' + shareId);
         try {
-            const shareId = String(req.params.shareId || '').trim();
             if (!shareId) return res.status(400).json({ error: 'Share ID required.' });
             const row = getSharedCanvas(shareId);
             if (!row) return res.status(404).json({ error: 'Shared canvas not found.' });

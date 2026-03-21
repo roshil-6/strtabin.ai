@@ -134,9 +134,19 @@ export const chatService = {
   },
 
   async getSharedCanvas(shareId: string) {
-    const res = await fetch(`${API_BASE_URL}/api/canvas/shared/${shareId}`);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Failed to load shared canvas');
+    const url = `${API_BASE_URL}/api/canvas/shared/${shareId}`;
+    const delays = [0, 2000, 5000];
+    let res: Response | null = null;
+    for (let i = 0; i < delays.length; i++) {
+      if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
+      res = await fetch(url);
+      if (res.status !== 503 || i === delays.length - 1) break;
+    }
+    const data = await res!.json().catch(() => ({}));
+    if (!res!.ok) {
+      const msg = res!.status === 503 ? 'Server is waking up. Please try again in a moment.' : (data.error || 'Failed to load shared canvas');
+      throw new Error(msg);
+    }
     return data as { shareId: string; name: string | null; nodes: unknown[]; edges: unknown[]; writingContent?: string };
   },
 };

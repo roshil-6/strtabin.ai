@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ReactFlow,
@@ -70,6 +70,7 @@ function CanvasContent() {
 
     const [sharedLoading, setSharedLoading] = useState(false);
     const [sharedError, setSharedError] = useState<string | null>(null);
+    const retrySharedRef = useRef<() => void>(() => {});
 
     useEffect(() => {
         if (!id) {
@@ -83,14 +84,18 @@ function CanvasContent() {
                 setCurrentCanvas(id);
                 return;
             }
-            setSharedLoading(true);
-            setSharedError(null);
-            chatService.getSharedCanvas(shareId)
-                .then((data) => {
-                    loadSharedCanvas(id, { name: data.name || undefined, nodes: (data.nodes || []) as Node[], edges: (data.edges || []) as Edge[], writingContent: data.writingContent });
-                })
-                .catch((err) => setSharedError(err instanceof Error ? err.message : 'Failed to load'))
-                .finally(() => setSharedLoading(false));
+            const load = () => {
+                setSharedLoading(true);
+                setSharedError(null);
+                chatService.getSharedCanvas(shareId)
+                    .then((data) => {
+                        loadSharedCanvas(id, { name: data.name || undefined, nodes: (data.nodes || []) as Node[], edges: (data.edges || []) as Edge[], writingContent: data.writingContent });
+                    })
+                    .catch((err) => setSharedError(err instanceof Error ? err.message : 'Failed to load'))
+                    .finally(() => setSharedLoading(false));
+            };
+            retrySharedRef.current = load;
+            load();
             return;
         }
         ensureCanvasExists(id);
@@ -361,12 +366,20 @@ function CanvasContent() {
                 ) : (
                     <div className="flex flex-col items-center gap-4 text-center max-w-md">
                         <p className="text-red-400 font-bold">{sharedError}</p>
-                        <button
-                            onClick={() => navigate('/dashboard')}
-                            className="px-4 py-2 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
-                        >
-                            Back to Dashboard
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => retrySharedRef.current()}
+                                className="px-4 py-2 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="px-4 py-2 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-all"
+                            >
+                                Back to Dashboard
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
