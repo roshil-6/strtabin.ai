@@ -138,6 +138,7 @@ export type CanvasData = {
     linkedTimelines?: string[]; // IDs of linked timelines
     isPinned?: boolean; // Pin status
     isCurrent?: boolean; // Current focus status
+    isStuck?: boolean; // User-marked blocked / needs attention
     mergedCanvasIds?: string[]; // IDs of canvases that are part of this merged project
     folderId?: string | null; // Associated folder ID
     goals?: CanvasGoal[]; // Outcome/metric tracking
@@ -278,6 +279,7 @@ export type RFState = {
     addEdge: (edge: Edge) => void;
     deleteEdge: (id: string) => void;
     togglePinCanvas: (id: string) => void;
+    toggleStuckCanvas: (id: string) => void;
     mergeCanvases: (ids: string[], title: string) => string;
 
     // Global Calendar
@@ -543,6 +545,19 @@ const useStore = create<RFState>()(
                             ...state.canvases,
                             [id]: { ...canvas, isPinned: !canvas.isPinned }
                         }
+                    };
+                });
+            },
+
+            toggleStuckCanvas: (id) => {
+                set((state) => {
+                    const canvas = state.canvases[id];
+                    if (!canvas) return state;
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [id]: { ...canvas, isStuck: !canvas.isStuck, updatedAt: Date.now() },
+                        },
                     };
                 });
             },

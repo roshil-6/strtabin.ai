@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronRight, Rocket, FolderOpen } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronRight, Rocket } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
@@ -17,7 +17,7 @@ export default function Dashboard() {
     const { resolved: theme } = useTheme();
     const navigate = useNavigate();
     const {
-        canvases, projectCalendarEvents, createCanvas, deleteCanvas, togglePinCanvas, toggleCurrentProject,
+        canvases, projectCalendarEvents, createCanvas, deleteCanvas, togglePinCanvas, toggleStuckCanvas, toggleCurrentProject,
         mergeCanvases, folders, activeFolderId, createFolder, deleteFolder,
         setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName, initDefaultCanvas,
         dailyExecutionLogs, setDailyExecutionLog,
@@ -27,6 +27,7 @@ export default function Dashboard() {
         createCanvas: state.createCanvas,
         deleteCanvas: state.deleteCanvas,
         togglePinCanvas: state.togglePinCanvas,
+        toggleStuckCanvas: state.toggleStuckCanvas,
         toggleCurrentProject: state.toggleCurrentProject,
         mergeCanvases: state.mergeCanvases,
         folders: state.folders,
@@ -70,9 +71,6 @@ export default function Dashboard() {
     const [myUsername, setMyUsername] = useState<string | null>(null);
     const [invitations, setInvitations] = useState<Array<{ id: number; workspace_id: number; workspace_name: string; inviter_username: string | null }>>([]);
     const [workInsights, setWorkInsights] = useState<{ streak: number; progress: { total: number; count: number } } | null>(null);
-    type ProjectSort = 'recent' | 'focus_first' | 'pinned_first' | 'name';
-    const [projectSort, setProjectSort] = useState<ProjectSort>('recent');
-
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
         initDefaultCanvas();
@@ -164,6 +162,11 @@ export default function Dashboard() {
     const handleToggleCurrent = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         toggleCurrentProject(id);
+    };
+
+    const handleToggleStuck = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        toggleStuckCanvas(id);
     };
 
     const handleDelete = (e: React.MouseEvent, canvasId: string) => {
@@ -300,72 +303,11 @@ export default function Dashboard() {
     const sortedOtherProjects = sortByNewest(otherProjects);
     const sortedRegularProjects = sortByNewest(regularProjects);
 
-    const sortProjectsList = (arr: CanvasData[]) => {
-        const copy = [...arr];
-        const t = (p: CanvasData) => Number(p.updatedAt ?? p.createdAt ?? 0);
-        if (projectSort === 'name') {
-            copy.sort((a, b) =>
-                (a.name || a.title || '').localeCompare(b.name || b.title || '', undefined, { sensitivity: 'base' })
-            );
-            return copy;
-        }
-        if (projectSort === 'recent') {
-            copy.sort((a, b) => t(b) - t(a));
-            return copy;
-        }
-        const score = (p: CanvasData) => {
-            if (projectSort === 'focus_first') return (p.isCurrent ? 4 : 0) + (p.isPinned ? 2 : 0);
-            if (projectSort === 'pinned_first') return p.isPinned ? 2 : 0;
-            return 0;
-        };
-        copy.sort((a, b) => score(b) - score(a) || t(b) - t(a));
-        return copy;
-    };
-
-    const avgCompletionAll = (() => {
-        const withTodos = filteredCanvases.filter((p) => (p.todos?.length ?? 0) > 0);
-        if (withTodos.length === 0) return 0;
-        return Math.round(
-            withTodos.reduce((acc, p) => {
-                const tc = p.todos!.length;
-                const done = p.todos!.filter((t) => t.completed).length;
-                return acc + (tc ? (done / tc) * 100 : 0);
-            }, 0) / withTodos.length
-        );
-    })();
-
-    const sortedDisplayPinned = sortProjectsList(pinnedProjects);
-    const sortedDisplayCurrent = sortProjectsList(currentProjects);
-    const sortedDisplayMerged = sortProjectsList(mergedProjects);
-    const sortedDisplayOther = sortProjectsList(sortedOtherProjects);
-    const sortedDisplayRegular = sortProjectsList(sortedRegularProjects);
-
-    const activeProjectsCount = filteredCanvases.filter((p) => {
-        const tc = p.todos?.length ?? 0;
-        const done = p.todos?.filter((t) => t.completed).length ?? 0;
-        const nodes = p.nodes?.length ?? 0;
-        const wc = wordCount(p.writingContent);
-        if (p.isCurrent) return true;
-        if (tc === 0) return nodes > 0 || wc > 0;
-        return done < tc;
-    }).length;
-
-    const continueWorkingProject = (() => {
-        const order = [
-            ...currentProjects,
-            ...pinnedProjects,
-            ...mergedProjects,
-            ...(sortedOtherProjects.length ? sortedOtherProjects : sortedRegularProjects),
-        ];
-        const seen = new Set<string>();
-        for (const c of order) {
-            if (!seen.has(c.id)) {
-                seen.add(c.id);
-                return c;
-            }
-        }
-        return null;
-    })();
+    const sortedDisplayPinned = sortByNewest(pinnedProjects);
+    const sortedDisplayCurrent = sortByNewest(currentProjects);
+    const sortedDisplayMerged = sortByNewest(mergedProjects);
+    const sortedDisplayOther = sortedOtherProjects;
+    const sortedDisplayRegular = sortedRegularProjects;
 
     const mainGridProjects =
         pinnedProjects.length > 0 || currentProjects.length > 0 ? sortedDisplayOther : sortedDisplayRegular;
@@ -409,19 +351,18 @@ export default function Dashboard() {
         }
     };
 
-    /** Per-card: set current focus & priority; Stuck/Done are from tasks (read-only). */
+    /** Per-card: focus, priority, stuck (user flags); Done from tasks (read-only). */
     function projectQuickActionsRow(p: CanvasData) {
         if (selectionMode) return null;
         const tc = p.todos?.length ?? 0;
         const done = p.todos?.filter((x) => x.completed).length ?? 0;
-        const stuck = tc > 0 && done === 0;
         const allDone = tc > 0 && done === tc;
         return (
             <div
                 className="flex flex-wrap items-center gap-1.5 mb-2 md:mb-3"
                 onClick={(e) => e.stopPropagation()}
                 role="group"
-                aria-label="Project focus and priority"
+                aria-label="Project focus, priority, and stuck"
             >
                 <button
                     type="button"
@@ -449,14 +390,19 @@ export default function Dashboard() {
                     <Star size={12} className={p.isPinned ? 'fill-current' : ''} />
                     Priority
                 </button>
-                {stuck && (
-                    <span
-                        className="inline-flex items-center rounded-md border border-orange-500/25 bg-orange-500/10 px-2 py-1 text-[10px] font-bold text-orange-300/95"
-                        title="Tasks exist but none completed yet"
-                    >
-                        Stuck
-                    </span>
-                )}
+                <button
+                    type="button"
+                    onClick={(e) => handleToggleStuck(e, p.id)}
+                    className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide border transition-colors ${
+                        p.isStuck
+                            ? 'border-orange-400/55 bg-orange-500/20 text-orange-200'
+                            : 'border-white/[0.12] bg-white/[0.03] text-white/50 hover:text-white/85 hover:border-white/20'
+                    }`}
+                    title={p.isStuck ? 'Clear stuck / blocked flag' : 'Mark as stuck or blocked'}
+                >
+                    <Flame size={12} className={p.isStuck ? 'text-orange-300' : ''} />
+                    Stuck
+                </button>
                 {allDone && (
                     <span
                         className="inline-flex items-center rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-300/95"
@@ -1222,73 +1168,6 @@ export default function Dashboard() {
                         </div>
                     ) : (
                         <div key={tabKey} className="space-y-4 md:space-y-14 tab-fade-in">
-                            {/* Projects hub — metrics, filter pills, continue CTA */}
-                            <div className="rounded-2xl md:rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#161616] via-[#101010] to-violet-950/25 px-4 py-5 md:px-8 md:py-7 mb-2 md:mb-6 shadow-[0_8px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.05)]">
-                                <div className="flex flex-col xl:flex-row xl:items-center gap-6 xl:gap-10">
-                                    <div className="flex flex-wrap gap-5 md:gap-10 flex-1">
-                                        <div className="flex items-start gap-3 min-w-[160px]">
-                                            <CheckCircle2 size={20} className="text-teal-400 shrink-0 mt-0.5" />
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Today&apos;s focus</p>
-                                                <p className="text-sm font-bold text-white mt-1 leading-snug">
-                                                    {currentProjects.length > 0
-                                                        ? `${currentProjects.length} in focus`
-                                                        : 'Set current to spotlight'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3 min-w-[160px]">
-                                            <FolderOpen size={20} className="text-white/45 shrink-0 mt-0.5" />
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Active projects</p>
-                                                <p className="text-sm font-bold text-white mt-1">{activeProjectsCount} with momentum</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3 min-w-[160px]">
-                                            <TrendingUp size={20} className="text-orange-400 shrink-0 mt-0.5" />
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Completion rate</p>
-                                                <p className="text-sm font-black text-white mt-1">
-                                                    <span className="text-orange-400">{avgCompletionAll}%</span>
-                                                    <span className="text-white/35 font-semibold text-xs ml-2">avg. tasks</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            continueWorkingProject
-                                                ? navigate(getTargetRoute(continueWorkingProject.id))
-                                                : handleCreate()
-                                        }
-                                        className="w-full xl:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-[0.15em] text-white bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:via-violet-500 hover:to-purple-500 shadow-[0_8px_32px_rgba(109,40,217,0.35)] border border-white/10 transition-all active:scale-[0.98]"
-                                    >
-                                        <Zap size={16} className="text-amber-200" />
-                                        Continue working
-                                    </button>
-                                </div>
-                                <div className="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-white/[0.06]">
-                                    <label htmlFor="project-sort" className="text-[10px] font-black uppercase tracking-wider text-white/35 shrink-0">
-                                        Sort list
-                                    </label>
-                                    <select
-                                        id="project-sort"
-                                        value={projectSort}
-                                        onChange={(e) => setProjectSort(e.target.value as ProjectSort)}
-                                        className="flex-1 min-w-[200px] max-w-sm rounded-xl border border-white/[0.1] bg-black/40 px-3 py-2 text-xs font-bold text-white outline-none focus:border-teal-500/40 focus:ring-1 focus:ring-teal-500/30"
-                                    >
-                                        <option value="recent">Recently updated</option>
-                                        <option value="focus_first">Current focus &amp; priority first</option>
-                                        <option value="pinned_first">Priority (pinned) first</option>
-                                        <option value="name">Name (A–Z)</option>
-                                    </select>
-                                    <span className="text-[10px] text-white/25 hidden sm:inline max-w-[220px]">
-                                        Use <strong className="text-white/45">Focus</strong> &amp; <strong className="text-white/45">Priority</strong> on each card to organize.
-                                    </span>
-                                </div>
-                            </div>
-
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
                                     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#141414] border border-orange-500/30 rounded-3xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
@@ -1603,6 +1482,7 @@ export default function Dashboard() {
                             </div>
                             <button onClick={(e) => handleToggleCurrent(e, p.id)} className={`p-1.5 rounded-lg transition-colors ${p.isCurrent ? 'text-yellow-400 bg-yellow-500/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title={p.isCurrent ? 'Remove from Current' : 'Mark as Current'}><Zap size={14} fill={p.isCurrent ? 'currentColor' : 'none'} /></button>
                             <button onClick={(e) => handleTogglePin(e, p.id)} className={`p-1.5 rounded-lg transition-colors ${p.isPinned ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title={p.isPinned ? 'Unpin' : 'Pin'}><Star size={14} fill={p.isPinned ? 'currentColor' : 'none'} /></button>
+                            <button onClick={(e) => handleToggleStuck(e, p.id)} className={`p-1.5 rounded-lg transition-colors ${p.isStuck ? 'text-orange-400 bg-orange-500/15' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title={p.isStuck ? 'Clear stuck' : 'Mark stuck'}><Flame size={14} /></button>
                             <button onClick={(e) => handleStartRename(e, p.id, p.name || p.title || '')} className="p-1.5 rounded-lg text-white/25 hover:text-primary hover:bg-white/8 transition-colors" title="Rename"><Pencil size={14} /></button>
                             <button onClick={(e) => handleDelete(e, p.id)} className="p-1.5 rounded-lg text-white/25 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete"><Trash2 size={14} /></button>
                         </div>
@@ -1861,6 +1741,14 @@ export default function Dashboard() {
                             title={p.isPinned ? 'Unpin' : 'Pin'}
                         >
                             <Star size={14} fill={p.isPinned ? 'currentColor' : 'none'} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => handleToggleStuck(e, p.id)}
+                            className={`p-1.5 rounded-lg transition-colors ${p.isStuck ? 'text-orange-400 bg-orange-500/15' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
+                            title={p.isStuck ? 'Clear stuck' : 'Mark stuck'}
+                        >
+                            <Flame size={14} />
                         </button>
                     </div>
                 )}
