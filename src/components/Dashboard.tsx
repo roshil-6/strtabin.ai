@@ -368,12 +368,12 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`flex items-center gap-4 p-4 rounded-2xl bg-[#1a1a1a] border-2 active:scale-[0.98] transition-all cursor-pointer
+                className={`flex items-center gap-4 p-4 rounded-3xl bg-[#1a1a1a] border-2 active:scale-[0.98] transition-all cursor-pointer
                     ${isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-white/[0.15] active:border-primary/40'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}
                 `}
             >
-                <div className="w-12 h-12 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
                     {isMerged ? <GitMerge size={22} className="text-primary" /> : <Icon size={22} className="text-primary" />}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -393,7 +393,7 @@ export default function Dashboard() {
             {/* Join Workspace Modal */}
             {showJoinWorkspaceModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-2xl p-6 shadow-2xl">
+                    <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-3xl p-6 shadow-2xl">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-black text-white flex items-center gap-2">
                                 <Hash size={20} className="text-primary" />
@@ -454,7 +454,7 @@ export default function Dashboard() {
             {/* Set Username & Password Modal */}
             {showCredentialsModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-2xl p-6 shadow-2xl">
+                    <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-3xl p-6 shadow-2xl">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-black text-white flex items-center gap-2">
                                 <User size={18} />
@@ -864,9 +864,9 @@ export default function Dashboard() {
                                 {/* Strategic Calendar Option */}
                                 <div
                                     onClick={() => navigate('/calendar')}
-                                    className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-white/20 transition-all cursor-pointer hover:bg-white/[0.02]"
+                                    className="group relative bg-[#0f0f0f] p-8 rounded-3xl border border-white/5 hover:border-white/20 transition-all cursor-pointer hover:bg-white/[0.02]"
                                 >
-                                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                         <Calendar size={24} className="text-white" />
                                     </div>
                                     <h3 className="text-xl font-black text-white mb-2">Strategic Calendar</h3>
@@ -878,9 +878,9 @@ export default function Dashboard() {
                                 {/* General Weekly Planner Option */}
                                 <div
                                     onClick={() => navigate('/calendar?mode=week')}
-                                    className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-orange-500/50 transition-all cursor-pointer hover:bg-orange-500/[0.02]"
+                                    className="group relative bg-[#0f0f0f] p-8 rounded-3xl border border-white/5 hover:border-orange-500/50 transition-all cursor-pointer hover:bg-orange-500/[0.02]"
                                 >
-                                    <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                    <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                         <CheckCircle2 size={24} className="text-orange-500" />
                                     </div>
                                     <h3 className="text-xl font-black text-white mb-2">General Weekly Planner</h3>
@@ -902,9 +902,9 @@ export default function Dashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                                 <div
                                     onClick={() => navigate('/reports')}
-                                    className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-emerald-500/50 transition-all cursor-pointer hover:bg-emerald-500/[0.02]"
+                                    className="group relative bg-[#0f0f0f] p-8 rounded-3xl border border-white/5 hover:border-emerald-500/50 transition-all cursor-pointer hover:bg-emerald-500/[0.02]"
                                 >
-                                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                         <BarChart2 size={24} className="text-emerald-500" />
                                     </div>
                                     <h3 className="text-xl font-black text-white mb-2">STRAB AI Reports</h3>
@@ -943,7 +943,7 @@ export default function Dashboard() {
                                 const projectLogs = todayLogs.filter(l => l.canvasId);
                                 const hasAny = todayLogs.some(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim());
                                 return (
-                                    <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] to-transparent p-6 md:p-8">
+                                    <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] to-transparent p-6 md:p-8">
                                         <div className="flex items-center gap-2 mb-4">
                                             <Zap size={20} className="text-primary" />
                                             <h3 className="text-lg font-black text-white">What did I execute today?</h3>
@@ -964,7 +964,7 @@ export default function Dashboard() {
                                                     </div>
                                                 )}
                                                 {projectLogs.filter(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim()).map((l) => (
-                                                    <div key={l.canvasId} className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                                                    <div key={l.canvasId} className="p-3 rounded-2xl bg-white/[0.03] border border-white/5">
                                                         <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">
                                                             {canvases[l.canvasId!]?.name || 'Project'}
                                                         </p>
@@ -990,9 +990,9 @@ export default function Dashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div
                                     onClick={() => navigate('/calendar')}
-                                    className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-cyan-500/50 transition-all cursor-pointer hover:bg-cyan-500/[0.02]"
+                                    className="group relative bg-[#0f0f0f] p-8 rounded-3xl border border-white/5 hover:border-cyan-500/50 transition-all cursor-pointer hover:bg-cyan-500/[0.02]"
                                 >
-                                    <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                    <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                         <Activity size={24} className="text-cyan-500" />
                                     </div>
                                     <h3 className="text-xl font-black text-white mb-2">Strategic Calendar</h3>
@@ -1002,9 +1002,9 @@ export default function Dashboard() {
                                 </div>
                                 <div
                                     onClick={() => navigate('/calendar?mode=week')}
-                                    className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-cyan-500/50 transition-all cursor-pointer hover:bg-cyan-500/[0.02]"
+                                    className="group relative bg-[#0f0f0f] p-8 rounded-3xl border border-white/5 hover:border-cyan-500/50 transition-all cursor-pointer hover:bg-cyan-500/[0.02]"
                                 >
-                                    <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                    <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                         <CheckCircle2 size={24} className="text-cyan-500" />
                                     </div>
                                     <h3 className="text-xl font-black text-white mb-2">Weekly Planner</h3>
@@ -1025,7 +1025,7 @@ export default function Dashboard() {
                         <div key={tabKey} className="space-y-4 md:space-y-14 tab-fade-in">
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
-                                    <div className="bg-[#1a1a1a] border border-orange-500/30 rounded-2xl p-4 shadow-2xl flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
+                                    <div className="bg-[#1a1a1a] border border-orange-500/30 rounded-3xl p-4 shadow-2xl flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
                                         <div className="flex flex-col">
                                             <span className="text-white font-bold text-sm">Select 2 Projects</span>
                                             <span className="text-white/40 text-xs">{selectedIds.length}/2 selected</span>
@@ -1102,7 +1102,7 @@ export default function Dashboard() {
                                     {isFirstLoad && Object.keys(canvases).length === 0 && (
                                         <div className="col-span-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
                                             {[...Array(3)].map((_, i) => (
-                                                <div key={i} className="h-40 rounded-2xl bg-white/[0.02] border border-white/[0.04] animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                                                <div key={i} className="h-40 rounded-3xl bg-white/[0.02] border border-white/[0.04] animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
                                             ))}
                                         </div>
                                     )}
@@ -1135,9 +1135,9 @@ export default function Dashboard() {
                                                         { icon: Target, step: '02', title: 'Map & Connect', desc: 'Drag ideas onto the canvas and connect them' },
                                                         { icon: CheckSquare, step: '03', title: 'Execute & Track', desc: 'Convert to tasks, timelines and reports' },
                                                     ].map((item) => (
-                                                        <div key={item.step} className="p-5 bg-white/[0.02] border border-white/[0.04] rounded-2xl text-left hover:border-primary/20 hover:bg-white/[0.03] transition-all group">
+                                                        <div key={item.step} className="p-5 bg-white/[0.02] border border-white/[0.04] rounded-3xl text-left hover:border-primary/20 hover:bg-white/[0.03] transition-all group">
                                                             <div className="flex items-center gap-3 mb-3">
-                                                                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-all">
+                                                                <div className="w-8 h-8 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-all">
                                                                     <item.icon size={15} className="text-primary group-hover:text-black transition-colors" />
                                                                 </div>
                                                                 <span className="text-[10px] font-black text-white/20 tracking-widest">{item.step}</span>
@@ -1246,7 +1246,7 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`dashboard-project-card group relative rounded-xl md:rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
+                className={`dashboard-project-card group relative rounded-2xl md:rounded-3xl border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
                     ${isSelected ? 'border-orange-500/60 ring-2 ring-orange-500/25' : 'border-white/[0.12] md:border-white/[0.08] md:hover:border-white/[0.18]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}

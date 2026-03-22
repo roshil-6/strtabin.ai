@@ -646,13 +646,17 @@ export default function StrabView() {
                             {chatHistory.map((msg, idx) => {
                                 let isInteractive = false;
                                 let parsedJson: { question: string; options: string[] } | null = null;
-                                if (msg.role === 'assistant' && msg.content.includes('```json')) {
+                                if (msg.role === 'assistant' && msg.content.toLowerCase().includes('```json')) {
                                     try {
-                                        const jsonStr = msg.content.split('```json')[1].split('```')[0].trim();
-                                        const parsed = JSON.parse(jsonStr);
-                                        if (parsed?.type === 'clarification' && Array.isArray(parsed?.options)) {
-                                            parsedJson = parsed;
-                                            isInteractive = true;
+                                        const match = msg.content.match(/```json\s*([\s\S]*?)```/i);
+                                        if (match) {
+                                            const parsed = JSON.parse(match[1].trim());
+                                            if (parsed?.type === 'clarification' && Array.isArray(parsed?.options) && parsed.options.length > 0) {
+                                                const question = parsed.question ?? parsed.prompt ?? 'Choose an option:';
+                                                const options = parsed.options.map((o: unknown) => typeof o === 'string' ? o : (o as { label?: string; text?: string })?.label ?? (o as { label?: string; text?: string })?.text ?? String(o));
+                                                parsedJson = { question, options };
+                                                isInteractive = true;
+                                            }
                                         }
                                     } catch {
                                         // Not valid JSON, render normally
@@ -675,7 +679,8 @@ export default function StrabView() {
                                                             <button
                                                                 key={i}
                                                                 onClick={() => handleOptionSelect(opt)}
-                                                                className="text-left px-4 py-3 rounded-xl bg-[#1a1a1a] border border-white/5 hover:border-white/20 hover:bg-[#222] transition-colors text-white/80 hover:text-white"
+                                                                disabled={isLoading}
+                                                                className="text-left px-4 py-3 rounded-xl bg-[#1a1a1a] border border-white/5 hover:border-white/20 hover:bg-[#222] transition-colors text-white/80 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
                                                                 {opt}
                                                             </button>
@@ -684,7 +689,7 @@ export default function StrabView() {
                                                 </div>
                                             ) : (
                                                 <div className="whitespace-pre-wrap">
-                                                    {msg.content.replace(/```json[\s\S]*```/, '')}
+                                                    {msg.content.replace(/```json[\s\S]*?```/gi, '')}
                                                     {isLoading && idx === chatHistory.length - 1 && msg.role === 'assistant' && msg.content.length > 0 && (
                                                         <span className="inline-block w-[2px] h-[1em] bg-primary/70 ml-0.5 align-middle animate-pulse" />
                                                     )}
