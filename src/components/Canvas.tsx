@@ -122,8 +122,9 @@ function CanvasContent() {
                         edges: (data.edges || []) as Edge[],
                         writingContent: data.writingContent,
                     });
-                } catch {
-                    ensureCanvasExists(id);
+                } catch (err) {
+                    const msg = err instanceof Error ? err.message : 'Failed to load project.';
+                    setSharedError(msg);
                 } finally {
                     setSharedLoading(false);
                 }

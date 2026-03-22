@@ -230,22 +230,24 @@ export default function WorkspacePage() {
   };
 
   const handleOpenProject = async (project: Project) => {
-    const state = { workspaceId, projectTitle: project.title };
+    const state = { workspaceId: isNaN(workspaceId) ? undefined : workspaceId, projectTitle: project.title };
     if (project.canvas_id) {
       navigate(`/strategy/${project.canvas_id}`, { state });
-    } else if (isTeam) {
+      return;
+    }
+    if (isTeam) {
       const canvasId = `proj_${project.id}`;
       try {
         const token = await getToken();
         await workspaceService.updateProject(project.id, { canvasId }, token);
         setProjects((p) => p.map((pr) => (pr.id === project.id ? { ...pr, canvas_id: canvasId } : pr)));
       } catch {
-        /* ignore */
+        /* proceed to open anyway */
       }
       navigate(`/strategy/${canvasId}`, { state });
-    } else {
-      navigate(`/dashboard`);
+      return;
     }
+    navigate(`/dashboard`);
   };
 
   const handleUpdateRole = async (userId: number, role: 'admin' | 'member') => {

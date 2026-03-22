@@ -604,7 +604,12 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (isNaN(projectId)) return res.status(400).json({ error: 'Invalid project ID.' });
             const project = getProject(projectId);
             if (!project) return res.status(404).json({ error: 'Project not found.' });
-            if (!hasWorkspaceAccess(req.userId, project.workspace_id)) return res.status(403).json({ error: 'Access denied.' });
+            const wid = project.workspace_id;
+            if (wid == null || !hasWorkspaceAccess(req.userId, wid)) {
+                if (wid == null) console.warn('[canvas] Project', projectId, 'has no workspace_id');
+                else console.warn('[canvas] GET canvas access denied: userId=', req.userId, 'workspace=', wid);
+                return res.status(403).json({ error: 'Access denied.' });
+            }
             const row = getProjectCanvas(projectId);
             if (!row) {
                 return res.json({ nodes: [], edges: [], writingContent: '', name: project.title || null });
