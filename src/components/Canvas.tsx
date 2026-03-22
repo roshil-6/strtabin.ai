@@ -106,37 +106,50 @@ function CanvasContent() {
         const projMatch = id.match(/^proj_(\d+)$/);
         if (projMatch) {
             const projectId = parseInt(projMatch[1], 10);
-            if (canvases[id]?.nodes?.length || canvases[id]?.edges?.length || (canvases[id]?.writingContent && canvases[id].writingContent.length > 0)) {
+            // Any existing canvas entry = already loaded (even if empty) — avoids refetch loops when
+            // `canvases` updates and empty projects failed the old "has nodes" check → 429 storm.
+            if (useStore.getState().canvases[id] !== undefined) {
                 setCurrentCanvas(id);
                 return;
             }
+            let cancelled = false;
             const load = async () => {
                 setSharedLoading(true);
                 setSharedError(null);
                 try {
                     const token = await getToken();
                     const data = await workspaceService.getProjectCanvas(projectId, token);
+                    if (cancelled) return;
                     loadSharedCanvas(id, {
-                        name: data.name || undefined,
+                        name: (data.name as string) || undefined,
                         nodes: (data.nodes || []) as Node[],
                         edges: (data.edges || []) as Edge[],
-                        writingContent: data.writingContent,
+                        writingContent: data.writingContent as string | undefined,
                     });
                 } catch (err) {
-                    const msg = err instanceof Error ? err.message : 'Failed to load project.';
+                    if (cancelled) return;
+                    const raw = err instanceof Error ? err.message : 'Failed to load project.';
+                    const msg =
+                        raw.includes('Too many requests') || raw.includes('429')
+                            ? 'Server busy (rate limit). Wait a moment and use Retry below.'
+                            : raw.includes('503')
+                              ? 'Server waking up or temporarily unavailable. Retry in a few seconds.'
+                              : raw;
                     setSharedError(msg);
                 } finally {
-                    setSharedLoading(false);
+                    if (!cancelled) setSharedLoading(false);
                 }
             };
             retrySharedRef.current = load;
             load();
             setCurrentCanvas(id);
-            return;
+            return () => {
+                cancelled = true;
+            };
         }
         ensureCanvasExists(id);
         setCurrentCanvas(id);
-    }, [id, setCurrentCanvas, initDefaultCanvas, ensureCanvasExists, loadSharedCanvas, canvases, getToken]);
+    }, [id, setCurrentCanvas, initDefaultCanvas, ensureCanvasExists, loadSharedCanvas, getToken]);
 
     // Update page title
     useEffect(() => {

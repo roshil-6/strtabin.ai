@@ -4,6 +4,9 @@
 
 import { API_BASE_URL } from '../constants';
 
+/** Dedupe concurrent loads (React Strict Mode + effect replays) to avoid 429s */
+const projectCanvasInflight = new Map<number, Promise<Record<string, unknown>>>();
+
 async function fetchWithAuth(path: string, options: RequestInit = {}, token: string | null) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -223,19 +226,35 @@ export const workspaceService = {
   },
 
   async getProjectCanvas(projectId: number, token: string | null) {
-    const delays = [0, 2000, 5000];
-    for (let i = 0; i < delays.length; i++) {
-      if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
-      try {
-        const data = await fetchWithAuth(`/api/projects/${projectId}/canvas`, {}, token);
-        return data;
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : '';
-        if (msg.includes('503') && i < delays.length - 1) continue;
-        throw e;
+    const existing = projectCanvasInflight.get(projectId);
+    if (existing) return existing;
+
+    const task = (async () => {
+      const delays = [0, 1500, 4000, 8000];
+      for (let i = 0; i < delays.length; i++) {
+        if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
+        try {
+          const data = await fetchWithAuth(`/api/projects/${projectId}/canvas`, {}, token);
+          return data as Record<string, unknown>;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : '';
+          const retryable =
+            msg.includes('503') ||
+            msg.includes('429') ||
+            msg.includes('Too many requests') ||
+            msg.includes('temporarily unavailable');
+          if (retryable && i < delays.length - 1) continue;
+          throw e;
+        }
       }
-    }
-    return fetchWithAuth(`/api/projects/${projectId}/canvas`, {}, token);
+      throw new Error('Failed to load project canvas after retries.');
+    })();
+
+    projectCanvasInflight.set(projectId, task);
+    task.catch(() => {}).finally(() => {
+      if (projectCanvasInflight.get(projectId) === task) projectCanvasInflight.delete(projectId);
+    });
+    return task;
   },
 
   async saveProjectCanvas(

@@ -4,7 +4,8 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronRight, Rocket, FolderOpen } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronRight, Rocket, FolderOpen, Filter } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
@@ -362,13 +363,109 @@ export default function Dashboard() {
         return null;
     })();
 
-    const filterPills: { id: ProjectFilter; label: string }[] = [
-        { id: 'all', label: 'All' },
-        { id: 'active', label: 'Active' },
-        { id: 'priority', label: 'High priority' },
-        { id: 'stuck', label: 'Stuck' },
-        { id: 'completed', label: 'Completed' },
+    const filterPills: { id: ProjectFilter; label: string; Icon: LucideIcon }[] = [
+        { id: 'all', label: 'All', Icon: Layers },
+        { id: 'active', label: 'Active', Icon: Zap },
+        { id: 'priority', label: 'High priority', Icon: Star },
+        { id: 'stuck', label: 'Stuck', Icon: Flame },
+        { id: 'completed', label: 'Completed', Icon: CheckCircle2 },
     ];
+
+    const ProjectFilterPicker = ({ variant }: { variant: 'sidebar' | 'main' }) => {
+        if (variant === 'sidebar') {
+            return (
+                <div className="mb-5 rounded-2xl border-2 border-teal-500/30 bg-teal-500/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <div className="flex items-center gap-2 px-1 mb-2">
+                        <Filter size={16} className="text-teal-400 shrink-0" aria-hidden />
+                        <div>
+                            <p className="text-[11px] font-black uppercase tracking-wide text-teal-200">Project filter</p>
+                            <p className="text-[10px] text-white/50">All · Active · Priority · Stuck · Done</p>
+                        </div>
+                    </div>
+                    <div className="space-y-1" role="group" aria-label="Filter projects">
+                        {filterPills.map(({ id, label, Icon }) => (
+                            <button
+                                key={id}
+                                type="button"
+                                onClick={() => {
+                                    setProjectFilter(id);
+                                    setIsSidebarOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-bold border-2 transition-all ${
+                                    projectFilter === id
+                                        ? 'border-teal-400 bg-teal-500/25 text-white shadow-[0_0_16px_rgba(45,212,191,0.2)]'
+                                        : 'border-transparent text-white/60 hover:bg-white/10 hover:text-white'
+                                }`}
+                            >
+                                <Icon size={18} className={projectFilter === id ? 'text-teal-300' : 'text-white/40'} />
+                                <span className="flex-1">{label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <section
+                className={`rounded-2xl md:rounded-3xl border-2 mb-4 md:mb-8 px-3 py-4 md:px-6 md:py-5 shadow-lg ${
+                    theme === 'light'
+                        ? 'border-orange-300/40 bg-white'
+                        : 'border-teal-500/35 bg-zinc-950/90'
+                }`}
+                aria-label="Project list filters"
+            >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <h2 className={`text-base md:text-lg font-black ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>
+                            Filter projects
+                        </h2>
+                        <p className={`text-xs mt-1 ${theme === 'light' ? 'text-zinc-600' : 'text-white/45'}`}>
+                            Showing:{' '}
+                            <span className={`font-bold ${theme === 'light' ? 'text-orange-600' : 'text-teal-300'}`}>
+                                {filterPills.find((p) => p.id === projectFilter)?.label ?? 'All'}
+                            </span>
+                            {projectFilter !== 'all' && (
+                                <button
+                                    type="button"
+                                    onClick={() => setProjectFilter('all')}
+                                    className={`ml-2 text-xs font-black underline underline-offset-2 ${theme === 'light' ? 'text-orange-600' : 'text-teal-400'}`}
+                                >
+                                    Clear → All
+                                </button>
+                            )}
+                        </p>
+                    </div>
+                    <div
+                        className={`flex flex-wrap gap-2 p-1.5 rounded-2xl ${
+                            theme === 'light' ? 'bg-zinc-100 border border-zinc-200' : 'bg-black/60 border border-white/10'
+                        }`}
+                        role="group"
+                    >
+                        {filterPills.map(({ id, label, Icon }) => (
+                            <button
+                                key={id}
+                                type="button"
+                                onClick={() => setProjectFilter(id)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-2.5 sm:px-4 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wide border-2 transition-all ${
+                                    projectFilter === id
+                                        ? theme === 'light'
+                                            ? 'border-orange-500 bg-orange-500 text-white shadow-md'
+                                            : 'border-teal-400 bg-teal-500/20 text-teal-100 shadow-[0_0_20px_rgba(45,212,191,0.25)]'
+                                        : theme === 'light'
+                                            ? 'border-transparent text-zinc-600 hover:bg-white hover:border-zinc-200'
+                                            : 'border-transparent text-white/55 hover:bg-white/10 hover:text-white'
+                                }`}
+                            >
+                                <Icon size={14} className="shrink-0 opacity-90" />
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        );
+    };
 
     const mainGridProjects =
         pinnedProjects.length > 0 || currentProjects.length > 0 ? filteredOther : filteredRegularOnly;
@@ -630,6 +727,8 @@ export default function Dashboard() {
                             <X size={20} />
                         </button>
                     </div>
+
+                    <ProjectFilterPicker variant="sidebar" />
 
                     <div className="space-y-1">
                         <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-white/20 mb-4 px-3">Workspaces</h2>
@@ -1044,7 +1143,7 @@ export default function Dashboard() {
                                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
                                 <div className="flex-1 h-px bg-white/5 ml-2" />
                             </div>
-                            <ProjectCardGrid items={filteredCanvases} />
+                            <ProjectCardGrid items={filterProjectList(filteredCanvases)} />
                         </div>
                     ) : activeTab === 'monitor' ? (
                         <div key={tabKey} className="tab-fade-in pb-20 space-y-4 md:space-y-8">
@@ -1168,7 +1267,7 @@ export default function Dashboard() {
                                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
                                 <div className="flex-1 h-px bg-white/5 ml-2" />
                             </div>
-                            <ProjectCardGrid items={filteredCanvases} />
+                            <ProjectCardGrid items={filterProjectList(filteredCanvases)} />
                         </div>
                     ) : (
                         <div key={tabKey} className="space-y-4 md:space-y-14 tab-fade-in">
@@ -1218,26 +1317,9 @@ export default function Dashboard() {
                                         Continue working
                                     </button>
                                 </div>
-                                <div className="flex flex-wrap gap-1 sm:gap-2 mt-6 pt-5 border-t border-white/[0.06]">
-                                    {filterPills.map((pill) => (
-                                        <button
-                                            key={pill.id}
-                                            type="button"
-                                            onClick={() => setProjectFilter(pill.id)}
-                                            className={`relative px-4 py-2.5 rounded-full text-[11px] font-bold transition-colors ${
-                                                projectFilter === pill.id
-                                                    ? 'text-white bg-white/[0.08]'
-                                                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
-                                            }`}
-                                        >
-                                            {pill.label}
-                                            {projectFilter === pill.id && (
-                                                <span className="absolute bottom-1 left-4 right-4 h-0.5 rounded-full bg-teal-400/90 shadow-[0_0_12px_rgba(45,212,191,0.5)]" />
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
                             </div>
+
+                            <ProjectFilterPicker variant="main" />
 
                             {noMatchesForFilter && (
                                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-10 text-center mb-4">

@@ -419,12 +419,15 @@ app.use(helmet({
 }));
 
 // ─── Global Rate Limiter — 120 requests / 15 min per IP ───────────────────
+// Skip team project canvas GET: authenticated, large payloads elsewhere; repeated
+// client effect runs + SPA navigation were tripping 429 and blocking workspace opens.
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 120,
+    max: 200,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests. Please wait before trying again.' },
+    skip: (req) => req.method === 'GET' && /^\/api\/projects\/\d+\/canvas$/.test(req.path),
 });
 app.use(globalLimiter);
 
