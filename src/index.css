@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dashboard tab switch — fade-in effect */
+@keyframes tab-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.tab-fade-in {
+  animation: tab-fade-in 0.35s ease-out forwards;
+}
+
 /* ── Theme: Dark (greyish black) ───────────────────────────────────────── */
 :root,
 [data-theme="dark"] {

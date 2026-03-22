@@ -852,7 +852,7 @@ export default function Dashboard() {
 
                     {/* Tab Content */}
                     {activeTab === 'calendar' ? (
-                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-4 md:space-y-8">
+                        <div key={tabKey} className="tab-fade-in pb-20 space-y-4 md:space-y-8">
                             <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
                                     <h2 className="text-2xl font-black text-white">Calendar Hub</h2>
@@ -891,7 +891,7 @@ export default function Dashboard() {
                             </div>
                         </div>
                     ) : activeTab === 'reports' ? (
-                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-4 md:space-y-8">
+                        <div key={tabKey} className="tab-fade-in pb-20 space-y-4 md:space-y-8">
                             <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
                                     <h2 className="text-2xl font-black text-white">Reports</h2>
@@ -925,7 +925,7 @@ export default function Dashboard() {
                             <ProjectCardGrid items={filteredCanvases} />
                         </div>
                     ) : activeTab === 'monitor' ? (
-                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-4 md:space-y-8">
+                        <div key={tabKey} className="tab-fade-in pb-20 space-y-4 md:space-y-8">
                             <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
                                     <h2 className="text-2xl font-black text-white">Monitor your work</h2>
@@ -1022,7 +1022,7 @@ export default function Dashboard() {
                             <ProjectCardGrid items={filteredCanvases} />
                         </div>
                     ) : (
-                        <div key={tabKey} className="space-y-4 md:space-y-14 animate-in fade-in slide-in-from-bottom-3 duration-300">
+                        <div key={tabKey} className="space-y-4 md:space-y-14 tab-fade-in">
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
                                     <div className="bg-[#1a1a1a] border border-orange-500/30 rounded-2xl p-4 shadow-2xl flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
