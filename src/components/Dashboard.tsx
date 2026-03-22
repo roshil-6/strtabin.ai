@@ -4,8 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronRight, Rocket, FolderOpen, Filter } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronRight, Rocket, FolderOpen } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
@@ -71,8 +70,8 @@ export default function Dashboard() {
     const [myUsername, setMyUsername] = useState<string | null>(null);
     const [invitations, setInvitations] = useState<Array<{ id: number; workspace_id: number; workspace_name: string; inviter_username: string | null }>>([]);
     const [workInsights, setWorkInsights] = useState<{ streak: number; progress: { total: number; count: number } } | null>(null);
-    type ProjectFilter = 'all' | 'active' | 'priority' | 'stuck' | 'completed';
-    const [projectFilter, setProjectFilter] = useState<ProjectFilter>('all');
+    type ProjectSort = 'recent' | 'focus_first' | 'pinned_first' | 'name';
+    const [projectSort, setProjectSort] = useState<ProjectSort>('recent');
 
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
@@ -301,23 +300,26 @@ export default function Dashboard() {
     const sortedOtherProjects = sortByNewest(otherProjects);
     const sortedRegularProjects = sortByNewest(regularProjects);
 
-    const filterProjectList = (arr: CanvasData[]) => {
-        if (projectFilter === 'all') return arr;
-        return arr.filter((p) => {
-            const tc = p.todos?.length ?? 0;
-            const done = p.todos?.filter((t) => t.completed).length ?? 0;
-            const nodes = p.nodes?.length ?? 0;
-            const wc = wordCount(p.writingContent);
-            if (projectFilter === 'active') {
-                if (p.isCurrent) return true;
-                if (tc === 0) return nodes > 0 || wc > 0;
-                return done < tc;
-            }
-            if (projectFilter === 'priority') return !!(p.isPinned || p.isCurrent);
-            if (projectFilter === 'stuck') return tc > 0 && done === 0;
-            if (projectFilter === 'completed') return tc > 0 && done === tc;
-            return true;
-        });
+    const sortProjectsList = (arr: CanvasData[]) => {
+        const copy = [...arr];
+        const t = (p: CanvasData) => Number(p.updatedAt ?? p.createdAt ?? 0);
+        if (projectSort === 'name') {
+            copy.sort((a, b) =>
+                (a.name || a.title || '').localeCompare(b.name || b.title || '', undefined, { sensitivity: 'base' })
+            );
+            return copy;
+        }
+        if (projectSort === 'recent') {
+            copy.sort((a, b) => t(b) - t(a));
+            return copy;
+        }
+        const score = (p: CanvasData) => {
+            if (projectSort === 'focus_first') return (p.isCurrent ? 4 : 0) + (p.isPinned ? 2 : 0);
+            if (projectSort === 'pinned_first') return p.isPinned ? 2 : 0;
+            return 0;
+        };
+        copy.sort((a, b) => score(b) - score(a) || t(b) - t(a));
+        return copy;
     };
 
     const avgCompletionAll = (() => {
@@ -332,11 +334,11 @@ export default function Dashboard() {
         );
     })();
 
-    const filteredPinned = filterProjectList(pinnedProjects);
-    const filteredCurrent = filterProjectList(currentProjects);
-    const filteredMerged = filterProjectList(mergedProjects);
-    const filteredOther = filterProjectList(sortedOtherProjects);
-    const filteredRegularOnly = filterProjectList(sortedRegularProjects);
+    const sortedDisplayPinned = sortProjectsList(pinnedProjects);
+    const sortedDisplayCurrent = sortProjectsList(currentProjects);
+    const sortedDisplayMerged = sortProjectsList(mergedProjects);
+    const sortedDisplayOther = sortProjectsList(sortedOtherProjects);
+    const sortedDisplayRegular = sortProjectsList(sortedRegularProjects);
 
     const activeProjectsCount = filteredCanvases.filter((p) => {
         const tc = p.todos?.length ?? 0;
@@ -349,10 +351,12 @@ export default function Dashboard() {
     }).length;
 
     const continueWorkingProject = (() => {
-        const order =
-            projectFilter === 'all'
-                ? [...currentProjects, ...pinnedProjects, ...mergedProjects, ...(sortedOtherProjects.length ? sortedOtherProjects : sortedRegularProjects)]
-                : [...filteredCurrent, ...filteredPinned, ...filteredMerged, ...filteredOther, ...filteredRegularOnly];
+        const order = [
+            ...currentProjects,
+            ...pinnedProjects,
+            ...mergedProjects,
+            ...(sortedOtherProjects.length ? sortedOtherProjects : sortedRegularProjects),
+        ];
         const seen = new Set<string>();
         for (const c of order) {
             if (!seen.has(c.id)) {
@@ -363,120 +367,8 @@ export default function Dashboard() {
         return null;
     })();
 
-    const filterPills: { id: ProjectFilter; label: string; Icon: LucideIcon }[] = [
-        { id: 'all', label: 'All', Icon: Layers },
-        { id: 'active', label: 'Active', Icon: Zap },
-        { id: 'priority', label: 'High priority', Icon: Star },
-        { id: 'stuck', label: 'Stuck', Icon: Flame },
-        { id: 'completed', label: 'Completed', Icon: CheckCircle2 },
-    ];
-
-    const ProjectFilterPicker = ({ variant }: { variant: 'sidebar' | 'main' }) => {
-        if (variant === 'sidebar') {
-            return (
-                <div className="mb-5 rounded-2xl border-2 border-teal-500/30 bg-teal-500/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                    <div className="flex items-center gap-2 px-1 mb-2">
-                        <Filter size={16} className="text-teal-400 shrink-0" aria-hidden />
-                        <div>
-                            <p className="text-[11px] font-black uppercase tracking-wide text-teal-200">Project filter</p>
-                            <p className="text-[10px] text-white/50">All · Active · Priority · Stuck · Done</p>
-                        </div>
-                    </div>
-                    <div className="space-y-1" role="group" aria-label="Filter projects">
-                        {filterPills.map(({ id, label, Icon }) => (
-                            <button
-                                key={id}
-                                type="button"
-                                onClick={() => {
-                                    setProjectFilter(id);
-                                    setIsSidebarOpen(false);
-                                }}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-bold border-2 transition-all ${
-                                    projectFilter === id
-                                        ? 'border-teal-400 bg-teal-500/25 text-white shadow-[0_0_16px_rgba(45,212,191,0.2)]'
-                                        : 'border-transparent text-white/60 hover:bg-white/10 hover:text-white'
-                                }`}
-                            >
-                                <Icon size={18} className={projectFilter === id ? 'text-teal-300' : 'text-white/40'} />
-                                <span className="flex-1">{label}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-
-        return (
-            <section
-                className={`rounded-2xl md:rounded-3xl border-2 mb-4 md:mb-8 px-3 py-4 md:px-6 md:py-5 shadow-lg ${
-                    theme === 'light'
-                        ? 'border-orange-300/40 bg-white'
-                        : 'border-teal-500/35 bg-zinc-950/90'
-                }`}
-                aria-label="Project list filters"
-            >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <h2 className={`text-base md:text-lg font-black ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>
-                            Filter projects
-                        </h2>
-                        <p className={`text-xs mt-1 ${theme === 'light' ? 'text-zinc-600' : 'text-white/45'}`}>
-                            Showing:{' '}
-                            <span className={`font-bold ${theme === 'light' ? 'text-orange-600' : 'text-teal-300'}`}>
-                                {filterPills.find((p) => p.id === projectFilter)?.label ?? 'All'}
-                            </span>
-                            {projectFilter !== 'all' && (
-                                <button
-                                    type="button"
-                                    onClick={() => setProjectFilter('all')}
-                                    className={`ml-2 text-xs font-black underline underline-offset-2 ${theme === 'light' ? 'text-orange-600' : 'text-teal-400'}`}
-                                >
-                                    Clear → All
-                                </button>
-                            )}
-                        </p>
-                    </div>
-                    <div
-                        className={`flex flex-wrap gap-2 p-1.5 rounded-2xl ${
-                            theme === 'light' ? 'bg-zinc-100 border border-zinc-200' : 'bg-black/60 border border-white/10'
-                        }`}
-                        role="group"
-                    >
-                        {filterPills.map(({ id, label, Icon }) => (
-                            <button
-                                key={id}
-                                type="button"
-                                onClick={() => setProjectFilter(id)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-2.5 sm:px-4 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wide border-2 transition-all ${
-                                    projectFilter === id
-                                        ? theme === 'light'
-                                            ? 'border-orange-500 bg-orange-500 text-white shadow-md'
-                                            : 'border-teal-400 bg-teal-500/20 text-teal-100 shadow-[0_0_20px_rgba(45,212,191,0.25)]'
-                                        : theme === 'light'
-                                            ? 'border-transparent text-zinc-600 hover:bg-white hover:border-zinc-200'
-                                            : 'border-transparent text-white/55 hover:bg-white/10 hover:text-white'
-                                }`}
-                            >
-                                <Icon size={14} className="shrink-0 opacity-90" />
-                                {label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </section>
-        );
-    };
-
     const mainGridProjects =
-        pinnedProjects.length > 0 || currentProjects.length > 0 ? filteredOther : filteredRegularOnly;
-    const hasStrategyProjects = filteredCanvases.length > 0;
-    const noMatchesForFilter =
-        projectFilter !== 'all' &&
-        hasStrategyProjects &&
-        filteredPinned.length === 0 &&
-        filteredCurrent.length === 0 &&
-        filteredMerged.length === 0 &&
-        mainGridProjects.length === 0;
+        pinnedProjects.length > 0 || currentProjects.length > 0 ? sortedDisplayOther : sortedDisplayRegular;
 
     const tabs = [
         { id: 'strategy', label: 'Writing & Flow', icon: FileText, color: 'text-primary' },
@@ -516,6 +408,66 @@ export default function Dashboard() {
             default: return Layout;
         }
     };
+
+    /** Per-card: set current focus & priority; Stuck/Done are from tasks (read-only). */
+    function projectQuickActionsRow(p: CanvasData) {
+        if (selectionMode) return null;
+        const tc = p.todos?.length ?? 0;
+        const done = p.todos?.filter((x) => x.completed).length ?? 0;
+        const stuck = tc > 0 && done === 0;
+        const allDone = tc > 0 && done === tc;
+        return (
+            <div
+                className="flex flex-wrap items-center gap-1.5 mb-2 md:mb-3"
+                onClick={(e) => e.stopPropagation()}
+                role="group"
+                aria-label="Project focus and priority"
+            >
+                <button
+                    type="button"
+                    onClick={(e) => handleToggleCurrent(e, p.id)}
+                    className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide border transition-colors ${
+                        p.isCurrent
+                            ? 'border-amber-400/50 bg-amber-500/15 text-amber-200'
+                            : 'border-white/[0.12] bg-white/[0.03] text-white/50 hover:text-white/85 hover:border-white/20'
+                    }`}
+                    title={p.isCurrent ? 'Remove current focus' : 'Set as current focus (sorts to top with sort option)'}
+                >
+                    <Zap size={12} className={p.isCurrent ? 'fill-current' : ''} />
+                    Focus
+                </button>
+                <button
+                    type="button"
+                    onClick={(e) => handleTogglePin(e, p.id)}
+                    className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide border transition-colors ${
+                        p.isPinned
+                            ? 'border-rose-400/45 bg-rose-500/15 text-rose-200'
+                            : 'border-white/[0.12] bg-white/[0.03] text-white/50 hover:text-white/85 hover:border-white/20'
+                    }`}
+                    title={p.isPinned ? 'Remove high priority' : 'High priority (pinned)'}
+                >
+                    <Star size={12} className={p.isPinned ? 'fill-current' : ''} />
+                    Priority
+                </button>
+                {stuck && (
+                    <span
+                        className="inline-flex items-center rounded-md border border-orange-500/25 bg-orange-500/10 px-2 py-1 text-[10px] font-bold text-orange-300/95"
+                        title="Tasks exist but none completed yet"
+                    >
+                        Stuck
+                    </span>
+                )}
+                {allDone && (
+                    <span
+                        className="inline-flex items-center rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-300/95"
+                        title="All tasks completed"
+                    >
+                        Done
+                    </span>
+                )}
+            </div>
+        );
+    }
 
     function ProjectCardGrid({
         items,
@@ -576,6 +528,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-white text-base truncate">{displayName}</h3>
+                    {projectQuickActionsRow(p)}
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-white/50">
                         {todoCount > 0 && <span>{completionRate}% done</span>}
                         {nodeCount > 0 && <span>• {nodeCount} nodes</span>}
@@ -727,8 +680,6 @@ export default function Dashboard() {
                             <X size={20} />
                         </button>
                     </div>
-
-                    <ProjectFilterPicker variant="sidebar" />
 
                     <div className="space-y-1">
                         <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-white/20 mb-4 px-3">Workspaces</h2>
@@ -1143,7 +1094,7 @@ export default function Dashboard() {
                                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
                                 <div className="flex-1 h-px bg-white/5 ml-2" />
                             </div>
-                            <ProjectCardGrid items={filterProjectList(filteredCanvases)} />
+                            <ProjectCardGrid items={filteredCanvases} />
                         </div>
                     ) : activeTab === 'monitor' ? (
                         <div key={tabKey} className="tab-fade-in pb-20 space-y-4 md:space-y-8">
@@ -1267,7 +1218,7 @@ export default function Dashboard() {
                                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
                                 <div className="flex-1 h-px bg-white/5 ml-2" />
                             </div>
-                            <ProjectCardGrid items={filterProjectList(filteredCanvases)} />
+                            <ProjectCardGrid items={filteredCanvases} />
                         </div>
                     ) : (
                         <div key={tabKey} className="space-y-4 md:space-y-14 tab-fade-in">
@@ -1317,23 +1268,26 @@ export default function Dashboard() {
                                         Continue working
                                     </button>
                                 </div>
-                            </div>
-
-                            <ProjectFilterPicker variant="main" />
-
-                            {noMatchesForFilter && (
-                                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-10 text-center mb-4">
-                                    <p className="text-sm font-bold text-white/60">No projects match this filter</p>
-                                    <p className="text-xs text-white/35 mt-2 max-w-md mx-auto">Try another tab or clear filters to see everything in this workspace.</p>
-                                    <button
-                                        type="button"
-                                        onClick={() => setProjectFilter('all')}
-                                        className="mt-4 text-xs font-black uppercase tracking-wider text-teal-400 hover:text-teal-300"
+                                <div className="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-white/[0.06]">
+                                    <label htmlFor="project-sort" className="text-[10px] font-black uppercase tracking-wider text-white/35 shrink-0">
+                                        Sort list
+                                    </label>
+                                    <select
+                                        id="project-sort"
+                                        value={projectSort}
+                                        onChange={(e) => setProjectSort(e.target.value as ProjectSort)}
+                                        className="flex-1 min-w-[200px] max-w-sm rounded-xl border border-white/[0.1] bg-black/40 px-3 py-2 text-xs font-bold text-white outline-none focus:border-teal-500/40 focus:ring-1 focus:ring-teal-500/30"
                                     >
-                                        Show all
-                                    </button>
+                                        <option value="recent">Recently updated</option>
+                                        <option value="focus_first">Current focus &amp; priority first</option>
+                                        <option value="pinned_first">Priority (pinned) first</option>
+                                        <option value="name">Name (A–Z)</option>
+                                    </select>
+                                    <span className="text-[10px] text-white/25 hidden sm:inline max-w-[220px]">
+                                        Use <strong className="text-white/45">Focus</strong> &amp; <strong className="text-white/45">Priority</strong> on each card to organize.
+                                    </span>
                                 </div>
-                            )}
+                            </div>
 
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
@@ -1361,38 +1315,38 @@ export default function Dashboard() {
                             )}
 
                             {/* Pinned Projects — wide hero cards on desktop */}
-                            {filteredPinned.length > 0 && (
+                            {sortedDisplayPinned.length > 0 && (
                                 <section>
                                     <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]" />
                                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Pinned projects</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={filteredPinned} variant="pinned-hero" />
+                                    <ProjectCardGrid items={sortedDisplayPinned} variant="pinned-hero" />
                                 </section>
                             )}
 
                             {/* Current Projects */}
-                            {filteredCurrent.length > 0 && (
+                            {sortedDisplayCurrent.length > 0 && (
                                 <section>
                                     <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Current focus</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={filteredCurrent} />
+                                    <ProjectCardGrid items={sortedDisplayCurrent} />
                                 </section>
                             )}
 
                             {/* Merged Projects */}
-                            {filteredMerged.length > 0 && (
+                            {sortedDisplayMerged.length > 0 && (
                                 <section>
                                     <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
                                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Merged</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={filteredMerged} />
+                                    <ProjectCardGrid items={sortedDisplayMerged} />
                                 </section>
                             )}
 
@@ -1408,7 +1362,7 @@ export default function Dashboard() {
                                 {mainGridProjects.length > 0 ? (
                                     <ProjectCardGrid
                                         items={mainGridProjects}
-                                        appendCreateTile={hasStrategyProjects && !selectionMode}
+                                        appendCreateTile={filteredCanvases.length > 0 && !selectionMode}
                                     />
                                 ) : (
                                     <>
@@ -1660,18 +1614,6 @@ export default function Dashboard() {
                             {isMerged ? <GitMerge size={16} className="text-teal-300 md:w-5 md:h-5" /> : <Icon size={16} className="text-teal-300 md:w-5 md:h-5" />}
                         </div>
                         <div className="flex items-center gap-1 flex-wrap justify-end">
-                            {p.isPinned && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0 md:hidden" title="High priority" />}
-                            {p.isPinned && (
-                                <span className="hidden md:inline px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/25 text-[9px] font-black uppercase tracking-wider text-rose-300">
-                                    High priority
-                                </span>
-                            )}
-                            {p.isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 md:hidden" title="In progress" />}
-                            {p.isCurrent && (
-                                <span className="hidden md:inline px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-[9px] font-black uppercase tracking-wider text-emerald-300">
-                                    In progress
-                                </span>
-                            )}
                             {isMerged && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0 md:hidden" />}
                             {isMerged && (
                                 <span className="hidden md:inline px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/25 text-[9px] font-black uppercase text-violet-300">
@@ -1703,6 +1645,8 @@ export default function Dashboard() {
                             })()}
                         </h3>
                     )}
+
+                    {projectQuickActionsRow(p)}
 
                     {(nextTodoLine || previewText) && (
                         <p className="text-[11px] text-zinc-400 line-clamp-2 mb-2 md:mb-3 leading-relaxed">
@@ -1904,6 +1848,14 @@ export default function Dashboard() {
                         </button>
                         <button
                             type="button"
+                            onClick={(e) => handleToggleCurrent(e, p.id)}
+                            className={`p-1.5 rounded-lg transition-colors ${p.isCurrent ? 'text-amber-400 bg-amber-500/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
+                            title={p.isCurrent ? 'Remove focus' : 'Current focus'}
+                        >
+                            <Zap size={14} fill={p.isCurrent ? 'currentColor' : 'none'} />
+                        </button>
+                        <button
+                            type="button"
                             onClick={(e) => handleTogglePin(e, p.id)}
                             className={`p-1.5 rounded-lg transition-colors ${p.isPinned ? 'text-teal-400 bg-teal-500/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
                             title={p.isPinned ? 'Unpin' : 'Pin'}
@@ -2007,17 +1959,8 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0 flex flex-col gap-3">
                         <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-lg md:text-xl font-black text-white tracking-tight truncate max-w-full">{displayName}</h3>
-                            {p.isPinned && (
-                                <span className="px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-[9px] font-black uppercase text-rose-300 shrink-0">
-                                    High priority
-                                </span>
-                            )}
-                            {p.isCurrent && (
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-black uppercase text-emerald-300 shrink-0">
-                                    In progress
-                                </span>
-                            )}
                         </div>
+                        {projectQuickActionsRow(p)}
 
                         <div className="space-y-1.5">
                             <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
