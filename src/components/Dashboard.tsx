@@ -20,7 +20,7 @@ export default function Dashboard() {
         canvases, projectCalendarEvents, createCanvas, deleteCanvas, togglePinCanvas, toggleCurrentProject,
         mergeCanvases, folders, activeFolderId, createFolder, deleteFolder,
         setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName, initDefaultCanvas,
-        dailyExecutionLogs,
+        dailyExecutionLogs, setDailyExecutionLog,
     } = useStore(useShallow(state => ({
         canvases: state.canvases,
         projectCalendarEvents: state.projectCalendarEvents,
@@ -39,6 +39,7 @@ export default function Dashboard() {
         updateCanvasName: state.updateCanvasName,
         initDefaultCanvas: state.initDefaultCanvas,
         dailyExecutionLogs: state.dailyExecutionLogs,
+        setDailyExecutionLog: state.setDailyExecutionLog,
     })));
 
     const { signOut } = useClerk();
@@ -368,12 +369,13 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`flex items-center gap-4 p-4 rounded-3xl bg-[#1a1a1a] border-2 active:scale-[0.98] transition-all cursor-pointer
-                    ${isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-white/[0.15] active:border-primary/40'}
+                className={`flex items-center gap-4 p-4 rounded-3xl active:scale-[0.98] transition-all duration-300 cursor-pointer
+                    bg-gradient-to-br from-[#1a1a1a] to-[#141414] shadow-[0_2px_12px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.04)]
+                    ${isSelected ? 'border-2 border-primary ring-2 ring-primary/30' : 'border border-white/[0.12] hover:border-white/20 active:border-primary/40'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}
                 `}
             >
-                <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
                     {isMerged ? <GitMerge size={22} className="text-primary" /> : <Icon size={22} className="text-primary" />}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -864,29 +866,43 @@ export default function Dashboard() {
                                 {/* Strategic Calendar Option */}
                                 <div
                                     onClick={() => navigate('/calendar')}
-                                    className="group relative bg-[#0f0f0f] p-8 rounded-3xl border border-white/5 hover:border-white/20 transition-all cursor-pointer hover:bg-white/[0.02]"
+                                    className="group relative overflow-hidden rounded-3xl p-8 border border-white/[0.08] transition-all duration-300 cursor-pointer
+                                        bg-gradient-to-br from-[#141414] via-[#0f0f0f] to-[#0a0a0a]
+                                        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]
+                                        hover:shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]
+                                        hover:border-white/15 hover:scale-[1.01] active:scale-[0.99]"
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                        <Calendar size={24} className="text-white" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="relative">
+                                        <div className="w-14 h-14 rounded-2xl bg-white/[0.06] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-white/[0.08] transition-all duration-300 shadow-inner">
+                                            <Calendar size={26} className="text-white/90 group-hover:text-white" />
+                                        </div>
+                                        <h3 className="text-xl font-black text-white mb-2 tracking-tight">Strategic Calendar</h3>
+                                        <p className="text-sm text-white/45 leading-relaxed font-medium">
+                                            Global month-view roadmap and long-term planning across all scopes.
+                                        </p>
                                     </div>
-                                    <h3 className="text-xl font-black text-white mb-2">Strategic Calendar</h3>
-                                    <p className="text-sm text-white/40 leading-relaxed font-bold">
-                                        Global month-view roadmap and long-term planning across all scopes.
-                                    </p>
                                 </div>
 
                                 {/* General Weekly Planner Option */}
                                 <div
                                     onClick={() => navigate('/calendar?mode=week')}
-                                    className="group relative bg-[#0f0f0f] p-8 rounded-3xl border border-white/5 hover:border-orange-500/50 transition-all cursor-pointer hover:bg-orange-500/[0.02]"
+                                    className="group relative overflow-hidden rounded-3xl p-8 border border-orange-500/10 transition-all duration-300 cursor-pointer
+                                        bg-gradient-to-br from-orange-500/5 via-[#0f0f0f] to-[#0a0a0a]
+                                        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]
+                                        hover:shadow-[0_8px_40px_rgba(249,115,22,0.15),0_0_0_1px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.04)]
+                                        hover:border-orange-500/30 hover:scale-[1.01] active:scale-[0.99]"
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                        <CheckCircle2 size={24} className="text-orange-500" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="relative">
+                                        <div className="w-14 h-14 rounded-2xl bg-orange-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-orange-500/20 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                                            <CheckCircle2 size={26} className="text-orange-400 group-hover:text-orange-300" />
+                                        </div>
+                                        <h3 className="text-xl font-black text-white mb-2 tracking-tight">General Weekly Planner</h3>
+                                        <p className="text-sm text-white/45 leading-relaxed font-medium">
+                                            7-day focused tactical execution and day-by-day task lists.
+                                        </p>
                                     </div>
-                                    <h3 className="text-xl font-black text-white mb-2">General Weekly Planner</h3>
-                                    <p className="text-sm text-white/40 leading-relaxed font-bold">
-                                        7-day focused tactical execution and day-by-day task lists.
-                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -902,15 +918,22 @@ export default function Dashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                                 <div
                                     onClick={() => navigate('/reports')}
-                                    className="group relative bg-[#0f0f0f] p-8 rounded-3xl border border-white/5 hover:border-emerald-500/50 transition-all cursor-pointer hover:bg-emerald-500/[0.02]"
+                                    className="group relative overflow-hidden rounded-3xl p-8 border border-emerald-500/10 transition-all duration-300 cursor-pointer
+                                        bg-gradient-to-br from-emerald-500/5 via-[#0f0f0f] to-[#0a0a0a]
+                                        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]
+                                        hover:shadow-[0_8px_40px_rgba(16,185,129,0.12),0_0_0_1px_rgba(16,185,129,0.2),inset_0_1px_0_rgba(255,255,255,0.04)]
+                                        hover:border-emerald-500/25 hover:scale-[1.01] active:scale-[0.99]"
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                        <BarChart2 size={24} className="text-emerald-500" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="relative">
+                                        <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                                            <BarChart2 size={26} className="text-emerald-400 group-hover:text-emerald-300" />
+                                        </div>
+                                        <h3 className="text-xl font-black text-white mb-2 tracking-tight">STRAB AI Reports</h3>
+                                        <p className="text-sm text-white/45 leading-relaxed font-medium">
+                                            Generate comprehensive analysis, gap identification, and actionable recommendations for any project.
+                                        </p>
                                     </div>
-                                    <h3 className="text-xl font-black text-white mb-2">STRAB AI Reports</h3>
-                                    <p className="text-sm text-white/40 leading-relaxed font-bold">
-                                        Generate comprehensive analysis, gap identification, and actionable recommendations for any project.
-                                    </p>
                                 </div>
                                 <p className="text-sm text-zinc-500 md:col-span-2">
                                     Select a project to see the report.
@@ -933,38 +956,59 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* What did I execute today — prominent card */}
+                            {/* What did I execute today — inline edit from any section */}
                             {(() => {
                                 const todayKey = new Date().toISOString().slice(0, 10);
                                 const todayLogs = Object.entries(dailyExecutionLogs || {})
                                     .filter(([k]) => k.startsWith(todayKey))
                                     .map(([k, v]) => ({ canvasId: k === todayKey ? null : k.replace(`${todayKey}_`, ''), ...v }));
-                                const globalLog = todayLogs.find(l => !l.canvasId);
+                                const rawGlobal = todayLogs.find(l => !l.canvasId);
+                                const globalLog = { executed: rawGlobal?.executed ?? '', blocking: rawGlobal?.blocking ?? '', tomorrowAction: rawGlobal?.tomorrowAction ?? '' };
                                 const projectLogs = todayLogs.filter(l => l.canvasId);
-                                const hasAny = todayLogs.some(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim());
                                 return (
-                                    <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] to-transparent p-6 md:p-8">
+                                    <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/[0.08] via-primary/[0.04] to-transparent p-6 md:p-8
+                                        shadow-[0_4px_24px_rgba(218,119,86,0.08),inset_0_1px_0_rgba(255,255,255,0.05)]">
                                         <div className="flex items-center gap-2 mb-4">
                                             <Zap size={20} className="text-primary" />
                                             <h3 className="text-lg font-black text-white">What did I execute today?</h3>
                                         </div>
-                                        {hasAny ? (
-                                            <div className="space-y-4">
-                                                {globalLog && (globalLog.executed || globalLog.blocking || globalLog.tomorrowAction) && (
-                                                    <div className="space-y-2">
-                                                        {globalLog.executed && (
-                                                            <p className="text-sm text-white/90"><span className="text-white/50 font-bold">Executed:</span> {globalLog.executed}</p>
-                                                        )}
-                                                        {globalLog.blocking && (
-                                                            <p className="text-sm text-amber-400/90"><span className="text-amber-400/60 font-bold">Blocking:</span> {globalLog.blocking}</p>
-                                                        )}
-                                                        {globalLog.tomorrowAction && (
-                                                            <p className="text-sm text-emerald-400/90"><span className="text-emerald-400/60 font-bold">Tomorrow:</span> {globalLog.tomorrowAction}</p>
-                                                        )}
-                                                    </div>
-                                                )}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4">
+                                            <div>
+                                                <label className="text-[9px] font-black uppercase tracking-wider text-white/40 block mb-1.5">Executed</label>
+                                                <input
+                                                    type="text"
+                                                    value={globalLog.executed ?? ''}
+                                                    onChange={(e) => setDailyExecutionLog(todayKey, { executed: e.target.value, blocking: globalLog.blocking, tomorrowAction: globalLog.tomorrowAction })}
+                                                    placeholder="e.g. Finished draft, called 3 leads"
+                                                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-sm text-white placeholder-white/25 outline-none focus:border-primary/30 transition-colors"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] font-black uppercase tracking-wider text-amber-400/70 block mb-1.5">What&apos;s blocking me?</label>
+                                                <input
+                                                    type="text"
+                                                    value={globalLog.blocking ?? ''}
+                                                    onChange={(e) => setDailyExecutionLog(todayKey, { executed: globalLog.executed, blocking: e.target.value, tomorrowAction: globalLog.tomorrowAction })}
+                                                    placeholder="e.g. Waiting on design"
+                                                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-sm text-white placeholder-white/25 outline-none focus:border-amber-500/30 transition-colors"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] font-black uppercase tracking-wider text-emerald-400/70 block mb-1.5">Top action for tomorrow</label>
+                                                <input
+                                                    type="text"
+                                                    value={globalLog.tomorrowAction ?? ''}
+                                                    onChange={(e) => setDailyExecutionLog(todayKey, { executed: globalLog.executed, blocking: globalLog.blocking, tomorrowAction: e.target.value })}
+                                                    placeholder="e.g. Ship v1 to beta"
+                                                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-sm text-white placeholder-white/25 outline-none focus:border-emerald-500/30 transition-colors"
+                                                />
+                                            </div>
+                                        </div>
+                                        {projectLogs.filter(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim()).length > 0 && (
+                                            <div className="space-y-2 pt-2 border-t border-white/5">
+                                                <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider">By project</p>
                                                 {projectLogs.filter(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim()).map((l) => (
-                                                    <div key={l.canvasId} className="p-3 rounded-2xl bg-white/[0.03] border border-white/5">
+                                                    <div key={l.canvasId} className="p-4 rounded-2xl bg-white/[0.04] border border-white/[0.06] shadow-sm">
                                                         <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">
                                                             {canvases[l.canvasId!]?.name || 'Project'}
                                                         </p>
@@ -974,15 +1018,7 @@ export default function Dashboard() {
                                                     </div>
                                                 ))}
                                             </div>
-                                        ) : (
-                                            <p className="text-sm text-white/40 mb-4">No execution logged today. Add your progress in the Calendar or Weekly Planner.</p>
                                         )}
-                                        <button
-                                            onClick={() => navigate('/calendar')}
-                                            className="mt-4 px-4 py-2 rounded-xl bg-primary/20 text-primary font-bold text-sm hover:bg-primary/30 transition-all"
-                                        >
-                                            Open Calendar to log
-                                        </button>
                                     </div>
                                 );
                             })()}
@@ -990,27 +1026,41 @@ export default function Dashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div
                                     onClick={() => navigate('/calendar')}
-                                    className="group relative bg-[#0f0f0f] p-8 rounded-3xl border border-white/5 hover:border-cyan-500/50 transition-all cursor-pointer hover:bg-cyan-500/[0.02]"
+                                    className="group relative overflow-hidden rounded-3xl p-8 border border-cyan-500/10 transition-all duration-300 cursor-pointer
+                                        bg-gradient-to-br from-cyan-500/5 via-[#0f0f0f] to-[#0a0a0a]
+                                        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]
+                                        hover:shadow-[0_8px_40px_rgba(6,182,212,0.12),0_0_0_1px_rgba(6,182,212,0.2),inset_0_1px_0_rgba(255,255,255,0.04)]
+                                        hover:border-cyan-500/25 hover:scale-[1.01] active:scale-[0.99]"
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                        <Activity size={24} className="text-cyan-500" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="relative">
+                                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                                            <Activity size={26} className="text-cyan-400 group-hover:text-cyan-300" />
+                                        </div>
+                                        <h3 className="text-xl font-black text-white mb-2 tracking-tight">Strategic Calendar</h3>
+                                        <p className="text-sm text-white/45 leading-relaxed font-medium">
+                                            Month-view progress, daily check-ins, and execution tracking across projects.
+                                        </p>
                                     </div>
-                                    <h3 className="text-xl font-black text-white mb-2">Strategic Calendar</h3>
-                                    <p className="text-sm text-white/40 leading-relaxed font-bold">
-                                        Month-view progress, daily check-ins, and execution tracking across projects.
-                                    </p>
                                 </div>
                                 <div
                                     onClick={() => navigate('/calendar?mode=week')}
-                                    className="group relative bg-[#0f0f0f] p-8 rounded-3xl border border-white/5 hover:border-cyan-500/50 transition-all cursor-pointer hover:bg-cyan-500/[0.02]"
+                                    className="group relative overflow-hidden rounded-3xl p-8 border border-cyan-500/10 transition-all duration-300 cursor-pointer
+                                        bg-gradient-to-br from-cyan-500/5 via-[#0f0f0f] to-[#0a0a0a]
+                                        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]
+                                        hover:shadow-[0_8px_40px_rgba(6,182,212,0.12),0_0_0_1px_rgba(6,182,212,0.2),inset_0_1px_0_rgba(255,255,255,0.04)]
+                                        hover:border-cyan-500/25 hover:scale-[1.01] active:scale-[0.99]"
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                        <CheckCircle2 size={24} className="text-cyan-500" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="relative">
+                                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                                            <CheckCircle2 size={26} className="text-cyan-400 group-hover:text-cyan-300" />
+                                        </div>
+                                        <h3 className="text-xl font-black text-white mb-2 tracking-tight">Weekly Planner</h3>
+                                        <p className="text-sm text-white/45 leading-relaxed font-medium">
+                                            Day-by-day task lists and tactical execution for the current week.
+                                        </p>
                                     </div>
-                                    <h3 className="text-xl font-black text-white mb-2">Weekly Planner</h3>
-                                    <p className="text-sm text-white/40 leading-relaxed font-bold">
-                                        Day-by-day task lists and tactical execution for the current week.
-                                    </p>
                                 </div>
                             </div>
 
@@ -1025,7 +1075,7 @@ export default function Dashboard() {
                         <div key={tabKey} className="space-y-4 md:space-y-14 tab-fade-in">
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
-                                    <div className="bg-[#1a1a1a] border border-orange-500/30 rounded-3xl p-4 shadow-2xl flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
+                                    <div className="bg-gradient-to-br from-[#1a1a1a] to-[#141414] border border-orange-500/30 rounded-3xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
                                         <div className="flex flex-col">
                                             <span className="text-white font-bold text-sm">Select 2 Projects</span>
                                             <span className="text-white/40 text-xs">{selectedIds.length}/2 selected</span>
@@ -1102,7 +1152,7 @@ export default function Dashboard() {
                                     {isFirstLoad && Object.keys(canvases).length === 0 && (
                                         <div className="col-span-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
                                             {[...Array(3)].map((_, i) => (
-                                                <div key={i} className="h-40 rounded-3xl bg-white/[0.02] border border-white/[0.04] animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                                                <div key={i} className="h-40 rounded-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
                                             ))}
                                         </div>
                                     )}
@@ -1135,10 +1185,10 @@ export default function Dashboard() {
                                                         { icon: Target, step: '02', title: 'Map & Connect', desc: 'Drag ideas onto the canvas and connect them' },
                                                         { icon: CheckSquare, step: '03', title: 'Execute & Track', desc: 'Convert to tasks, timelines and reports' },
                                                     ].map((item) => (
-                                                        <div key={item.step} className="p-5 bg-white/[0.02] border border-white/[0.04] rounded-3xl text-left hover:border-primary/20 hover:bg-white/[0.03] transition-all group">
+                                                        <div key={item.step} className="p-6 bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] rounded-3xl text-left hover:border-primary/25 hover:from-white/[0.06] hover:to-white/[0.02] transition-all duration-300 group shadow-[0_2px_12px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.03)]">
                                                             <div className="flex items-center gap-3 mb-3">
-                                                                <div className="w-8 h-8 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-all">
-                                                                    <item.icon size={15} className="text-primary group-hover:text-black transition-colors" />
+                                                                <div className="w-10 h-10 rounded-2xl bg-primary/15 flex items-center justify-center group-hover:bg-primary group-hover:text-black group-hover:scale-105 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                                                                    <item.icon size={18} className="text-primary group-hover:text-black transition-colors" />
                                                                 </div>
                                                                 <span className="text-[10px] font-black text-white/20 tracking-widest">{item.step}</span>
                                                             </div>
@@ -1253,26 +1303,26 @@ export default function Dashboard() {
                 style={{
                     background: theme === 'light'
                         ? 'linear-gradient(180deg, #3d3d3d 0%, #2d2d2d 100%)'
-                        : 'linear-gradient(180deg, #111 0%, #0d0d0d 100%)',
+                        : 'linear-gradient(180deg, #141414 0%, #0d0d0d 50%, #0a0a0a 100%)',
                     boxShadow: isSelected
-                        ? '0 0 0 1px rgba(249,115,22,0.3), 0 4px 16px rgba(0,0,0,0.4)'
+                        ? '0 0 0 1px rgba(218,119,86,0.4), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)'
                         : theme === 'light'
-                            ? '0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.08)'
-                            : '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)',
+                            ? '0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+                            : '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)',
                 }}
                 onMouseEnter={e => {
                     const el = e.currentTarget as HTMLDivElement;
                     if (!isSelected) el.style.boxShadow = theme === 'light'
-                        ? '0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-                        : '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)';
+                        ? '0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.12)'
+                        : '0 8px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06)';
                 }}
                 onMouseLeave={e => {
                     const el = e.currentTarget as HTMLDivElement;
                     el.style.boxShadow = isSelected
-                        ? '0 0 0 1px rgba(249,115,22,0.3), 0 4px 16px rgba(0,0,0,0.4)'
+                        ? '0 0 0 1px rgba(218,119,86,0.4), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)'
                         : theme === 'light'
-                            ? '0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.08)'
-                            : '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)';
+                            ? '0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+                            : '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)';
                 }}
             >
                 {/* Accent top strip */}
