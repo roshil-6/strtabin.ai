@@ -459,56 +459,56 @@ export default function CommunityPage() {
     <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-[var(--bg-page)]/95 backdrop-blur-xl border-b border-[var(--border)]">
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
+        <div className="max-w-5xl mx-auto px-3 py-2 md:px-4 md:py-4">
+          <div className="flex items-center justify-between gap-2 md:gap-4">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-all"
+                className="p-1.5 md:p-2 -ml-1 md:-ml-2 rounded-lg md:rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-all shrink-0"
                 title="Back"
               >
-                <ArrowLeft size={20} />
+                <ArrowLeft size={18} className="md:w-5 md:h-5" />
               </button>
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border border-primary/20">
-                  <Network size={22} className="text-primary" />
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+                  <Network size={18} className="text-primary md:w-[22px] md:h-[22px]" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="font-black text-[var(--text)] truncate">Community</h1>
-                  <p className="text-xs text-[var(--text-muted)] truncate">Projects, people & insights</p>
+                  <h1 className="font-black text-sm md:text-base text-[var(--text)] truncate">Community</h1>
+                  <p className="text-[10px] text-[var(--text-muted)] truncate hidden md:block">Projects, people & insights</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1 mt-4 p-1 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)]">
+          {/* Tabs — compact on mobile */}
+          <div className="flex gap-1 mt-2 md:mt-4 p-1 rounded-lg md:rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)]">
             <button
               onClick={() => setTab('feed')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all ${
                 tab === 'feed' ? 'bg-primary text-black shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
               }`}
             >
-              <Sparkles size={18} />
-              Feed
+              <Sparkles size={16} className="md:w-[18px] md:h-[18px]" />
+              <span className="hidden sm:inline">Feed</span>
             </button>
             <button
               onClick={() => setTab('people')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all ${
                 tab === 'people' ? 'bg-primary text-black shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
               }`}
             >
-              <Users size={18} />
-              People
+              <Users size={16} className="md:w-[18px] md:h-[18px]" />
+              <span className="hidden sm:inline">People</span>
             </button>
             <button
               onClick={() => setTab('chat')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all ${
                 tab === 'chat' ? 'bg-primary text-black shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
               }`}
             >
-              <MessageCircle size={18} />
-              Chats
+              <MessageCircle size={16} className="md:w-[18px] md:h-[18px]" />
+              <span className="hidden sm:inline">Chats</span>
             </button>
           </div>
         </div>
@@ -516,30 +516,30 @@ export default function CommunityPage() {
 
       <div className="flex-1 flex overflow-hidden">
         {tab === 'people' ? (
-          <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="flex-1 overflow-y-auto p-3 md:p-6">
             <div className="max-w-2xl mx-auto">
-              <h2 className="text-lg font-black text-[var(--text)] mb-2 flex items-center gap-2">
+              <h2 className="hidden md:flex text-lg font-black text-[var(--text)] mb-2 items-center gap-2">
                 <Users size={22} />
                 My Network
               </h2>
-              <p className="text-sm text-[var(--text-muted)] mb-6">Find teammates, connect, and collaborate on projects.</p>
+              <p className="hidden md:block text-sm text-[var(--text-muted)] mb-4 md:mb-6">Find teammates, connect, and collaborate on projects.</p>
 
-              <div className="flex gap-2 mb-6">
-                <div className="relative flex-1">
-                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" />
+              <div className="flex gap-2 mb-4 md:mb-6">
+                <div className="relative flex-1 min-w-0">
+                  <Search size={16} className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" />
                   <input
                     type="text"
                     value={peopleQuery}
                     onChange={(e) => setPeopleQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearchPeople()}
-                    placeholder="Search by name or email..."
-                    className="w-full pl-10 pr-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-primary/50"
+                    placeholder="Search..."
+                    className="w-full pl-8 md:pl-10 pr-3 md:pr-4 py-2.5 md:py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg md:rounded-xl text-sm md:text-base text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-primary/50"
                   />
                 </div>
                 <button
                   onClick={handleSearchPeople}
                   disabled={searchingPeople || peopleQuery.trim().length < 2}
-                  className="px-5 py-3 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50"
+                  className="px-3 md:px-5 py-2.5 md:py-3 bg-primary text-black font-bold rounded-lg md:rounded-xl text-sm hover:bg-primary/90 transition-all disabled:opacity-50 shrink-0"
                 >
                   {searchingPeople ? <Loader2 size={20} className="animate-spin" /> : 'Search'}
                 </button>
@@ -547,8 +547,8 @@ export default function CommunityPage() {
 
               {/* Featured / Top people from feed */}
               {feedPeople.length > 0 && peopleQuery.trim().length < 2 && (
-                <section className="mb-8">
-                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
+                <section className="mb-6 md:mb-8">
+                  <h3 className="hidden md:flex text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3 items-center gap-2">
                     <TrendingUp size={14} />
                     People in your network
                   </h3>
@@ -556,14 +556,14 @@ export default function CommunityPage() {
                     {feedPeople.slice(0, 12).map((p) => (
                       <div
                         key={p.id}
-                        className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-primary/30 transition-all"
+                        className="flex items-center justify-between gap-2 md:gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-primary/30 transition-all"
                       >
                         <button
                           onClick={() => p.username && navigate(`/profile/${p.username}`)}
-                          className="flex-1 flex items-center gap-3 text-left min-w-0"
+                          className="flex-1 flex items-center gap-2 md:gap-3 text-left min-w-0"
                         >
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 border border-primary/10">
-                            <User size={24} className="text-primary" />
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 border border-primary/10">
+                            <User size={20} className="text-primary md:w-6 md:h-6" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-[var(--text)] truncate">{p.username || 'Anonymous'}</p>
@@ -599,12 +599,12 @@ export default function CommunityPage() {
               {/* Search results */}
               {peopleResults.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3">Results</h3>
+                  <h3 className="hidden md:block text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3">Results</h3>
                   <div className="space-y-2">
                     {peopleResults.map((u) => (
                       <div
                         key={u.id}
-                        className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)]"
+                        className="flex items-center justify-between gap-2 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl bg-[var(--bg-card)] border border-[var(--border)]"
                       >
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
@@ -653,8 +653,8 @@ export default function CommunityPage() {
 
               {/* Team connections (chatable) */}
               {chatableUsers.length > 0 && peopleQuery.trim().length < 2 && (
-                <section className="mt-8">
-                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
+                <section className="mt-6 md:mt-8">
+                  <h3 className="hidden md:flex text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3 items-center gap-2">
                     <Briefcase size={14} />
                     Team connections
                   </h3>
@@ -662,7 +662,7 @@ export default function CommunityPage() {
                     {chatableUsers.slice(0, 15).map((u) => (
                       <div
                         key={u.id}
-                        className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-primary/30 transition-all"
+                        className="flex items-center justify-between gap-2 md:gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-primary/30 transition-all"
                       >
                         <button
                           onClick={() => (u.username || u.email) && navigate(`/profile/${u.username || u.email}`)}

@@ -1,20 +1,25 @@
 import { memo, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import useStore from '../../store/useStore';
-import { Trash2 } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { Trash2, ExternalLink } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
 
 interface WorkflowStepData extends Record<string, unknown> {
     label: string;
     description?: string;
     status?: 'pending' | 'active' | 'done';
+    canvasId?: string;
+    isProject?: boolean;
 }
 
 export const WorkflowStepNode = memo(({ id, data, selected }: NodeProps<Node<WorkflowStepData>>) => {
     const store = useStore();
+    const navigate = useNavigate();
     const { folderId } = useParams<{ folderId: string }>();
     const [isEditing, setIsEditing] = useState(false);
     const [label, setLabel] = useState(data.label || 'New Step');
+    const canvasId = data.canvasId as string | undefined;
+    const isProject = data.isProject;
 
     const handleBlur = () => {
         setIsEditing(false);
@@ -43,14 +48,19 @@ export const WorkflowStepNode = memo(({ id, data, selected }: NodeProps<Node<Wor
         const actualFolderId = folderId || 'general';
         const currentNodes = store.projectMapNodes[actualFolderId] || [];
         const currentEdges = store.projectMapEdges[actualFolderId] || [];
-
         const newNodes = currentNodes.filter(n => n.id !== id);
-
+        const edgesToRemove = currentEdges.filter(edge => edge.source === id || edge.target === id);
         store.setProjectMapNodes(actualFolderId, newNodes);
+        if (edgesToRemove.length > 0) {
+            store.onProjectMapEdgesChange(actualFolderId, edgesToRemove.map(e => ({ type: 'remove', id: e.id })));
+        }
+    };
 
-        // This relies on having a setProjectMapEdges action. Since it doesn't exist directly via a setter, 
-        // we'll trigger the change via the standard change handler simulating a removal.
-        store.onProjectMapEdgesChange(actualFolderId, currentEdges.filter(e => e.source === id || e.target === id).map(e => ({ type: 'remove', id: e.id })));
+    const openProject = (e: React.MouseEvent) => {
+        if (canvasId && isProject) {
+            e.stopPropagation();
+            navigate(`/strategy/${canvasId}`);
+        }
     };
 
     return (
@@ -95,10 +105,11 @@ export const WorkflowStepNode = memo(({ id, data, selected }: NodeProps<Node<Wor
                     />
                 ) : (
                     <div
-                        onClick={() => setIsEditing(true)}
-                        className="w-full p-2 text-sm text-white font-bold text-center cursor-text break-words select-none"
+                        onClick={isProject ? openProject : () => setIsEditing(true)}
+                        className={`w-full p-2 text-sm text-white font-bold text-center break-words select-none ${isProject ? 'cursor-pointer hover:text-primary transition-colors flex items-center justify-center gap-1.5' : 'cursor-text'}`}
                     >
                         {label || 'New Step'}
+                        {isProject && <ExternalLink size={12} className="opacity-60 shrink-0" />}
                     </div>
                 )}
             </div>

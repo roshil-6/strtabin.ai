@@ -210,12 +210,12 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
-      <div className="max-w-3xl mx-auto p-4 sm:p-6">
+      <div className="max-w-3xl mx-auto p-3 sm:p-6">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text)] mb-6 text-sm font-bold transition-colors"
+          className="flex items-center gap-1.5 md:gap-2 text-[var(--text-muted)] hover:text-[var(--text)] mb-4 md:mb-6 text-xs md:text-sm font-bold transition-colors"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={14} className="md:w-4 md:h-4" />
           Back
         </button>
 
@@ -227,21 +227,21 @@ export default function ProfilePage() {
           <p className="text-red-400 py-8">{error}</p>
         ) : data ? (
           <>
-            {/* Cover / Banner — LinkedIn-style */}
-            <div className="rounded-2xl overflow-hidden mb-6 border border-[var(--border)]">
-              <div className="h-32 sm:h-40 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent" />
-              <div className="relative px-6 sm:px-8 pb-6 -mt-16 sm:-mt-20">
-                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4">
+            {/* Cover / Banner — LinkedIn-style, compact on mobile */}
+            <div className="rounded-xl md:rounded-2xl overflow-hidden mb-4 md:mb-6 border border-[var(--border)]">
+              <div className="h-24 sm:h-40 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent" />
+              <div className="relative px-4 sm:px-8 pb-4 sm:pb-6 -mt-12 sm:-mt-20">
+                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 sm:gap-4">
                   <div className="shrink-0 relative">
                     {data.profile?.avatar_url ? (
                       <img
                         src={data.profile.avatar_url}
                         alt=""
-                        className="w-28 h-28 rounded-2xl object-cover border-4 border-[var(--bg-page)] shadow-xl"
+                        className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl sm:rounded-2xl object-cover border-2 sm:border-4 border-[var(--bg-page)] shadow-xl"
                       />
                     ) : (
-                      <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center border-4 border-[var(--bg-page)] shadow-xl">
-                        <span className="text-3xl font-black text-primary">
+                      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center border-2 sm:border-4 border-[var(--bg-page)] shadow-xl">
+                        <span className="text-xl sm:text-3xl font-black text-primary">
                           {getInitials(data.user.username, data.user.email)}
                         </span>
                       </div>
@@ -254,7 +254,7 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <div className="flex-1 text-center sm:text-left min-w-0">
-                    <h1 className="text-2xl sm:text-3xl font-black text-[var(--text)] truncate">{displayName}</h1>
+                    <h1 className="text-lg sm:text-3xl font-black text-[var(--text)] truncate">{displayName}</h1>
                     {data.user.email && data.user.username && (
                       <p className="text-sm text-[var(--text-muted)] mt-0.5 truncate">{data.user.email}</p>
                     )}
@@ -270,7 +270,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Bio section */}
-            <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] p-6 mb-6">
+            <div className="rounded-xl md:rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] p-4 md:p-6 mb-4 md:mb-6">
               {editingBio ? (
                 <div>
                   <textarea
@@ -321,41 +321,41 @@ export default function ProfilePage() {
             </div>
 
             {/* Stats — compact row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-              <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                  <Target size={20} className="text-primary" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6">
+              <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                  <Target size={18} className="text-primary md:w-5 md:h-5" />
                 </div>
-                <div>
-                  <p className="font-black text-[var(--text)] text-lg">{data.progress.total}</p>
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Progress</p>
-                </div>
-              </div>
-              <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
-                  <Flame size={20} className="text-orange-400" />
-                </div>
-                <div>
-                  <p className="font-black text-[var(--text)] text-lg">{data.streak}</p>
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Streak</p>
+                <div className="min-w-0">
+                  <p className="font-black text-[var(--text)] text-base md:text-lg">{data.progress.total}</p>
+                  <p className="text-[9px] md:text-[10px] text-[var(--text-muted)] uppercase tracking-wider hidden md:block">Progress</p>
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                  <FolderOpen size={20} className="text-emerald-400" />
+              <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
+                  <Flame size={18} className="text-orange-400 md:w-5 md:h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-black text-[var(--text)] text-base md:text-lg">{data.streak}</p>
+                  <p className="text-[9px] md:text-[10px] text-[var(--text-muted)] uppercase tracking-wider hidden md:block">Streak</p>
+                </div>
+              </div>
+              <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                  <FolderOpen size={18} className="text-emerald-400 md:w-5 md:h-5" />
                 </div>
                 <div>
                   <p className="font-black text-[var(--text)] text-lg">{data.projects.length}</p>
                   <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Projects</p>
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                  <CheckCircle2 size={20} className="text-primary" />
+              <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                  <CheckCircle2 size={18} className="text-primary md:w-5 md:h-5" />
                 </div>
-                <div>
-                  <p className="font-black text-[var(--text)] text-lg">{completedCount}</p>
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Done</p>
+                <div className="min-w-0">
+                  <p className="font-black text-[var(--text)] text-base md:text-lg">{completedCount}</p>
+                  <p className="text-[9px] md:text-[10px] text-[var(--text-muted)] uppercase tracking-wider hidden md:block">Done</p>
                 </div>
               </div>
             </div>

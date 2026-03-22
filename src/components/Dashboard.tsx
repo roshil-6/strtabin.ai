@@ -20,6 +20,7 @@ export default function Dashboard() {
         canvases, projectCalendarEvents, createCanvas, deleteCanvas, togglePinCanvas, toggleCurrentProject,
         mergeCanvases, folders, activeFolderId, createFolder, deleteFolder,
         setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName, initDefaultCanvas,
+        dailyExecutionLogs,
     } = useStore(useShallow(state => ({
         canvases: state.canvases,
         projectCalendarEvents: state.projectCalendarEvents,
@@ -37,6 +38,7 @@ export default function Dashboard() {
         duplicateCanvas: state.duplicateCanvas,
         updateCanvasName: state.updateCanvasName,
         initDefaultCanvas: state.initDefaultCanvas,
+        dailyExecutionLogs: state.dailyExecutionLogs,
     })));
 
     const { signOut } = useClerk();
@@ -460,15 +462,15 @@ export default function Dashboard() {
                 fixed inset-y-0 left-0 z-50 w-72 border-r border-[var(--border)] flex flex-col shrink-0 theme-panel backdrop-blur-2xl transition-transform duration-300 md:relative md:translate-x-0
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
-                <div className="p-5 md:p-8">
-                    <div className="flex items-center justify-between mb-8 md:mb-10">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 md:w-10 md:h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
+                <div className="p-3 md:p-8">
+                    <div className="flex items-center justify-between mb-5 md:mb-10">
+                        <div className="flex items-center gap-2 md:gap-3">
+                            <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg md:rounded-xl flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
                                 <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain" />
                             </div>
                             <div>
-                                <h1 className="text-2xl md:text-3xl font-black tracking-tighter leading-none">Stratabin<span className="text-orange-500">.</span></h1>
-                                <p className="text-[9px] md:text-[10px] text-white/20 uppercase tracking-[0.2em] mt-1 font-bold">Professional Workspace</p>
+                                <h1 className="text-lg md:text-3xl font-black tracking-tighter leading-none">Stratabin<span className="text-orange-500">.</span></h1>
+                                <p className="text-[8px] md:text-[10px] text-white/20 uppercase tracking-[0.2em] mt-0.5 font-bold hidden md:block">Professional Workspace</p>
                             </div>
                         </div>
                         <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-white/40 hover:text-white active:scale-95 transition-all rounded-xl">
@@ -634,7 +636,7 @@ export default function Dashboard() {
 
             {/* Main Content Area — transparent so grid shows through */}
             <main className="flex-1 overflow-y-auto custom-scrollbar bg-transparent">
-                <div className="max-w-7xl mx-auto px-3 pt-4 pb-24 md:px-10 md:pt-10 md:pb-10">
+                <div className="max-w-7xl mx-auto px-2 pt-2 pb-20 md:px-10 md:pt-10 md:pb-10">
                     {/* Invitations banner */}
                     {invitations.length > 0 && (
                         <div className="mb-4 p-4 bg-primary/10 border border-primary/30 rounded-xl flex flex-wrap items-center justify-between gap-3">
@@ -667,115 +669,102 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    {/* Header — folder name + action bar */}
-                    <header className="mb-4 md:mb-6">
-                        <div className="flex items-center gap-2.5 md:gap-3 mb-2 md:mb-3">
+                    {/* Header — minimal on mobile, full on desktop */}
+                    <header className="mb-3 md:mb-6">
+                        <div className="flex items-center gap-2 mb-1 md:mb-3">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
-                                className="md:hidden p-2 bg-white/[0.04] rounded-xl border border-white/[0.05] text-white/40 hover:text-white active:scale-95 transition-all shrink-0"
+                                className="md:hidden p-1.5 bg-white/[0.04] rounded-lg border border-white/[0.05] text-white/50 hover:text-white active:scale-95 transition-all shrink-0"
                             >
-                                <Menu size={18} />
+                                <Menu size={16} />
                             </button>
                             <div className="flex-1 min-w-0">
-                                <p className="text-[9px] md:text-[10px] uppercase font-bold tracking-[0.25em] text-white/20 mb-0.5">
-                                    {activeFolder ? activeFolder.name : 'General'}
-                                </p>
-                                <h2 className="text-lg md:text-4xl font-black text-white leading-tight truncate">
-                                    {activeFolder ? activeFolder.name : 'Writing & Strategy'}
+                                <h2 className="text-sm md:text-4xl font-black text-white leading-tight truncate">
+                                    {activeFolder ? activeFolder.name : 'Projects'}
                                 </h2>
+                                <p className="text-[9px] text-white/30 md:text-[10px] md:text-white/20 uppercase font-bold tracking-wider hidden md:block mt-0.5">
+                                    {activeFolder ? 'Folder' : 'Writing & Strategy'}
+                                </p>
                             </div>
                             <button
                                 onClick={handleCreate}
-                                className="md:hidden flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-black font-black text-[11px] tracking-wider rounded-xl active:scale-95 transition-all shrink-0"
+                                className="md:hidden flex items-center justify-center w-9 h-9 bg-primary text-black font-black rounded-lg active:scale-95 transition-all shrink-0"
                             >
-                                <Plus size={14} strokeWidth={3} />
-                                New
+                                <Plus size={18} strokeWidth={3} />
                             </button>
                         </div>
 
-                        {/* Compact stats row */}
-                        <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-4">
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                                <Flame size={14} className="text-orange-400" />
-                                <span className="text-xs font-black text-white">{workInsights?.streak ?? 0}</span>
-                                <span className="text-[10px] text-white/50">streak</span>
+                        {/* Stats — compact on mobile, hide labels */}
+                        <div className="flex items-center gap-1.5 md:gap-2 mb-2 md:mb-4 overflow-x-auto custom-scrollbar-hide">
+                            <div className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 shrink-0">
+                                <Flame size={12} className="text-orange-400 md:w-[14px] md:h-[14px]" />
+                                <span className="text-[10px] md:text-xs font-black text-white">{workInsights?.streak ?? 0}</span>
+                                <span className="text-[9px] md:text-[10px] text-white/50 hidden md:inline">streak</span>
                             </div>
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                                <TrendingUp size={14} className="text-emerald-400" />
-                                <span className="text-xs font-black text-white">{workInsights?.progress?.total ?? 0}</span>
-                                <span className="text-[10px] text-white/50">pts</span>
+                            <div className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                                <TrendingUp size={12} className="text-emerald-400 md:w-[14px] md:h-[14px]" />
+                                <span className="text-[10px] md:text-xs font-black text-white">{workInsights?.progress?.total ?? 0}</span>
+                                <span className="text-[9px] md:text-[10px] text-white/50 hidden md:inline">pts</span>
                             </div>
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10">
-                                <FileText size={14} className="text-primary" />
-                                <span className="text-xs font-black text-white">{filteredCanvases.length}</span>
-                                <span className="text-[10px] text-white/50">projects</span>
+                            <div className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-white/[0.04] border border-white/10 shrink-0">
+                                <FileText size={12} className="text-primary md:w-[14px] md:h-[14px]" />
+                                <span className="text-[10px] md:text-xs font-black text-white">{filteredCanvases.length}</span>
+                                <span className="text-[9px] md:text-[10px] text-white/50 hidden md:inline">projects</span>
                             </div>
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10">
-                                <CheckSquare size={14} className="text-cyan-400" />
-                                <span className="text-xs font-black text-white">
+                            <div className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-white/[0.04] border border-white/10 shrink-0">
+                                <CheckSquare size={12} className="text-cyan-400 md:w-[14px] md:h-[14px]" />
+                                <span className="text-[10px] md:text-xs font-black text-white">
                                     {filteredCanvases.reduce((acc, p) => acc + (p.todos?.filter(t => t.completed).length ?? 0), 0)}
                                 </span>
-                                <span className="text-[10px] text-white/50">tasks done</span>
+                                <span className="text-[9px] md:text-[10px] text-white/50 hidden md:inline">done</span>
                             </div>
                         </div>
 
-                        <div className="flex flex-row items-center gap-1.5 md:gap-2 overflow-x-auto custom-scrollbar-hide">
+                        <div className="flex flex-row items-center gap-1 md:gap-2 overflow-x-auto custom-scrollbar-hide pb-1">
 
-                            {/* STRAB AI Builder — general chat */}
+                            {/* Action bar — icon-only on mobile for tool feel */}
                             <button
                                 onClick={() => navigate('/strab')}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-5 md:py-3 bg-primary/8 text-primary border border-primary/25 hover:bg-primary/15 hover:border-primary/40 rounded-xl active:scale-95 transition-all font-black text-[11px] md:text-sm shrink-0 shadow-[0_2px_12px_rgba(249,115,22,0.12)]"
-                                style={{ background: 'rgba(249,115,22,0.07)' }}
+                                className="flex items-center justify-center md:gap-1.5 p-2 md:px-5 md:py-3 bg-primary/8 text-primary border border-primary/25 hover:bg-primary/15 rounded-lg md:rounded-xl active:scale-95 transition-all shrink-0"
                             >
-                                <Bot size={14} />
-                                <span>STRAB AI</span>
+                                <Bot size={16} className="md:w-[14px] md:h-[14px]" />
+                                <span className="hidden md:inline font-black text-sm">STRAB</span>
                             </button>
-
                             <button
                                 onClick={() => navigate('/reports')}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-5 md:py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/15 rounded-xl active:scale-95 transition-all font-black text-[11px] md:text-sm shrink-0"
+                                className="flex items-center justify-center md:gap-1.5 p-2 md:px-5 md:py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 rounded-lg md:rounded-xl shrink-0"
                             >
-                                <BarChart2 size={14} />
-                                <span>Reports</span>
+                                <BarChart2 size={16} className="md:w-[14px] md:h-[14px]" />
+                                <span className="hidden md:inline font-black text-sm">Reports</span>
                             </button>
-
                             <button
                                 onClick={() => setActiveTab('monitor')}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-5 md:py-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 hover:bg-cyan-500/15 rounded-xl active:scale-95 transition-all font-black text-[11px] md:text-sm shrink-0"
+                                className="flex items-center justify-center md:gap-1.5 p-2 md:px-5 md:py-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 rounded-lg md:rounded-xl shrink-0"
                             >
-                                <Activity size={14} />
-                                <span>Monitor</span>
+                                <Activity size={16} className="md:w-[14px] md:h-[14px]" />
+                                <span className="hidden md:inline font-black text-sm">Monitor</span>
                             </button>
-
                             <button
                                 onClick={() => navigate(`/folder-workflow/${activeFolderId || 'general'}`)}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-6 md:py-3 bg-white/[0.03] text-white/40 hover:text-white border border-white/[0.05] rounded-xl active:scale-95 transition-all font-bold text-[11px] md:text-sm group shrink-0"
+                                className="flex items-center justify-center md:gap-1.5 p-2 md:px-6 md:py-3 bg-white/[0.03] text-white/40 hover:text-white border border-white/[0.05] rounded-lg md:rounded-xl shrink-0"
                             >
-                                <Network size={14} className="group-hover:text-primary transition-colors" />
-                                <span>Map</span>
+                                <Network size={16} className="md:w-[14px] md:h-[14px]" />
+                                <span className="hidden md:inline font-bold text-sm">Map</span>
                             </button>
-
                             <button
                                 onClick={() => navigate('/calendar')}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-5 md:py-3 bg-white/[0.03] text-white/40 hover:text-white border border-white/[0.05] rounded-xl active:scale-95 transition-all font-bold text-[11px] md:text-sm shrink-0"
+                                className="flex items-center justify-center md:gap-1.5 p-2 md:px-5 md:py-3 bg-white/[0.03] text-white/40 hover:text-white border border-white/[0.05] rounded-lg md:rounded-xl shrink-0"
                             >
-                                <Calendar size={14} />
-                                <span>Calendar</span>
+                                <Calendar size={16} className="md:w-[14px] md:h-[14px]" />
+                                <span className="hidden md:inline font-bold text-sm">Calendar</span>
                             </button>
-
                             {activeTab === 'strategy' && (
                                 <button
-                                    onClick={() => {
-                                        setSelectionMode(!selectionMode);
-                                        setSelectedIds([]);
-                                    }}
-                                    className={`flex items-center gap-1.5 px-2.5 py-1.5 md:px-6 md:py-3 rounded-xl font-bold text-[11px] md:text-sm active:scale-95 transition-all border shrink-0 ${selectionMode
-                                        ? 'bg-orange-500/15 text-orange-400 border-orange-500/40'
-                                        : 'bg-white/[0.03] text-white/40 border-white/[0.05] hover:text-white hover:bg-white/[0.06]'
-                                        }`}
+                                    onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); }}
+                                    className={`flex items-center justify-center md:gap-1.5 p-2 md:px-6 md:py-3 rounded-lg md:rounded-xl font-bold text-sm border shrink-0 ${selectionMode ? 'bg-orange-500/15 text-orange-400 border-orange-500/40' : 'bg-white/[0.03] text-white/40 border-white/[0.05]'}`}
                                 >
-                                    <GitMerge size={14} />
-                                    <span>{selectionMode ? 'Cancel' : 'Merge'}</span>
+                                    <GitMerge size={16} className="md:w-[14px] md:h-[14px]" />
+                                    <span className="hidden md:inline">{selectionMode ? 'Cancel' : 'Merge'}</span>
                                 </button>
                             )}
 
@@ -792,21 +781,18 @@ export default function Dashboard() {
                         </div>
                     </header>
 
-                    {/* Navigation Tabs */}
-                    <div className="flex items-center gap-2 md:gap-6 mb-4 md:mb-6 border-b border-white/[0.04] pb-0 overflow-x-auto custom-scrollbar-hide">
+                    {/* Navigation Tabs — icons + short labels on mobile */}
+                    <div className="flex items-center gap-0 md:gap-6 mb-3 md:mb-6 border-b border-white/[0.04] pb-0 overflow-x-auto custom-scrollbar-hide -mx-1">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => { setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab' | 'reports' | 'monitor'); setTabKey(k => k + 1); }}
-                                className={`group flex items-center gap-1.5 md:gap-3 pb-2.5 md:pb-4 relative transition-all duration-300 min-w-max ${activeTab === tab.id
-                                    ? 'text-white'
-                                    : 'text-white/25 hover:text-white/60'
-                                    }`}
+                                className={`group flex items-center gap-1 md:gap-3 py-2 px-2 md:px-0 md:pb-4 relative transition-all min-w-[44px] md:min-w-max justify-center md:justify-start shrink-0 ${activeTab === tab.id ? 'text-white' : 'text-white/25 hover:text-white/60'}`}
                             >
-                                <tab.icon size={14} className={activeTab === tab.id ? 'text-primary' : 'opacity-40 group-hover:opacity-100 transition-all'} />
-                                <span className="text-[10px] md:text-xs font-black uppercase tracking-wider md:tracking-widest">{tab.label}</span>
+                                <tab.icon size={16} className="shrink-0 md:w-[14px] md:h-[14px]" />
+                                <span className="text-[9px] md:text-xs font-black uppercase tracking-wider hidden sm:inline truncate">{tab.label}</span>
                                 {activeTab === tab.id && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full shadow-[0_0_6px_rgba(255,95,31,0.4)] animate-in zoom-in duration-300" />
+                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
                                 )}
                             </button>
                         ))}
@@ -814,15 +800,15 @@ export default function Dashboard() {
 
                     {/* Tab Content */}
                     {activeTab === 'calendar' ? (
-                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-8">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
+                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-4 md:space-y-8">
+                            <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
                                     <h2 className="text-2xl font-black text-white">Calendar Hub</h2>
                                     <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-bold">Select views</p>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                                 {/* Strategic Calendar Option */}
                                 <div
                                     onClick={() => navigate('/calendar')}
@@ -853,15 +839,15 @@ export default function Dashboard() {
                             </div>
                         </div>
                     ) : activeTab === 'reports' ? (
-                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-8">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
+                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-4 md:space-y-8">
+                            <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
                                     <h2 className="text-2xl font-black text-white">Reports</h2>
                                     <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-bold">AI analysis & project insights</p>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                                 <div
                                     onClick={() => navigate('/reports')}
                                     className="group relative bg-[#0f0f0f] p-8 rounded-2xl border border-white/5 hover:border-emerald-500/50 transition-all cursor-pointer hover:bg-emerald-500/[0.02]"
@@ -879,23 +865,77 @@ export default function Dashboard() {
                                 </p>
                             </div>
 
-                            <div className="flex items-center gap-3 mb-4 px-1">
+                            <div className="hidden md:flex items-center gap-3 mb-4 px-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
                                 <div className="flex-1 h-px bg-white/5 ml-2" />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-6">
                                 {filteredCanvases.map(p => renderProjectCard(p))}
                             </div>
                         </div>
                     ) : activeTab === 'monitor' ? (
-                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-8">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
+                        <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-4 md:space-y-8">
+                            <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
                                     <h2 className="text-2xl font-black text-white">Monitor your work</h2>
                                     <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-bold">Track progress & execution</p>
                                 </div>
                             </div>
+
+                            {/* What did I execute today — prominent card */}
+                            {(() => {
+                                const todayKey = new Date().toISOString().slice(0, 10);
+                                const todayLogs = Object.entries(dailyExecutionLogs || {})
+                                    .filter(([k]) => k.startsWith(todayKey))
+                                    .map(([k, v]) => ({ canvasId: k === todayKey ? null : k.replace(`${todayKey}_`, ''), ...v }));
+                                const globalLog = todayLogs.find(l => !l.canvasId);
+                                const projectLogs = todayLogs.filter(l => l.canvasId);
+                                const hasAny = todayLogs.some(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim());
+                                return (
+                                    <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] to-transparent p-6 md:p-8">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <Zap size={20} className="text-primary" />
+                                            <h3 className="text-lg font-black text-white">What did I execute today?</h3>
+                                        </div>
+                                        {hasAny ? (
+                                            <div className="space-y-4">
+                                                {globalLog && (globalLog.executed || globalLog.blocking || globalLog.tomorrowAction) && (
+                                                    <div className="space-y-2">
+                                                        {globalLog.executed && (
+                                                            <p className="text-sm text-white/90"><span className="text-white/50 font-bold">Executed:</span> {globalLog.executed}</p>
+                                                        )}
+                                                        {globalLog.blocking && (
+                                                            <p className="text-sm text-amber-400/90"><span className="text-amber-400/60 font-bold">Blocking:</span> {globalLog.blocking}</p>
+                                                        )}
+                                                        {globalLog.tomorrowAction && (
+                                                            <p className="text-sm text-emerald-400/90"><span className="text-emerald-400/60 font-bold">Tomorrow:</span> {globalLog.tomorrowAction}</p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {projectLogs.filter(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim()).map((l) => (
+                                                    <div key={l.canvasId} className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                                                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">
+                                                            {canvases[l.canvasId!]?.name || 'Project'}
+                                                        </p>
+                                                        {l.executed && <p className="text-sm text-white/85">{l.executed}</p>}
+                                                        {l.blocking && <p className="text-xs text-amber-400/80 mt-0.5">Blocking: {l.blocking}</p>}
+                                                        {l.tomorrowAction && <p className="text-xs text-emerald-400/80 mt-0.5">Tomorrow: {l.tomorrowAction}</p>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-white/40 mb-4">No execution logged today. Add your progress in the Calendar or Weekly Planner.</p>
+                                        )}
+                                        <button
+                                            onClick={() => navigate('/calendar')}
+                                            className="mt-4 px-4 py-2 rounded-xl bg-primary/20 text-primary font-bold text-sm hover:bg-primary/30 transition-all"
+                                        >
+                                            Open Calendar to log
+                                        </button>
+                                    </div>
+                                );
+                            })()}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div
@@ -924,17 +964,17 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 mb-4 px-1">
+                            <div className="hidden md:flex items-center gap-3 mb-4 px-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
                                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
                                 <div className="flex-1 h-px bg-white/5 ml-2" />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-6">
                                 {filteredCanvases.map(p => renderProjectCard(p))}
                             </div>
                         </div>
                     ) : (
-                        <div key={tabKey} className="space-y-8 md:space-y-14 animate-in fade-in slide-in-from-bottom-3 duration-300">
+                        <div key={tabKey} className="space-y-4 md:space-y-14 animate-in fade-in slide-in-from-bottom-3 duration-300">
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
                                     <div className="bg-[#1a1a1a] border border-orange-500/30 rounded-2xl p-4 shadow-2xl flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
@@ -963,12 +1003,12 @@ export default function Dashboard() {
                             {/* Pinned Projects */}
                             {pinnedProjects.length > 0 && (
                                 <section>
-                                    <div className="flex items-center gap-3 mb-4 md:mb-6 px-1">
+                                    <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Pinned</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-6">
                                         {pinnedProjects.map(p => renderProjectCard(p))}
                                     </div>
                                 </section>
@@ -977,12 +1017,12 @@ export default function Dashboard() {
                             {/* Current Projects */}
                             {currentProjects.length > 0 && (
                                 <section>
-                                    <div className="flex items-center gap-3 mb-4 md:mb-6 px-1">
+                                    <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
                                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Current Focus</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-6">
                                         {currentProjects.map(p => renderProjectCard(p))}
                                     </div>
                                 </section>
@@ -991,12 +1031,12 @@ export default function Dashboard() {
                             {/* Merged Projects */}
                             {mergedProjects.length > 0 && (
                                 <section>
-                                    <div className="flex items-center gap-3 mb-4 md:mb-6 px-1">
+                                    <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
                                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Merged</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-6">
                                         {mergedProjects.map(p => renderProjectCard(p))}
                                     </div>
                                 </section>
@@ -1004,14 +1044,14 @@ export default function Dashboard() {
 
                             {/* Start your project / All Projects */}
                             <section>
-                                <div className="flex items-center gap-3 mb-4 md:mb-6 px-1">
+                                <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                                     <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
                                         {pinnedProjects.length > 0 || currentProjects.length > 0 || mergedProjects.length > 0 ? 'All Projects' : 'Start your project'}
                                     </h2>
                                     <div className="flex-1 h-px bg-white/5 ml-2" />
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-6">
                                     {(pinnedProjects.length > 0 || currentProjects.length > 0 ? sortedOtherProjects : sortedRegularProjects).map(p => renderProjectCard(p))}
 
                                     {isFirstLoad && Object.keys(canvases).length === 0 && (
@@ -1160,7 +1200,7 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`dashboard-project-card group relative rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.99] overflow-visible flex flex-col
+                className={`dashboard-project-card group relative rounded-xl md:rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
                     ${isSelected ? 'border-orange-500/60 ring-2 ring-orange-500/25' : 'border-white/[0.08] hover:border-white/[0.18]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
@@ -1192,7 +1232,7 @@ export default function Dashboard() {
                 {/* Accent top strip */}
                 <div className="h-[2px] w-full shrink-0 rounded-t-2xl bg-primary/60" />
 
-                <div className="p-4 md:p-5 flex flex-col flex-1">
+                <div className="p-2.5 md:p-5 flex flex-col flex-1">
                     {/* Selection Overlay */}
                     {selectionMode && (
                         <div className="absolute top-5 right-4 z-10">
@@ -1244,19 +1284,19 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    {/* Icon + badges row */}
-                    <div className="flex items-start justify-between mb-3">
-                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 bg-primary/10 border border-primary/20">
-                            {isMerged
-                                ? <GitMerge size={20} className="text-primary" />
-                                : <Icon size={20} className="text-primary" />
-                            }
+                    {/* Icon + badges — compact on mobile */}
+                    <div className="flex items-start justify-between mb-2 md:mb-3">
+                        <div className="w-8 h-8 md:w-11 md:h-11 rounded-lg md:rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
+                            {isMerged ? <GitMerge size={16} className="text-primary md:w-5 md:h-5" /> : <Icon size={16} className="text-primary md:w-5 md:h-5" />}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            {p.isPinned && <span className="px-1.5 py-0.5 rounded-md bg-primary/15 text-[9px] font-black uppercase tracking-wider text-primary">Pinned</span>}
-                            {p.isCurrent && <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-[9px] font-black uppercase tracking-wider text-amber-400">Active</span>}
-                            {isMerged && <span className="px-1.5 py-0.5 rounded-md bg-orange-500/20 text-[9px] font-black uppercase tracking-wider text-orange-400">Merged</span>}
-                            {streak > 0 && <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-[9px] font-black uppercase tracking-wider text-emerald-400">{streak}d streak</span>}
+                        <div className="flex items-center gap-1 flex-wrap justify-end">
+                            {p.isPinned && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 md:hidden" title="Pinned" />}
+                            {p.isPinned && <span className="hidden md:inline px-1.5 py-0.5 rounded-md bg-primary/15 text-[9px] font-black uppercase tracking-wider text-primary">Pinned</span>}
+                            {p.isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 md:hidden" title="Active" />}
+                            {p.isCurrent && <span className="hidden md:inline px-1.5 py-0.5 rounded-md bg-amber-500/20 text-[9px] font-black uppercase text-amber-400">Active</span>}
+                            {isMerged && <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 md:hidden" />}
+                            {isMerged && <span className="hidden md:inline px-1.5 py-0.5 rounded-md bg-orange-500/20 text-[9px] font-black text-orange-400">Merged</span>}
+                            {streak > 0 && <span className="text-[8px] font-black text-emerald-400 md:text-[9px]">{streak}d</span>}
                         </div>
                     </div>
 
@@ -1271,7 +1311,7 @@ export default function Dashboard() {
                             placeholder="Project name..." aria-label="Rename project"
                         />
                     ) : (
-                        <h3 className="text-sm md:text-base font-bold text-white mb-3 truncate leading-snug tracking-tight"
+                        <h3 className="text-xs md:text-base font-bold text-white mb-2 md:mb-3 truncate leading-snug"
                             onDoubleClick={e => handleStartRename(e, p.id, p.name || p.title || '')}
                             title="Double-click to rename">
                             {(() => {
@@ -1282,33 +1322,31 @@ export default function Dashboard() {
                         </h3>
                     )}
 
-                    {/* Stats row */}
-                    <div className="flex items-center gap-3 mb-3 flex-wrap">
+                    {/* Stats row — hide on mobile, show on md+ */}
+                    <div className="hidden md:flex items-center gap-3 mb-3 flex-wrap">
                         <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
                             <Clock size={11} className="text-primary/90" />
                             {timeAgo(p.updatedAt)}
                         </span>
                         <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
                             <Target size={11} className="text-primary/90" />
-                            {todoCount > 0 ? `${completionRate}% done` : 'No tasks'}
+                            {todoCount > 0 ? `${completionRate}%` : '0 tasks'}
                         </span>
                         <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
                             <PenTool size={11} className="text-primary/90" />
-                            {wc} words
+                            {wc}w
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mb-3">
+                    {/* Tasks + Structure — desktop only */}
+                    <div className="hidden md:grid grid-cols-2 gap-2 mb-3">
                         <div className="rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2.5">
                             <div className="flex items-center justify-between mb-1.5">
                                 <span className="text-[9px] uppercase tracking-[0.16em] font-black text-primary">Tasks</span>
                                 <span className="text-[10px] font-bold text-zinc-200">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
                             </div>
                             <div className="h-1.5 rounded-full bg-zinc-700/80 overflow-hidden">
-                                <div
-                                    className="h-full rounded-full bg-primary transition-all duration-300"
-                                    style={{ width: `${completionRate}%` }}
-                                />
+                                <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${completionRate}%` }} />
                             </div>
                         </div>
                         <div className="rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2.5">
@@ -1317,32 +1355,34 @@ export default function Dashboard() {
                                 <span className="text-[10px] font-bold text-zinc-200">{nodeCount} nodes</span>
                             </div>
                             <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-400">
-                                <span className="inline-flex items-center gap-1">
-                                    <ListTodo size={10} className="text-primary/80" />
-                                    {todoCount} tasks
-                                </span>
-                                <span className="inline-flex items-center gap-1">
-                                    <FileText size={10} className="text-primary/80" />
-                                    {wc}w
-                                </span>
+                                <span className="inline-flex items-center gap-1"><ListTodo size={10} className="text-primary/80" />{todoCount} tasks</span>
+                                <span className="inline-flex items-center gap-1"><FileText size={10} className="text-primary/80" />{wc}w</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-white/[0.1] bg-zinc-900/50 px-3 py-2.5 mb-4 min-h-[70px]">
+                    {/* Project brief — desktop only */}
+                    <div className="hidden md:block rounded-xl border border-white/[0.1] bg-zinc-900/50 px-3 py-2.5 mb-4 min-h-[70px]">
                         <p className="text-[9px] uppercase tracking-[0.16em] font-black text-primary mb-1.5">Project brief</p>
                         <p className="text-[11px] leading-relaxed text-zinc-300 line-clamp-3">
                             {previewText || 'Add your core idea, goals, and execution notes to turn this into a full strategy card.'}
                         </p>
                     </div>
 
+                    {/* Mobile: minimal stat */}
+                    <div className="flex md:hidden items-center gap-2 mb-2 text-[9px] text-zinc-400">
+                        {todoCount > 0 && <span>{completionRate}% done</span>}
+                        {nodeCount > 0 && <span>• {nodeCount} nodes</span>}
+                        {wc > 0 && <span>• {wc}w</span>}
+                    </div>
+
                     {!hasContent && (
-                        <div className="mb-4 rounded-lg border border-dashed border-primary/30 px-2.5 py-2 text-[10px] font-semibold text-zinc-500">
+                        <div className="hidden md:block mb-4 rounded-lg border border-dashed border-primary/30 px-2.5 py-2 text-[10px] font-semibold text-zinc-500">
                             Start by adding nodes, tasks, or notes to enrich this project.
                         </div>
                     )}
 
-                    <div className="flex items-center gap-3 mb-4 flex-wrap">
+                    <div className="hidden md:flex items-center gap-3 mb-4 flex-wrap">
                         {nodeCount > 0 && (
                             <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary/70" />
@@ -1371,7 +1411,7 @@ export default function Dashboard() {
 
                     {/* Footer */}
                     <div className="mt-auto flex items-center justify-between">
-                        <span className="text-[10px] text-zinc-500 font-medium">
+                        <span className="text-[10px] text-zinc-500 font-medium hidden md:inline">
                             {p.folderId ? (folders[p.folderId]?.name || 'Workspace project') : 'General project'}
                         </span>
                         <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 text-primary">

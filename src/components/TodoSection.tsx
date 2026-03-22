@@ -1,17 +1,26 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { Trash2, CheckSquare, Square } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ProjectHeader from './ProjectHeader';
 import MobileNav from './MobileNav';
 
+function isDefaultCanvasName(name: string | undefined | null): boolean {
+    if (!name || !name.trim()) return true;
+    const n = name.trim().toLowerCase();
+    return n === 'untitled' || n === 'untitled canvas' || n === 'untitled project' || n === 'shared canvas';
+}
+
 export default function TodoSection() {
     const { id } = useParams<{ id: string }>();
+    const location = useLocation();
     const canvas = useStore(state => state.canvases[id || '']);
+    const projectTitle = (location.state as { projectTitle?: string })?.projectTitle;
 
+    const displayName = (canvas?.name && !isDefaultCanvasName(canvas.name)) ? canvas.name : (projectTitle || canvas?.name || 'Tasks');
     useEffect(() => {
-        if (canvas?.name) document.title = `Tasks — ${canvas.name} | Stratabin`;
-    }, [canvas?.name]);
+        document.title = `Tasks — ${displayName} | Stratabin`;
+    }, [displayName]);
     const addTodo = useStore(state => state.addCanvasTodo);
     const toggleTodo = useStore(state => state.toggleCanvasTodo);
     const deleteTodo = useStore(state => state.deleteCanvasTodo);
@@ -38,9 +47,9 @@ export default function TodoSection() {
             <ProjectHeader canvasId={id!} activeTab="tasks" />
 
             <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-12 pb-24 md:pb-12 w-full max-w-3xl mx-auto">
+                <div className="flex-1 overflow-y-auto p-2 sm:p-6 md:p-12 pb-20 md:pb-12 w-full max-w-3xl mx-auto">
 
-                    <form onSubmit={handleAdd} className="flex gap-2 mb-5">
+                    <form onSubmit={handleAdd} className="flex gap-1.5 md:gap-2 mb-3 md:mb-5">
                         <input
                             type="text"
                             value={newTodo}
@@ -48,20 +57,20 @@ export default function TodoSection() {
                             placeholder="Add a new task…"
                             maxLength={MAX_TODO_LENGTH}
                             aria-label="New task"
-                            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 md:px-4 py-3 md:py-3.5 text-sm md:text-base outline-none focus:border-primary/30 focus:bg-white/[0.06] transition-all placeholder-white/15"
+                            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-lg md:rounded-xl px-3 md:px-4 py-2.5 md:py-3.5 text-sm outline-none focus:border-primary/30 focus:bg-white/[0.06] transition-all placeholder-white/15"
                         />
                         <button
                             type="submit"
-                            className="bg-primary text-black font-bold px-4 md:px-5 py-3 md:py-3.5 rounded-xl active:scale-90 transition-all shrink-0 text-sm"
+                            className="bg-primary text-black font-bold px-3 md:px-5 py-2.5 md:py-3.5 rounded-lg md:rounded-xl active:scale-90 transition-all shrink-0 text-xs md:text-sm"
                         >
                             Add
                         </button>
                     </form>
 
                     {/* Task list */}
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 md:space-y-2">
                         {(!canvas.todos || canvas.todos.length === 0) && (
-                            <div className="text-center text-white/15 py-16 text-sm">
+                            <div className="text-center text-white/15 py-10 md:py-16 text-xs md:text-sm">
                                 <div className="text-3xl mb-3">✓</div>
                                 No tasks yet — add one above
                             </div>
@@ -70,7 +79,7 @@ export default function TodoSection() {
                         {canvas.todos?.map(todo => (
                             <div
                                 key={todo.id}
-                                className={`flex items-center gap-2 px-3 py-3 rounded-xl border transition-all ${
+                                className={`flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-2.5 md:py-3 rounded-lg md:rounded-xl border transition-all ${
                                     todo.completed
                                         ? 'bg-transparent border-white/[0.04] opacity-40'
                                         : 'theme-panel border-white/[0.08] active:bg-white/5'
@@ -78,20 +87,20 @@ export default function TodoSection() {
                             >
                                 <button
                                     onClick={() => toggleTodo(id!, todo.id)}
-                                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${todo.completed ? 'text-primary' : 'text-white/25 hover:text-primary'}`}
+                                    className={`p-1 md:p-1.5 rounded-md md:rounded-lg transition-colors shrink-0 ${todo.completed ? 'text-primary' : 'text-white/25 hover:text-primary'}`}
                                     aria-label={todo.completed ? 'Mark as incomplete' : 'Mark as complete'}
                                 >
-                                    {todo.completed ? <CheckSquare size={20} /> : <Square size={20} />}
+                                    {todo.completed ? <CheckSquare size={18} className="md:w-5 md:h-5" /> : <Square size={18} className="md:w-5 md:h-5" />}
                                 </button>
-                                <span className={`flex-1 text-[15px] leading-snug ${todo.completed ? 'line-through text-white/20' : 'text-white/85'}`}>
+                                <span className={`flex-1 text-[13px] md:text-[15px] leading-snug min-w-0 ${todo.completed ? 'line-through text-white/20' : 'text-white/85'}`}>
                                     {todo.text}
                                 </span>
                                 <button
                                     onClick={() => deleteTodo(id!, todo.id)}
-                                    className="p-2 rounded-xl text-white/15 hover:text-red-400 active:scale-95 transition-all"
+                                    className="p-1.5 md:p-2 rounded-lg md:rounded-xl text-white/15 hover:text-red-400 active:scale-95 transition-all shrink-0"
                                     aria-label="Delete task"
                                 >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={14} className="md:w-4 md:h-4" />
                                 </button>
                             </div>
                         ))}

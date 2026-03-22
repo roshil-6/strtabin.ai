@@ -615,6 +615,11 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             } catch {
                 return res.status(500).json({ error: 'Invalid canvas data.' });
             }
+            // Use project title when saved name is empty or generic
+            const savedName = data.name;
+            if (!savedName || /^\s*$/.test(savedName) || /^untitled(\s+(canvas|project|strategy))?$/i.test(String(savedName).trim())) {
+                data.name = project.title || data.name;
+            }
             return res.json(data);
         } catch (err) {
             console.error('Get project canvas error:', err);

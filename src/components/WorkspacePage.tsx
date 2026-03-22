@@ -230,9 +230,9 @@ export default function WorkspacePage() {
   };
 
   const handleOpenProject = async (project: Project) => {
-    const workspaceContext = isTeam ? { state: { workspaceId } } : {};
+    const state = { workspaceId, projectTitle: project.title };
     if (project.canvas_id) {
-      navigate(`/strategy/${project.canvas_id}`, workspaceContext);
+      navigate(`/strategy/${project.canvas_id}`, { state });
     } else if (isTeam) {
       const canvasId = `proj_${project.id}`;
       try {
@@ -242,7 +242,7 @@ export default function WorkspacePage() {
       } catch {
         /* ignore */
       }
-      navigate(`/strategy/${canvasId}`, workspaceContext);
+      navigate(`/strategy/${canvasId}`, { state });
     } else {
       navigate(`/dashboard`);
     }
@@ -350,13 +350,14 @@ export default function WorkspacePage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-3 md:p-6">
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 text-white/50 hover:text-white mb-6 text-sm font-bold"
+          className="flex items-center gap-2 text-white/50 hover:text-white mb-3 md:mb-6 text-xs md:text-sm font-bold"
         >
-          <ArrowLeft size={16} />
-          Back to Dashboard
+          <ArrowLeft size={14} className="md:w-4 md:h-4" />
+          <span className="hidden sm:inline">Back to Dashboard</span>
+          <span className="sm:hidden">Back</span>
         </button>
 
         {loading ? (
@@ -365,21 +366,21 @@ export default function WorkspacePage() {
           </div>
         ) : workspace ? (
           <>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-black text-white">{workspace.name}</h1>
-                <p className="text-white/50 text-sm mt-1">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 mb-4 md:mb-6">
+              <div className="min-w-0">
+                <h1 className="text-lg md:text-3xl font-black text-white truncate">{workspace.name}</h1>
+                <p className="text-white/50 text-xs md:text-sm mt-0.5 hidden md:block">
                   {workspace.type === 'team' ? 'Team workspace' : 'Individual workspace'} • {workspace.visibility}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 md:gap-2">
                 {isTeam && isAdmin && (
                   <button
                     onClick={() => setShowInvite(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold text-sm transition-all"
+                    className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-white/10 hover:bg-white/20 rounded-lg md:rounded-xl text-white font-bold text-xs md:text-sm transition-all"
                   >
-                    <UserPlus size={16} />
-                    Invite
+                    <UserPlus size={14} className="md:w-4 md:h-4" />
+                    <span className="hidden sm:inline">Invite</span>
                   </button>
                 )}
                 <button
@@ -390,33 +391,33 @@ export default function WorkspacePage() {
                   }}
                   disabled={refreshing}
                   title="Refresh to see updates from team members"
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-50"
+                  className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-white/10 hover:bg-white/20 rounded-lg md:rounded-xl text-white font-bold text-xs md:text-sm transition-all disabled:opacity-50"
                 >
-                  <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-                  Refresh
+                  <RefreshCw size={14} className={`md:w-4 md:h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Refresh</span>
                 </button>
                 <button
                   onClick={() => setShowNewProject(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white text-sm transition-all"
+                  className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-primary text-black font-bold rounded-lg md:rounded-xl hover:bg-white text-xs md:text-sm transition-all"
                 >
-                  <Plus size={16} />
-                  New Project
+                  <Plus size={14} className="md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">New Project</span>
                 </button>
                 {isTeam && (
                   <button
                     onClick={() => navigate('/community')}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold text-sm transition-all"
+                    className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-white/10 hover:bg-white/20 rounded-lg md:rounded-xl text-white font-bold text-xs md:text-sm transition-all"
                   >
-                    <MessageCircle size={16} />
-                    Community Chat
+                    <MessageCircle size={14} className="md:w-4 md:h-4" />
+                    <span className="hidden sm:inline">Community Chat</span>
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Tab navigation */}
+            {/* Tab navigation — compact on mobile */}
             {isTeam && (
-              <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/10 mb-6 overflow-x-auto">
+              <div className="flex gap-1 p-1 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10 mb-4 md:mb-6 overflow-x-auto">
                 {[
                   { id: 'overview' as const, label: 'Overview', icon: LayoutDashboard },
                   { id: 'projects' as const, label: 'Projects', icon: FolderPlus },
@@ -427,18 +428,18 @@ export default function WorkspacePage() {
                   <button
                     key={id}
                     onClick={() => setActiveTab(id)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shrink-0 ${
+                    className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-bold transition-all shrink-0 ${
                       activeTab === id ? 'bg-primary text-black' : 'text-white/60 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    <Icon size={16} />
-                    {label}
+                    <Icon size={14} className="md:w-4 md:h-4" />
+                    <span className="hidden sm:inline">{label}</span>
                   </button>
                 ))}
               </div>
             )}
 
-            <div className="grid md:grid-cols-3 gap-6 items-start">
+            <div className="grid md:grid-cols-3 gap-4 md:gap-6 items-start">
               <div className="md:col-span-2 space-y-6">
                 {/* Overview tab */}
                 {isTeam && activeTab === 'overview' && (
@@ -472,35 +473,35 @@ export default function WorkspacePage() {
                         <p className="text-[11px] text-white/50 sm:ml-auto">Share the ID or join link. Team members join via Dashboard → Join workspace, or visit the join link.</p>
                       </div>
                     )}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="flex items-center gap-2 text-white/50 mb-1">
-                          <FolderPlus size={14} />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">Projects</span>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+                      <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10">
+                        <div className="flex items-center gap-1.5 md:gap-2 text-white/50 mb-0.5 md:mb-1">
+                          <FolderPlus size={12} className="md:w-3.5 md:h-3.5" />
+                          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider hidden md:inline">Projects</span>
                         </div>
-                        <p className="text-2xl font-black text-white">{projects.length}</p>
+                        <p className="text-lg md:text-2xl font-black text-white">{projects.length}</p>
                         <p className="text-[10px] text-white/40 mt-0.5">{projects.filter((p) => p.status === 'executing').length} in progress</p>
                       </div>
-                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="flex items-center gap-2 text-white/50 mb-1">
-                          <ListTodo size={14} />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">Tasks today</span>
+                      <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10">
+                        <div className="flex items-center gap-1.5 md:gap-2 text-white/50 mb-0.5 md:mb-1">
+                          <ListTodo size={12} className="md:w-3.5 md:h-3.5" />
+                          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider hidden md:inline">Tasks today</span>
                         </div>
-                        <p className="text-2xl font-black text-white">{pendingTasksCount}</p>
+                        <p className="text-lg md:text-2xl font-black text-white">{pendingTasksCount}</p>
                         <p className="text-[10px] text-white/40 mt-0.5">{completedTasksCount} done</p>
                       </div>
-                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="flex items-center gap-2 text-white/50 mb-1">
-                          <Users size={14} />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">Team</span>
+                      <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10">
+                        <div className="flex items-center gap-1.5 md:gap-2 text-white/50 mb-0.5 md:mb-1">
+                          <Users size={12} className="md:w-3.5 md:h-3.5" />
+                          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider hidden md:inline">Team</span>
                         </div>
-                        <p className="text-2xl font-black text-white">{members.length}</p>
+                        <p className="text-lg md:text-2xl font-black text-white">{members.length}</p>
                         <p className="text-[10px] text-white/40 mt-0.5">members</p>
                       </div>
-                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="flex items-center gap-2 text-white/50 mb-1">
-                          <Zap size={14} />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">Quick</span>
+                      <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10">
+                        <div className="flex items-center gap-1.5 md:gap-2 text-white/50 mb-0.5 md:mb-1">
+                          <Zap size={12} className="md:w-3.5 md:h-3.5" />
+                          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider hidden md:inline">Quick</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-1">
                           <button onClick={() => setShowNewProject(true)} className="px-2 py-1 text-[10px] font-bold bg-primary/20 text-primary rounded-lg hover:bg-primary/30">+ Project</button>
@@ -717,7 +718,7 @@ export default function WorkspacePage() {
 
                 {/* Team tab - full team section in main area */}
                 {isTeam && activeTab === 'team' && (
-                  <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
+                  <section className="rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/10 p-3 md:p-5">
                     <div className="flex items-center justify-between gap-3 mb-4">
                       <h2 className="text-sm font-black text-white/50 uppercase tracking-wider flex items-center gap-2">
                         <Users size={16} />
@@ -815,7 +816,7 @@ export default function WorkspacePage() {
 
                 {/* Tasks tab - full tasks section in main area */}
                 {isTeam && activeTab === 'tasks' && (
-                  <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
+                  <section className="rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/10 p-3 md:p-5">
                     <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
                       <ListTodo size={16} />
                       Daily tasks
@@ -920,7 +921,7 @@ export default function WorkspacePage() {
 
                 {/* Activity tab - full activity in main area */}
                 {isTeam && activeTab === 'activity' && (
-                  <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
+                  <section className="rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/10 p-3 md:p-5">
                     <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
                       <Activity size={16} />
                       Activity
@@ -947,7 +948,7 @@ export default function WorkspacePage() {
               <div className="space-y-6">
                 {/* Sidebar: Team - hide when Team tab (team is in main) */}
                 {isTeam && activeTab !== 'team' && (
-                  <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
+                  <section className="rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/10 p-3 md:p-5">
                     <div className="flex items-center justify-between gap-3 mb-4">
                       <h2 className="text-sm font-black text-white/50 uppercase tracking-wider flex items-center gap-2 shrink-0">
                         <Users size={16} />
@@ -1045,7 +1046,7 @@ export default function WorkspacePage() {
 
                 {/* Sidebar: Daily Tasks - hide when Tasks tab */}
                 {isTeam && activeTab !== 'tasks' && (
-                  <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
+                  <section className="rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/10 p-3 md:p-5">
                     <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
                       <ListTodo size={16} />
                       Daily tasks
@@ -1150,7 +1151,7 @@ export default function WorkspacePage() {
 
                 {/* Sidebar: Activity - hide when Activity tab */}
                 {(activeTab !== 'activity' || !isTeam) && (
-                <section className="rounded-2xl bg-white/[0.02] border border-white/10 p-5">
+                <section className="rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/10 p-3 md:p-5">
                   <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <Activity size={16} />
                     Activity
