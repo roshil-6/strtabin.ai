@@ -1,11 +1,10 @@
 /**
- * Particle burst overlay when switching between project sections (Writing, Tasks, Timeline, Calendar, STRAB).
- * Works on both desktop and mobile.
+ * Particle burst overlay when switching between project sections.
+ * Uses DOM elements (not canvas) for reliable React compatibility.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { createPortal } from 'react-dom';
 
 const PROJECT_PATHS = ['/strategy/', '/canvas/', '/todo/', '/timeline/', '/calendar/', '/strab/'];
 
@@ -13,24 +12,10 @@ function isProjectSection(path: string): boolean {
   return PROJECT_PATHS.some(p => path.startsWith(p) && path.length > p.length);
 }
 
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  size: number;
-  color: string;
-}
-
 export default function ParticleTransition() {
   const location = useLocation();
   const prevPathRef = useRef(location.pathname);
-  const [active, setActive] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const particlesRef = useRef<Particle[]>([]);
-  const animRef = useRef<number>(0);
+  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; angle: number; speed: number }>>([]);
 
   useEffect(() => {
     const curr = location.pathname;
@@ -41,102 +26,75 @@ export default function ParticleTransition() {
     const prevIsProject = isProjectSection(prev);
 
     if (currIsProject && prevIsProject && curr !== prev) {
-      setActive(true);
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const centerX = w / 2;
-      const centerY = h / 2;
-      const count = 80;
-      const particles: Particle[] = [];
-      const colors = [
-        'rgba(249, 115, 22, 0.95)',
-        'rgba(249, 115, 22, 0.7)',
-        'rgba(255, 255, 255, 0.85)',
-        'rgba(255, 255, 255, 0.6)',
-      ];
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const count = 60;
+      const newParticles: Array<{ id: number; x: number; y: number; angle: number; speed: number }> = [];
       for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.8;
-        const speed = 4 + Math.random() * 10;
-        particles.push({
-          x: centerX,
-          y: centerY,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          life: 0,
-          maxLife: 50 + Math.random() * 40,
-          size: 2.5 + Math.random() * 3,
-          color: colors[Math.floor(Math.random() * colors.length)],
-        });
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.6;
+        const speed = 6 + Math.random() * 12;
+        newParticles.push({ id: i, x: centerX, y: centerY, angle, speed });
       }
-      particlesRef.current = particles;
-
-      const startAnim = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        canvas.width = w;
-        canvas.height = h;
-
-        const animate = () => {
-          if (particlesRef.current.length === 0) {
-            setActive(false);
-            return;
-          }
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          let alive = 0;
-          for (const p of particlesRef.current) {
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.2;
-            p.vx *= 0.98;
-            p.vy *= 0.98;
-            p.life += 1;
-            if (p.life < p.maxLife) {
-              alive++;
-              const alpha = 1 - (p.life / p.maxLife) * (p.life / p.maxLife);
-              ctx.globalAlpha = alpha;
-              ctx.fillStyle = p.color;
-              ctx.beginPath();
-              ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-          ctx.globalAlpha = 1;
-          if (alive > 0) {
-            animRef.current = requestAnimationFrame(animate);
-          } else {
-            setActive(false);
-          }
-        };
-        animRef.current = requestAnimationFrame(animate);
-      };
-      requestAnimationFrame(startAnim);
-      return () => cancelAnimationFrame(animRef.current);
+      setParticles(newParticles);
+      const t = setTimeout(() => setParticles([]), 900);
+      return () => clearTimeout(t);
     }
   }, [location.pathname]);
 
-  const showCanvas = active || isProjectSection(location.pathname);
-  if (!showCanvas) return null;
+  const showOverlay = particles.length > 0 || isProjectSection(location.pathname);
+  if (!showOverlay) return null;
 
-  const canvasEl = (
-    <canvas
-      ref={canvasRef}
-      width={typeof window !== 'undefined' ? window.innerWidth : 800}
-      height={typeof window !== 'undefined' ? window.innerHeight : 600}
-      className="fixed inset-0 pointer-events-none"
+  return (
+    <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 2147483647 }}>
+      {particles.map((p) => (
+        <ParticleDot key={p.id} initialX={p.x} initialY={p.y} angle={p.angle} speed={p.speed} />
+      ))}
+    </div>
+  );
+}
+
+function ParticleDot({ initialX, initialY, angle, speed }: { initialX: number; initialY: number; angle: number; speed: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+    let x = 0;
+    let y = 0;
+    let vyCurrent = vy;
+    let frame = 0;
+    const maxFrames = 40;
+
+    const animate = () => {
+      frame++;
+      x += vx * 0.96;
+      y += vyCurrent;
+      vyCurrent += 0.2;
+      const progress = frame / maxFrames;
+      const opacity = Math.max(0, 1 - progress * 1.2);
+      if (el) {
+        el.style.transform = `translate(${x}px, ${y}px)`;
+        el.style.opacity = String(opacity);
+      }
+      if (frame < maxFrames) requestAnimationFrame(animate);
+    };
+    const id = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(id);
+  }, [initialX, initialY, angle, speed]);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute w-3 h-3 rounded-full -ml-1.5 -mt-1.5"
       style={{
-        width: '100vw',
-        height: '100vh',
-        left: 0,
-        top: 0,
-        opacity: active ? 1 : 0,
-        zIndex: 2147483647,
+        left: initialX,
+        top: initialY,
+        background: 'rgba(249, 115, 22, 0.95)',
+        boxShadow: '0 0 12px 2px rgba(249,115,22,0.8)',
       }}
     />
   );
-
-  return typeof document !== 'undefined'
-    ? createPortal(canvasEl, document.body)
-    : null;
 }

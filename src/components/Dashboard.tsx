@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronRight } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
@@ -339,19 +339,52 @@ export default function Dashboard() {
     function ProjectCardGrid({ items }: { items: CanvasData[] }) {
         return (
             <>
-                {/* Mobile: vertical stack with polished cards */}
-                <div className="md:hidden flex flex-col gap-3">
-                    {items.map(p => (
-                        <div key={p.id} className="rounded-xl overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-                            {renderProjectCard(p)}
-                        </div>
-                    ))}
+                {/* Mobile: compact list-style cards */}
+                <div className="md:hidden flex flex-col gap-2">
+                    {items.map(p => renderMobileCard(p))}
                 </div>
                 {/* Desktop: grid */}
                 <div className="hidden md:grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                     {items.map(p => renderProjectCard(p))}
                 </div>
             </>
+        );
+    }
+
+    function renderMobileCard(p: CanvasData) {
+        const Icon = getActiveIcon();
+        const todoCount = p.todos?.length ?? 0;
+        const completedTodoCount = p.todos?.filter(t => t.completed).length ?? 0;
+        const completionRate = todoCount > 0 ? Math.round((completedTodoCount / todoCount) * 100) : 0;
+        const nodeCount = p.nodes?.length ?? 0;
+        const isMerged = !!p.mergedCanvasIds;
+        const isSelected = selectedIds.includes(p.id);
+        const displayName = (() => {
+            const n = (p.title || p.name || '').trim();
+            if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Name your project';
+            return n;
+        })();
+        return (
+            <div
+                key={p.id}
+                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
+                className={`flex items-center gap-4 p-4 rounded-2xl bg-[#1a1a1a] border-2 active:scale-[0.98] transition-all cursor-pointer
+                    ${isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-white/[0.15] active:border-primary/40'}
+                    ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}
+                `}
+            >
+                <div className="w-12 h-12 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+                    {isMerged ? <GitMerge size={22} className="text-primary" /> : <Icon size={22} className="text-primary" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-white text-base truncate">{displayName}</h3>
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-white/50">
+                        {todoCount > 0 && <span>{completionRate}% done</span>}
+                        {nodeCount > 0 && <span>• {nodeCount} nodes</span>}
+                    </div>
+                </div>
+                {selectionMode ? (isSelected ? <CheckCircle2 size={22} className="text-primary shrink-0" /> : <div className="w-6 h-6 rounded-full border-2 border-white/20 shrink-0" />) : <ChevronRight size={20} className="text-white/30 shrink-0" />}
+            </div>
         );
     }
 
