@@ -386,7 +386,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     <button
                         onClick={() => navigate(`/strab/${canvasId}`)}
                         className="p-2 hover:bg-primary/10 hover:text-primary rounded-lg text-white/35 active:scale-90 transition-all flex items-center justify-center"
-                        title="Ask STRAB AI"
+                        title="Project STRAB — chat & reports"
                     >
                         <Bot size={15} />
                     </button>

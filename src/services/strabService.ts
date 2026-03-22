@@ -67,6 +67,24 @@ export const sendGeneralStrabMessage = async (
     return accumulated;
 };
 
+/**
+ * Strip machine-only [ACTIONS] blocks from text shown in chat.
+ * - streaming: hide everything from first `[ACTIONS]` so JSON never flashes (ChatGPT-style).
+ * - final: remove closed blocks and any unclosed `[ACTIONS]…` tail.
+ */
+export function strabVisibleAssistantText(raw: string, mode: 'streaming' | 'final'): string {
+    if (!raw) return '';
+    if (mode === 'streaming') {
+        const i = raw.indexOf('[ACTIONS]');
+        if (i !== -1) return raw.slice(0, i).trimEnd();
+        return raw;
+    }
+    let s = raw.replace(/\[ACTIONS\][\s\S]*?\[\/ACTIONS\]/gi, '').trim();
+    const j = s.indexOf('[ACTIONS]');
+    if (j !== -1) s = s.slice(0, j).trimEnd();
+    return s.replace(/\[\s*\/\s*ACTIONS\s*\]\s*$/gi, '').trim();
+}
+
 export interface ProjectContext {
     name: string;
     nodes?: number;
@@ -75,6 +93,8 @@ export interface ProjectContext {
     lastUpdated?: string;
     nodeLabels?: (string | undefined)[];
     writingContent?: string;
+    /** When true, STRAB should populate the canvas via [ACTIONS] if the user asks to build a strategy */
+    canvasIsBlank?: boolean;
 }
 
 export const sendStrabMessage = async (

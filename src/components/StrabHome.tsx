@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { getGuestAiRemaining, consumeGuestAiMessage, refundGuestAiMessage, getProAiRemaining, consumeProAiMessage, refundProAiMessage } from '../constants';
 import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
-import { sendGeneralStrabMessage, type ChatMessage } from '../services/strabService';
+import { sendGeneralStrabMessage, strabVisibleAssistantText, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
 import {
     Send, Network, ArrowLeft, Trash2, ExternalLink, Zap, Sparkles,
@@ -96,9 +96,9 @@ function parseAndExecuteActions(
     addCanvasTodo: (id: string, text: string) => void,
 ): { cleanText: string; createdProjects: CreatedProject[] } {
     const actionMatch = raw.match(/\[ACTIONS\]([\s\S]*?)\[\/ACTIONS\]/);
-    const cleanText = raw.replace(/\[ACTIONS\][\s\S]*?\[\/ACTIONS\]/, '').trim();
+    const cleanText = strabVisibleAssistantText(raw, 'final');
 
-    if (!actionMatch) return { cleanText: raw, createdProjects: [] };
+    if (!actionMatch) return { cleanText, createdProjects: [] };
 
     let actions: StrabAction[] = [];
     try {
@@ -217,7 +217,7 @@ export default function StrabHome() {
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
-        document.title = 'STRAB — AI Strategy Builder | Stratabin';
+        document.title = 'STRAB — New strategies (hub) | Stratabin';
         serverWarmup.start();
         return () => { document.title = 'Stratabin AI — Strategy Workspace'; };
     }, []);
@@ -283,7 +283,10 @@ export default function StrabHome() {
                     fullText = accumulated;
                     setMessages(prev => {
                         const copy = [...prev];
-                        copy[copy.length - 1] = { role: 'assistant', content: accumulated };
+                        copy[copy.length - 1] = {
+                            role: 'assistant',
+                            content: strabVisibleAssistantText(accumulated, 'streaming'),
+                        };
                         return copy;
                     });
                 },
@@ -398,7 +401,7 @@ export default function StrabHome() {
                             <span className="font-black text-sm tracking-tight">STRAB</span>
                             <span className="text-[10px] font-bold uppercase tracking-widest text-white/20 px-1.5 py-0.5 bg-white/[0.04] rounded-md border border-white/[0.06]">AI</span>
                         </div>
-                        <p className="text-[10px] text-white/25 leading-none mt-0.5 hidden sm:block">Strategy builder & workspace AI</p>
+                        <p className="text-[10px] text-white/25 leading-none mt-0.5 hidden sm:block">Strategy hub — new canvases from scratch</p>
                     </div>
                 </div>
 
@@ -426,9 +429,18 @@ export default function StrabHome() {
                         <h1 className="text-2xl md:text-3xl font-black text-white mb-2 text-center">
                             What are we building?
                         </h1>
-                        <p className="text-white/35 text-sm md:text-base text-center max-w-md mb-10 leading-relaxed">
+                        <p className="text-white/35 text-sm md:text-base text-center max-w-md mb-4 leading-relaxed">
                             Describe a project, strategy, or workflow — STRAB will create the entire canvas with ideas, connections, and a writing outline automatically.
                         </p>
+                        <div className="w-full max-w-lg mb-10 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-left">
+                            <p className="text-[11px] md:text-xs text-white/50 leading-relaxed">
+                                <span className="font-bold text-primary/90">Already have a project?</span>{' '}
+                                Open it from the <span className="text-white/70 font-semibold">Dashboard</span>, then use{' '}
+                                <span className="text-white/70 font-semibold">Project STRAB</span> on that card —{' '}
+                                <span className="text-white/40">chat, Reports &amp; follow-up</span> for{' '}
+                                <em>that</em> workspace. <span className="text-white/35">This hub is only for brand-new strategy canvases.</span>
+                            </p>
+                        </div>
 
                         {/* Example prompt grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 w-full max-w-2xl mb-10">
@@ -487,23 +499,38 @@ export default function StrabHome() {
                                                 ? 'bg-white/[0.05] border border-white/[0.06] text-white/85 max-w-lg'
                                                 : 'text-white/80'
                                         }`}>
-                                            {msg.content ? (
-                                                <div className="whitespace-pre-wrap">
-                                                    {msg.content}
-                                                    {isLoading && idx === messages.length - 1 && msg.role === 'assistant' && msg.content.length > 0 && (
-                                                        <span className="inline-block w-[2px] h-[1em] bg-primary/70 ml-0.5 align-middle animate-pulse" />
-                                                    )}
-                                                </div>
-                                            ) : isLoading && idx === messages.length - 1 ? (
-                                                <div className="flex items-center gap-2 text-white/30">
-                                                    <div className="flex gap-1">
-                                                        {[0, 150, 300].map(d => (
-                                                            <span key={d} className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
-                                                        ))}
-                                                    </div>
-                                                    <span className="text-xs">Building…</span>
-                                                </div>
-                                            ) : null}
+                                            {(() => {
+                                                const display =
+                                                    msg.role === 'assistant'
+                                                        ? strabVisibleAssistantText(
+                                                            msg.content,
+                                                            isLoading && idx === messages.length - 1 ? 'streaming' : 'final',
+                                                        )
+                                                        : msg.content;
+                                                if (display) {
+                                                    return (
+                                                        <div className="whitespace-pre-wrap">
+                                                            {display}
+                                                            {isLoading && idx === messages.length - 1 && msg.role === 'assistant' && display.length > 0 && (
+                                                                <span className="inline-block w-[2px] h-[1em] bg-primary/70 ml-0.5 align-middle animate-pulse" aria-hidden />
+                                                            )}
+                                                        </div>
+                                                    );
+                                                }
+                                                if (isLoading && idx === messages.length - 1 && msg.role === 'assistant') {
+                                                    return (
+                                                        <div className="flex items-center gap-3 text-white/40">
+                                                            <div className="flex gap-1">
+                                                                {[0, 150, 300].map(d => (
+                                                                    <span key={d} className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                                                                ))}
+                                                            </div>
+                                                            <span className="text-xs text-white/55">Sketching your strategy…</span>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
 
                                         {/* Created project cards */}
@@ -568,8 +595,8 @@ export default function StrabHome() {
                                 }
                             </button>
                         </div>
-                        <p className="text-center text-[10px] text-white/15 mt-2">
-                            STRAB can create canvases, add ideas, build connections and write project outlines automatically.
+                        <p className="text-center text-[10px] text-white/20 mt-2 max-w-md mx-auto leading-relaxed">
+                            <span className="text-primary/80 font-semibold">Strategy hub</span> — new workspaces here. Existing projects: <span className="text-white/35">Dashboard → Project STRAB</span> on the card.
                         </p>
                     </div>
                 </div>

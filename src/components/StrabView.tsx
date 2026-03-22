@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams, useLocation } from 'react-rout
 import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
-import { sendStrabMessageStreaming, type ChatMessage } from '../services/strabService';
+import { sendStrabMessageStreaming, strabVisibleAssistantText, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
 import { workspaceService } from '../services/workspaceService';
 import { getGuestAiRemaining, consumeGuestAiMessage, refundGuestAiMessage, getProAiRemaining, consumeProAiMessage, refundProAiMessage, PRO_AI_DAILY_LIMIT } from '../constants';
@@ -29,8 +29,8 @@ async function parseAndExecuteForCurrentCanvas(
     createProjectInWorkspace: ((name: string, nodes: Node[], edges: Edge[], writing: string, todos: string[]) => Promise<string | null>) | null,
 ): Promise<{ cleanText: string; didUpdate: boolean }> {
     const actionMatch = raw.match(/\[ACTIONS\]([\s\S]*?)\[\/ACTIONS\]/);
-    const cleanText = actionMatch ? raw.replace(/\[ACTIONS\][\s\S]*?\[\/ACTIONS\]/, '').trim() : raw;
-    if (!actionMatch) return { cleanText: raw, didUpdate: false };
+    const cleanText = strabVisibleAssistantText(raw, 'final');
+    if (!actionMatch) return { cleanText, didUpdate: false };
 
     let actions: StrabAction[] = [];
     try {
@@ -277,12 +277,14 @@ export default function StrabView() {
                 unit: g.unit,
             })) || [],
             workspaceId: workspaceId ?? undefined,
+            /** True when there are no nodes — server uses this to require [ACTIONS] for “build strategy” requests */
+            canvasIsBlank: nodes.length === 0,
         };
     }, [resolvedName, canvas, id, dailyExecutionLogs, workspaceId]);
 
     // Update page title
     useEffect(() => {
-        document.title = `STRAB — ${resolvedName} | Stratabin`;
+        document.title = `Project STRAB — ${resolvedName} | Stratabin`;
     }, [resolvedName]);
 
     // Kick off background server warm-up (non-blocking — UI is never gated on this)
@@ -303,10 +305,14 @@ export default function StrabView() {
             const completedCount = c?.todos?.filter(t => t.completed).length || 0;
             const wordCount = c?.writingContent?.trim().split(/\s+/).filter(Boolean).length || 0;
 
-            const parts: string[] = [`I am **STRAB**. I've scanned **${name}**.`];
+            const parts: string[] = [
+                `I am **STRAB** for **this project** — chat, **Reports**, and follow-up on **${name}**.`,
+            ];
 
             if (nodeCount === 0) {
-                parts.push('Your canvas is empty — start by mapping your key ideas so I can help you structure them.');
+                parts.push(
+                    'Your canvas is empty — describe what you\'re building, or ask me to **generate a full strategy on the canvas** (e.g. product launch, GTM roadmap). I can add nodes, connections, writing, and tasks for you.',
+                );
             } else {
                 const stage = nodeCount < 4 ? 'early planning' : nodeCount < 10 ? 'active development' : 'detailed execution';
                 parts.push(`You're in **${stage}** with ${nodeCount} nodes${edgeCount > 0 ? ` and ${edgeCount} connections` : ' but no connections yet'}.`);
@@ -327,12 +333,18 @@ export default function StrabView() {
                 parts.push('No writing yet — your strategy map exists but hasn\'t been written up.');
             }
 
+            if (!workspaceId) {
+                parts.push(
+                    'Need a **separate new project** or a **fresh strategy from scratch**? Use **STRAB** in the **Dashboard header** (**New strategy** hub) or **Create new project → AI generated**. **Project STRAB** (this screen) only works on **this** project.',
+                );
+            }
+
             parts.push('Ask me anything about this project.');
 
             addChatMessage(id, { role: 'assistant', content: parts.join(' ') });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
+    }, [id, workspaceId]);
 
     // Auto-prompt logic for Selection Follow-up
     useEffect(() => {
@@ -352,7 +364,7 @@ export default function StrabView() {
                         return;
                     }
                     setIsLoading(true);
-                    addChatMessage(id!, { role: 'assistant', content: 'Processing...' });
+                    addChatMessage(id!, { role: 'assistant', content: '' });
                     if (isGuest) {
                         consumeGuestAiMessage();
                         setGuestAiRemaining(getGuestAiRemaining());
@@ -367,10 +379,45 @@ export default function StrabView() {
                         await sendStrabMessageStreaming(
                             chatHistory,
                             projectContext,
-                            (text) => { fullText = text; },
+                            (text) => {
+                                fullText = text;
+                                updateLastChatMessage(id!, strabVisibleAssistantText(text, 'streaming'));
+                            },
                             token ?? undefined,
                         );
-                        updateLastChatMessage(id!, fullText);
+                        const createProjectInWorkspace = workspaceId && token
+                            ? async (name: string, nodes: Node[], edges: Edge[], writing: string, _todos: string[]) => {
+                                try {
+                                    const res = await workspaceService.createProject(workspaceId, { title: name }, token);
+                                    const project = res?.project ?? res;
+                                    if (!project?.id) return null;
+                                    const canvasId = `proj_${project.id}`;
+                                    await workspaceService.updateProject(project.id, { canvasId }, token);
+                                    await workspaceService.saveProjectCanvas(project.id, {
+                                        nodes,
+                                        edges,
+                                        writingContent: writing,
+                                        name,
+                                    }, token);
+                                    return canvasId;
+                                } catch {
+                                    return null;
+                                }
+                            }
+                            : null;
+                        const { cleanText, didUpdate } = await parseAndExecuteForCurrentCanvas(
+                            fullText,
+                            id!,
+                            workspaceId,
+                            () => useStore.getState().canvases[id!],
+                            populateCanvas,
+                            updateCanvasWriting,
+                            addCanvasTodo,
+                            ensureCanvasExists,
+                            createProjectInWorkspace,
+                        );
+                        updateLastChatMessage(id!, cleanText);
+                        if (didUpdate) toast.success('Flow updated');
                     } catch (err) {
                         if (isGuest) {
                             refundGuestAiMessage();
@@ -391,7 +438,7 @@ export default function StrabView() {
                 triggerAi();
             }
         }
-    }, [id, chatHistory, isLoading, projectContext, addChatMessage, updateLastChatMessage, getToken, isGuest, isPaid, user?.id, navigate]);
+    }, [id, chatHistory, isLoading, projectContext, addChatMessage, updateLastChatMessage, getToken, isGuest, isPaid, user?.id, navigate, workspaceId, populateCanvas, updateCanvasWriting, addCanvasTodo, ensureCanvasExists]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -418,7 +465,7 @@ export default function StrabView() {
 
         const userMsg: ChatMessage = { role: 'user', content: message };
         addChatMessage(id!, userMsg);
-        addChatMessage(id!, { role: 'assistant', content: 'Processing...' });
+        addChatMessage(id!, { role: 'assistant', content: '' });
         setIsLoading(true);
 
         if (isGuest) {
@@ -437,7 +484,10 @@ export default function StrabView() {
             await sendStrabMessageStreaming(
                 messagesForApi,
                 projectContext,
-                (text) => { fullText = text; },
+                (text) => {
+                    fullText = text;
+                    updateLastChatMessage(id!, strabVisibleAssistantText(text, 'streaming'));
+                },
                 token ?? undefined,
             );
             const createProjectInWorkspace = workspaceId && token
@@ -542,6 +592,18 @@ export default function StrabView() {
         { label: 'What am I missing?', icon: '?' },
     ];
 
+    /** Explicit wording so the model emits [ACTIONS] on an empty canvas */
+    const EMPTY_CANVAS_BUILD_PROMPTS = [
+        {
+            label: 'Generate a full product launch strategy on this canvas (nodes, connections, writing, tasks)',
+            icon: '🚀',
+        },
+        {
+            label: 'Build a GTM roadmap on this canvas with todos I can execute',
+            icon: '📍',
+        },
+    ];
+
     const DAILY_EXECUTION_PROMPTS = [
         { label: 'What did I execute today?', icon: '✓' },
         { label: "What's blocking my progress?", icon: '!' },
@@ -583,8 +645,12 @@ export default function StrabView() {
                         <Network size={13} className="text-primary" />
                     </div>
                     <div className="min-w-0">
-                        <h1 className="font-bold text-[13px] leading-tight">STRAB <span className="text-white/25 font-normal text-[11px]">AI</span></h1>
-                        <p className="text-[9px] text-white/25 leading-none mt-0.5 truncate hidden sm:block">{resolvedName}</p>
+                        <h1 className="font-bold text-[13px] leading-tight">
+                            STRAB <span className="text-white/35 font-semibold text-[10px]">Project</span>
+                        </h1>
+                        <p className="text-[9px] text-white/25 leading-none mt-0.5 truncate hidden sm:block" title="Chat, reports & follow-up">
+                            Chat &amp; reports · {resolvedName}
+                        </p>
                     </div>
                 </div>
 
@@ -644,11 +710,14 @@ export default function StrabView() {
                             aria-label="Chat messages"
                         >
                             {chatHistory.map((msg, idx) => {
+                                const assistantVisible = msg.role === 'assistant'
+                                    ? strabVisibleAssistantText(msg.content, 'final')
+                                    : msg.content;
                                 let isInteractive = false;
                                 let parsedJson: { question: string; options: string[] } | null = null;
-                                if (msg.role === 'assistant' && msg.content.toLowerCase().includes('```json')) {
+                                if (msg.role === 'assistant' && assistantVisible.toLowerCase().includes('```json')) {
                                     try {
-                                        const match = msg.content.match(/```json\s*([\s\S]*?)```/i);
+                                        const match = assistantVisible.match(/```json\s*([\s\S]*?)```/i);
                                         if (match) {
                                             const parsed = JSON.parse(match[1].trim());
                                             if (parsed?.type === 'clarification' && Array.isArray(parsed?.options) && parsed.options.length > 0) {
@@ -687,11 +756,20 @@ export default function StrabView() {
                                                         ))}
                                                     </div>
                                                 </div>
+                                            ) : !assistantVisible && isLoading && idx === chatHistory.length - 1 && msg.role === 'assistant' ? (
+                                                <div className="flex items-center gap-3 text-white/45 text-sm">
+                                                    <div className="flex gap-1">
+                                                        <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                        <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                                        <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                                    </div>
+                                                    <span className="text-white/60">Thinking through your project…</span>
+                                                </div>
                                             ) : (
                                                 <div className="whitespace-pre-wrap">
-                                                    {msg.content.replace(/```json[\s\S]*?```/gi, '')}
-                                                    {isLoading && idx === chatHistory.length - 1 && msg.role === 'assistant' && msg.content.length > 0 && (
-                                                        <span className="inline-block w-[2px] h-[1em] bg-primary/70 ml-0.5 align-middle animate-pulse" />
+                                                    {assistantVisible.replace(/```json[\s\S]*?```/gi, '')}
+                                                    {isLoading && idx === chatHistory.length - 1 && msg.role === 'assistant' && assistantVisible.length > 0 && (
+                                                        <span className="inline-block w-[2px] h-[1em] bg-primary/70 ml-0.5 align-middle animate-pulse" aria-hidden />
                                                     )}
                                                 </div>
                                             )}
@@ -701,20 +779,24 @@ export default function StrabView() {
                             })}
                             {isLoading && (() => {
                                 const lastMsg = chatHistory[chatHistory.length - 1];
-                                const isStreaming = lastMsg?.role === 'assistant' && lastMsg.content.length > 0;
-                                if (isStreaming) return null;
+                                const assistantEmptyWait = lastMsg?.role === 'assistant' && lastMsg.content === '';
+                                const visibleLen = lastMsg?.role === 'assistant'
+                                    ? strabVisibleAssistantText(lastMsg.content, 'streaming').length
+                                    : 0;
+                                const isStreaming = lastMsg?.role === 'assistant' && visibleLen > 0;
+                                if (isStreaming || assistantEmptyWait) return null;
                                 return (
                                     <div className="flex gap-4">
                                         <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-[#151515] border border-white/5 text-white/80">
                                             <Network size={14} />
                                         </div>
-                                        <div className="p-4 text-white/30 text-sm flex items-center gap-2">
+                                        <div className="p-4 text-white/40 text-sm flex items-center gap-3">
                                             <div className="flex gap-1">
-                                                <span className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                                <span className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                                <span className="w-1.5 h-1.5 bg-white/30 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                                <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                                <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                             </div>
-                                            Connecting…
+                                            <span className="text-white/55">Thinking through your project…</span>
                                         </div>
                                     </div>
                                 );
@@ -724,6 +806,21 @@ export default function StrabView() {
 
                         {/* Quick-action chips */}
                         <div className="px-3 pt-2.5 pb-2 flex flex-col gap-2 border-t border-white/[0.06]">
+                            {canvas.nodes.length === 0 && (
+                                <div className="flex gap-2 overflow-x-auto custom-scrollbar-hide pb-0.5">
+                                    {EMPTY_CANVAS_BUILD_PROMPTS.map(({ label, icon }) => (
+                                        <button
+                                            key={label}
+                                            onClick={() => sendMessage(label)}
+                                            disabled={isLoading}
+                                            className="shrink-0 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/35 text-[11px] font-medium text-primary hover:text-white hover:bg-primary/25 hover:border-primary/50 active:scale-95 transition-all disabled:opacity-30 flex items-center gap-1.5"
+                                        >
+                                            <span className="opacity-80" aria-hidden>{icon}</span>
+                                            <span className="max-w-[220px] truncate sm:max-w-none">{label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             <div className="flex gap-2 overflow-x-auto custom-scrollbar-hide">
                                 {QUICK_INSIGHTS.slice(0, 4).map(({ label }) => (
                                     <button
@@ -758,9 +855,9 @@ export default function StrabView() {
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSend()}
-                                    placeholder="Ask STRAB anything…"
+                                    placeholder="Ask about this project, reports, or next steps…"
                                     className="w-full bg-white/[0.04] border border-white/[0.06] rounded-2xl py-3.5 md:py-3.5 pl-4 pr-14 md:pr-12 text-base md:text-base text-white focus:border-primary/30 focus:bg-white/[0.06] outline-none transition-all placeholder-white/15 min-h-[48px] touch-manipulation"
-                                    aria-label="Message STRAB"
+                                    aria-label="Message STRAB for this project"
                                 />
                                 <button
                                     onClick={handleSend}
@@ -937,6 +1034,26 @@ export default function StrabView() {
                                 <Sparkles size={16} />
                                 Generate Full AI Report
                             </button>
+
+                            {/* Empty canvas — AI can populate flow */}
+                            {canvas.nodes.length === 0 && (
+                                <div className="bg-primary/[0.06] border border-primary/20 p-5 rounded-2xl">
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-primary/80 mb-3">Start from blank</div>
+                                    <p className="text-[11px] text-white/45 mb-3">Project STRAB can still expand <strong className="text-white/55">this</strong> canvas (nodes, links, writing, tasks). For an all-new strategy workspace, use <strong className="text-white/55">Dashboard → STRAB (New strategy)</strong>.</p>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {EMPTY_CANVAS_BUILD_PROMPTS.map(({ label, icon }) => (
+                                            <button
+                                                key={label}
+                                                onClick={() => { setActiveTab('chat'); sendMessage(label); }}
+                                                className="text-left px-4 py-3 rounded-xl bg-[#151515] border border-primary/20 hover:border-primary/40 hover:bg-[#1a1a1a] transition-all text-xs text-white/70 hover:text-white flex items-center gap-2"
+                                            >
+                                                <span className="text-white/30">{icon}</span>
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Quick insight prompts */}
                             <div>

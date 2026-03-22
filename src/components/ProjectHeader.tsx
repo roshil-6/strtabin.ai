@@ -27,7 +27,7 @@ export default function ProjectHeader({ canvasId, activeTab }: ProjectHeaderProp
         { id: 'tasks', label: 'Task Lists', icon: CheckSquare, path: `/todo/${canvasId}` },
         { id: 'timeline', label: 'Timelines', icon: Calendar, path: `/timeline/${canvasId}` },
         { id: 'calendar', label: 'Calendar', icon: Calendar, path: `/calendar/${canvasId}` },
-        { id: 'strab', label: 'STRAB AI', icon: Bot, path: `/strab/${canvasId}` },
+        { id: 'strab', label: 'Project STRAB', icon: Bot, path: `/strab/${canvasId}` },
     ];
 
     return (

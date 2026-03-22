@@ -598,7 +598,8 @@ function CanvasContent() {
                                 <button
                                     onClick={() => navigate(`/strab/${id || 'default'}`)}
                                     className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 active:scale-95 transition-all"
-                                    aria-label="Open STRAB AI"
+                                    title="Project STRAB — chat & reports for this project"
+                                    aria-label="Open Project STRAB"
                                 >
                                     <Bot size={13} />
                                     <span className="text-[10px] md:text-[11px] font-bold">AI</span>

@@ -320,7 +320,8 @@ export default function Dashboard() {
         { id: 'planner', label: 'Project Weekly Planner', icon: CheckCircle2, color: 'text-orange-500' },
         { id: 'reports', label: 'Reports', icon: BarChart2, color: 'text-emerald-500' },
         { id: 'monitor', label: 'Monitor your work', icon: Activity, color: 'text-cyan-500' },
-        { id: 'strab', label: 'STRAB AI', icon: Bot, color: 'text-orange-500' },
+        /** Opens /strab/:id — chat, reports & follow-up (not the main-hub strategy builder) */
+        { id: 'strab', label: 'Project STRAB', title: 'STRAB for this project — chat, Reports tab, and follow-up support', icon: Bot, color: 'text-orange-500' },
     ];
 
     const getTargetRoute = (id: string) => {
@@ -873,11 +874,16 @@ export default function Dashboard() {
 
                             {/* Action bar — icon-only on mobile for tool feel */}
                             <button
+                                type="button"
                                 onClick={() => navigate('/strab')}
-                                className="flex items-center justify-center md:gap-1.5 p-2 md:px-5 md:py-3 bg-primary/8 text-primary border border-primary/25 hover:bg-primary/15 rounded-lg md:rounded-xl active:scale-95 transition-all shrink-0"
+                                title="STRAB strategy hub — create new strategies and AI-generated canvases"
+                                className="flex items-center justify-center md:gap-2 p-2 md:px-5 md:py-3 bg-primary/8 text-primary border border-primary/25 hover:bg-primary/15 rounded-lg md:rounded-xl active:scale-95 transition-all shrink-0"
                             >
-                                <Bot size={16} className="md:w-[14px] md:h-[14px]" />
-                                <span className="hidden md:inline font-black text-sm">STRAB</span>
+                                <Bot size={16} className="md:w-[14px] md:h-[14px] shrink-0" />
+                                <span className="hidden md:flex flex-col items-start leading-tight text-left">
+                                    <span className="font-black text-sm tracking-tight">STRAB</span>
+                                    <span className="text-[9px] font-bold text-primary/75 uppercase tracking-wider">New strategy</span>
+                                </span>
                             </button>
                             <button
                                 onClick={() => navigate('/reports')}
@@ -935,6 +941,8 @@ export default function Dashboard() {
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
+                                type="button"
+                                title={'title' in tab && tab.title ? tab.title : undefined}
                                 onClick={() => { setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab' | 'reports' | 'monitor'); setTabKey(k => k + 1); }}
                                 className={`group flex items-center gap-1 md:gap-3 py-2 px-2 md:px-0 md:pb-4 relative transition-all min-w-[44px] md:min-w-max justify-center md:justify-start shrink-0 ${activeTab === tab.id ? 'text-white' : 'text-white/25 hover:text-white/60'}`}
                             >
@@ -1921,8 +1929,8 @@ export default function Dashboard() {
                     <Plus size={28} strokeWidth={2.5} className="text-white/60" />
                 </div>
                 <h3 className="text-base font-black text-white">Create new project</h3>
-                <p className="text-[11px] text-white/40 text-center max-w-[240px] leading-relaxed">
-                    Start blank, use a template later, or open STRAB for AI-assisted strategy.
+                <p className="text-[11px] text-white/40 text-center max-w-[280px] leading-relaxed">
+                    After you create it, use <span className="text-white/55 font-semibold">Project STRAB</span> on this card for <span className="text-white/45">chat, reports &amp; follow-up</span>. For <span className="text-white/55">brand-new strategies</span>, use header <span className="text-primary/90 font-semibold">STRAB</span> <span className="text-white/35">(New strategy)</span> or <span className="text-violet-300/90">AI generated</span> here.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-bold">
                     <button

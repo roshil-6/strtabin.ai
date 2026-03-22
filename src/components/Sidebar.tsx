@@ -166,8 +166,8 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                             background: active ? 'rgba(249,115,22,0.12)' : 'transparent',
                             border: `1px solid ${active ? 'rgba(249,115,22,0.3)' : 'transparent'}`,
                         }}
-                        aria-label="STRAB AI"
-                        title="STRAB AI"
+                        aria-label="Project STRAB — chat and reports for this project"
+                        title="Project STRAB — chat, Reports & follow-up"
                         onMouseEnter={e => {
                             if (!active) {
                                 e.currentTarget.style.background = 'rgba(249,115,22,0.06)';

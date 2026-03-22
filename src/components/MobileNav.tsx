@@ -18,7 +18,7 @@ export default function MobileNav({ canvasId }: MobileNavProps) {
         { label: 'Tasks',    icon: CheckSquare,  path: `/todo/${canvasId}`,      action: () => navigate(`/todo/${canvasId}`, { state: location.state })                  },
         { label: 'Calendar', icon: Calendar,     path: `/calendar/${canvasId}`,  action: () => navigate(`/calendar/${canvasId}`, { state: location.state })              },
         { label: 'Timeline', icon: Clock,        path: `/timeline/${canvasId}`,  action: () => navigate(`/timeline/${canvasId}`, { state: location.state })              },
-        { label: 'STRAB',    icon: Bot,          path: `/strab/${canvasId}`,     action: () => navigate(`/strab/${canvasId}`, { state: location.state })                 },
+        { label: 'STRAB',    icon: Bot,          path: `/strab/${canvasId}`,     action: () => navigate(`/strab/${canvasId}`, { state: location.state }), title: 'Project STRAB — chat & reports' },
     ];
 
     return (
@@ -27,7 +27,7 @@ export default function MobileNav({ canvasId }: MobileNavProps) {
             aria-label="Mobile project navigation"
         >
             <div className="flex items-stretch h-[62px] px-1">
-                {items.map(({ label, icon: Icon, path, action, exact }) => {
+                {items.map(({ label, icon: Icon, path, action, exact, title }) => {
                     const active = exact
                         ? location.pathname === path
                         : location.pathname.startsWith(path.split('?')[0]);
@@ -35,9 +35,11 @@ export default function MobileNav({ canvasId }: MobileNavProps) {
                     return (
                         <button
                             key={label}
+                            type="button"
                             onClick={action}
+                            title={title}
                             className="flex-1 flex flex-col items-center justify-center gap-1 min-w-0 relative active:scale-90 transition-all duration-200"
-                            aria-label={label}
+                            aria-label={title || label}
                             aria-current={active ? 'page' : undefined}
                         >
                             <div className={`absolute top-0 left-1/2 -translate-x-1/2 rounded-b-full transition-all duration-300 ${
