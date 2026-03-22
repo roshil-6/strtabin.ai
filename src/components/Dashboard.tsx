@@ -339,10 +339,10 @@ export default function Dashboard() {
     function ProjectCardGrid({ items }: { items: CanvasData[] }) {
         return (
             <>
-                {/* Mobile: vertical stack, top to bottom */}
-                <div className="md:hidden flex flex-col gap-2">
+                {/* Mobile: vertical stack with polished cards */}
+                <div className="md:hidden flex flex-col gap-3">
                     {items.map(p => (
-                        <div key={p.id}>
+                        <div key={p.id} className="rounded-xl overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
                             {renderProjectCard(p)}
                         </div>
                     ))}
@@ -1214,7 +1214,7 @@ export default function Dashboard() {
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
                 className={`dashboard-project-card group relative rounded-xl md:rounded-2xl border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
-                    ${isSelected ? 'border-orange-500/60 ring-2 ring-orange-500/25' : 'border-white/[0.08] hover:border-white/[0.18]'}
+                    ${isSelected ? 'border-orange-500/60 ring-2 ring-orange-500/25' : 'border-white/[0.12] md:border-white/[0.08] md:hover:border-white/[0.18]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
                 style={{
@@ -1245,7 +1245,7 @@ export default function Dashboard() {
                 {/* Accent top strip */}
                 <div className="h-[2px] w-full shrink-0 rounded-t-2xl bg-primary/60" />
 
-                <div className="p-2.5 md:p-5 flex flex-col flex-1">
+                <div className="p-4 md:p-5 flex flex-col flex-1">
                     {/* Selection Overlay */}
                     {selectionMode && (
                         <div className="absolute top-5 right-4 z-10">
@@ -1297,9 +1297,9 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    {/* Icon + badges — compact on mobile */}
+                    {/* Icon + badges */}
                     <div className="flex items-start justify-between mb-2 md:mb-3">
-                        <div className="w-8 h-8 md:w-11 md:h-11 rounded-lg md:rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
+                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
                             {isMerged ? <GitMerge size={16} className="text-primary md:w-5 md:h-5" /> : <Icon size={16} className="text-primary md:w-5 md:h-5" />}
                         </div>
                         <div className="flex items-center gap-1 flex-wrap justify-end">
@@ -1324,7 +1324,7 @@ export default function Dashboard() {
                             placeholder="Project name..." aria-label="Rename project"
                         />
                     ) : (
-                        <h3 className="text-xs md:text-base font-bold text-white mb-2 md:mb-3 truncate leading-snug"
+                        <h3 className="text-sm md:text-base font-bold text-white mb-2 md:mb-3 truncate leading-snug"
                             onDoubleClick={e => handleStartRename(e, p.id, p.name || p.title || '')}
                             title="Double-click to rename">
                             {(() => {
@@ -1383,7 +1383,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Mobile: minimal stat */}
-                    <div className="flex md:hidden items-center gap-2 mb-2 text-[9px] text-zinc-400">
+                    <div className="flex md:hidden items-center gap-2 mb-2 text-[10px] text-zinc-400 font-medium">
                         {todoCount > 0 && <span>{completionRate}% done</span>}
                         {nodeCount > 0 && <span>• {nodeCount} nodes</span>}
                         {wc > 0 && <span>• {wc}w</span>}

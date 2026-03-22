@@ -5,8 +5,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 
-const PROJECT_PATHS = ['/strategy/', '/todo/', '/timeline/', '/calendar/', '/strab/'];
+const PROJECT_PATHS = ['/strategy/', '/canvas/', '/todo/', '/timeline/', '/calendar/', '/strab/'];
 
 function isProjectSection(path: string): boolean {
   return PROJECT_PATHS.some(p => path.startsWith(p) && path.length > p.length);
@@ -29,7 +30,7 @@ export default function ParticleTransition() {
   const [active, setActive] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
-  const frameRef = useRef<number>(0);
+  const animRef = useRef<number>(0);
 
   useEffect(() => {
     const curr = location.pathname;
@@ -41,67 +42,59 @@ export default function ParticleTransition() {
 
     if (currIsProject && prevIsProject && curr !== prev) {
       setActive(true);
-      const run = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const centerX = w / 2;
+      const centerY = h / 2;
+      const count = 80;
+      const particles: Particle[] = [];
+      const colors = [
+        'rgba(249, 115, 22, 0.95)',
+        'rgba(249, 115, 22, 0.7)',
+        'rgba(255, 255, 255, 0.85)',
+        'rgba(255, 255, 255, 0.6)',
+      ];
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.8;
+        const speed = 4 + Math.random() * 10;
+        particles.push({
+          x: centerX,
+          y: centerY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 0,
+          maxLife: 50 + Math.random() * 40,
+          size: 2.5 + Math.random() * 3,
+          color: colors[Math.floor(Math.random() * colors.length)],
+        });
+      }
+      particlesRef.current = particles;
+
+      const startAnim = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const count = 50;
-        const particles: Particle[] = [];
-
-        const colors = [
-        'rgba(249, 115, 22, 0.8)',  // primary orange
-        'rgba(249, 115, 22, 0.5)',
-        'rgba(255, 255, 255, 0.6)',
-        'rgba(255, 255, 255, 0.4)',
-        ];
-
-        for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
-        const speed = 2 + Math.random() * 6;
-          particles.push({
-            x: centerX,
-            y: centerY,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 0,
-            maxLife: 30 + Math.random() * 25,
-            size: 1.5 + Math.random() * 2,
-            color: colors[Math.floor(Math.random() * colors.length)],
-          });
-        }
-
-        particlesRef.current = particles;
+        canvas.width = w;
+        canvas.height = h;
 
         const animate = () => {
-          const ctx = canvas.getContext('2d');
-          if (!ctx || particlesRef.current.length === 0) {
+          if (particlesRef.current.length === 0) {
             setActive(false);
             return;
           }
-
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-
           let alive = 0;
           for (const p of particlesRef.current) {
             p.x += p.vx;
             p.y += p.vy;
-            p.vy += 0.15;
+            p.vy += 0.2;
             p.vx *= 0.98;
             p.vy *= 0.98;
             p.life += 1;
-
             if (p.life < p.maxLife) {
               alive++;
-              const alpha = 1 - p.life / p.maxLife;
+              const alpha = 1 - (p.life / p.maxLife) * (p.life / p.maxLife);
               ctx.globalAlpha = alpha;
               ctx.fillStyle = p.color;
               ctx.beginPath();
@@ -110,29 +103,40 @@ export default function ParticleTransition() {
             }
           }
           ctx.globalAlpha = 1;
-
           if (alive > 0) {
-            frameRef.current = requestAnimationFrame(animate);
+            animRef.current = requestAnimationFrame(animate);
           } else {
             setActive(false);
           }
         };
-
-        frameRef.current = requestAnimationFrame(animate);
+        animRef.current = requestAnimationFrame(animate);
       };
-      requestAnimationFrame(run);
-      return () => cancelAnimationFrame(frameRef.current);
+      requestAnimationFrame(startAnim);
+      return () => cancelAnimationFrame(animRef.current);
     }
   }, [location.pathname]);
 
   const showCanvas = active || isProjectSection(location.pathname);
   if (!showCanvas) return null;
 
-  return (
+  const canvasEl = (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-[9999]"
-      style={{ width: '100%', height: '100%', opacity: active ? 1 : 0 }}
+      width={typeof window !== 'undefined' ? window.innerWidth : 800}
+      height={typeof window !== 'undefined' ? window.innerHeight : 600}
+      className="fixed inset-0 pointer-events-none"
+      style={{
+        width: '100vw',
+        height: '100vh',
+        left: 0,
+        top: 0,
+        opacity: active ? 1 : 0,
+        zIndex: 2147483647,
+      }}
     />
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(canvasEl, document.body)
+    : null;
 }
