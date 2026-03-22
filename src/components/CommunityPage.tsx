@@ -1,5 +1,6 @@
 /**
- * Community: Search people, Feed, Chat (WhatsApp-like)
+ * Community Hub — LinkedIn-style feed for projects & work, People network, and Chats
+ * Focus: Projects & work (not personal content). Connect, share insights, message anyone.
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -28,6 +29,10 @@ import {
   Image as ImageIcon,
   Paperclip,
   ChevronDown,
+  Sparkles,
+  TrendingUp,
+  Briefcase,
+  BarChart2,
 } from 'lucide-react';
 import { useMemo } from 'react';
 import useStore from '../store/useStore';
@@ -37,7 +42,6 @@ import { API_BASE_URL } from '../constants';
 
 type ProjectItem = { id: number | string; title: string; workspace_id?: number; workspace_name?: string; canvas_id?: string | null; isCanvas?: boolean };
 
-/** Socket.io connects to same origin as API */
 const SOCKET_URL = API_BASE_URL;
 
 function formatTime(dateStr: string) {
@@ -49,17 +53,31 @@ function formatTime(dateStr: string) {
   return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
 }
 
+function formatRelativeTime(dateStr: string) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m`;
+  if (hours < 24) return `${hours}h`;
+  if (days < 7) return `${days}d`;
+  return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+}
+
 export default function CommunityPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { getToken } = useAuth();
-  const [tab, setTab] = useState<'feed' | 'chat' | 'discover'>('chat');
+  const [tab, setTab] = useState<'feed' | 'people' | 'chat'>('feed');
   const [chatableUsers, setChatableUsers] = useState<ChatUser[]>([]);
   const [loadingChatable, setLoadingChatable] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [discoverQuery, setDiscoverQuery] = useState('');
-  const [discoverResults, setDiscoverResults] = useState<ChatUser[]>([]);
-  const [discovering, setDiscovering] = useState(false);
+  const [peopleQuery, setPeopleQuery] = useState('');
+  const [peopleResults, setPeopleResults] = useState<ChatUser[]>([]);
+  const [searchingPeople, setSearchingPeople] = useState(false);
   const [inviteUser, setInviteUser] = useState<{ id: number; username: string | null; email: string | null } | null>(null);
   const [workspaces, setWorkspaces] = useState<Array<{ id: number; name: string; type: string; role?: string }>>([]);
   const [invitingWs, setInvitingWs] = useState<number | null>(null);
@@ -94,7 +112,6 @@ export default function CommunityPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const typingEmitRef = useRef<ReturnType<typeof setTimeout>>();
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   activeChatRef.current = activeChat;
@@ -193,15 +210,11 @@ export default function CommunityPage() {
     };
   }, [activeChat?.id, getToken]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  useEffect(() => { scrollToBottom(); }, [messages]);
 
   useEffect(() => {
     const onOutside = (e: MouseEvent) => {
-      if (projectDropdownRef.current && !projectDropdownRef.current.contains(e.target as Node)) {
-        setProjectDropdownOpen(false);
-      }
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(e.target as Node)) setProjectDropdownOpen(false);
     };
     if (projectDropdownOpen) {
       document.addEventListener('mousedown', onOutside);
@@ -212,17 +225,17 @@ export default function CommunityPage() {
   const chatableIds = new Set(chatableUsers.map((u) => u.id));
   const chatPartnerIds = new Set(chats.map((c) => c.otherUser?.id).filter(Boolean));
 
-  const handleDiscover = async () => {
-    if (discoverQuery.trim().length < 2) return;
-    setDiscovering(true);
+  const handleSearchPeople = async () => {
+    if (peopleQuery.trim().length < 2) return;
+    setSearchingPeople(true);
     try {
       const token = await getToken();
-      const { users } = await chatService.discoverUsers(discoverQuery.trim(), token);
-      setDiscoverResults(users || []);
+      const { users } = await chatService.discoverUsers(peopleQuery.trim(), token);
+      setPeopleResults(users || []);
     } catch {
-      setDiscoverResults([]);
+      setPeopleResults([]);
     } finally {
-      setDiscovering(false);
+      setSearchingPeople(false);
     }
   };
 
@@ -252,10 +265,25 @@ export default function CommunityPage() {
     }
   };
 
-  const feedPeople = [
-    ...(feed?.projects || []).map((p) => ({ id: (p as { owner_id?: number }).owner_id, username: p.owner_username })),
-    ...(feed?.workspaces || []).map((w) => ({ id: (w as { owner_id?: number }).owner_id, username: w.owner_username })),
-  ].filter((p, i, arr) => p.id && arr.findIndex((x) => x.id === p.id) === i) as { id: number; username: string | null }[];
+  const feedPeople = useMemo(() => {
+    const seen = new Set<number>();
+    const out: { id: number; username: string | null; owner_id?: number }[] = [];
+    for (const p of feed?.projects || []) {
+      const ownerId = (p as { owner_id?: number }).owner_id;
+      if (ownerId && !seen.has(ownerId)) {
+        seen.add(ownerId);
+        out.push({ id: ownerId, username: (p as { owner_username?: string }).owner_username ?? null, owner_id: ownerId });
+      }
+    }
+    for (const w of feed?.workspaces || []) {
+      const ownerId = (w as { owner_id?: number }).owner_id;
+      if (ownerId && !seen.has(ownerId)) {
+        seen.add(ownerId);
+        out.push({ id: ownerId, username: (w as { owner_username?: string }).owner_username ?? null, owner_id: ownerId });
+      }
+    }
+    return out;
+  }, [feed]);
 
   const filteredChatable = (searchQuery.trim().length >= 2
     ? chatableUsers.filter((u) => {
@@ -335,10 +363,7 @@ export default function CommunityPage() {
       }
       const { message } = await chatService.sendMessage(activeChat.id, content, token, finalOpts);
       setMessages((prev) => (prev.some((m) => String(m.id) === String(message?.id)) ? prev : [...prev, message]));
-      if (attachProject) {
-        setAttachProject(null);
-        setShowAttach(false);
-      }
+      if (attachProject) { setAttachProject(null); setShowAttach(false); }
       scrollToBottom();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to send');
@@ -356,9 +381,7 @@ export default function CommunityPage() {
       const { url, filename } = await chatService.uploadFile(file, token);
       const isImage = forceImage ?? file.type.startsWith('image/');
       const { message } = await chatService.sendMessage(
-        activeChat.id,
-        url,
-        token,
+        activeChat.id, url, token,
         { type: isImage ? 'image' : 'file', fileUrl: url, fileName: filename }
       );
       setMessages((prev) => (prev.some((m) => String(m.id) === String(message?.id)) ? prev : [...prev, message]));
@@ -377,321 +400,283 @@ export default function CommunityPage() {
     [messages]
   );
 
+  // Build unified feed timeline: activities + projects + workspaces
+  type FeedPost = {
+    type: 'activity' | 'project' | 'workspace';
+    id: string;
+    created_at: string;
+    user_id?: number;
+    username?: string | null;
+    action?: string;
+    workspace_name?: string;
+    project_title?: string | null;
+    workspace_id?: number;
+    project_id?: number;
+    title?: string;
+    owner_username?: string;
+    owner_id?: number;
+    assigned_to_username?: string;
+  };
+  const feedTimeline: FeedPost[] = useMemo(() => {
+    const posts: FeedPost[] = [];
+    const act = (feed?.activities || []).map((a) => ({
+      type: 'activity' as const,
+      id: `act-${a.id}`,
+      created_at: a.created_at,
+      user_id: a.user_id,
+      username: (a as { username?: string }).username,
+      action: a.action,
+      workspace_name: (a as { workspace_name?: string }).workspace_name,
+      project_title: (a as { project_title?: string }).project_title,
+    }));
+    const proj = (feed?.projects || []).map((p) => ({
+      type: 'project' as const,
+      id: `proj-${p.id}`,
+      created_at: (p as { updated_at?: string }).updated_at || (p as { created_at?: string }).created_at || new Date().toISOString(),
+      title: p.title,
+      workspace_name: (p as { workspace_name?: string }).workspace_name,
+      owner_username: (p as { owner_username?: string }).owner_username,
+      owner_id: (p as { owner_id?: number }).owner_id,
+      workspace_id: (p as { workspace_id?: number }).workspace_id,
+      project_id: p.id,
+      assigned_to_username: (p as { assigned_to_username?: string }).assigned_to_username,
+    }));
+    const ws = (feed?.workspaces || []).map((w) => ({
+      type: 'workspace' as const,
+      id: `ws-${w.id}`,
+      created_at: (w as { updated_at?: string }).updated_at || (w as { created_at?: string }).created_at || new Date().toISOString(),
+      title: w.name,
+      owner_username: (w as { owner_username?: string }).owner_username,
+      owner_id: (w as { owner_id?: number }).owner_id,
+      workspace_id: w.id,
+    }));
+    posts.push(...act, ...proj, ...ws);
+    posts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return posts.slice(0, 50);
+  }, [feed]);
+
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
-      {/* Header with back + filter */}
-      <div className="sticky top-0 z-10 p-4 bg-[var(--bg-page)]/95 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 -ml-2 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all"
-            title="Go back"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div className="relative flex-1">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter by name (optional)..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary/50 text-sm"
-            />
+      {/* Header */}
+      <header className="sticky top-0 z-20 bg-[var(--bg-page)]/95 backdrop-blur-xl border-b border-[var(--border)]">
+        <div className="max-w-5xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => navigate(-1)}
+                className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-all"
+                title="Back"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border border-primary/20">
+                  <Network size={22} className="text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="font-black text-[var(--text)] truncate">Community</h1>
+                  <p className="text-xs text-[var(--text-muted)] truncate">Projects, people & insights</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 mt-4 p-1 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)]">
+            <button
+              onClick={() => setTab('feed')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                tab === 'feed' ? 'bg-primary text-black shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
+              }`}
+            >
+              <Sparkles size={18} />
+              Feed
+            </button>
+            <button
+              onClick={() => setTab('people')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                tab === 'people' ? 'bg-primary text-black shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
+              }`}
+            >
+              <Users size={18} />
+              People
+            </button>
+            <button
+              onClick={() => setTab('chat')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                tab === 'chat' ? 'bg-primary text-black shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
+              }`}
+            >
+              <MessageCircle size={18} />
+              Chats
+            </button>
           </div>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-white/10 px-4 bg-white/[0.02]">
-        <button
-          onClick={() => setTab('chat')}
-          className={`flex items-center gap-2 px-4 py-3 font-bold text-sm border-b-2 transition-all ${
-            tab === 'chat' ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white'
-          }`}
-        >
-          <MessageCircle size={18} />
-          Chats
-        </button>
-        <button
-          onClick={() => setTab('discover')}
-          className={`flex items-center gap-2 px-4 py-3 font-bold text-sm border-b-2 transition-all ${
-            tab === 'discover' ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white'
-          }`}
-        >
-          <Users size={18} />
-          Discover
-        </button>
-        <button
-          onClick={() => setTab('feed')}
-          className={`flex items-center gap-2 px-4 py-3 font-bold text-sm border-b-2 transition-all ${
-            tab === 'feed' ? 'border-primary text-primary' : 'border-transparent text-white/40 hover:text-white'
-          }`}
-        >
-          <Globe size={18} />
-          Feed
-        </button>
-      </div>
+      </header>
 
       <div className="flex-1 flex overflow-hidden">
-        {tab === 'discover' ? (
-          <div className="flex-1 overflow-y-auto p-6">
+        {tab === 'people' ? (
+          <div className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="max-w-2xl mx-auto">
-              <h2 className="text-lg font-black text-white mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-black text-[var(--text)] mb-2 flex items-center gap-2">
                 <Users size={22} />
-                Find people
+                My Network
               </h2>
-              <p className="text-sm text-white/50 mb-6">Search workspace members by username or email.</p>
+              <p className="text-sm text-[var(--text-muted)] mb-6">Find teammates, connect, and collaborate on projects.</p>
+
               <div className="flex gap-2 mb-6">
                 <div className="relative flex-1">
-                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" />
                   <input
                     type="text"
-                    value={discoverQuery}
-                    onChange={(e) => setDiscoverQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleDiscover()}
-                    placeholder="Search workspace members (min 2 chars)..."
-                    className="w-full pl-10 pr-4 py-3 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
+                    value={peopleQuery}
+                    onChange={(e) => setPeopleQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearchPeople()}
+                    placeholder="Search by name or email..."
+                    className="w-full pl-10 pr-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-primary/50"
                   />
                 </div>
                 <button
-                  onClick={handleDiscover}
-                  disabled={discovering || discoverQuery.trim().length < 2}
-                  className="px-5 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all disabled:opacity-50"
+                  onClick={handleSearchPeople}
+                  disabled={searchingPeople || peopleQuery.trim().length < 2}
+                  className="px-5 py-3 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50"
                 >
-                  {discovering ? <Loader2 size={20} className="animate-spin" /> : 'Search'}
+                  {searchingPeople ? <Loader2 size={20} className="animate-spin" /> : 'Search'}
                 </button>
               </div>
-              {discoverResults.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Results</p>
-                  {discoverResults.map((u) => (
-                    <div
-                      key={u.id}
-                      className="p-4 bg-white/[0.04] border border-white/10 rounded-xl flex items-center justify-between gap-4"
-                    >
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                          <User size={24} className="text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-bold text-white truncate">{u.username || u.email || 'User'}</p>
-                          {u.email && u.username && <p className="text-xs text-white/40 truncate">{u.email}</p>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {(u.username || u.email) && (
-                          <button
-                            onClick={() => navigate(`/profile/${u.username || u.email}`)}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 font-bold text-xs"
-                          >
-                            <ExternalLink size={14} />
-                            Profile
-                          </button>
-                        )}
-                        {chatableIds.has(u.id) ? (
-                          <button
-                            onClick={() => handleStartChat(u)}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
-                          >
-                            <MessageCircle size={14} />
-                            Message
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => openInviteModal(u)}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
-                          >
-                            <UserPlus size={14} />
-                            Send invite
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {discoverQuery.trim().length >= 2 && !discovering && discoverResults.length === 0 && (
-                <p className="text-white/40 py-8 text-center">No workspace members found. Invite people to a workspace first, then they&apos;ll appear here.</p>
-              )}
-              {feedPeople.length > 0 && discoverQuery.trim().length < 2 && (
-                <div className="mt-8">
-                  <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">People from public feed</p>
+
+              {/* Featured / Top people from feed */}
+              {feedPeople.length > 0 && peopleQuery.trim().length < 2 && (
+                <section className="mb-8">
+                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <TrendingUp size={14} />
+                    People in your network
+                  </h3>
                   <div className="space-y-2">
-                    {feedPeople.slice(0, 10).map((p) => (
+                    {feedPeople.slice(0, 12).map((p) => (
                       <div
                         key={p.id}
-                        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:border-primary/30"
+                        className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-primary/30 transition-all"
                       >
                         <button
                           onClick={() => p.username && navigate(`/profile/${p.username}`)}
                           className="flex-1 flex items-center gap-3 text-left min-w-0"
                         >
-                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                            <User size={20} className="text-primary" />
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 border border-primary/10">
+                            <User size={24} className="text-primary" />
                           </div>
-                          <p className="font-bold text-white truncate">{p.username || 'Anonymous'}</p>
-                          <ExternalLink size={14} className="text-white/40 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-bold text-[var(--text)] truncate">{p.username || 'Anonymous'}</p>
+                            <p className="text-xs text-[var(--text-muted)]">View profile & projects</p>
+                          </div>
+                          <ExternalLink size={16} className="text-[var(--text-dim)] shrink-0" />
                         </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openInviteModal({ id: p.id, username: p.username, email: null }); }}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs shrink-0"
-                        >
-                          <UserPlus size={14} />
-                          Send invite
-                        </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {chatableIds.has(p.id) ? (
+                            <button
+                              onClick={() => handleStartChat({ id: p.id, username: p.username, email: null })}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                            >
+                              <MessageCircle size={14} />
+                              Message
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => openInviteModal({ id: p.id, username: p.username, email: null })}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                            >
+                              <UserPlus size={14} />
+                              Connect
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
-            </div>
-          </div>
-        ) : tab === 'feed' ? (
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-2xl mx-auto space-y-8">
-              <div className="flex items-center gap-3 mb-6">
-                <button
-                  onClick={() => navigate(-1)}
-                  className="p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all"
-                  title="Go back"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                <span className="text-sm text-white/50">Feed</span>
-              </div>
-              {feed?.projects && feed.projects.length > 0 && (
+
+              {/* Search results */}
+              {peopleResults.length > 0 && (
                 <section>
-                  <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <FolderOpen size={16} />
-                    Public projects
-                  </h2>
-                  <div className="space-y-3">
-                    {feed.projects.map((p) => {
-                      const proj = p as typeof p & { owner_id?: number; assigned_to_username?: string };
-                      return (
-                        <div
-                          key={p.id}
-                          className="p-4 bg-white/[0.04] border border-white/10 rounded-xl hover:border-primary/30 transition-all group"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <button
-                              onClick={() => navigate(`/workspace/${p.workspace_id}`)}
-                              className="flex-1 text-left min-w-0"
-                            >
-                              <p className="font-bold text-white">{p.title}</p>
-                              <p className="text-xs text-white/40 mt-1">
-                                {p.workspace_name} • by {p.owner_username || 'Anonymous'}
-                              </p>
-                              {proj.assigned_to_username && (
-                                <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded bg-primary/20 text-primary font-bold">
-                                  In charge: {proj.assigned_to_username}
-                                </span>
-                              )}
-                            </button>
-                            {proj.owner_id && proj.owner_id !== currentUserId && (
-                              chatableIds.has(proj.owner_id) ? (
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); handleStartChat({ id: proj.owner_id!, username: p.owner_username || null, email: null }); setTab('chat'); }}
-                                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
-                                >
-                                  <MessageCircle size={14} />
-                                  Message
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); openInviteModal({ id: proj.owner_id!, username: p.owner_username || null, email: null }); }}
-                                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
-                                >
-                                  <UserPlus size={14} />
-                                  Send invite
-                                </button>
-                              )
-                            )}
+                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3">Results</h3>
+                  <div className="space-y-2">
+                    {peopleResults.map((u) => (
+                      <div
+                        key={u.id}
+                        className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)]"
+                      >
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                            <User size={24} className="text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-[var(--text)] truncate">{u.username || u.email || 'User'}</p>
+                            {u.email && u.username && <p className="text-xs text-[var(--text-muted)] truncate">{u.email}</p>}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-              {feed?.workspaces && feed.workspaces.length > 0 && (
-                <section>
-                  <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <Globe size={16} />
-                    Public workspaces
-                  </h2>
-                  <div className="space-y-3">
-                    {feed.workspaces.map((w) => {
-                      const ws = w as typeof w & { owner_id?: number };
-                      return (
-                        <div
-                          key={w.id}
-                          className="p-4 bg-white/[0.04] border border-white/10 rounded-xl hover:border-primary/30 transition-all flex items-center justify-between gap-3"
-                        >
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
-                            onClick={() => navigate(`/workspace/${w.id}`)}
-                            className="flex-1 text-left min-w-0"
+                            onClick={() => navigate(`/profile/${u.username || u.email}`)}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
                           >
-                            <p className="font-bold text-white">{w.name}</p>
-                            <p className="text-xs text-white/40 mt-1">by {w.owner_username || 'Anonymous'}</p>
+                            <ExternalLink size={14} />
+                            Profile
                           </button>
-                          {ws.owner_id && ws.owner_id !== currentUserId && (
-                            chatableIds.has(ws.owner_id) ? (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); handleStartChat({ id: ws.owner_id!, username: w.owner_username || null, email: null }); setTab('chat'); }}
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
-                              >
-                                <MessageCircle size={14} />
-                                Message
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); openInviteModal({ id: ws.owner_id!, username: w.owner_username || null, email: null }); }}
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
-                              >
-                                <UserPlus size={14} />
-                                Send invite
-                              </button>
-                            )
+                          {chatableIds.has(u.id) ? (
+                            <button
+                              onClick={() => handleStartChat(u)}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                            >
+                              <MessageCircle size={14} />
+                              Message
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => openInviteModal(u)}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                            >
+                              <UserPlus size={14} />
+                              Connect
+                            </button>
                           )}
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
                 </section>
               )}
-              {chatableUsers.length > 0 && (
-                <section>
-                  <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <Network size={16} />
-                    Explore connections
-                  </h2>
+
+              {peopleQuery.trim().length >= 2 && !searchingPeople && peopleResults.length === 0 && (
+                <p className="text-[var(--text-muted)] py-12 text-center">No one found. Invite people to a workspace to connect.</p>
+              )}
+
+              {/* Team connections (chatable) */}
+              {chatableUsers.length > 0 && peopleQuery.trim().length < 2 && (
+                <section className="mt-8">
+                  <h3 className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Briefcase size={14} />
+                    Team connections
+                  </h3>
                   <div className="space-y-2">
                     {chatableUsers.slice(0, 15).map((u) => (
                       <div
                         key={u.id}
-                        className="p-4 bg-white/[0.04] border border-white/10 rounded-xl flex items-center justify-between gap-3 hover:border-primary/30 transition-all"
+                        className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-primary/30 transition-all"
                       >
                         <button
                           onClick={() => (u.username || u.email) && navigate(`/profile/${u.username || u.email}`)}
                           className="flex-1 flex items-center gap-3 text-left min-w-0"
                         >
-                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
                             <User size={20} className="text-primary" />
                           </div>
-                          <p className="font-bold text-white truncate">{u.username || u.email || 'User'}</p>
-                          <ExternalLink size={14} className="text-white/40 shrink-0" />
+                          <p className="font-bold text-[var(--text)] truncate">{u.username || u.email || 'User'}</p>
+                          <ExternalLink size={14} className="text-[var(--text-dim)] shrink-0" />
                         </button>
                         <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handleStartChat(u); setTab('chat'); }}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs shrink-0"
+                          onClick={() => handleStartChat(u)}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
                         >
                           <MessageCircle size={14} />
                           Message
@@ -701,43 +686,193 @@ export default function CommunityPage() {
                   </div>
                 </section>
               )}
-              {(!feed?.projects?.length && !feed?.workspaces?.length && chatableUsers.length === 0) && (
-                <p className="text-white/40 text-center py-12">No public content yet.</p>
+            </div>
+          </div>
+        ) : tab === 'feed' ? (
+          <div className="flex-1 overflow-y-auto p-4 md:p-6">
+            <div className="max-w-2xl mx-auto">
+              <div className="mb-6">
+                <h2 className="text-lg font-black text-[var(--text)] flex items-center gap-2">
+                  <BarChart2 size={22} />
+                  Activity Feed
+                </h2>
+                <p className="text-sm text-[var(--text-muted)] mt-0.5">Projects and work from your network</p>
+              </div>
+
+              {feedTimeline.length === 0 ? (
+                <div className="py-16 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] text-center">
+                  <FolderOpen size={48} className="mx-auto text-[var(--text-dim)] mb-4" />
+                  <p className="text-[var(--text-muted)] font-medium">No activity yet</p>
+                  <p className="text-sm text-[var(--text-dim)] mt-1">Create a public workspace and share projects to see them here.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {feedTimeline.map((post) => (
+                    <article
+                      key={post.id}
+                      className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] overflow-hidden hover:border-primary/20 transition-all"
+                    >
+                      <div className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 border border-primary/10">
+                            <User size={24} className="text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            {post.type === 'activity' && (
+                              <>
+                                <p className="text-sm text-[var(--text)]">
+                                  <span className="font-bold">{post.username || 'Someone'}</span>
+                                  {' '}{String(post.action || '').replace(/_/g, ' ')}
+                                  {(post.workspace_name || post.project_title) && (
+                                    <span className="text-[var(--text-muted)]">
+                                      {' '}— {[post.workspace_name, post.project_title].filter(Boolean).join(' • ')}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-[var(--text-dim)] mt-1">{formatRelativeTime(post.created_at)}</p>
+                              </>
+                            )}
+                            {post.type === 'project' && (
+                              <>
+                                <button
+                                  onClick={() => post.workspace_id && navigate(`/workspace/${post.workspace_id}`)}
+                                  className="text-left w-full"
+                                >
+                                  <p className="font-bold text-[var(--text)] hover:text-primary transition-colors">{post.title}</p>
+                                  <p className="text-sm text-[var(--text-muted)] mt-0.5">
+                                    {post.workspace_name} • by {post.owner_username || 'Anonymous'}
+                                  </p>
+                                  {post.assigned_to_username && (
+                                    <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-lg bg-primary/20 text-primary font-bold">
+                                      Lead: {post.assigned_to_username}
+                                    </span>
+                                  )}
+                                  <p className="text-xs text-[var(--text-dim)] mt-2">{formatRelativeTime(post.created_at)}</p>
+                                </button>
+                                {post.owner_id && post.owner_id !== currentUserId && (
+                                  <div className="flex gap-2 mt-3">
+                                    {chatableIds.has(post.owner_id) ? (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleStartChat({ id: post.owner_id!, username: post.owner_username || null, email: null }); setTab('chat'); }}
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                                      >
+                                        <MessageCircle size={14} />
+                                        Message
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); openInviteModal({ id: post.owner_id!, username: post.owner_username || null, email: null }); }}
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                                      >
+                                        <UserPlus size={14} />
+                                        Connect
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => post.username && navigate(`/profile/${post.owner_username || post.username}`)}
+                                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
+                                    >
+                                      <ExternalLink size={14} />
+                                      Profile
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            {post.type === 'workspace' && (
+                              <>
+                                <button
+                                  onClick={() => post.workspace_id && navigate(`/workspace/${post.workspace_id}`)}
+                                  className="text-left w-full"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Globe size={16} className="text-primary" />
+                                    <p className="font-bold text-[var(--text)] hover:text-primary transition-colors">{post.title}</p>
+                                  </div>
+                                  <p className="text-sm text-[var(--text-muted)] mt-0.5">by {post.owner_username || 'Anonymous'}</p>
+                                  <p className="text-xs text-[var(--text-dim)] mt-2">{formatRelativeTime(post.created_at)}</p>
+                                </button>
+                                {post.owner_id && post.owner_id !== currentUserId && (
+                                  <div className="flex gap-2 mt-3">
+                                    {chatableIds.has(post.owner_id) ? (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleStartChat({ id: post.owner_id!, username: post.owner_username || null, email: null }); setTab('chat'); }}
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                                      >
+                                        <MessageCircle size={14} />
+                                        Message
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); openInviteModal({ id: post.owner_id!, username: post.owner_username || null, email: null }); }}
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                                      >
+                                        <UserPlus size={14} />
+                                        Connect
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => post.owner_username && navigate(`/profile/${post.owner_username}`)}
+                                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
+                                    >
+                                      <ExternalLink size={14} />
+                                      Profile
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
               )}
             </div>
           </div>
         ) : (
           <>
             {/* Chat list */}
-            <div
-              className={`w-full md:w-80 border-r border-white/10 flex flex-col ${activeChat ? 'hidden md:flex' : ''}`}
-            >
+            <div className={`w-full md:w-80 border-r border-[var(--border)] flex flex-col ${activeChat ? 'hidden md:flex' : ''}`}>
               {loadingChats && loadingChatable ? (
                 <div className="flex-1 flex items-center justify-center">
                   <Loader2 size={24} className="animate-spin text-primary" />
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto">
+                  <div className="p-4 border-b border-[var(--border)]">
+                    <div className="relative">
+                      <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search conversations..."
+                        className="w-full pl-10 pr-4 py-2.5 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-primary/50 text-sm"
+                      />
+                    </div>
+                  </div>
                   {chats.length > 0 && (
-                    <>
-                      <p className="px-4 py-2 text-[10px] font-bold text-white/40 uppercase tracking-wider">Conversations</p>
+                    <div className="py-2">
+                      <p className="px-4 py-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Conversations</p>
                       {chats.map((c) => (
                         <button
                           key={c.id}
                           onClick={() => setActiveChat(c)}
-                          className={`w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-all text-left ${
-                            activeChat?.id === c.id ? 'bg-white/10' : ''
+                          className={`w-full flex items-center gap-3 p-4 hover:bg-[var(--input-bg)] transition-all text-left ${
+                            activeChat?.id === c.id ? 'bg-[var(--input-bg)]' : ''
                           }`}
                         >
-                          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
                             <User size={24} className="text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-white truncate">{chatName(c)}</p>
-                            <p className="text-xs text-white/40 truncate">{c.last_message || 'No messages yet'}</p>
+                            <p className="font-bold text-[var(--text)] truncate">{chatName(c)}</p>
+                            <p className="text-xs text-[var(--text-muted)] truncate">{c.last_message || 'No messages yet'}</p>
                           </div>
                           <div className="shrink-0 text-right">
-                            <p className="text-[10px] text-white/30">{c.last_message_at ? formatTime(c.last_message_at) : ''}</p>
+                            <p className="text-[10px] text-[var(--text-dim)]">{c.last_message_at ? formatTime(c.last_message_at) : ''}</p>
                             {c.unread && c.unread > 0 && (
                               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-black text-[10px] font-bold mt-1">
                                 {c.unread}
@@ -746,41 +881,37 @@ export default function CommunityPage() {
                           </div>
                         </button>
                       ))}
-                    </>
-                  )}
-                  <p className="px-4 py-2 mt-2 text-[10px] font-bold text-white/40 uppercase tracking-wider">
-                    People you can chat with
-                  </p>
-                  {loadingChatable ? (
-                    <div className="p-4 flex justify-center">
-                      <Loader2 size={20} className="animate-spin text-primary" />
                     </div>
-                  ) : filteredChatable.length === 0 ? (
-                    <div className="p-6 text-center">
-                      <p className="text-sm text-white/40">
-                        {chatableUsers.length === 0
-                          ? 'Invite people to a workspace first, then they’ll appear here.'
-                          : 'No matches. Try a different filter.'}
-                      </p>
-                    </div>
-                  ) : (
-                    filteredChatable.map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => handleStartChat(u)}
-                        className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-all text-left"
-                      >
-                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                          <User size={24} className="text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-white truncate">{u.username || u.email || 'User'}</p>
-                          {u.email && u.username && <p className="text-xs text-white/40 truncate">{u.email}</p>}
-                        </div>
-                        <MessageCircle size={18} className="text-primary/60 shrink-0" />
-                      </button>
-                    ))
                   )}
+                  <div className="py-2">
+                    <p className="px-4 py-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Start a conversation</p>
+                    {loadingChatable ? (
+                      <div className="p-4 flex justify-center"><Loader2 size={20} className="animate-spin text-primary" /></div>
+                    ) : filteredChatable.length === 0 ? (
+                      <div className="p-6 text-center">
+                        <p className="text-sm text-[var(--text-muted)]">
+                          {chatableUsers.length === 0 ? "Invite people to a workspace to chat." : "No matches."}
+                        </p>
+                      </div>
+                    ) : (
+                      filteredChatable.map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => handleStartChat(u)}
+                          className="w-full flex items-center gap-3 p-4 hover:bg-[var(--input-bg)] transition-all text-left"
+                        >
+                          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                            <User size={24} className="text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-[var(--text)] truncate">{u.username || u.email || 'User'}</p>
+                            {u.email && u.username && <p className="text-xs text-[var(--text-muted)] truncate">{u.email}</p>}
+                          </div>
+                          <MessageCircle size={18} className="text-primary/60 shrink-0" />
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -789,30 +920,25 @@ export default function CommunityPage() {
             <div className={`flex-1 flex flex-col ${!activeChat ? 'hidden md:flex' : ''}`}>
               {activeChat ? (
                 <>
-                  <div className="flex items-center gap-3 p-4 border-b border-white/10 bg-white/[0.02]">
+                  <div className="flex items-center gap-3 p-4 border-b border-[var(--border)] bg-[var(--bg-card)]">
                     <button
                       onClick={() => setActiveChat(null)}
-                      className="p-2 -ml-2 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all"
-                      title="Back to chats"
+                      className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]"
                     >
                       <ChevronLeft size={20} />
                     </button>
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
                       <User size={20} className="text-primary" />
                     </div>
                     <div>
-                      <p className="font-bold text-white">{chatName(activeChat)}</p>
-                      <p className="text-[10px] text-white/40">
-                        {typingUser ? 'typing...' : 'Online'}
-                      </p>
+                      <p className="font-bold text-[var(--text)]">{chatName(activeChat)}</p>
+                      <p className="text-[10px] text-[var(--text-muted)]">{typingUser ? 'typing...' : 'Online'}</p>
                     </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-4 space-y-3">
                     {loadingMessages ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 size={24} className="animate-spin text-primary" />
-                      </div>
+                      <div className="flex justify-center py-8"><Loader2 size={24} className="animate-spin text-primary" /></div>
                     ) : (
                       uniqueMessages.map((m) => {
                         const isMe = m.sender_id === currentUserId;
@@ -826,42 +952,29 @@ export default function CommunityPage() {
                         const imgUrl = isImage && m.content ? `${API_BASE_URL}${m.content.startsWith('/') ? '' : '/'}${m.content}` : null;
                         const fileUrl = isFile && m.content ? `${API_BASE_URL}${m.content.startsWith('/') ? '' : '/'}${m.content}` : null;
                         return (
-                          <div
-                            key={m.id}
-                            className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-                          >
-                            <div
-                              className={`max-w-[75%] px-4 py-2 rounded-2xl ${
-                                isMe
-                                  ? 'bg-primary text-black rounded-br-md'
-                                  : 'bg-white/10 text-white rounded-bl-md'
-                              }`}
-                            >
+                          <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[75%] px-4 py-2 rounded-2xl ${isMe ? 'bg-primary text-black rounded-br-md' : 'bg-[var(--bg-card)] text-[var(--text)] rounded-bl-md border border-[var(--border)]'}`}>
                               {(hasCanvas || hasHighlight || hasProject) && (
                                 <div className="flex flex-wrap gap-1.5 mb-2">
                                   {(hasCanvas || hasShareId) && (
                                     <button
                                       onClick={() => { if (hasShareId) navigate(`/strategy/shared_${meta.shareId}`); else if (meta.canvasId) navigate(`/strategy/${meta.canvasId}`); }}
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 text-xs hover:bg-white/30"
-                                      title={meta.canvasName || meta.canvasId || meta.shareId}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/10 text-xs hover:bg-black/20"
                                     >
                                       <Link2 size={12} />
                                       {meta.canvasName || meta.canvasId || 'View canvas'}
                                     </button>
                                   )}
                                   {hasHighlight && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 text-xs">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/10 text-xs">
                                       <Highlighter size={12} />
                                       {meta.highlightText}
                                     </span>
                                   )}
                                   {hasProject && !hasShareId && (
                                     <button
-                                      onClick={() => {
-                                        if (meta.canvasId) navigate(`/strategy/${meta.canvasId}`);
-                                        else if (meta.workspaceId) navigate(`/workspace/${meta.workspaceId}`);
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 text-xs hover:bg-white/30"
+                                      onClick={() => { if (meta.canvasId) navigate(`/strategy/${meta.canvasId}`); else if (meta.workspaceId) navigate(`/workspace/${meta.workspaceId}`); }}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/10 text-xs hover:bg-black/20"
                                     >
                                       <FolderOpen size={12} />
                                       {meta.projectTitle || 'Project'}
@@ -875,12 +988,7 @@ export default function CommunityPage() {
                                 </a>
                               )}
                               {fileUrl && (
-                                <a
-                                  href={fileUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-2 px-2 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-sm mb-2"
-                                >
+                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-2 py-1 rounded-lg bg-black/10 hover:bg-black/20 text-sm mb-2">
                                   <Paperclip size={14} />
                                   {meta.fileName || 'Download file'}
                                 </a>
@@ -898,17 +1006,17 @@ export default function CommunityPage() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  <form onSubmit={handleSend} className="border-t border-white/10">
+                  <form onSubmit={handleSend} className="border-t border-[var(--border)]">
                     {showAttach && (
-                      <div className="p-3 bg-white/[0.02] border-b border-white/5 flex flex-col gap-2">
+                      <div className="p-3 bg-[var(--bg-card)] border-b border-[var(--border)] flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                           <Link2 size={16} className="text-primary shrink-0" />
                           <input
                             type="text"
                             value={attachCanvas}
                             onChange={(e) => setAttachCanvas(e.target.value)}
-                            placeholder="Canvas name or link (e.g. /strategy/abc)"
-                            className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
+                            placeholder="Canvas link or name"
+                            className="flex-1 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-sm text-[var(--text)]"
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -917,117 +1025,62 @@ export default function CommunityPage() {
                             type="text"
                             value={attachHighlight}
                             onChange={(e) => setAttachHighlight(e.target.value)}
-                            placeholder="Highlight or snippet to discuss"
-                            className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
+                            placeholder="Highlight or snippet"
+                            className="flex-1 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-sm text-[var(--text)]"
                           />
                         </div>
                         {allShareable.length > 0 && (
-                          <div ref={projectDropdownRef} className="flex items-center gap-2 relative">
-                            <FolderOpen size={16} className="text-primary shrink-0" />
-                            <div className="flex-1 relative">
-                              <button
-                                type="button"
-                                onClick={() => setProjectDropdownOpen((o) => !o)}
-                                className="w-full px-3 py-2.5 bg-[#1e1e1e] border border-white/20 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 flex items-center justify-between gap-2"
-                              >
-                                <span className={attachProject ? 'text-white' : 'text-white/60'}>
-                                  {attachProject ? attachProject.title + (attachProject.workspace_name ? ` (${attachProject.workspace_name})` : '') : 'Share a project or canvas...'}
-                                </span>
-                                <ChevronDown size={16} className={`shrink-0 text-white/60 transition-transform ${projectDropdownOpen ? 'rotate-180' : ''}`} />
-                              </button>
-                              {projectDropdownOpen && (
-                                <div className="absolute top-full left-0 right-0 mt-1 py-1.5 bg-[#252525] border border-white/15 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
-                                  <button
-                                    type="button"
-                                    onClick={() => { setAttachProject(null); setProjectDropdownOpen(false); }}
-                                    className="w-full px-3 py-2 text-left text-sm text-white/70 hover:bg-white/10 hover:text-white"
-                                  >
-                                    Share a project or canvas...
-                                  </button>
-                                  {storeCanvases.length > 0 && (
-                                    <>
-                                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 border-t border-white/10 mt-1 pt-1.5">My canvases</div>
-                                      {storeCanvases.map((p) => (
-                                        <button
-                                          key={p.id}
-                                          type="button"
-                                          onClick={() => { setAttachProject(p); setProjectDropdownOpen(false); }}
-                                          className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 ${attachProject?.id === p.id && attachProject?.isCanvas ? 'text-primary bg-primary/10' : 'text-white'}`}
-                                        >
-                                          {p.title}
-                                        </button>
-                                      ))}
-                                    </>
-                                  )}
-                                  {myProjects.length > 0 && (
-                                    <>
-                                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 border-t border-white/10 mt-1 pt-1.5">Workspace projects</div>
-                                      {myProjects.map((p) => (
-                                        <button
-                                          key={p.id}
-                                          type="button"
-                                          onClick={() => { setAttachProject(p); setProjectDropdownOpen(false); }}
-                                          className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 ${attachProject?.id === p.id && !attachProject?.isCanvas ? 'text-primary bg-primary/10' : 'text-white'}`}
-                                        >
-                                          {p.title} {p.workspace_name ? `(${p.workspace_name})` : ''}
-                                        </button>
-                                      ))}
-                                    </>
-                                  )}
-                                </div>
-                              )}
-                            </div>
+                          <div ref={projectDropdownRef} className="relative">
+                            <FolderOpen size={16} className="text-primary shrink-0 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <button
+                              type="button"
+                              onClick={() => setProjectDropdownOpen((o) => !o)}
+                              className="w-full pl-10 pr-4 py-2.5 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-sm text-[var(--text)] flex items-center justify-between"
+                            >
+                              <span>{attachProject ? attachProject.title + (attachProject.workspace_name ? ` (${attachProject.workspace_name})` : '') : 'Share project or canvas...'}</span>
+                              <ChevronDown size={16} className={`transition-transform ${projectDropdownOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            {projectDropdownOpen && (
+                              <div className="absolute top-full left-0 right-0 mt-1 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
+                                <button type="button" onClick={() => { setAttachProject(null); setProjectDropdownOpen(false); }} className="w-full px-3 py-2 text-left text-sm text-[var(--text-muted)] hover:bg-[var(--input-bg)]">
+                                  Clear
+                                </button>
+                                {storeCanvases.length > 0 && (
+                                  <>
+                                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase text-[var(--text-dim)]">My canvases</div>
+                                    {storeCanvases.map((p) => (
+                                      <button key={p.id} type="button" onClick={() => { setAttachProject(p); setProjectDropdownOpen(false); }} className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--input-bg)] ${attachProject?.id === p.id && attachProject?.isCanvas ? 'text-primary' : 'text-[var(--text)]'}`}>
+                                        {p.title}
+                                      </button>
+                                    ))}
+                                  </>
+                                )}
+                                {myProjects.length > 0 && (
+                                  <>
+                                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase text-[var(--text-dim)]">Workspace projects</div>
+                                    {myProjects.map((p) => (
+                                      <button key={p.id} type="button" onClick={() => { setAttachProject(p); setProjectDropdownOpen(false); }} className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--input-bg)] ${attachProject?.id === p.id && !attachProject?.isCanvas ? 'text-primary' : 'text-[var(--text)]'}`}>
+                                        {p.title} {p.workspace_name ? `(${p.workspace_name})` : ''}
+                                      </button>
+                                    ))}
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     )}
-                    <input
-                      ref={imageInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleFileUpload(f, true);
-                        e.target.value = '';
-                      }}
-                    />
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleFileUpload(f);
-                        e.target.value = '';
-                      }}
-                    />
+                    <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, true); e.target.value = ''; }} />
+                    <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ''; }} />
                     <div className="p-4 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowAttach((v) => !v)}
-                        className={`p-3 rounded-xl transition-all ${showAttach ? 'bg-primary/20 text-primary' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                        title="Mark canvas, highlight, or project"
-                      >
+                      <button type="button" onClick={() => setShowAttach((v) => !v)} className={`p-3 rounded-xl transition-all ${showAttach ? 'bg-primary/20 text-primary' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]'}`}>
                         <Link2 size={20} />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => imageInputRef.current?.click()}
-                        disabled={uploading}
-                        className="p-3 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
-                        title="Share photo"
-                      >
+                      <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading} className="p-3 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] disabled:opacity-50">
                         {uploading ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={20} />}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="p-3 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
-                        title="Share file"
-                      >
+                      <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="p-3 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] disabled:opacity-50">
                         <Paperclip size={20} />
                       </button>
                       <input
@@ -1037,21 +1090,14 @@ export default function CommunityPage() {
                           setMessageInput(e.target.value);
                           if (activeChat && socketRef.current) {
                             if (typingEmitRef.current) clearTimeout(typingEmitRef.current);
-                            typingEmitRef.current = setTimeout(() => {
-                              socketRef.current?.emit('chat:typing', { chatId: activeChat.id });
-                              typingEmitRef.current = undefined;
-                            }, 300);
+                            typingEmitRef.current = setTimeout(() => { socketRef.current?.emit('chat:typing', { chatId: activeChat.id }); typingEmitRef.current = undefined; }, 300);
                           }
                         }}
                         placeholder="Type a message..."
-                        className="flex-1 px-4 py-3 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary/50"
+                        className="flex-1 px-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-primary/50"
                         onFocus={() => activeChat && socketRef.current?.emit('chat:typing', { chatId: activeChat.id })}
                       />
-                      <button
-                        type="submit"
-                        disabled={sending || uploading || (!messageInput.trim() && !attachProject)}
-                        className="p-3 bg-primary text-black rounded-xl hover:bg-white transition-all disabled:opacity-50"
-                      >
+                      <button type="submit" disabled={sending || uploading || (!messageInput.trim() && !attachProject)} className="p-3 bg-primary text-black rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50">
                         {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                       </button>
                     </div>
@@ -1059,9 +1105,9 @@ export default function CommunityPage() {
                 </>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                  <MessageCircle size={64} className="text-white/10 mb-4" />
-                  <p className="text-white/40 font-bold">Select a chat</p>
-                  <p className="text-sm text-white/20 mt-1">Click a person from the list to start chatting</p>
+                  <MessageCircle size={64} className="text-[var(--text-dim)] mb-4" />
+                  <p className="text-[var(--text-muted)] font-bold">Select a chat</p>
+                  <p className="text-sm text-[var(--text-dim)] mt-1">Click someone from the list to start messaging</p>
                 </div>
               )}
             </div>
@@ -1069,27 +1115,24 @@ export default function CommunityPage() {
         )}
       </div>
 
-      {/* Invite to workspace modal */}
+      {/* Invite modal */}
       {inviteUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setInviteUser(null)}>
-          <div className="bg-[var(--bg-page)] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[var(--bg-panel)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Invite to workspace</h3>
-              <button onClick={() => setInviteUser(null)} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5">
+              <h3 className="text-lg font-bold text-[var(--text)]">Connect via workspace</h3>
+              <button onClick={() => setInviteUser(null)} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]">
                 <X size={20} />
               </button>
             </div>
-            <p className="text-sm text-white/60 mb-4">
-              Invite <span className="font-bold text-white">{inviteUser.username || inviteUser.email || 'this user'}</span> to a team workspace.
+            <p className="text-sm text-[var(--text-muted)] mb-4">
+              Invite <span className="font-bold text-[var(--text)]">{inviteUser.username || inviteUser.email || 'this user'}</span> to a team workspace to connect.
             </p>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {workspaces.length === 0 ? (
                 <div className="py-4">
-                  <p className="text-white/40 text-sm mb-4">You need a team workspace to invite people. Create one from the Dashboard.</p>
-                  <button
-                    onClick={() => { setInviteUser(null); navigate('/dashboard'); }}
-                    className="w-full px-4 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
-                  >
+                  <p className="text-[var(--text-muted)] text-sm mb-4">Create a team workspace from the Dashboard first.</p>
+                  <button onClick={() => { setInviteUser(null); navigate('/dashboard'); }} className="w-full px-4 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all">
                     Go to Dashboard
                   </button>
                 </div>
@@ -1099,9 +1142,9 @@ export default function CommunityPage() {
                     key={w.id}
                     onClick={() => handleSendInvite(w.id)}
                     disabled={invitingWs !== null}
-                    className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] border border-white/10 hover:border-primary/30 text-left disabled:opacity-50"
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border)] hover:border-primary/30 text-left disabled:opacity-50"
                   >
-                    <span className="font-bold text-white">{w.name}</span>
+                    <span className="font-bold text-[var(--text)]">{w.name}</span>
                     {invitingWs === w.id ? <Loader2 size={18} className="animate-spin text-primary" /> : <UserPlus size={18} className="text-primary" />}
                   </button>
                 ))

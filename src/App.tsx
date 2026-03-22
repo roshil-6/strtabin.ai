@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 import Dashboard from './components/Dashboard';
 import Canvas from './components/Canvas';
@@ -15,7 +15,6 @@ import ReportsSelectPage from './components/ReportsSelectPage';
 import WorkspacePage from './components/WorkspacePage';
 import JoinWorkspacePage from './components/JoinWorkspacePage';
 import ProfilePage from './components/ProfilePage';
-import FeedPage from './components/FeedPage';
 import CommunityPage from './components/CommunityPage';
 import AuthGate from './components/AuthGate';
 import UserSyncOnLoad from './components/UserSyncOnLoad';
@@ -54,7 +53,7 @@ function App() {
       <Route path="/strab/:id" element={<AuthGate><PaywallGate><StrabView /></PaywallGate></AuthGate>} />
       <Route path="/workspace/:id" element={<AuthGate><PaywallGate><WorkspacePage /></PaywallGate></AuthGate>} />
       <Route path="/join/:id" element={<AuthGate><PaywallGate><JoinWorkspacePage /></PaywallGate></AuthGate>} />
-      <Route path="/feed" element={<AuthGate><PaywallGate><FeedPage /></PaywallGate></AuthGate>} />
+      <Route path="/feed" element={<Navigate to="/community" replace />} />
       <Route path="/community" element={<AuthGate><PaywallGate><CommunityPage /></PaywallGate></AuthGate>} />
       <Route path="/profile/:username" element={<ProfilePage />} />
       <Route path="*" element={<NotFoundPage />} />

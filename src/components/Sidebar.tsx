@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot } from 'lucide-react';
+import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot, Network } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 const NAV_ITEMS = [
@@ -130,6 +130,30 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
             </div>
 
             <div className="w-8 h-px bg-white/[0.05] mb-1" />
+
+            {/* Share to Community */}
+            <button
+                onClick={() => navigate('/community', { state: { fromCanvas: canvasId } })}
+                className="group relative flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl w-14 transition-all duration-200 active:scale-90 hover:bg-white/5"
+                aria-label="Share to Community"
+                title="Share to Community"
+                onMouseEnter={e => {
+                    e.currentTarget.style.background = 'var(--input-bg)';
+                    e.currentTarget.style.border = '1px solid var(--border)';
+                }}
+                onMouseLeave={e => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.border = '1px solid transparent';
+                }}
+            >
+                <Network size={18} style={{ color: 'var(--text-dim)' }} />
+                <span className="text-[8px] font-black uppercase tracking-wider" style={{ color: 'var(--text-dim)', opacity: 0.7 }}>
+                    Share
+                </span>
+                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 theme-elevated border border-[var(--border)] text-[var(--text)] text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
+                    Share to Community
+                </div>
+            </button>
 
             {/* STRAB AI */}
             {(() => {

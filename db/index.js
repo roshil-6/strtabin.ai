@@ -12,7 +12,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.DATABASE_PATH || join(__dirname, '..', 'data', 'strategybox.db');
 
 if (!process.env.DATABASE_PATH) {
-    console.warn('⚠️  DATABASE_PATH not set — database will be lost on redeploy. Set DATABASE_PATH=/data/strategybox.db (or your disk mount path) in Render env.');
+    console.warn('⚠️  DATABASE_PATH not set — database will be lost on redeploy.');
+    console.warn('   On Render: upgrade to Starter plan, add disk (mount /data), set DATABASE_PATH=/data/strategybox.db');
 }
 
 let db = null;
@@ -25,10 +26,26 @@ export function initDb() {
 
     const dataDir = dirname(DB_PATH);
     if (!existsSync(dataDir)) {
-        mkdirSync(dataDir, { recursive: true });
+        try {
+            mkdirSync(dataDir, { recursive: true });
+        } catch (err) {
+            console.error(`❌ Cannot create database dir ${dataDir}:`, err.message);
+            if (process.env.DATABASE_PATH) {
+                console.error('   Check that the disk is mounted and the path is correct.');
+            }
+            throw err;
+        }
     }
 
-    db = new Database(DB_PATH);
+    try {
+        db = new Database(DB_PATH);
+    } catch (err) {
+        console.error(`❌ Cannot open database at ${DB_PATH}:`, err.message);
+        if (process.env.DATABASE_PATH && err.message.includes('unable to open')) {
+            console.error('   The disk may not be mounted. On Render: ensure disk is attached and mount path matches DATABASE_PATH.');
+        }
+        throw err;
+    }
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
 

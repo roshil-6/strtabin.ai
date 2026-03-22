@@ -1,5 +1,5 @@
 /**
- * Public user profile page — social, engaging layout
+ * Professional profile — LinkedIn-style: projects & work first, connections, activity
  */
 
 import { useState, useEffect } from 'react';
@@ -15,7 +15,6 @@ import {
   MessageCircle,
   Pencil,
   Loader2,
-  Users,
   UserPlus,
   X,
   Share2,
@@ -25,6 +24,10 @@ import {
   Lightbulb,
   ListChecks,
   Play,
+  Briefcase,
+  ExternalLink,
+  ChevronRight,
+  Network,
 } from 'lucide-react';
 import { workspaceService } from '../services/workspaceService';
 import { chatService } from '../services/chatService';
@@ -72,10 +75,10 @@ function getActivityIcon(action: string) {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  idea: 'bg-amber-500/20 text-amber-400',
-  planning: 'bg-blue-500/20 text-blue-400',
-  executing: 'bg-emerald-500/20 text-emerald-400',
-  completed: 'bg-primary/20 text-primary',
+  idea: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  planning: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  executing: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  completed: 'bg-primary/20 text-primary border-primary/30',
 };
 
 export default function ProfilePage() {
@@ -207,10 +210,10 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
-      <div className="max-w-2xl mx-auto p-4 sm:p-6">
+      <div className="max-w-3xl mx-auto p-4 sm:p-6">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-white/50 hover:text-white mb-6 text-sm font-bold transition-colors"
+          className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text)] mb-6 text-sm font-bold transition-colors"
         >
           <ArrowLeft size={16} />
           Back
@@ -224,19 +227,20 @@ export default function ProfilePage() {
           <p className="text-red-400 py-8">{error}</p>
         ) : data ? (
           <>
-            {/* Hero / Cover-style header */}
-            <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 via-white/[0.03] to-transparent border border-white/10 mb-6">
-              <div className="p-6 sm:p-8">
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            {/* Cover / Banner — LinkedIn-style */}
+            <div className="rounded-2xl overflow-hidden mb-6 border border-[var(--border)]">
+              <div className="h-32 sm:h-40 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent" />
+              <div className="relative px-6 sm:px-8 pb-6 -mt-16 sm:-mt-20">
+                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4">
                   <div className="shrink-0 relative">
                     {data.profile?.avatar_url ? (
                       <img
                         src={data.profile.avatar_url}
                         alt=""
-                        className="w-28 h-28 rounded-2xl object-cover border-2 border-white/20 shadow-lg"
+                        className="w-28 h-28 rounded-2xl object-cover border-4 border-[var(--bg-page)] shadow-xl"
                       />
                     ) : (
-                      <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center border border-white/10">
+                      <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center border-4 border-[var(--bg-page)] shadow-xl">
                         <span className="text-3xl font-black text-primary">
                           {getInitials(data.user.username, data.user.email)}
                         </span>
@@ -250,212 +254,228 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <div className="flex-1 text-center sm:text-left min-w-0">
-                    <h1 className="text-2xl sm:text-3xl font-black text-white truncate">{displayName}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-black text-[var(--text)] truncate">{displayName}</h1>
                     {data.user.email && data.user.username && (
-                      <p className="text-sm text-white/40 mt-0.5 truncate">{data.user.email}</p>
+                      <p className="text-sm text-[var(--text-muted)] mt-0.5 truncate">{data.user.email}</p>
                     )}
                     {data.user.created_at && (
-                      <p className="flex items-center gap-1.5 text-xs text-white/40 mt-2">
+                      <p className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mt-2 justify-center sm:justify-start">
                         <Calendar size={12} />
                         Member since {new Date(data.user.created_at).toLocaleDateString('en', { month: 'long', year: 'numeric' })}
                       </p>
                     )}
-                    {editingBio ? (
-                      <div className="mt-4">
-                        <textarea
-                          value={bioDraft}
-                          onChange={(e) => setBioDraft(e.target.value)}
-                          placeholder="Tell people about yourself..."
-                          className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-primary/50 resize-none"
-                          rows={3}
-                          autoFocus
-                        />
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={handleSaveBio}
-                            disabled={saving}
-                            className="px-4 py-2 bg-primary text-black font-bold rounded-xl hover:bg-white disabled:opacity-50"
-                          >
-                            {saving ? <Loader2 size={18} className="animate-spin" /> : 'Save'}
-                          </button>
-                          <button
-                            onClick={() => { setEditingBio(false); setBioDraft(data.profile?.bio || ''); }}
-                            className="px-4 py-2 rounded-xl border border-white/20 text-white/70 hover:bg-white/5"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {data.profile?.bio ? (
-                          <p className="text-white/70 mt-3 max-w-md leading-relaxed">{data.profile.bio}</p>
-                        ) : (
-                          <p className="text-white/30 mt-3 italic">No bio yet — add one to introduce yourself!</p>
-                        )}
-                        {isOwnProfile && (
-                          <button
-                            onClick={() => setEditingBio(true)}
-                            className="mt-3 flex items-center gap-2 text-sm text-primary hover:text-white font-bold transition-colors"
-                          >
-                            <Pencil size={14} />
-                            Edit bio
-                          </button>
-                        )}
-                      </>
-                    )}
                   </div>
-                </div>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/5 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                      <Target size={20} className="text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-black text-white text-lg">{data.progress.total}</p>
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Progress pts</p>
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/5 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                      <Flame size={20} className="text-orange-400" />
-                    </div>
-                    <div>
-                      <p className="font-black text-white text-lg">{data.streak}</p>
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Day streak</p>
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/5 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                      <FolderOpen size={20} className="text-emerald-400" />
-                    </div>
-                    <div>
-                      <p className="font-black text-white text-lg">{data.projects.length}</p>
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Projects</p>
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/5 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                      <CheckCircle2 size={20} className="text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-black text-white text-lg">{completedCount}</p>
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Completed</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action bar */}
-                <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-white/10">
-                  {isOwnProfile ? (
-                    <>
-                      <button
-                        onClick={handleCopyProfileLink}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 text-white hover:bg-white/5 font-bold transition-all"
-                      >
-                        <Share2 size={18} />
-                        Share profile
-                      </button>
-                      <button
-                        onClick={() => navigate('/community')}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 text-white hover:bg-white/5 font-bold transition-all"
-                      >
-                        <Users size={18} />
-                        Community
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      {data.canChat ? (
-                        <button
-                          onClick={handleMessage}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
-                        >
-                          <MessageCircle size={18} />
-                          Message
-                        </button>
-                      ) : (
-                        <button
-                          onClick={openInviteModal}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
-                        >
-                          <UserPlus size={18} />
-                          Send invite
-                        </button>
-                      )}
-                      <button
-                        onClick={() => navigate('/community')}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 text-white hover:bg-white/5 font-bold transition-all"
-                      >
-                        <Users size={18} />
-                        Community
-                      </button>
-                    </>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* Projects */}
+            {/* Bio section */}
+            <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] p-6 mb-6">
+              {editingBio ? (
+                <div>
+                  <textarea
+                    value={bioDraft}
+                    onChange={(e) => setBioDraft(e.target.value)}
+                    placeholder="Share your professional focus, interests, or what you're working on..."
+                    className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-primary/50 resize-none"
+                    rows={3}
+                    autoFocus
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={handleSaveBio}
+                      disabled={saving}
+                      className="px-4 py-2 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {saving ? <Loader2 size={18} className="animate-spin" /> : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => { setEditingBio(false); setBioDraft(data.profile?.bio || ''); }}
+                      className="px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--input-bg)]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-sm font-black text-[var(--text-muted)] uppercase tracking-wider">About</h2>
+                    {isOwnProfile && (
+                      <button
+                        onClick={() => setEditingBio(true)}
+                        className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 font-bold"
+                      >
+                        <Pencil size={12} />
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                  {data.profile?.bio ? (
+                    <p className="text-[var(--text)] leading-relaxed">{data.profile.bio}</p>
+                  ) : (
+                    <p className="text-[var(--text-dim)] italic">No bio yet — add one to introduce yourself!</p>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Stats — compact row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                  <Target size={20} className="text-primary" />
+                </div>
+                <div>
+                  <p className="font-black text-[var(--text)] text-lg">{data.progress.total}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Progress</p>
+                </div>
+              </div>
+              <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                  <Flame size={20} className="text-orange-400" />
+                </div>
+                <div>
+                  <p className="font-black text-[var(--text)] text-lg">{data.streak}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Streak</p>
+                </div>
+              </div>
+              <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                  <FolderOpen size={20} className="text-emerald-400" />
+                </div>
+                <div>
+                  <p className="font-black text-[var(--text)] text-lg">{data.projects.length}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Projects</p>
+                </div>
+              </div>
+              <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                  <CheckCircle2 size={20} className="text-primary" />
+                </div>
+                <div>
+                  <p className="font-black text-[var(--text)] text-lg">{completedCount}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Done</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action bar — LinkedIn style */}
+            <div className="flex flex-wrap gap-3 mb-8">
+              {isOwnProfile ? (
+                <>
+                  <button
+                    onClick={handleCopyProfileLink}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-[var(--text)] hover:bg-[var(--input-bg)] font-bold text-sm transition-all"
+                  >
+                    <Share2 size={18} />
+                    Share profile
+                  </button>
+                  <button
+                    onClick={() => navigate('/community')}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-[var(--text)] hover:bg-[var(--input-bg)] font-bold text-sm transition-all"
+                  >
+                    <Network size={18} />
+                    Community
+                  </button>
+                </>
+              ) : (
+                <>
+                  {data.canChat ? (
+                    <button
+                      onClick={handleMessage}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all text-sm"
+                    >
+                      <MessageCircle size={18} />
+                      Message
+                    </button>
+                  ) : (
+                    <button
+                      onClick={openInviteModal}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all text-sm"
+                    >
+                      <UserPlus size={18} />
+                      Connect
+                    </button>
+                  )}
+                  <button
+                    onClick={() => navigate('/community')}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-[var(--text)] hover:bg-[var(--input-bg)] font-bold text-sm transition-all"
+                  >
+                    <Network size={18} />
+                    Community
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Projects — main content (like LinkedIn Experience) */}
             <section className="mb-8">
-              <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <FolderOpen size={16} />
-                Projects
-              </h2>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-black text-[var(--text)] flex items-center gap-2">
+                  <Briefcase size={20} />
+                  Projects & Work
+                </h2>
+                <ChevronRight size={20} className="text-[var(--text-dim)]" />
+              </div>
+              <div className="space-y-3">
                 {data.projects.length === 0 ? (
-                  <div className="col-span-full py-8 rounded-xl bg-white/[0.02] border border-white/5 text-center">
-                    <FolderOpen size={32} className="mx-auto text-white/20 mb-2" />
-                    <p className="text-white/40 text-sm">No public projects yet.</p>
+                  <div className="py-12 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] text-center">
+                    <FolderOpen size={40} className="mx-auto text-[var(--text-dim)] mb-3" />
+                    <p className="text-[var(--text-muted)] font-medium">No public projects yet</p>
+                    <p className="text-sm text-[var(--text-dim)] mt-1">Create projects in a workspace to showcase your work.</p>
                   </div>
                 ) : (
                   data.projects.map((p) => (
                     <button
                       key={p.id}
                       onClick={() => (p as { workspace_id?: number }).workspace_id && navigate(`/workspace/${(p as { workspace_id?: number }).workspace_id}`)}
-                      className="p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-primary/30 hover:bg-white/[0.05] transition-all text-left group"
+                      className="w-full p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-primary/30 hover:bg-[var(--bg-elevated)] transition-all text-left group"
                     >
-                      <p className="font-bold text-white group-hover:text-primary transition-colors truncate">{p.title}</p>
-                      <p className="text-xs text-white/40 mt-1 truncate">{p.workspace_name}</p>
-                      <span className={`inline-block mt-2 text-[10px] px-2 py-0.5 rounded font-bold capitalize ${STATUS_COLORS[p.status] || 'bg-white/10 text-white/60'}`}>
-                        {p.status}
-                      </span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-[var(--text)] group-hover:text-primary transition-colors truncate">{p.title}</p>
+                          <p className="text-sm text-[var(--text-muted)] mt-0.5 truncate">{p.workspace_name}</p>
+                          <span className={`inline-block mt-2 text-[10px] px-2.5 py-1 rounded-lg font-bold capitalize border ${STATUS_COLORS[p.status] || 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border)]'}`}>
+                            {p.status}
+                          </span>
+                        </div>
+                        <ExternalLink size={18} className="text-[var(--text-dim)] group-hover:text-primary shrink-0 mt-1" />
+                      </div>
                     </button>
                   ))
                 )}
               </div>
             </section>
 
-            {/* Activity timeline */}
+            {/* Activity / Insights */}
             <section>
-              <h2 className="text-sm font-black text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Zap size={16} />
-                Activity
+              <h2 className="text-lg font-black text-[var(--text)] mb-4 flex items-center gap-2">
+                <Zap size={20} />
+                Activity & Insights
               </h2>
               <div className="space-y-2">
                 {data.activities.length === 0 ? (
-                  <div className="py-8 rounded-xl bg-white/[0.02] border border-white/5 text-center">
-                    <Activity size={32} className="mx-auto text-white/20 mb-2" />
-                    <p className="text-white/40 text-sm">No recent activity.</p>
+                  <div className="py-12 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] text-center">
+                    <Activity size={40} className="mx-auto text-[var(--text-dim)] mb-3" />
+                    <p className="text-[var(--text-muted)] font-medium">No recent activity</p>
                   </div>
                 ) : (
                   data.activities.map((a, i) => {
                     const Icon = getActivityIcon(a.action);
                     return (
-                      <div key={i} className="flex gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors">
+                      <div key={i} className="flex gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                           <Icon size={18} className="text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-white/80 capitalize">{a.action.replace(/_/g, ' ')}</p>
+                          <p className="text-sm text-[var(--text)] capitalize">{a.action.replace(/_/g, ' ')}</p>
                           {(a.workspace_name || a.project_title) && (
-                            <p className="text-xs text-white/40 mt-0.5">
+                            <p className="text-xs text-[var(--text-muted)] mt-0.5">
                               {[a.workspace_name, a.project_title].filter(Boolean).join(' → ')}
                             </p>
                           )}
-                          <p className="text-[10px] text-white/30 mt-1">{formatRelativeTime(a.created_at)}</p>
+                          <p className="text-[10px] text-[var(--text-dim)] mt-1">{formatRelativeTime(a.created_at)}</p>
                         </div>
                       </div>
                     );
@@ -469,20 +489,20 @@ export default function ProfilePage() {
 
       {inviteModal && data && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setInviteModal(false)}>
-          <div className="bg-[var(--bg-page)] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[var(--bg-panel)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Invite to workspace</h3>
-              <button onClick={() => setInviteModal(false)} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5">
+              <h3 className="text-lg font-bold text-[var(--text)]">Connect via workspace</h3>
+              <button onClick={() => setInviteModal(false)} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]">
                 <X size={20} />
               </button>
             </div>
-            <p className="text-sm text-white/60 mb-4">
-              Invite <span className="font-bold text-white">{data.user.username || data.user.email || 'this user'}</span> to a team workspace.
+            <p className="text-sm text-[var(--text-muted)] mb-4">
+              Invite <span className="font-bold text-[var(--text)]">{data.user.username || data.user.email || 'this user'}</span> to a team workspace to connect.
             </p>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {workspaces.length === 0 ? (
                 <div className="py-4">
-                  <p className="text-white/40 text-sm mb-4">You need a team workspace to invite people. Create one from the Dashboard.</p>
+                  <p className="text-[var(--text-muted)] text-sm mb-4">Create a team workspace from the Dashboard first.</p>
                   <button
                     onClick={() => { setInviteModal(false); navigate('/dashboard'); }}
                     className="w-full px-4 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
@@ -496,9 +516,9 @@ export default function ProfilePage() {
                     key={w.id}
                     onClick={() => handleSendInvite(w.id)}
                     disabled={invitingWs !== null}
-                    className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] border border-white/10 hover:border-primary/30 text-left disabled:opacity-50"
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border)] hover:border-primary/30 text-left disabled:opacity-50"
                   >
-                    <span className="font-bold text-white">{w.name}</span>
+                    <span className="font-bold text-[var(--text)]">{w.name}</span>
                     {invitingWs === w.id ? <Loader2 size={18} className="animate-spin text-primary" /> : <UserPlus size={18} className="text-primary" />}
                   </button>
                 ))

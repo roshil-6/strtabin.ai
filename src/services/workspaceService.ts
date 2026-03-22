@@ -223,6 +223,18 @@ export const workspaceService = {
   },
 
   async getProjectCanvas(projectId: number, token: string | null) {
+    const delays = [0, 2000, 5000];
+    for (let i = 0; i < delays.length; i++) {
+      if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
+      try {
+        const data = await fetchWithAuth(`/api/projects/${projectId}/canvas`, {}, token);
+        return data;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        if (msg.includes('503') && i < delays.length - 1) continue;
+        throw e;
+      }
+    }
     return fetchWithAuth(`/api/projects/${projectId}/canvas`, {}, token);
   },
 

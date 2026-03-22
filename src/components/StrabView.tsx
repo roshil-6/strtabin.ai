@@ -352,7 +352,7 @@ export default function StrabView() {
                         return;
                     }
                     setIsLoading(true);
-                    addChatMessage(id!, { role: 'assistant', content: '' });
+                    addChatMessage(id!, { role: 'assistant', content: 'Processing...' });
                     if (isGuest) {
                         consumeGuestAiMessage();
                         setGuestAiRemaining(getGuestAiRemaining());
@@ -363,12 +363,14 @@ export default function StrabView() {
                     }
                     try {
                         const token = await getToken();
+                        let fullText = '';
                         await sendStrabMessageStreaming(
                             chatHistory,
                             projectContext,
-                            (text) => updateLastChatMessage(id!, text),
+                            (text) => { fullText = text; },
                             token ?? undefined,
                         );
+                        updateLastChatMessage(id!, fullText);
                     } catch (err) {
                         if (isGuest) {
                             refundGuestAiMessage();
@@ -416,7 +418,7 @@ export default function StrabView() {
 
         const userMsg: ChatMessage = { role: 'user', content: message };
         addChatMessage(id!, userMsg);
-        addChatMessage(id!, { role: 'assistant', content: '' });
+        addChatMessage(id!, { role: 'assistant', content: 'Processing...' });
         setIsLoading(true);
 
         if (isGuest) {
@@ -435,10 +437,7 @@ export default function StrabView() {
             await sendStrabMessageStreaming(
                 messagesForApi,
                 projectContext,
-                (text) => {
-                    fullText = text;
-                    updateLastChatMessage(id!, text);
-                },
+                (text) => { fullText = text; },
                 token ?? undefined,
             );
             const createProjectInWorkspace = workspaceId && token
@@ -472,10 +471,8 @@ export default function StrabView() {
                 ensureCanvasExists,
                 createProjectInWorkspace,
             );
-            if (didUpdate) {
-                updateLastChatMessage(id!, cleanText);
-                toast.success('Flow updated');
-            }
+            updateLastChatMessage(id!, cleanText);
+            if (didUpdate) toast.success('Flow updated');
         } catch (err) {
             if (isGuest) {
                 refundGuestAiMessage();

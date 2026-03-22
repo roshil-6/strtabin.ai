@@ -606,7 +606,9 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (!project) return res.status(404).json({ error: 'Project not found.' });
             if (!hasWorkspaceAccess(req.userId, project.workspace_id)) return res.status(403).json({ error: 'Access denied.' });
             const row = getProjectCanvas(projectId);
-            if (!row) return res.status(404).json({ error: 'Canvas not found.' });
+            if (!row) {
+                return res.json({ nodes: [], edges: [], writingContent: '', name: project.title || null });
+            }
             let data;
             try {
                 data = JSON.parse(row.data);
