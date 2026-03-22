@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
@@ -336,51 +336,16 @@ export default function Dashboard() {
         }
     };
 
-    const carouselScrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-    function ProjectCardGrid({ items, sectionKey }: { items: CanvasData[]; sectionKey: string }) {
-        const scrollRef = (el: HTMLDivElement | null) => { carouselScrollRefs.current[sectionKey] = el; };
-        const scroll = (dir: 'l' | 'r') => {
-            const el = carouselScrollRefs.current[sectionKey];
-            if (!el) return;
-            const amount = el.clientWidth * 0.95;
-            el.scrollBy({ left: dir === 'r' ? amount : -amount, behavior: 'smooth' });
-        };
+    function ProjectCardGrid({ items }: { items: CanvasData[] }) {
         return (
             <>
-                {/* Mobile: 3-card carousel with arrows */}
-                <div className="md:hidden">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <button
-                            onClick={() => scroll('l')}
-                            className="shrink-0 p-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all"
-                            aria-label="Previous cards"
-                        >
-                            <ChevronLeft size={20} />
-                        </button>
-                        <div
-                            ref={scrollRef}
-                            className="flex-1 min-w-0 overflow-x-auto snap-x snap-mandatory gap-2 flex pb-1 custom-scrollbar-hide -mx-0.5"
-                            style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none' }}
-                        >
-                            {items.map(p => (
-                                <div
-                                    key={p.id}
-                                    className="flex-shrink-0 snap-center"
-                                    style={{ width: 'calc((100% - 0.5rem) / 3)', minWidth: 100, maxWidth: 155 }}
-                                >
-                                    {renderProjectCard(p)}
-                                </div>
-                            ))}
+                {/* Mobile: vertical stack, top to bottom */}
+                <div className="md:hidden flex flex-col gap-2">
+                    {items.map(p => (
+                        <div key={p.id}>
+                            {renderProjectCard(p)}
                         </div>
-                        <button
-                            onClick={() => scroll('r')}
-                            className="shrink-0 p-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all"
-                            aria-label="More cards"
-                        >
-                            <ChevronRight size={20} />
-                        </button>
-                    </div>
+                    ))}
                 </div>
                 {/* Desktop: grid */}
                 <div className="hidden md:grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -924,7 +889,7 @@ export default function Dashboard() {
                                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
                                 <div className="flex-1 h-px bg-white/5 ml-2" />
                             </div>
-                            <ProjectCardGrid items={filteredCanvases} sectionKey="reports" />
+                            <ProjectCardGrid items={filteredCanvases} />
                         </div>
                     ) : activeTab === 'monitor' ? (
                         <div key={tabKey} className="animate-in fade-in slide-in-from-bottom-3 duration-300 pb-20 space-y-4 md:space-y-8">
@@ -1021,7 +986,7 @@ export default function Dashboard() {
                                 <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
                                 <div className="flex-1 h-px bg-white/5 ml-2" />
                             </div>
-                            <ProjectCardGrid items={filteredCanvases} sectionKey="monitor" />
+                            <ProjectCardGrid items={filteredCanvases} />
                         </div>
                     ) : (
                         <div key={tabKey} className="space-y-4 md:space-y-14 animate-in fade-in slide-in-from-bottom-3 duration-300">
@@ -1058,7 +1023,7 @@ export default function Dashboard() {
                                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Pinned</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={pinnedProjects} sectionKey="pinned" />
+                                    <ProjectCardGrid items={pinnedProjects} />
                                 </section>
                             )}
 
@@ -1070,7 +1035,7 @@ export default function Dashboard() {
                                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Current Focus</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={currentProjects} sectionKey="current" />
+                                    <ProjectCardGrid items={currentProjects} />
                                 </section>
                             )}
 
@@ -1082,7 +1047,7 @@ export default function Dashboard() {
                                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Merged</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={mergedProjects} sectionKey="merged" />
+                                    <ProjectCardGrid items={mergedProjects} />
                                 </section>
                             )}
 
@@ -1098,7 +1063,6 @@ export default function Dashboard() {
                                 {(pinnedProjects.length > 0 || currentProjects.length > 0 ? sortedOtherProjects : sortedRegularProjects).length > 0 ? (
                                     <ProjectCardGrid
                                         items={pinnedProjects.length > 0 || currentProjects.length > 0 ? sortedOtherProjects : sortedRegularProjects}
-                                        sectionKey="all"
                                     />
                                 ) : (
                                     <>
