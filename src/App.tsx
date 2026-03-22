@@ -20,6 +20,7 @@ import AuthGate from './components/AuthGate';
 import UserSyncOnLoad from './components/UserSyncOnLoad';
 import PaywallGate from './components/PaywallGate';
 import ProjectBackground from './components/ProjectBackground';
+import ParticleTransition from './components/ParticleTransition';
 import NotFoundPage from './components/NotFoundPage';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
     <div className="min-h-screen w-full theme-page relative">
     <UserSyncOnLoad />
     {showGrid && <ProjectBackground />}
+    <ParticleTransition />
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
