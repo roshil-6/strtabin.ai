@@ -33,7 +33,12 @@ import {
   Hash,
   Copy,
   RefreshCw,
+  Building2,
 } from 'lucide-react';
+
+/** Theme-aware fields — native selects & inputs stay readable in light/dark */
+const wsField =
+  'w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary/50 border bg-[var(--bg-muted)] text-[var(--text)] border-[var(--border)] placeholder:text-[var(--text-dim)]';
 import { workspaceService, type Workspace, type Project, type WorkspaceMember, type ActivityLog, type ProjectStatus, type MemberDailyTask } from '../services/workspaceService';
 import { chatService } from '../services/chatService';
 
@@ -442,10 +447,73 @@ export default function WorkspacePage() {
             )}
 
             <div className="grid md:grid-cols-3 gap-4 md:gap-6 items-start">
-              <div className="md:col-span-2 space-y-6">
+              <div className="md:col-span-2 space-y-6 overflow-visible">
                 {/* Overview tab */}
                 {isTeam && activeTab === 'overview' && (
                   <section className="space-y-6">
+                    {/* Virtual office — shared team hub */}
+                    <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.08] via-[var(--bg-panel)] to-[var(--bg-page)] p-5 md:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+                      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+                      <div className="relative flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                          <div className="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
+                            <Building2 size={28} className="text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <h2 className="text-lg md:text-xl font-black text-[var(--text)] tracking-tight">Virtual office</h2>
+                            <p className="text-sm text-[var(--text-muted)] mt-1 leading-relaxed">
+                              Your team&apos;s shared space — projects, daily tasks, and chat in one place. Everyone sees the same workspace; use tabs to move between work areas.
+                            </p>
+                            <div className="flex flex-wrap gap-2 mt-4">
+                              <button
+                                type="button"
+                                onClick={() => navigate('/community')}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-black font-bold text-xs hover:bg-white transition-colors"
+                              >
+                                <MessageCircle size={14} />
+                                Team chat (Community)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCopyWorkspaceLink}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-muted)] border border-[var(--border)] text-[var(--text)] font-bold text-xs hover:border-primary/40 transition-colors"
+                              >
+                                <Share2 size={14} />
+                                Copy office link
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setActiveTab('tasks')}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-muted)] border border-[var(--border)] text-[var(--text)] font-bold text-xs hover:border-primary/40 transition-colors"
+                              >
+                                <ListTodo size={14} />
+                                Daily tasks
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-stretch md:items-end gap-2 shrink-0">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-[var(--text-dim)] md:text-right">In the office</p>
+                          <div className="flex flex-wrap gap-1.5 justify-start md:justify-end">
+                            {members.slice(0, 10).map((m) => (
+                              <div
+                                key={m.id}
+                                className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary"
+                                title={m.username || m.email || 'Member'}
+                              >
+                                {(m.username || m.email || '?').slice(0, 2).toUpperCase()}
+                              </div>
+                            ))}
+                            {members.length > 10 && (
+                              <div className="w-9 h-9 rounded-xl bg-[var(--bg-muted)] border border-[var(--border)] flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)]">
+                                +{members.length - 10}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Workspace ID - share with team to let them join */}
                     {isAdmin && (
                       <div className="p-4 rounded-xl bg-primary/10 border border-primary/30 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -580,7 +648,7 @@ export default function WorkspacePage() {
 
                 {/* Projects section - for individual always; for team only on Projects tab */}
                 {(!isTeam || activeTab === 'projects') && (
-                  <section>
+                  <section className="overflow-visible">
                   {(!isTeam || activeTab === 'projects') && (
                     <>
                       {isTeam && (
@@ -613,7 +681,7 @@ export default function WorkspacePage() {
                       )}
                     </>
                   )}
-                  <div className="space-y-2">
+                  <div className="space-y-2 overflow-visible">
                     {projects.length === 0 ? (
                       <p className="text-white/30 text-sm py-8 text-center">No projects yet. Create one to get started.</p>
                     ) : (
@@ -622,7 +690,7 @@ export default function WorkspacePage() {
                         return (
                           <div
                             key={project.id}
-                            className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/10 rounded-xl hover:border-white/20 transition-all group"
+                            className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/10 rounded-xl hover:border-white/20 transition-all group overflow-visible relative z-0"
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
@@ -642,21 +710,21 @@ export default function WorkspacePage() {
                             </div>
                             <div className="flex items-center gap-2">
                               {isTeam && isAdmin && (
-                                <div className="relative">
+                                <div className="relative z-[200]">
                                   <button
                                     type="button"
                                     onClick={(e) => { e.stopPropagation(); setAssigningProject(assigningProject === project.id ? null : project.id); }}
-                                    className="p-2 text-white/30 hover:text-primary hover:bg-white/5 rounded-lg"
+                                    className="p-2 text-[var(--text-dim)] hover:text-primary hover:bg-[var(--bg-muted)] rounded-lg"
                                     title="Assign to"
                                   >
                                     <UserCheck size={16} />
                                   </button>
                                   {assigningProject === project.id && (
-                                    <div className="absolute right-0 top-full mt-1 py-1 bg-[var(--bg-panel)] border border-white/10 rounded-xl shadow-xl z-20 min-w-[140px] max-h-40 overflow-y-auto">
+                                    <div className="absolute right-0 top-full mt-1 py-1.5 min-w-[180px] max-h-56 overflow-y-auto custom-scrollbar rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-[0_12px_40px_rgba(0,0,0,0.35)] z-[300]">
                                       <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); handleAssignProject(project.id, null); }}
-                                        className="w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 text-white/60"
+                                        className="w-full px-3 py-2.5 text-left text-xs font-bold hover:bg-[var(--bg-muted)] text-[var(--text-muted)]"
                                       >
                                         Unassigned
                                       </button>
@@ -665,8 +733,8 @@ export default function WorkspacePage() {
                                           key={m.id}
                                           type="button"
                                           onClick={(e) => { e.stopPropagation(); handleAssignProject(project.id, m.id); }}
-                                          className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 flex items-center gap-2 ${
-                                            (project as Project & { assigned_to?: number }).assigned_to === m.id ? 'text-primary' : 'text-white/70'
+                                          className={`w-full px-3 py-2.5 text-left text-xs font-bold hover:bg-[var(--bg-muted)] flex items-center gap-2 text-[var(--text)] ${
+                                            (project as Project & { assigned_to?: number }).assigned_to === m.id ? 'text-primary' : ''
                                           }`}
                                         >
                                           {m.username || m.email || 'User'}
@@ -789,18 +857,18 @@ export default function WorkspacePage() {
                                     <ChevronDown size={12} />
                                   </button>
                                   {roleMenuOpen === m.id && (
-                                    <div className="absolute left-0 top-full mt-1 py-1 bg-[var(--bg-panel)] border border-white/10 rounded-xl shadow-xl z-10 min-w-[100px]">
+                                    <div className="absolute left-0 top-full mt-1 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.35)] z-[300] min-w-[120px]">
                                       <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'admin'); setRoleMenuOpen(null); }}
-                                        className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'admin' ? 'text-primary' : 'text-white/70'}`}
+                                        className={`w-full px-3 py-2.5 text-left text-xs font-bold hover:bg-[var(--bg-muted)] text-[var(--text)] ${m.role === 'admin' ? 'text-primary' : ''}`}
                                       >
                                         Admin
                                       </button>
                                       <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'member'); setRoleMenuOpen(null); }}
-                                        className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'member' ? 'text-primary' : 'text-white/70'}`}
+                                        className={`w-full px-3 py-2.5 text-left text-xs font-bold hover:bg-[var(--bg-muted)] text-[var(--text)] ${m.role === 'member' ? 'text-primary' : ''}`}
                                       >
                                         Member
                                       </button>
@@ -829,7 +897,7 @@ export default function WorkspacePage() {
                           type="date"
                           value={taskDate}
                           onChange={(e) => setTaskDate(e.target.value)}
-                          className="w-full sm:w-auto min-w-0 px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary/50"
+                          className={`${wsField} w-full sm:w-auto min-w-0`}
                         />
                         {!isAdmin && currentUserId && (
                           <button
@@ -846,7 +914,7 @@ export default function WorkspacePage() {
                           <select
                             value={newTaskUserId ?? ''}
                             onChange={(e) => setNewTaskUserId(e.target.value ? parseInt(e.target.value, 10) : null)}
-                            className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary/50"
+                            className={wsField}
                           >
                             <option value="">Assign to...</option>
                             {members.map((m) => (
@@ -862,7 +930,7 @@ export default function WorkspacePage() {
                             value={newTaskText}
                             onChange={(e) => setNewTaskText(e.target.value)}
                             placeholder="Task description..."
-                            className="flex-1 min-w-0 px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:border-primary/50"
+                            className={`${wsField} flex-1 min-w-0`}
                           />
                           <button
                             type="submit"
@@ -873,7 +941,7 @@ export default function WorkspacePage() {
                           </button>
                         </div>
                       </form>
-                      <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
                         {(() => {
                           const displayedTasks = showOnlyMyTasks && currentUserId ? dailyTasks.filter((t) => t.user_id === currentUserId) : dailyTasks;
                           return displayedTasks.length === 0 ? (
@@ -882,32 +950,34 @@ export default function WorkspacePage() {
                             displayedTasks.map((t) => (
                               <div
                                 key={t.id}
-                                className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                                  t.status === 'done' ? 'bg-white/[0.02] border-white/5' : 'bg-white/[0.03] border-white/10'
+                                className={`flex items-center justify-between gap-2 p-3 rounded-xl border transition-all ${
+                                  t.status === 'done' ? 'bg-[var(--bg-muted)]/50 border-[var(--border)]' : 'bg-[var(--bg-muted)] border-[var(--border)]'
                                 }`}
                               >
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
                                   <button
+                                    type="button"
                                     onClick={() => handleToggleTaskStatus(t)}
                                     className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-all ${
-                                      t.status === 'done' ? 'bg-primary border-primary' : 'border-white/30 hover:border-white/50'
+                                      t.status === 'done' ? 'bg-primary border-primary' : 'border-[var(--border-strong)] hover:border-primary/50'
                                     }`}
                                   >
                                     {t.status === 'done' && <CheckCircle2 size={12} className="text-black" />}
                                   </button>
-                                  <div className="min-w-0">
-                                    <p className={`text-sm ${t.status === 'done' ? 'text-white/50 line-through' : 'text-white'}`}>
+                                  <div className="min-w-0 flex-1">
+                                    <p className={`text-sm break-words ${t.status === 'done' ? 'text-[var(--text-dim)] line-through' : 'text-[var(--text)]'}`}>
                                       {t.task_text}
                                     </p>
-                                    <p className="text-[10px] text-white/40">
-                                      {t.assignee_username || 'Unknown'} • {t.assigned_by_username ? `by ${t.assigned_by_username}` : ''}
+                                    <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                                      {t.assignee_username || 'Unknown'}{t.assigned_by_username ? ` • by ${t.assigned_by_username}` : ''}
                                     </p>
                                   </div>
                                 </div>
                                 {isAdmin && (
                                   <button
+                                    type="button"
                                     onClick={() => handleDeleteTask(t.id)}
-                                    className="p-1.5 text-white/30 hover:text-red-400"
+                                    className="p-1.5 text-[var(--text-dim)] hover:text-red-400 shrink-0"
                                   >
                                     <Trash2 size={14} />
                                   </button>
@@ -1019,18 +1089,18 @@ export default function WorkspacePage() {
                                     <ChevronDown size={12} />
                                   </button>
                                   {roleMenuOpen === m.id && (
-                                    <div className="absolute left-0 top-full mt-1 py-1 bg-[var(--bg-panel)] border border-white/10 rounded-xl shadow-xl z-10 min-w-[100px]">
+                                    <div className="absolute left-0 top-full mt-1 py-1.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.35)] z-[300] min-w-[120px]">
                                       <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'admin'); setRoleMenuOpen(null); }}
-                                        className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'admin' ? 'text-primary' : 'text-white/70'}`}
+                                        className={`w-full px-3 py-2.5 text-left text-xs font-bold hover:bg-[var(--bg-muted)] text-[var(--text)] ${m.role === 'admin' ? 'text-primary' : ''}`}
                                       >
                                         Admin
                                       </button>
                                       <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); handleUpdateRole(m.id, 'member'); setRoleMenuOpen(null); }}
-                                        className={`w-full px-3 py-2 text-left text-xs font-bold hover:bg-white/5 ${m.role === 'member' ? 'text-primary' : 'text-white/70'}`}
+                                        className={`w-full px-3 py-2.5 text-left text-xs font-bold hover:bg-[var(--bg-muted)] text-[var(--text)] ${m.role === 'member' ? 'text-primary' : ''}`}
                                       >
                                         Member
                                       </button>
@@ -1059,7 +1129,7 @@ export default function WorkspacePage() {
                           type="date"
                           value={taskDate}
                           onChange={(e) => setTaskDate(e.target.value)}
-                          className="w-full sm:w-auto min-w-0 px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary/50"
+                          className={`${wsField} w-full sm:w-auto min-w-0`}
                         />
                         {!isAdmin && currentUserId && (
                           <button
@@ -1076,7 +1146,7 @@ export default function WorkspacePage() {
                             <select
                               value={newTaskUserId ?? ''}
                               onChange={(e) => setNewTaskUserId(e.target.value ? parseInt(e.target.value, 10) : null)}
-                              className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary/50"
+                              className={wsField}
                             >
                               <option value="">Assign to...</option>
                               {members.map((m) => (
@@ -1092,7 +1162,7 @@ export default function WorkspacePage() {
                               value={newTaskText}
                               onChange={(e) => setNewTaskText(e.target.value)}
                               placeholder="Task description..."
-                              className="flex-1 min-w-0 px-3 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:border-primary/50"
+                              className={`${wsField} flex-1 min-w-0`}
                             />
                             <button
                               type="submit"
@@ -1103,7 +1173,7 @@ export default function WorkspacePage() {
                             </button>
                           </div>
                       </form>
-                      <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                      <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-1">
                         {(() => {
                           const displayedTasks = showOnlyMyTasks && currentUserId ? dailyTasks.filter((t) => t.user_id === currentUserId) : dailyTasks;
                           return displayedTasks.length === 0 ? (
@@ -1112,32 +1182,34 @@ export default function WorkspacePage() {
                             displayedTasks.map((t) => (
                             <div
                               key={t.id}
-                              className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                                t.status === 'done' ? 'bg-white/[0.02] border-white/5' : 'bg-white/[0.03] border-white/10'
+                              className={`flex items-center justify-between gap-2 p-3 rounded-xl border transition-all ${
+                                t.status === 'done' ? 'bg-[var(--bg-muted)]/50 border-[var(--border)]' : 'bg-[var(--bg-muted)] border-[var(--border)]'
                               }`}
                             >
                               <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <button
+                                  type="button"
                                   onClick={() => handleToggleTaskStatus(t)}
                                   className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-all ${
-                                    t.status === 'done' ? 'bg-primary border-primary' : 'border-white/30 hover:border-white/50'
+                                    t.status === 'done' ? 'bg-primary border-primary' : 'border-[var(--border-strong)] hover:border-primary/50'
                                   }`}
                                 >
                                   {t.status === 'done' && <CheckCircle2 size={12} className="text-black" />}
                                 </button>
-                                <div className="min-w-0">
-                                  <p className={`text-sm ${t.status === 'done' ? 'text-white/50 line-through' : 'text-white'}`}>
+                                <div className="min-w-0 flex-1">
+                                  <p className={`text-sm break-words ${t.status === 'done' ? 'text-[var(--text-dim)] line-through' : 'text-[var(--text)]'}`}>
                                     {t.task_text}
                                   </p>
-                                  <p className="text-[10px] text-white/40">
-                                    {t.assignee_username || 'Unknown'} • {t.assigned_by_username ? `by ${t.assigned_by_username}` : ''}
+                                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                                    {t.assignee_username || 'Unknown'}{t.assigned_by_username ? ` • by ${t.assigned_by_username}` : ''}
                                   </p>
                                 </div>
                               </div>
                               {isAdmin && (
                                 <button
+                                  type="button"
                                   onClick={() => handleDeleteTask(t.id)}
-                                  className="p-1.5 text-white/30 hover:text-red-400"
+                                  className="p-1.5 text-[var(--text-dim)] hover:text-red-400 shrink-0"
                                 >
                                   <Trash2 size={14} />
                                 </button>
@@ -1233,14 +1305,14 @@ export default function WorkspacePage() {
                 value={newProjectTitle}
                 onChange={(e) => setNewProjectTitle(e.target.value)}
                 placeholder="Project title"
-                className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-primary/50"
+                className={`${wsField} px-4`}
                 required
               />
               {isTeam && members.length > 0 && (
                 <select
                   value={newProjectAssignTo ?? ''}
                   onChange={(e) => setNewProjectAssignTo(e.target.value ? parseInt(e.target.value, 10) : null)}
-                  className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary/50"
+                  className={`${wsField} px-4`}
                 >
                   <option value="">Assign to (optional)</option>
                   {members.map((m) => (
@@ -1253,7 +1325,7 @@ export default function WorkspacePage() {
                 onChange={(e) => setNewProjectDesc(e.target.value)}
                 placeholder="Description (optional)"
                 rows={3}
-                className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-primary/50 resize-none"
+                className={`${wsField} px-4 resize-none`}
               />
               <div className="flex gap-2">
                 <button type="submit" disabled={submitting} className="flex-1 py-2.5 bg-primary text-black font-bold rounded-xl disabled:opacity-50">

@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronRight } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronRight, Rocket, FolderOpen } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
@@ -70,6 +70,8 @@ export default function Dashboard() {
     const [myUsername, setMyUsername] = useState<string | null>(null);
     const [invitations, setInvitations] = useState<Array<{ id: number; workspace_id: number; workspace_name: string; inviter_username: string | null }>>([]);
     const [workInsights, setWorkInsights] = useState<{ streak: number; progress: { total: number; count: number } } | null>(null);
+    type ProjectFilter = 'all' | 'active' | 'priority' | 'stuck' | 'completed';
+    const [projectFilter, setProjectFilter] = useState<ProjectFilter>('all');
 
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
@@ -298,6 +300,87 @@ export default function Dashboard() {
     const sortedOtherProjects = sortByNewest(otherProjects);
     const sortedRegularProjects = sortByNewest(regularProjects);
 
+    const filterProjectList = (arr: CanvasData[]) => {
+        if (projectFilter === 'all') return arr;
+        return arr.filter((p) => {
+            const tc = p.todos?.length ?? 0;
+            const done = p.todos?.filter((t) => t.completed).length ?? 0;
+            const nodes = p.nodes?.length ?? 0;
+            const wc = wordCount(p.writingContent);
+            if (projectFilter === 'active') {
+                if (p.isCurrent) return true;
+                if (tc === 0) return nodes > 0 || wc > 0;
+                return done < tc;
+            }
+            if (projectFilter === 'priority') return !!(p.isPinned || p.isCurrent);
+            if (projectFilter === 'stuck') return tc > 0 && done === 0;
+            if (projectFilter === 'completed') return tc > 0 && done === tc;
+            return true;
+        });
+    };
+
+    const avgCompletionAll = (() => {
+        const withTodos = filteredCanvases.filter((p) => (p.todos?.length ?? 0) > 0);
+        if (withTodos.length === 0) return 0;
+        return Math.round(
+            withTodos.reduce((acc, p) => {
+                const tc = p.todos!.length;
+                const done = p.todos!.filter((t) => t.completed).length;
+                return acc + (tc ? (done / tc) * 100 : 0);
+            }, 0) / withTodos.length
+        );
+    })();
+
+    const filteredPinned = filterProjectList(pinnedProjects);
+    const filteredCurrent = filterProjectList(currentProjects);
+    const filteredMerged = filterProjectList(mergedProjects);
+    const filteredOther = filterProjectList(sortedOtherProjects);
+    const filteredRegularOnly = filterProjectList(sortedRegularProjects);
+
+    const activeProjectsCount = filteredCanvases.filter((p) => {
+        const tc = p.todos?.length ?? 0;
+        const done = p.todos?.filter((t) => t.completed).length ?? 0;
+        const nodes = p.nodes?.length ?? 0;
+        const wc = wordCount(p.writingContent);
+        if (p.isCurrent) return true;
+        if (tc === 0) return nodes > 0 || wc > 0;
+        return done < tc;
+    }).length;
+
+    const continueWorkingProject = (() => {
+        const order =
+            projectFilter === 'all'
+                ? [...currentProjects, ...pinnedProjects, ...mergedProjects, ...(sortedOtherProjects.length ? sortedOtherProjects : sortedRegularProjects)]
+                : [...filteredCurrent, ...filteredPinned, ...filteredMerged, ...filteredOther, ...filteredRegularOnly];
+        const seen = new Set<string>();
+        for (const c of order) {
+            if (!seen.has(c.id)) {
+                seen.add(c.id);
+                return c;
+            }
+        }
+        return null;
+    })();
+
+    const filterPills: { id: ProjectFilter; label: string }[] = [
+        { id: 'all', label: 'All' },
+        { id: 'active', label: 'Active' },
+        { id: 'priority', label: 'High priority' },
+        { id: 'stuck', label: 'Stuck' },
+        { id: 'completed', label: 'Completed' },
+    ];
+
+    const mainGridProjects =
+        pinnedProjects.length > 0 || currentProjects.length > 0 ? filteredOther : filteredRegularOnly;
+    const hasStrategyProjects = filteredCanvases.length > 0;
+    const noMatchesForFilter =
+        projectFilter !== 'all' &&
+        hasStrategyProjects &&
+        filteredPinned.length === 0 &&
+        filteredCurrent.length === 0 &&
+        filteredMerged.length === 0 &&
+        mainGridProjects.length === 0;
+
     const tabs = [
         { id: 'strategy', label: 'Writing & Flow', icon: FileText, color: 'text-primary' },
         { id: 'todo', label: 'Task Lists', icon: ListTodo, color: 'text-orange-400' },
@@ -337,17 +420,33 @@ export default function Dashboard() {
         }
     };
 
-    function ProjectCardGrid({ items }: { items: CanvasData[] }) {
+    function ProjectCardGrid({
+        items,
+        variant = 'grid',
+        appendCreateTile = false,
+    }: {
+        items: CanvasData[];
+        variant?: 'grid' | 'pinned-hero';
+        appendCreateTile?: boolean;
+    }) {
+        if (items.length === 0 && !appendCreateTile) return null;
         return (
             <>
                 {/* Mobile: compact list-style cards */}
                 <div className="md:hidden flex flex-col gap-2">
                     {items.map(p => renderMobileCard(p))}
+                    {appendCreateTile && renderCreateProjectTile('mobile')}
                 </div>
-                {/* Desktop: grid */}
-                <div className="hidden md:grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {items.map(p => renderProjectCard(p))}
-                </div>
+                {variant === 'pinned-hero' ? (
+                    <div className="hidden md:flex flex-col gap-4">
+                        {items.map(p => renderPinnedHeroCard(p))}
+                    </div>
+                ) : (
+                    <div className="hidden md:grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {items.map(p => renderProjectCard(p))}
+                        {appendCreateTile && renderCreateProjectTile('desktop')}
+                    </div>
+                )}
             </>
         );
     }
@@ -1073,6 +1172,87 @@ export default function Dashboard() {
                         </div>
                     ) : (
                         <div key={tabKey} className="space-y-4 md:space-y-14 tab-fade-in">
+                            {/* Projects hub — metrics, filter pills, continue CTA */}
+                            <div className="rounded-2xl md:rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#161616] via-[#101010] to-violet-950/25 px-4 py-5 md:px-8 md:py-7 mb-2 md:mb-6 shadow-[0_8px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.05)]">
+                                <div className="flex flex-col xl:flex-row xl:items-center gap-6 xl:gap-10">
+                                    <div className="flex flex-wrap gap-5 md:gap-10 flex-1">
+                                        <div className="flex items-start gap-3 min-w-[160px]">
+                                            <CheckCircle2 size={20} className="text-teal-400 shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Today&apos;s focus</p>
+                                                <p className="text-sm font-bold text-white mt-1 leading-snug">
+                                                    {currentProjects.length > 0
+                                                        ? `${currentProjects.length} in focus`
+                                                        : 'Set current to spotlight'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-3 min-w-[160px]">
+                                            <FolderOpen size={20} className="text-white/45 shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Active projects</p>
+                                                <p className="text-sm font-bold text-white mt-1">{activeProjectsCount} with momentum</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-3 min-w-[160px]">
+                                            <TrendingUp size={20} className="text-orange-400 shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Completion rate</p>
+                                                <p className="text-sm font-black text-white mt-1">
+                                                    <span className="text-orange-400">{avgCompletionAll}%</span>
+                                                    <span className="text-white/35 font-semibold text-xs ml-2">avg. tasks</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            continueWorkingProject
+                                                ? navigate(getTargetRoute(continueWorkingProject.id))
+                                                : handleCreate()
+                                        }
+                                        className="w-full xl:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-[0.15em] text-white bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:via-violet-500 hover:to-purple-500 shadow-[0_8px_32px_rgba(109,40,217,0.35)] border border-white/10 transition-all active:scale-[0.98]"
+                                    >
+                                        <Zap size={16} className="text-amber-200" />
+                                        Continue working
+                                    </button>
+                                </div>
+                                <div className="flex flex-wrap gap-1 sm:gap-2 mt-6 pt-5 border-t border-white/[0.06]">
+                                    {filterPills.map((pill) => (
+                                        <button
+                                            key={pill.id}
+                                            type="button"
+                                            onClick={() => setProjectFilter(pill.id)}
+                                            className={`relative px-4 py-2.5 rounded-full text-[11px] font-bold transition-colors ${
+                                                projectFilter === pill.id
+                                                    ? 'text-white bg-white/[0.08]'
+                                                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
+                                            }`}
+                                        >
+                                            {pill.label}
+                                            {projectFilter === pill.id && (
+                                                <span className="absolute bottom-1 left-4 right-4 h-0.5 rounded-full bg-teal-400/90 shadow-[0_0_12px_rgba(45,212,191,0.5)]" />
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {noMatchesForFilter && (
+                                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-10 text-center mb-4">
+                                    <p className="text-sm font-bold text-white/60">No projects match this filter</p>
+                                    <p className="text-xs text-white/35 mt-2 max-w-md mx-auto">Try another tab or clear filters to see everything in this workspace.</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setProjectFilter('all')}
+                                        className="mt-4 text-xs font-black uppercase tracking-wider text-teal-400 hover:text-teal-300"
+                                    >
+                                        Show all
+                                    </button>
+                                </div>
+                            )}
+
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
                                     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#141414] border border-orange-500/30 rounded-3xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
@@ -1098,39 +1278,39 @@ export default function Dashboard() {
                                 </div>
                             )}
 
-                            {/* Pinned Projects */}
-                            {pinnedProjects.length > 0 && (
+                            {/* Pinned Projects — wide hero cards on desktop */}
+                            {filteredPinned.length > 0 && (
                                 <section>
                                     <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Pinned</h2>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]" />
+                                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Pinned projects</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={pinnedProjects} />
+                                    <ProjectCardGrid items={filteredPinned} variant="pinned-hero" />
                                 </section>
                             )}
 
                             {/* Current Projects */}
-                            {currentProjects.length > 0 && (
+                            {filteredCurrent.length > 0 && (
                                 <section>
                                     <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Current Focus</h2>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Current focus</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={currentProjects} />
+                                    <ProjectCardGrid items={filteredCurrent} />
                                 </section>
                             )}
 
                             {/* Merged Projects */}
-                            {mergedProjects.length > 0 && (
+                            {filteredMerged.length > 0 && (
                                 <section>
                                     <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
                                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Merged</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={mergedProjects} />
+                                    <ProjectCardGrid items={filteredMerged} />
                                 </section>
                             )}
 
@@ -1139,13 +1319,14 @@ export default function Dashboard() {
                                 <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                                     <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
-                                        {pinnedProjects.length > 0 || currentProjects.length > 0 || mergedProjects.length > 0 ? 'All Projects' : 'Start your project'}
+                                        {pinnedProjects.length > 0 || currentProjects.length > 0 || mergedProjects.length > 0 ? 'All projects' : 'Start your project'}
                                     </h2>
                                     <div className="flex-1 h-px bg-white/5 ml-2" />
                                 </div>
-                                {(pinnedProjects.length > 0 || currentProjects.length > 0 ? sortedOtherProjects : sortedRegularProjects).length > 0 ? (
+                                {mainGridProjects.length > 0 ? (
                                     <ProjectCardGrid
-                                        items={pinnedProjects.length > 0 || currentProjects.length > 0 ? sortedOtherProjects : sortedRegularProjects}
+                                        items={mainGridProjects}
+                                        appendCreateTile={hasStrategyProjects && !selectionMode}
                                     />
                                 ) : (
                                     <>
@@ -1291,6 +1472,7 @@ export default function Dashboard() {
         const wc = wordCount(p.writingContent);
         const previewText = (p.writingContent || '').replace(/\s+/g, ' ').trim();
         const hasContent = nodeCount > 0 || todoCount > 0 || wc > 0;
+        const nextTodoLine = p.todos?.find((t) => !t.completed)?.text?.trim();
 
         return (
             <div
@@ -1325,8 +1507,18 @@ export default function Dashboard() {
                             : '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)';
                 }}
             >
-                {/* Accent top strip */}
-                <div className="h-[2px] w-full shrink-0 rounded-t-2xl bg-primary/60" />
+                {/* Teal accent + progress (mock-inspired) */}
+                <div className="shrink-0 rounded-t-2xl md:rounded-t-3xl overflow-hidden">
+                    <div className="h-[3px] w-full bg-gradient-to-r from-teal-500 via-cyan-400 to-teal-400" />
+                    {todoCount > 0 && (
+                        <div className="h-1 w-full bg-zinc-800/90">
+                            <div
+                                className="h-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all duration-500"
+                                style={{ width: `${completionRate}%` }}
+                            />
+                        </div>
+                    )}
+                </div>
 
                 <div className="p-4 md:p-5 flex flex-col flex-1">
                     {/* Selection Overlay */}
@@ -1380,18 +1572,30 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    {/* Icon + badges */}
+                    {/* Icon + status chips (mock-style) */}
                     <div className="flex items-start justify-between mb-2 md:mb-3">
-                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
-                            {isMerged ? <GitMerge size={16} className="text-primary md:w-5 md:h-5" /> : <Icon size={16} className="text-primary md:w-5 md:h-5" />}
+                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center shrink-0 bg-teal-500/10 border border-teal-400/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                            {isMerged ? <GitMerge size={16} className="text-teal-300 md:w-5 md:h-5" /> : <Icon size={16} className="text-teal-300 md:w-5 md:h-5" />}
                         </div>
                         <div className="flex items-center gap-1 flex-wrap justify-end">
-                            {p.isPinned && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 md:hidden" title="Pinned" />}
-                            {p.isPinned && <span className="hidden md:inline px-1.5 py-0.5 rounded-md bg-primary/15 text-[9px] font-black uppercase tracking-wider text-primary">Pinned</span>}
-                            {p.isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 md:hidden" title="Active" />}
-                            {p.isCurrent && <span className="hidden md:inline px-1.5 py-0.5 rounded-md bg-amber-500/20 text-[9px] font-black uppercase text-amber-400">Active</span>}
-                            {isMerged && <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 md:hidden" />}
-                            {isMerged && <span className="hidden md:inline px-1.5 py-0.5 rounded-md bg-orange-500/20 text-[9px] font-black text-orange-400">Merged</span>}
+                            {p.isPinned && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0 md:hidden" title="High priority" />}
+                            {p.isPinned && (
+                                <span className="hidden md:inline px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/25 text-[9px] font-black uppercase tracking-wider text-rose-300">
+                                    High priority
+                                </span>
+                            )}
+                            {p.isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 md:hidden" title="In progress" />}
+                            {p.isCurrent && (
+                                <span className="hidden md:inline px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-[9px] font-black uppercase tracking-wider text-emerald-300">
+                                    In progress
+                                </span>
+                            )}
+                            {isMerged && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0 md:hidden" />}
+                            {isMerged && (
+                                <span className="hidden md:inline px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/25 text-[9px] font-black uppercase text-violet-300">
+                                    Merged
+                                </span>
+                            )}
                             {streak > 0 && <span className="text-[8px] font-black text-emerald-400 md:text-[9px]">{streak}d</span>}
                         </div>
                     </div>
@@ -1418,6 +1622,13 @@ export default function Dashboard() {
                         </h3>
                     )}
 
+                    {(nextTodoLine || previewText) && (
+                        <p className="text-[11px] text-zinc-400 line-clamp-2 mb-2 md:mb-3 leading-relaxed">
+                            <span className="text-teal-500/90 font-bold">Next: </span>
+                            {nextTodoLine || previewText.slice(0, 120) || 'Add tasks or notes'}
+                        </p>
+                    )}
+
                     {/* Stats row — hide on mobile, show on md+ */}
                     <div className="hidden md:flex items-center gap-3 mb-3 flex-wrap">
                         <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
@@ -1442,7 +1653,7 @@ export default function Dashboard() {
                                 <span className="text-[10px] font-bold text-zinc-200">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
                             </div>
                             <div className="h-1.5 rounded-full bg-zinc-700/80 overflow-hidden">
-                                <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${completionRate}%` }} />
+                                <div className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all duration-300" style={{ width: `${completionRate}%` }} />
                             </div>
                         </div>
                         <div className="rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2.5">
@@ -1505,17 +1716,365 @@ export default function Dashboard() {
                         )}
                     </div>
 
-                    {/* Footer */}
-                    <div className="mt-auto flex items-center justify-between">
-                        <span className="text-[10px] text-zinc-500 font-medium hidden md:inline">
-                            {p.folderId ? (folders[p.folderId]?.name || 'Workspace project') : 'General project'}
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 text-primary">
-                            {selectionMode ? (isSelected ? 'Deselect' : 'Select') : 'Open'}
-                            <ArrowRight size={11} />
-                        </span>
+                    {/* Footer — dual CTAs (mock-style) */}
+                    <div className="mt-auto pt-3 border-t border-white/[0.06] flex flex-col gap-3">
+                        {!selectionMode && (
+                            <div className="hidden md:flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(getTargetRoute(p.id));
+                                    }}
+                                    className="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide border border-teal-500/40 text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 transition-colors"
+                                >
+                                    Continue
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/strategy/${p.id}`);
+                                    }}
+                                    className="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide border border-white/10 text-white/80 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+                                >
+                                    Open
+                                </button>
+                            </div>
+                        )}
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-zinc-500 font-medium hidden md:inline truncate">
+                                {p.folderId ? (folders[p.folderId]?.name || 'Workspace project') : 'General project'}
+                            </span>
+                            <span className="flex md:hidden items-center gap-1 text-[10px] font-black uppercase tracking-wider text-teal-400">
+                                {selectionMode ? (isSelected ? 'Tap to deselect' : 'Tap to select') : 'Open'}
+                                <ArrowRight size={11} />
+                            </span>
+                            <span className="hidden md:flex items-center gap-1 text-[10px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all text-teal-400/80">
+                                Card click → workspace
+                                <ArrowRight size={11} />
+                            </span>
+                        </div>
                     </div>
                 </div>
+            </div>
+        );
+    }
+
+    function renderPinnedHeroCard(p: CanvasData) {
+        const isSelected = selectedIds.includes(p.id);
+        const isMerged = !!p.mergedCanvasIds;
+        const nodeCount = p.nodes?.length ?? 0;
+        const todoCount = p.todos?.length ?? 0;
+        const completedTodoCount = p.todos?.filter((todo) => todo.completed).length ?? 0;
+        const completionRate = todoCount > 0 ? Math.round((completedTodoCount / todoCount) * 100) : 0;
+        const nextTodoLine = p.todos?.find((t) => !t.completed)?.text?.trim();
+        const previewText = (p.writingContent || '').replace(/\s+/g, ' ').trim();
+        const displayName = (() => {
+            const n = (p.title || p.name || '').trim();
+            if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Name your project';
+            return n;
+        })();
+
+        return (
+            <div
+                key={p.id}
+                onClick={(e) => (selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id)))}
+                className={`group relative rounded-3xl border transition-all duration-300 cursor-pointer overflow-visible flex flex-col md:flex-row md:items-stretch gap-5 md:gap-0 md:min-h-[168px]
+                    ${isSelected ? 'border-orange-500/60 ring-2 ring-orange-500/25' : 'border-white/[0.1] hover:border-teal-500/25'}
+                    ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
+                `}
+                style={{
+                    background:
+                        theme === 'light'
+                            ? 'linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%)'
+                            : 'linear-gradient(135deg, #161616 0%, #0c0c0c 55%, #0a0a0f 100%)',
+                    boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)',
+                }}
+            >
+                <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-3xl bg-gradient-to-r from-teal-500 via-cyan-400 to-violet-500/80" />
+
+                {!selectionMode && (
+                    <div className="absolute top-4 right-4 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowDuplicateMenu(showDuplicateMenu === p.id ? null : p.id);
+                                setShowMoveMenu(null);
+                            }}
+                            className={`p-1.5 rounded-lg transition-colors ${showDuplicateMenu === p.id ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
+                            title="Duplicate"
+                        >
+                            <Copy size={14} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowMoveMenu(showMoveMenu === p.id ? null : p.id);
+                                setShowDuplicateMenu(null);
+                            }}
+                            className={`p-1.5 rounded-lg transition-colors ${showMoveMenu === p.id ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
+                            title="Move"
+                        >
+                            <Folders size={14} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => handleTogglePin(e, p.id)}
+                            className={`p-1.5 rounded-lg transition-colors ${p.isPinned ? 'text-teal-400 bg-teal-500/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
+                            title={p.isPinned ? 'Unpin' : 'Pin'}
+                        >
+                            <Star size={14} fill={p.isPinned ? 'currentColor' : 'none'} />
+                        </button>
+                    </div>
+                )}
+                {showDuplicateMenu === p.id && (
+                    <div
+                        className="absolute top-12 right-4 w-52 max-h-[min(280px,60vh)] overflow-y-auto bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-primary border-b border-white/[0.04] mb-1">Duplicate to...</p>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                duplicateCanvas(p.id, null);
+                                setShowDuplicateMenu(null);
+                                toast.success('Duplicated to General Projects');
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 text-white/60"
+                        >
+                            <Layout size={14} /> General Projects
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDuplicateToFreshFolder(p.id);
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 text-primary"
+                        >
+                            <FolderPlus size={14} /> New Fresh Folder...
+                        </button>
+                        {Object.values(folders).map((f) => (
+                            <button
+                                key={f.id}
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    duplicateCanvas(p.id, f.id);
+                                    setShowDuplicateMenu(null);
+                                    toast.success(`Duplicated to ${f.name}`);
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 text-white/60"
+                            >
+                                <Folder size={14} /> {f.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                {showMoveMenu === p.id && (
+                    <div
+                        className="absolute top-12 right-4 w-52 max-h-[min(280px,60vh)] overflow-y-auto bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-white/30 border-b border-white/[0.04] mb-1">Move to...</p>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleMoveToFolder(p.id, null);
+                            }}
+                            className={`w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 ${p.folderId === null ? 'text-primary' : 'text-white/60'}`}
+                        >
+                            <Layout size={14} /> General Projects
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleMoveToFreshFolder(p.id);
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 text-primary"
+                        >
+                            <FolderPlus size={14} /> New Fresh Folder...
+                        </button>
+                        {Object.values(folders).map((f) => (
+                            <button
+                                key={f.id}
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMoveToFolder(p.id, f.id);
+                                }}
+                                className={`w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 ${p.folderId === f.id ? 'text-primary' : 'text-white/60'}`}
+                            >
+                                <Folder size={14} /> {f.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                <div className="p-5 md:p-7 flex flex-col md:flex-row md:items-center gap-5 md:gap-8 flex-1 min-w-0 pt-6">
+                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-teal-500/20 to-violet-500/15 border border-teal-400/20 flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        {isMerged ? <GitMerge size={28} className="text-teal-300" /> : <Rocket size={28} className="text-teal-300" />}
+                    </div>
+
+                    <div className="flex-1 min-w-0 flex flex-col gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-lg md:text-xl font-black text-white tracking-tight truncate max-w-full">{displayName}</h3>
+                            {p.isPinned && (
+                                <span className="px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-[9px] font-black uppercase text-rose-300 shrink-0">
+                                    High priority
+                                </span>
+                            )}
+                            {p.isCurrent && (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-black uppercase text-emerald-300 shrink-0">
+                                    In progress
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                                <div
+                                    className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all duration-500"
+                                    style={{ width: `${todoCount > 0 ? completionRate : nodeCount > 0 ? 35 : 8}%` }}
+                                />
+                            </div>
+                            <p className="text-[12px] text-zinc-400 line-clamp-1">
+                                <span className="text-teal-400/90 font-semibold">Focus: </span>
+                                {nextTodoLine || previewText.slice(0, 100) || 'Define the next concrete step'}
+                            </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-zinc-500">
+                            <span className="inline-flex items-center gap-1.5 text-zinc-400">
+                                <CheckSquare size={12} className="text-teal-400/80" />
+                                {todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '0 tasks'}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                                <Network size={12} className="text-violet-400/70" />
+                                {nodeCount} nodes
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                                <Clock size={12} className="text-orange-400/70" />
+                                {timeAgo(p.updatedAt)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex md:flex-col gap-2 shrink-0 md:justify-center md:border-l md:border-white/[0.06] md:pl-8">
+                        {selectionMode ? (
+                            <div className="flex items-center justify-center w-full py-3">
+                                {isSelected ? <CheckCircle2 size={28} className="text-primary" /> : <div className="w-8 h-8 rounded-full border-2 border-white/20" />}
+                            </div>
+                        ) : (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(getTargetRoute(p.id));
+                                    }}
+                                    className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wide text-teal-950 bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-300 hover:to-cyan-300 transition-all shadow-[0_4px_20px_rgba(45,212,191,0.25)]"
+                                >
+                                    Continue
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/strategy/${p.id}`);
+                                    }}
+                                    className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wide border border-white/15 text-white/85 bg-white/[0.04] hover:bg-white/[0.08] transition-all"
+                                >
+                                    Open
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    function renderCreateProjectTile(mode: 'mobile' | 'desktop') {
+        const top = (
+            <>
+                <div className="w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center mb-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <Plus size={28} strokeWidth={2.5} className="text-white/60" />
+                </div>
+                <h3 className="text-base font-black text-white">Create new project</h3>
+                <p className="text-[11px] text-white/40 text-center max-w-[240px] leading-relaxed">
+                    Start blank, use a template later, or open STRAB for AI-assisted strategy.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-bold">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleCreate();
+                        }}
+                        className="text-teal-400 hover:text-teal-300 transition-colors"
+                    >
+                        Blank
+                    </button>
+                    <span className="text-white/15">·</span>
+                    <span className="text-white/25 cursor-not-allowed" title="Coming soon">
+                        Template
+                    </span>
+                    <span className="text-white/15">·</span>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/strab');
+                        }}
+                        className="text-violet-400 hover:text-violet-300 transition-colors"
+                    >
+                        AI generated
+                    </button>
+                </div>
+            </>
+        );
+        const cta = (
+            <button
+                type="button"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleCreate();
+                }}
+                className="w-full py-3.5 rounded-xl font-black text-[11px] uppercase tracking-[0.12em] text-white bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:via-violet-500 hover:to-purple-500 border border-white/10 shadow-[0_8px_28px_rgba(109,40,217,0.35)] transition-all flex items-center justify-center gap-2"
+            >
+                <Plus size={16} strokeWidth={3} />
+                Create new project
+            </button>
+        );
+
+        if (mode === 'mobile') {
+            return (
+                <div
+                    key="__create_proj__"
+                    className="rounded-3xl border-2 border-dashed border-teal-500/25 bg-teal-500/[0.04] p-5 flex flex-col items-center text-center gap-3 min-h-[220px]"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="flex flex-col items-center gap-3 flex-1">{top}</div>
+                    {cta}
+                </div>
+            );
+        }
+
+        return (
+            <div
+                key="__create_proj__"
+                className="rounded-3xl border-2 border-dashed border-violet-400/30 bg-gradient-to-br from-violet-500/[0.08] via-transparent to-teal-500/[0.05] p-6 flex flex-col items-center text-center gap-3 min-h-[300px]"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex flex-col items-center gap-3 flex-1 w-full">{top}</div>
+                {cta}
             </div>
         );
     }
