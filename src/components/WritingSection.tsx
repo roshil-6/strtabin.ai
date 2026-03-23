@@ -460,13 +460,13 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         type="date"
                                         value={quickDate}
                                         onChange={(e) => setQuickDate(e.target.value)}
-                                        className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-primary/30 transition-all [color-scheme:dark]"
+                                        className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-primary/30 transition-all min-h-[40px]"
                                     />
                                     <input
                                         type="time"
                                         value={quickTime}
                                         onChange={(e) => setQuickTime(e.target.value)}
-                                        className="bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-primary/30 transition-all [color-scheme:dark]"
+                                        className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-primary/30 transition-all min-h-[40px]"
                                     />
                                     <button
                                         onClick={handleQuickAddTask}

@@ -1,5 +1,36 @@
 import { API_BASE_URL } from '../constants';
 
+/** Throttle streaming updates to reduce lag on slow devices (max ~20 updates/sec) */
+function throttleStreamCallback(cb: (text: string) => void, intervalMs = 50): (text: string, isFinal?: boolean) => void {
+    let pending: string | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let lastCall = 0;
+    const flush = (text: string) => {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+        }
+        pending = null;
+        lastCall = Date.now();
+        cb(text);
+    };
+    return (text: string, isFinal?: boolean) => {
+        if (isFinal) {
+            flush(text);
+            return;
+        }
+        const now = Date.now();
+        if (now - lastCall >= intervalMs) {
+            flush(text);
+        } else {
+            pending = text;
+            if (!timeoutId) {
+                timeoutId = setTimeout(() => pending != null && flush(pending!), intervalMs - (now - lastCall));
+            }
+        }
+    };
+}
+
 /** Retry on 503 (cold start) — up to 3 attempts with backoff */
 async function fetchWithRetry(
     url: string,
@@ -41,6 +72,7 @@ export const sendGeneralStrabMessage = async (
     const decoder = new TextDecoder();
     let accumulated = '';
     let buffer = '';
+    const throttled = throttleStreamCallback(onChunk);
 
     while (true) {
         const { done, value } = await reader.read();
@@ -57,13 +89,13 @@ export const sendGeneralStrabMessage = async (
             try {
                 const evt = JSON.parse(payload);
                 if (evt.error) throw new Error(evt.error);
-                if (evt.t) { accumulated += evt.t; onChunk(accumulated); }
+                if (evt.t) { accumulated += evt.t; throttled(accumulated); }
             } catch (e) {
                 if (e instanceof Error && e.message !== 'Unexpected end of JSON input') throw e;
             }
         }
     }
-
+    throttled(accumulated, true);
     return accumulated;
 };
 
@@ -156,6 +188,7 @@ export const sendStrabMessageStreaming = async (
     const decoder = new TextDecoder();
     let accumulated = '';
     let buffer = '';
+    const throttled = throttleStreamCallback(onChunk);
 
     while (true) {
         const { done, value } = await reader.read();
@@ -175,7 +208,7 @@ export const sendStrabMessageStreaming = async (
                 if (evt.error) throw new Error(evt.error);
                 if (evt.t) {
                     accumulated += evt.t;
-                    onChunk(accumulated);
+                    throttled(accumulated);
                 }
             } catch (e) {
                 if (e instanceof Error && e.message !== 'Unexpected end of JSON input') {
@@ -184,6 +217,6 @@ export const sendStrabMessageStreaming = async (
             }
         }
     }
-
+    throttled(accumulated, true);
     return accumulated;
 };
