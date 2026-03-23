@@ -44,8 +44,11 @@ const clerk = CLERK_SECRET_KEY
     : null;
 
 // ─── Allowed Origins ──────────────────────────────────────────────────────
-const allowedOrigins = process.env.ALLOWED_ORIGIN
+const envOrigins = process.env.ALLOWED_ORIGIN
     ? process.env.ALLOWED_ORIGIN.split(',').map(s => s.trim())
+    : [];
+const allowedOrigins = envOrigins.length > 0
+    ? [...new Set([...envOrigins, 'https://stratabin.com', 'https://www.stratabin.com'])]
     : [
         'http://localhost:5173',
         'http://localhost:5174',
@@ -55,6 +58,15 @@ const allowedOrigins = process.env.ALLOWED_ORIGIN
 
 const app = express();
 
+function isAllowedOrigin(origin) {
+    if (!origin) return false;
+    if (allowedOrigins.includes(origin)) return true;
+    try {
+        const host = new URL(origin).hostname;
+        return host === 'stratabin.com' || host.endsWith('.stratabin.com') || host.endsWith('.vercel.app') || host.endsWith('.onrender.com');
+    } catch { return false; }
+}
+
 // ─── CORS first — required for browser fetch() from www.stratabin.com to /health & APIs ─
 // (Render health checks send no Origin; cors allows that via !origin below.)
 app.use(cors({
@@ -63,9 +75,7 @@ app.use(cors({
         if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
             return callback(null, true);
         }
-        if (origin.endsWith('.vercel.app') || origin.endsWith('.stratabin.com') || origin.endsWith('.onrender.com')) {
-            return callback(null, true);
-        }
+        if (isAllowedOrigin(origin)) return callback(null, true);
         callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
@@ -75,12 +85,27 @@ app.use(cors({
 }));
 
 // ─── Health + root (after CORS so dashboard fetch() gets Access-Control-Allow-Origin) ─
-function sendHealth(_req, res) {
+function sendHealth(req, res) {
+    const origin = req.get('Origin');
+    if (origin && isAllowedOrigin(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
     res.status(200).json({ status: 'ok', database: isDbReady() });
 }
 app.get('/health', sendHealth);
 app.get('/health/', sendHealth);
 app.get('/api/health', sendHealth);
+// Preflight for health (some browsers send OPTIONS)
+app.options('/health', (req, res) => {
+    const origin = req.get('Origin');
+    if (origin && isAllowedOrigin(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    res.status(204).end();
+});
 app.get('/', (_req, res) => {
     res.status(200).json({ status: 'STRAB Server is running.' });
 });
