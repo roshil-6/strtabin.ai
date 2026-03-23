@@ -255,8 +255,17 @@
 [data-theme="light"] .dashboard-project-card .text-white { color: #171717 !important; }
 [data-theme="light"] .dashboard-project-card .text-zinc-200 { color: #404040 !important; }
 [data-theme="light"] .dashboard-project-card .text-zinc-300 { color: #525252 !important; }
-[data-theme="light"] .dashboard-project-card .text-zinc-400 { color: #737373 !important; }
-[data-theme="light"] .dashboard-project-card .text-zinc-500 { color: #737373 !important; }
+[data-theme="light"] .dashboard-project-card .text-zinc-400 { color: #525252 !important; }
+[data-theme="light"] .dashboard-project-card .text-zinc-500 { color: #525252 !important; }
+
+/* Light theme: Tasks/Structure/Project brief boxes — light bg so dark text is visible */
+[data-theme="light"] .dashboard-project-card .project-card-stat-box {
+  background: rgba(0,0,0,0.06) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+[data-theme="light"] .dashboard-project-card .project-card-stat-box .bg-zinc-700\/80 {
+  background-color: rgba(0,0,0,0.15) !important;
+}
 [data-theme="light"] .dashboard-project-card .text-primary { color: #ea580c !important; }
 [data-theme="light"] .dashboard-project-card .text-emerald-400 { color: #059669 !important; }
 [data-theme="light"] .dashboard-project-card .text-amber-400 { color: #d97706 !important; }

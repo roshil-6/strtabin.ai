@@ -1609,39 +1609,39 @@ export default function Dashboard() {
                         </span>
                     </div>
 
-                    {/* Tasks + Structure — desktop only */}
-                    <div className="hidden md:grid grid-cols-2 gap-2 mb-3">
-                        <div className="rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2.5">
-                            <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-primary">Tasks</span>
-                                <span className="text-[10px] font-bold text-zinc-200">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
+                    {/* Tasks + Structure — desktop: visible; mobile: compact row */}
+                    <div className="grid grid-cols-2 md:grid-cols-2 gap-2 mb-3">
+                        <div className="project-card-stat-box rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2 md:py-2.5">
+                            <div className="flex items-center justify-between mb-1 md:mb-1.5">
+                                <span className="text-[10px] uppercase tracking-[0.12em] font-black text-primary">Tasks</span>
+                                <span className="text-[11px] font-bold text-zinc-200">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
                             </div>
                             <div className="h-1.5 rounded-full bg-zinc-700/80 overflow-hidden">
                                 <div className="h-full rounded-full bg-[var(--border-strong)] transition-all duration-300" style={{ width: `${completionRate}%` }} />
                             </div>
                         </div>
-                        <div className="rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2.5">
-                            <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-[9px] uppercase tracking-[0.16em] font-black text-primary">Structure</span>
-                                <span className="text-[10px] font-bold text-zinc-200">{nodeCount} nodes</span>
+                        <div className="project-card-stat-box rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2 md:py-2.5">
+                            <div className="flex items-center justify-between mb-1 md:mb-1.5">
+                                <span className="text-[10px] uppercase tracking-[0.12em] font-black text-primary">Structure</span>
+                                <span className="text-[11px] font-bold text-zinc-200">{nodeCount} nodes</span>
                             </div>
-                            <div className="flex items-center justify-between text-[10px] font-semibold text-zinc-400">
-                                <span className="inline-flex items-center gap-1"><ListTodo size={10} className="text-primary/80" />{todoCount} tasks</span>
-                                <span className="inline-flex items-center gap-1"><FileText size={10} className="text-primary/80" />{wc}w</span>
+                            <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400">
+                                <span className="inline-flex items-center gap-1 truncate"><ListTodo size={10} className="text-primary/80 shrink-0" />{todoCount} tasks</span>
+                                <span className="inline-flex items-center gap-1 shrink-0"><FileText size={10} className="text-primary/80" />{wc}w</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Project brief — desktop only */}
-                    <div className="hidden md:block rounded-xl border border-white/[0.1] bg-zinc-900/50 px-3 py-2.5 mb-4 min-h-[70px]">
-                        <p className="text-[9px] uppercase tracking-[0.16em] font-black text-primary mb-1.5">Project brief</p>
-                        <p className="text-[11px] leading-relaxed text-zinc-300 line-clamp-3">
+                    {/* Project brief — desktop + mobile */}
+                    <div className="project-card-stat-box rounded-xl border border-white/[0.1] bg-zinc-900/50 px-3 py-2 md:py-2.5 mb-4 min-h-[60px] md:min-h-[70px]">
+                        <p className="text-[10px] uppercase tracking-[0.12em] font-black text-primary mb-1 md:mb-1.5">Project brief</p>
+                        <p className="text-[12px] leading-relaxed text-zinc-300 line-clamp-3">
                             {previewText || 'Add your core idea, goals, and execution notes to turn this into a full strategy card.'}
                         </p>
                     </div>
 
-                    {/* Mobile: minimal stat */}
-                    <div className="flex md:hidden items-center gap-2 mb-2 text-[10px] text-zinc-400 font-medium">
+                    {/* Mobile: compact stat (shown only when Tasks/Structure would be too tall) — now redundant, kept as fallback */}
+                    <div className="hidden items-center gap-2 mb-2 text-[10px] text-zinc-400 font-medium">
                         {todoCount > 0 && <span>{completionRate}% done</span>}
                         {nodeCount > 0 && <span>• {nodeCount} nodes</span>}
                         {wc > 0 && <span>• {wc}w</span>}
