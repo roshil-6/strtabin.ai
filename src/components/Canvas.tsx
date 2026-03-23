@@ -24,7 +24,7 @@ import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen, ZoomIn, ZoomOut, Move, GitBranch, Split, Type, Lightbulb, HelpCircle } from 'lucide-react';
+import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen, ZoomIn, ZoomOut, Move, GitBranch, Split, Type, Lightbulb, HelpCircle, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
@@ -268,6 +268,20 @@ function CanvasContent() {
         addEdge(newEdge);
     }, [nodes, addNode, addEdge]);
 
+    // Delete selected nodes and their edges
+    const handleDeleteSelected = useCallback(() => {
+        const selectedNodes = nodes.filter(n => n.selected);
+        if (selectedNodes.length === 0) {
+            toast('Select a node to delete', { icon: '👆' });
+            return;
+        }
+        const ids = new Set(selectedNodes.map(n => n.id));
+        const edgesToRemove = edges.filter(e => ids.has(e.source) || ids.has(e.target));
+        onEdgesChange(edgesToRemove.map(e => ({ type: 'remove' as const, id: e.id })));
+        onNodesChange(selectedNodes.map(n => ({ type: 'remove' as const, id: n.id })));
+        toast.success(`Deleted ${selectedNodes.length} node${selectedNodes.length !== 1 ? 's' : ''}`);
+    }, [nodes, edges, onNodesChange, onEdgesChange]);
+
     // Split (Option): add Option A & B from selected
     const handleSplit = useCallback(() => {
         const selectedNode = nodes.find(n => n.selected);
@@ -361,7 +375,7 @@ function CanvasContent() {
                     y: baseY + row * (NODE_H + GAP_Y),
                 },
                 data: {
-                    label: sibling.name || sibling.title || 'Untitled Project',
+                    label: '',
                     linkedSubCanvasId: sibling.id,
                 },
             });
@@ -589,6 +603,15 @@ function CanvasContent() {
                             </div>
 
                             <div className="flex items-center gap-1 md:gap-2">
+                                <button
+                                    onClick={handleDeleteSelected}
+                                    className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 active:scale-95 transition-all"
+                                    aria-label="Delete selected nodes"
+                                    title="Delete selected"
+                                >
+                                    <Trash2 size={13} />
+                                    <span className="text-[10px] font-bold hidden sm:inline">Delete</span>
+                                </button>
                                 {canvases[activeCanvasId]?.folderId && (
                                     <button
                                         onClick={handleAutoMapFolder}
@@ -713,6 +736,14 @@ function CanvasContent() {
                                             aria-label="Add decision"
                                         >
                                             <GitBranch size={15} />
+                                        </button>
+                                        <button
+                                            onClick={handleDeleteSelected}
+                                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-red-500/15 text-red-400 border border-red-500/25 active:scale-90 transition-all"
+                                            aria-label="Delete selected"
+                                        >
+                                            <Trash2 size={15} />
+                                            <span className="text-[10px] font-bold">Delete</span>
                                         </button>
                                     </div>
                                 </div>
