@@ -1,16 +1,23 @@
+# Stratabin API on Render — this service runs server.js only (no static dist/).
+# If deploys TIME OUT: in Render Dashboard → Build Command must NOT run "npm run build"
+# (Vite + 2000+ modules + huge upload). Match the command below.
 services:
   - type: web
     name: stratabin-api
     env: node
-    buildCommand: npm install
+    # DevDependencies (Vite, TS, ESLint) are not needed to run Node — smaller install & faster upload
+    buildCommand: npm install --omit=dev --no-audit --no-fund
     startCommand: node server.js
-    # Helps Render finish deploy: probe lightweight JSON (matches server /health)
     healthCheckPath: /health
     disk:
       name: strategybox-data
       mountPath: /data
       sizeGB: 1
     envVars:
+      - key: NODE_VERSION
+        value: "20.18.1"
+      - key: NPM_CONFIG_FETCH_TIMEOUT
+        value: "300000"
       - key: DATABASE_PATH
         value: /data/strategybox.db
       - key: ANTHROPIC_API_KEY
