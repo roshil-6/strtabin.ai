@@ -466,7 +466,7 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`flex items-center gap-4 p-4 rounded-3xl active:scale-[0.98] transition-all duration-300 cursor-pointer
+                className={`dashboard-project-card flex items-center gap-4 p-4 rounded-3xl active:scale-[0.98] transition-all duration-300 cursor-pointer
                     bg-gradient-to-br from-[#1a1a1a] to-[#141414] shadow-[0_2px_12px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.04)]
                     ${isSelected ? 'border-2 border-primary ring-2 ring-primary/30' : 'border border-white/[0.12] hover:border-white/20 active:border-primary/40'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}
@@ -982,7 +982,7 @@ export default function Dashboard() {
                                 {/* Strategic Calendar Option */}
                                 <div
                                     onClick={() => navigate('/calendar')}
-                                    className="group relative overflow-hidden rounded-3xl p-8 border border-white/[0.08] transition-all duration-300 cursor-pointer
+                                    className="dashboard-option-card group relative overflow-hidden rounded-3xl p-8 border border-white/[0.08] transition-all duration-300 cursor-pointer
                                         bg-gradient-to-br from-[#141414] via-[#0f0f0f] to-[#0a0a0a]
                                         shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]
                                         hover:shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]
@@ -1003,7 +1003,7 @@ export default function Dashboard() {
                                 {/* General Weekly Planner Option */}
                                 <div
                                     onClick={() => navigate('/calendar?mode=week')}
-                                    className="group relative overflow-hidden rounded-3xl p-8 border border-orange-500/10 transition-all duration-300 cursor-pointer
+                                    className="dashboard-option-card group relative overflow-hidden rounded-3xl p-8 border border-orange-500/10 transition-all duration-300 cursor-pointer
                                         bg-gradient-to-br from-orange-500/5 via-[#0f0f0f] to-[#0a0a0a]
                                         shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]
                                         hover:shadow-[0_8px_40px_rgba(249,115,22,0.15),0_0_0_1px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.04)]
@@ -1034,7 +1034,7 @@ export default function Dashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                                 <div
                                     onClick={() => navigate('/reports')}
-                                    className="group relative overflow-hidden rounded-3xl p-8 border border-emerald-500/10 transition-all duration-300 cursor-pointer
+                                    className="dashboard-option-card group relative overflow-hidden rounded-3xl p-8 border border-emerald-500/10 transition-all duration-300 cursor-pointer
                                         bg-gradient-to-br from-emerald-500/5 via-[#0f0f0f] to-[#0a0a0a]
                                         shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]
                                         hover:shadow-[0_8px_40px_rgba(16,185,129,0.12),0_0_0_1px_rgba(16,185,129,0.2),inset_0_1px_0_rgba(255,255,255,0.04)]
@@ -1064,11 +1064,11 @@ export default function Dashboard() {
                             <ProjectCardGrid items={filteredCanvases} />
                         </div>
                     ) : activeTab === 'monitor' ? (
-                        <div key={tabKey} className="tab-fade-in pb-20 space-y-4 md:space-y-8">
+                        <div key={tabKey} className="tab-fade-in pb-20 space-y-4 md:space-y-8 monitor-section">
                             <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
-                                    <h2 className="text-2xl font-black text-white">Monitor your work</h2>
-                                    <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-bold">Track progress & execution</p>
+                                    <h2 className="text-2xl font-black text-[var(--text)]">Monitor your work</h2>
+                                    <p className="text-xs text-[var(--text-muted)] mt-1 uppercase tracking-widest font-bold">Track progress & execution</p>
                                 </div>
                             </div>
 
@@ -1082,55 +1082,54 @@ export default function Dashboard() {
                                 const globalLog = { executed: rawGlobal?.executed ?? '', blocking: rawGlobal?.blocking ?? '', tomorrowAction: rawGlobal?.tomorrowAction ?? '' };
                                 const projectLogs = todayLogs.filter(l => l.canvasId);
                                 return (
-                                    <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/[0.08] via-primary/[0.04] to-transparent p-6 md:p-8
-                                        shadow-[0_4px_24px_rgba(218,119,86,0.08),inset_0_1px_0_rgba(255,255,255,0.05)]">
+                                    <div className="rounded-3xl border border-[var(--border)] bg-[var(--bg-card)] p-6 md:p-8 shadow-sm">
                                         <div className="flex items-center gap-2 mb-4">
                                             <Zap size={20} className="text-primary" />
-                                            <h3 className="text-lg font-black text-white">What did I execute today?</h3>
+                                            <h3 className="text-lg font-black text-[var(--text)]">What did I execute today?</h3>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4">
                                             <div>
-                                                <label className="text-[9px] font-black uppercase tracking-wider text-white/40 block mb-1.5">Executed</label>
+                                                <label className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)] block mb-1.5">Executed</label>
                                                 <input
                                                     type="text"
                                                     value={globalLog.executed ?? ''}
                                                     onChange={(e) => setDailyExecutionLog(todayKey, { executed: e.target.value, blocking: globalLog.blocking, tomorrowAction: globalLog.tomorrowAction })}
                                                     placeholder="e.g. Finished draft, called 3 leads"
-                                                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-sm text-white placeholder-white/25 outline-none focus:border-primary/30 transition-colors"
+                                                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-primary/30 transition-colors"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[9px] font-black uppercase tracking-wider text-amber-400/70 block mb-1.5">What&apos;s blocking me?</label>
+                                                <label className="text-[9px] font-black uppercase tracking-wider text-amber-600 block mb-1.5">What&apos;s blocking me?</label>
                                                 <input
                                                     type="text"
                                                     value={globalLog.blocking ?? ''}
                                                     onChange={(e) => setDailyExecutionLog(todayKey, { executed: globalLog.executed, blocking: e.target.value, tomorrowAction: globalLog.tomorrowAction })}
                                                     placeholder="e.g. Waiting on design"
-                                                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-sm text-white placeholder-white/25 outline-none focus:border-amber-500/30 transition-colors"
+                                                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-amber-500/30 transition-colors"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[9px] font-black uppercase tracking-wider text-emerald-400/70 block mb-1.5">Top action for tomorrow</label>
+                                                <label className="text-[9px] font-black uppercase tracking-wider text-emerald-600 block mb-1.5">Top action for tomorrow</label>
                                                 <input
                                                     type="text"
                                                     value={globalLog.tomorrowAction ?? ''}
                                                     onChange={(e) => setDailyExecutionLog(todayKey, { executed: globalLog.executed, blocking: globalLog.blocking, tomorrowAction: e.target.value })}
                                                     placeholder="e.g. Ship v1 to beta"
-                                                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-sm text-white placeholder-white/25 outline-none focus:border-emerald-500/30 transition-colors"
+                                                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-emerald-500/30 transition-colors"
                                                 />
                                             </div>
                                         </div>
                                         {projectLogs.filter(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim()).length > 0 && (
-                                            <div className="space-y-2 pt-2 border-t border-white/5">
-                                                <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider">By project</p>
+                                            <div className="space-y-2 pt-2 border-t border-[var(--border)]">
+                                                <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">By project</p>
                                                 {projectLogs.filter(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim()).map((l) => (
-                                                    <div key={l.canvasId} className="p-4 rounded-2xl bg-white/[0.04] border border-white/[0.06] shadow-sm">
-                                                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">
+                                                    <div key={l.canvasId} className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--input-border)]">
+                                                        <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                                                             {canvases[l.canvasId!]?.name || 'Project'}
                                                         </p>
-                                                        {l.executed && <p className="text-sm text-white/85">{l.executed}</p>}
-                                                        {l.blocking && <p className="text-xs text-amber-400/80 mt-0.5">Blocking: {l.blocking}</p>}
-                                                        {l.tomorrowAction && <p className="text-xs text-emerald-400/80 mt-0.5">Tomorrow: {l.tomorrowAction}</p>}
+                                                        {l.executed && <p className="text-sm text-[var(--text)]">{l.executed}</p>}
+                                                        {l.blocking && <p className="text-xs text-amber-600 mt-0.5">Blocking: {l.blocking}</p>}
+                                                        {l.tomorrowAction && <p className="text-xs text-emerald-600 mt-0.5">Tomorrow: {l.tomorrowAction}</p>}
                                                     </div>
                                                 ))}
                                             </div>
@@ -1142,38 +1141,34 @@ export default function Dashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div
                                     onClick={() => navigate('/calendar')}
-                                    className="group relative overflow-hidden rounded-3xl p-8 border border-cyan-500/10 transition-all duration-300 cursor-pointer
-                                        bg-gradient-to-br from-cyan-500/5 via-[#0f0f0f] to-[#0a0a0a]
-                                        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]
-                                        hover:shadow-[0_8px_40px_rgba(6,182,212,0.12),0_0_0_1px_rgba(6,182,212,0.2),inset_0_1px_0_rgba(255,255,255,0.04)]
-                                        hover:border-cyan-500/25 hover:scale-[1.01] active:scale-[0.99]"
+                                    className="monitor-option-card group relative overflow-hidden rounded-3xl p-8 border border-cyan-500/20 transition-all duration-300 cursor-pointer
+                                        bg-gradient-to-br from-cyan-500/10 via-[var(--bg-elevated)] to-[var(--bg-card)]
+                                        shadow-sm hover:shadow-md hover:border-cyan-500/30 hover:scale-[1.01] active:scale-[0.99]"
                                 >
-                                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="relative">
-                                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                                            <Activity size={26} className="text-cyan-400 group-hover:text-cyan-300" />
+                                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all duration-300">
+                                            <Activity size={26} className="text-cyan-500" />
                                         </div>
-                                        <h3 className="text-xl font-black text-white mb-2 tracking-tight">Strategic Calendar</h3>
-                                        <p className="text-sm text-white/45 leading-relaxed font-medium">
+                                        <h3 className="text-xl font-black text-[var(--text)] mb-2 tracking-tight">Strategic Calendar</h3>
+                                        <p className="text-sm text-[var(--text-muted)] leading-relaxed font-medium">
                                             Month-view progress, daily check-ins, and execution tracking across projects.
                                         </p>
                                     </div>
                                 </div>
                                 <div
                                     onClick={() => navigate('/calendar?mode=week')}
-                                    className="group relative overflow-hidden rounded-3xl p-8 border border-cyan-500/10 transition-all duration-300 cursor-pointer
-                                        bg-gradient-to-br from-cyan-500/5 via-[#0f0f0f] to-[#0a0a0a]
-                                        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]
-                                        hover:shadow-[0_8px_40px_rgba(6,182,212,0.12),0_0_0_1px_rgba(6,182,212,0.2),inset_0_1px_0_rgba(255,255,255,0.04)]
-                                        hover:border-cyan-500/25 hover:scale-[1.01] active:scale-[0.99]"
+                                    className="monitor-option-card group relative overflow-hidden rounded-3xl p-8 border border-cyan-500/20 transition-all duration-300 cursor-pointer
+                                        bg-gradient-to-br from-cyan-500/10 via-[var(--bg-elevated)] to-[var(--bg-card)]
+                                        shadow-sm hover:shadow-md hover:border-cyan-500/30 hover:scale-[1.01] active:scale-[0.99]"
                                 >
-                                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="relative">
-                                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                                            <CheckCircle2 size={26} className="text-cyan-400 group-hover:text-cyan-300" />
+                                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all duration-300">
+                                            <CheckCircle2 size={26} className="text-cyan-500" />
                                         </div>
-                                        <h3 className="text-xl font-black text-white mb-2 tracking-tight">Weekly Planner</h3>
-                                        <p className="text-sm text-white/45 leading-relaxed font-medium">
+                                        <h3 className="text-xl font-black text-[var(--text)] mb-2 tracking-tight">Weekly Planner</h3>
+                                        <p className="text-sm text-[var(--text-muted)] leading-relaxed font-medium">
                                             Day-by-day task lists and tactical execution for the current week.
                                         </p>
                                     </div>
@@ -1182,8 +1177,8 @@ export default function Dashboard() {
 
                             <div className="hidden md:flex items-center gap-3 mb-4 px-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-                                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
-                                <div className="flex-1 h-px bg-white/5 ml-2" />
+                                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)]">Projects</h2>
+                                <div className="flex-1 h-px bg-[var(--border)] ml-2" />
                             </div>
                             <ProjectCardGrid items={filteredCanvases} />
                         </div>
@@ -1191,7 +1186,7 @@ export default function Dashboard() {
                         <div key={tabKey} className="space-y-4 md:space-y-14 tab-fade-in">
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
-                                    <div className="bg-gradient-to-br from-[#1a1a1a] to-[#141414] border border-orange-500/30 rounded-3xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
+                                    <div className="dashboard-option-card bg-gradient-to-br from-[#1a1a1a] to-[#141414] border border-orange-500/30 rounded-3xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
                                         <div className="flex flex-col">
                                             <span className="text-white font-bold text-sm">Select 2 Projects</span>
                                             <span className="text-white/40 text-xs">{selectedIds.length}/2 selected</span>

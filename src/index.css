@@ -252,7 +252,7 @@
   background-color: #151515 !important;
 }
 
-/* Light theme: dashboard, sidebar, nav labels — ensure visibility on light surfaces */
+/* Light theme: use dark text on light surfaces (theme-panel, theme-page) */
 [data-theme="light"] .theme-panel .text-white\/20,
 [data-theme="light"] .theme-panel .text-white\/30,
 [data-theme="light"] .theme-panel .text-white\/40,
@@ -268,6 +268,58 @@
 [data-theme="light"] .theme-page h1,
 [data-theme="light"] .theme-page h2 {
   color: var(--text) !important;
+}
+
+/* Light theme: dark surfaces keep light text — must override theme-panel/theme-page rules above */
+[data-theme="light"] .theme-page .dashboard-project-card .text-white,
+[data-theme="light"] .theme-page .dashboard-project-card .text-white\/90,
+[data-theme="light"] .theme-page .dashboard-project-card .text-white\/85,
+[data-theme="light"] .theme-page .dashboard-project-card .text-white\/80,
+[data-theme="light"] .theme-page .dashboard-project-card .text-white\/70,
+[data-theme="light"] .theme-page .dashboard-project-card .text-white\/60,
+[data-theme="light"] .theme-page .dashboard-project-card h1,
+[data-theme="light"] .theme-page .dashboard-project-card h2,
+[data-theme="light"] .theme-panel .dashboard-project-card .text-white,
+[data-theme="light"] .theme-panel .dashboard-project-card h1,
+[data-theme="light"] .theme-panel .dashboard-project-card h2 {
+  color: #ffffff !important;
+}
+[data-theme="light"] .theme-page .dashboard-project-card .text-white\/40,
+[data-theme="light"] .theme-page .dashboard-project-card .text-white\/35,
+[data-theme="light"] .theme-page .dashboard-project-card .text-white\/30 {
+  color: rgba(255,255,255,0.7) !important;
+}
+
+/* Light theme: Monitor section — force visible inputs and light card backgrounds */
+[data-theme="light"] .monitor-section input[type="text"] {
+  border-color: rgba(0,0,0,0.15) !important;
+  background-color: rgba(0,0,0,0.04) !important;
+}
+[data-theme="light"] .monitor-option-card {
+  background: linear-gradient(to bottom right, rgba(6,182,212,0.08) 0%, #ffffff 50%, #ffffff 100%) !important;
+  border-color: rgba(6,182,212,0.25) !important;
+}
+[data-theme="light"] .monitor-option-card h3 {
+  color: #171717 !important;
+}
+[data-theme="light"] .monitor-option-card p,
+[data-theme="light"] .monitor-option-card .leading-relaxed {
+  color: #525252 !important;
+}
+[data-theme="light"] .monitor-option-card .text-cyan-500 {
+  color: #0891b2 !important;
+}
+
+/* Light theme: dashboard option cards (Calendar, Planner, Reports) — dark gradients, keep light text */
+[data-theme="light"] .dashboard-option-card .text-white,
+[data-theme="light"] .dashboard-option-card .text-white\/90,
+[data-theme="light"] .dashboard-option-card .text-white\/85,
+[data-theme="light"] .dashboard-option-card .text-white\/45,
+[data-theme="light"] .dashboard-option-card h3 {
+  color: #ffffff !important;
+}
+[data-theme="light"] .dashboard-option-card .text-white\/45 {
+  color: rgba(255,255,255,0.7) !important;
 }
 
 :root {
