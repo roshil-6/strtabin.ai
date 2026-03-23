@@ -15,7 +15,7 @@ import { createClerkClient } from '@clerk/backend';
 import { registerWorkspaceRoutes } from './routes/workspaces.js';
 import { registerChatRoutes } from './routes/chat.js';
 import { getOrCreateUser } from './db/models.js';
-import { initDb } from './db/index.js';
+import { initDb, isDbReady } from './db/index.js';
 
 dotenv.config();
 
@@ -1072,17 +1072,17 @@ io.emitToChat = (chatId, event, data) => {
 
 // Bind 0.0.0.0 so Render/load balancers can reach the service (required on many hosts)
 httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`STRAB AI Server running on 0.0.0.0:${PORT}`);
-    // initDb() is synchronous and can block the event loop (SQLite + disk on Render).
-    // If it runs in the listen callback immediately, health checks may time out while deploy
-    // is waiting. Defer so / and /health respond first; DB still loads before typical traffic.
+    console.log(`STRAB AI Server running on 0.0.0.0:${PORT} (PORT=${process.env.PORT || 'default'})`);
+    // initDb() is synchronous and can block the event loop — defer so health checks succeed first.
+    // Do NOT process.exit on DB failure: that kills the container and Render never stays "Live".
+    // Fix DATABASE_PATH + disk in dashboard; check logs and GET /health for database:false.
     setImmediate(() => {
         try {
             initDb();
             console.log('Database ready.');
         } catch (err) {
-            console.error('❌ Database initialization failed:', err);
-            process.exit(1);
+            console.error('❌ Database initialization failed — service stays up. Fix disk + DATABASE_PATH on Render.');
+            console.error(err?.message || err);
         }
     });
 });
