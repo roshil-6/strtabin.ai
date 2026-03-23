@@ -268,18 +268,16 @@ function CanvasContent() {
         addEdge(newEdge);
     }, [nodes, addNode, addEdge]);
 
-    // Delete selected nodes and their edges
-    const handleDeleteSelected = useCallback(() => {
-        const selectedNodes = nodes.filter(n => n.selected);
-        if (selectedNodes.length === 0) {
-            toast('Select a node to delete', { icon: '👆' });
+    // Clear entire flow — remove all nodes and edges
+    const handleClearFlow = useCallback(() => {
+        if (nodes.length === 0 && edges.length === 0) {
+            toast('Flow is already empty');
             return;
         }
-        const ids = new Set(selectedNodes.map(n => n.id));
-        const edgesToRemove = edges.filter(e => ids.has(e.source) || ids.has(e.target));
-        onEdgesChange(edgesToRemove.map(e => ({ type: 'remove' as const, id: e.id })));
-        onNodesChange(selectedNodes.map(n => ({ type: 'remove' as const, id: n.id })));
-        toast.success(`Deleted ${selectedNodes.length} node${selectedNodes.length !== 1 ? 's' : ''}`);
+        if (!window.confirm('Clear the entire flow? All nodes and connections will be removed.')) return;
+        onEdgesChange(edges.map(e => ({ type: 'remove' as const, id: e.id })));
+        onNodesChange(nodes.map(n => ({ type: 'remove' as const, id: n.id })));
+        toast.success('Flow cleared');
     }, [nodes, edges, onNodesChange, onEdgesChange]);
 
     // Split (Option): add Option A & B from selected
@@ -604,13 +602,13 @@ function CanvasContent() {
 
                             <div className="flex items-center gap-1 md:gap-2">
                                 <button
-                                    onClick={handleDeleteSelected}
+                                    onClick={handleClearFlow}
                                     className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 active:scale-95 transition-all"
-                                    aria-label="Delete selected nodes"
-                                    title="Delete selected"
+                                    aria-label="Clear entire flow"
+                                    title="Clear flow"
                                 >
                                     <Trash2 size={13} />
-                                    <span className="text-[10px] font-bold hidden sm:inline">Delete</span>
+                                    <span className="text-[10px] font-bold hidden sm:inline">Clear Flow</span>
                                 </button>
                                 {canvases[activeCanvasId]?.folderId && (
                                     <button
@@ -738,12 +736,12 @@ function CanvasContent() {
                                             <GitBranch size={15} />
                                         </button>
                                         <button
-                                            onClick={handleDeleteSelected}
+                                            onClick={handleClearFlow}
                                             className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-red-500/15 text-red-400 border border-red-500/25 active:scale-90 transition-all"
-                                            aria-label="Delete selected"
+                                            aria-label="Clear entire flow"
                                         >
                                             <Trash2 size={15} />
-                                            <span className="text-[10px] font-bold">Delete</span>
+                                            <span className="text-[10px] font-bold">Clear</span>
                                         </button>
                                     </div>
                                 </div>
