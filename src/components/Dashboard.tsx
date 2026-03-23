@@ -288,9 +288,19 @@ export default function Dashboard() {
         return streak;
     }
 
-    // Filter canvases based on activeFolderId
-    // General workspace (null) shows only projects with folderId === null or undefined
-    const filteredCanvases = Object.values(canvases).filter(p => (p.folderId || null) === activeFolderId);
+    // Filter canvases: only show projects with content (user or STRAB created)
+    // Exclude empty placeholders (no name, no nodes, no todos, no writing)
+    const hasContent = (p: CanvasData) => {
+        const name = (p.title || p.name || '').trim();
+        const hasName = name && !/^untitled(\s+project)?$/i.test(name);
+        const hasNodes = (p.nodes?.length ?? 0) > 0;
+        const hasTodos = (p.todos?.length ?? 0) > 0;
+        const hasWriting = ((p.writingContent || '').trim().length ?? 0) > 0;
+        return hasName || hasNodes || hasTodos || hasWriting;
+    };
+    const filteredCanvases = Object.values(canvases)
+        .filter(p => (p.folderId || null) === activeFolderId)
+        .filter(hasContent);
 
     // Use filteredCanvases for categorization
     const pinnedProjects = filteredCanvases.filter(p => p.isPinned);
@@ -459,7 +469,7 @@ export default function Dashboard() {
         const isSelected = selectedIds.includes(p.id);
         const displayName = (() => {
             const n = (p.title || p.name || '').trim();
-            if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Name your project';
+            if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Untitled';
             return n;
         })();
         return (
@@ -1576,7 +1586,7 @@ export default function Dashboard() {
                             title="Double-click to rename">
                             {(() => {
                                 const n = (p.title || p.name || '').trim();
-                                if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Name your project';
+                                if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Untitled';
                                 return n;
                             })()}
                         </h3>
@@ -1734,7 +1744,7 @@ export default function Dashboard() {
         const previewText = (p.writingContent || '').replace(/\s+/g, ' ').trim();
         const displayName = (() => {
             const n = (p.title || p.name || '').trim();
-            if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Name your project';
+            if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Untitled';
             return n;
         })();
 
