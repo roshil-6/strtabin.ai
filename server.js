@@ -55,19 +55,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGIN
 
 const app = express();
 
-// ─── Liveness FIRST (before CORS / JSON) — Render & load balancers need this ─
-// Use your *Render* URL (e.g. https://xxx.onrender.com/health), not the marketing site.
-function sendHealth(_req, res) {
-    res.status(200).json({ status: 'ok', database: isDbReady() });
-}
-app.get('/health', sendHealth);
-app.get('/health/', sendHealth);
-app.get('/api/health', sendHealth);
-app.get('/', (_req, res) => {
-    res.status(200).json({ status: 'STRAB Server is running.' });
-});
-
-// ─── CORS — all other routes get these headers ─────────────────────────────
+// ─── CORS first — required for browser fetch() from www.stratabin.com to /health & APIs ─
+// (Render health checks send no Origin; cors allows that via !origin below.)
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);
@@ -84,6 +73,17 @@ app.use(cors({
     credentials: true,
     optionsSuccessStatus: 204,
 }));
+
+// ─── Health + root (after CORS so dashboard fetch() gets Access-Control-Allow-Origin) ─
+function sendHealth(_req, res) {
+    res.status(200).json({ status: 'ok', database: isDbReady() });
+}
+app.get('/health', sendHealth);
+app.get('/health/', sendHealth);
+app.get('/api/health', sendHealth);
+app.get('/', (_req, res) => {
+    res.status(200).json({ status: 'STRAB Server is running.' });
+});
 
 // ─── Body Parser (before all routes except raw webhook) ───────────────────
 // Register early so req.body is available in all JSON route handlers
