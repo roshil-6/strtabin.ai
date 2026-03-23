@@ -663,7 +663,7 @@ function CanvasContent() {
                             panActivationKeyCode={null}
                             disableKeyboardA11y={isMobile}
                             selectionOnDrag={false}
-                            style={{ background: resolved === 'light' ? '#f8fafc' : '#080808' }}
+                            style={{ background: resolved === 'light' ? '#f8fafc' : 'var(--bg-page)' }}
                         >
                             <Background
                                 color={resolved === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.07)'}

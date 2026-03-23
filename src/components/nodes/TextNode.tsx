@@ -25,7 +25,7 @@ export default function TextNode({ id, data, selected }: NodeProps) {
     const accent = 'rgba(218,119,86,0.5)';
     return (
         <div className={`
-            relative group min-w-[160px] md:min-w-[220px] max-w-[320px]
+            flow-node-card relative group min-w-[160px] md:min-w-[220px] max-w-[320px]
             rounded-2xl border transition-all duration-200 overflow-hidden
             ${selected
                 ? 'border-primary/40 shadow-[0_0_0_1px_rgba(218,119,86,0.2),0_8px_24px_rgba(0,0,0,0.25),0_0_24px_rgba(218,119,86,0.1)]'

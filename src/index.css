@@ -11,32 +11,63 @@
   animation: tab-fade-in 0.35s ease-out forwards;
 }
 
-/* ── Theme: Dark (greyish black) ───────────────────────────────────────── */
+/* ── Theme: Dark (darkish grey surfaces) ─────────────────────────────────── */
 :root,
 [data-theme="dark"] {
-  --bg-page: #1a1a1a;
-  --bg-panel: #1f1f1f;
-  --bg-elevated: #242424;
-  --bg-card: #2a2a2a;
-  --bg-muted: #2f2f2f;
-  --text: #ffffff;
-  --text-secondary: rgba(255,255,255,0.85);
-  --text-muted: rgba(255,255,255,0.6);
-  --text-dim: rgba(255,255,255,0.45);
-  --border: rgba(255,255,255,0.1);
-  --border-strong: rgba(255,255,255,0.15);
-  --input-bg: rgba(255,255,255,0.06);
-  --input-border: rgba(255,255,255,0.12);
+  --bg-page: #222222;
+  --bg-panel: #282828;
+  --bg-elevated: #303030;
+  --bg-card: #383838;
+  --bg-muted: #404040;
+  --text: #f5f5f5;
+  --text-secondary: rgba(255,255,255,0.9);
+  --text-muted: rgba(255,255,255,0.75);
+  --text-dim: rgba(255,255,255,0.55);
+  --border: rgba(255,255,255,0.12);
+  --border-strong: rgba(255,255,255,0.18);
+  --input-bg: rgba(255,255,255,0.08);
+  --input-border: rgba(255,255,255,0.15);
 }
 
-/* Dark theme: map old pitch-black to greyish for consistency */
+/* Dark theme: map hardcoded pitch-black to light grey for consistency */
 [data-theme="dark"] .bg-\[\#050505\],
 [data-theme="dark"] .bg-\[\#060606\],
 [data-theme="dark"] .bg-\[\#080808\],
 [data-theme="dark"] .bg-\[\#0a0a0a\],
 [data-theme="dark"] .bg-\[\#0b0b0b\],
-[data-theme="dark"] .bg-\[\#0e0e0e\] {
+[data-theme="dark"] .bg-\[\#0e0e0e\],
+[data-theme="dark"] .bg-\[\#111\],
+[data-theme="dark"] .bg-\[\#151515\],
+[data-theme="dark"] .bg-\[\#1a1a1a\] {
   background-color: var(--bg-card) !important;
+}
+
+/* Dark theme: flow node cards — dark grey */
+[data-theme="dark"] .flow-node-card {
+  background: var(--bg-card) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+/* Dark theme: dashboard & option cards — dark grey */
+[data-theme="dark"] .dashboard-project-card {
+  background: linear-gradient(to bottom right, var(--bg-card) 0%, var(--bg-muted) 100%) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .dashboard-option-card {
+  background: linear-gradient(to bottom right, var(--bg-card) 0%, var(--bg-muted) 100%) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .dashboard-option-card:hover {
+  border-color: var(--border-strong) !important;
+}
+[data-theme="dark"] .monitor-option-card {
+  background: linear-gradient(to bottom right, var(--bg-elevated) 0%, var(--bg-card) 100%) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .monitor-option-card:hover {
+  border-color: var(--border-strong) !important;
 }
 
 /* ── Theme: Light ─────────────────────────────────────────────────────── */
@@ -44,8 +75,8 @@
   --bg-page: #ffffff;
   --bg-panel: #ffffff;
   --bg-elevated: #ffffff;
-  --bg-card: #ffffff;
-  --bg-muted: #fafafa;
+  --bg-card: #f0f0f0;
+  --bg-muted: #e8e8e8;
   --text: #171717;
   --text-secondary: #404040;
   --text-muted: #737373;
@@ -63,6 +94,7 @@
 [data-theme="light"] .text-white\/80 { color: #404040 !important; }
 [data-theme="light"] .text-white\/75 { color: #404040 !important; }
 [data-theme="light"] .text-white\/70 { color: #525252 !important; }
+[data-theme="light"] .text-white\/65 { color: #525252 !important; }
 [data-theme="light"] .text-white\/60 { color: #737373 !important; }
 [data-theme="light"] .text-white\/50 { color: #737373 !important; }
 [data-theme="light"] .text-white\/55 { color: #525252 !important; }
@@ -168,6 +200,21 @@
   color: var(--text) !important;
 }
 
+/* Light theme: dashboard cards — soft grey backgrounds */
+[data-theme="light"] .dashboard-project-card {
+  background: #f0f0f0 !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .dashboard-option-card {
+  background: #f0f0f0 !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .dashboard-option-card:hover {
+  border-color: rgba(0,0,0,0.12) !important;
+}
+
 /* Light theme: subscription/paywall cards — dark grey for visibility */
 [data-theme="light"] .subscription-card {
   background: linear-gradient(180deg, #2d2d2d 0%, #252525 100%) !important;
@@ -204,52 +251,54 @@
   color: rgba(255,255,255,0.8) !important;
 }
 
-/* Light theme: dashboard project cards stay dark grey — keep white/light text */
-[data-theme="light"] .dashboard-project-card .text-white { color: #ffffff !important; }
-[data-theme="light"] .dashboard-project-card .text-zinc-200 { color: #e5e5e5 !important; }
-[data-theme="light"] .dashboard-project-card .text-zinc-300 { color: #d4d4d4 !important; }
-[data-theme="light"] .dashboard-project-card .text-zinc-400 { color: #a3a3a3 !important; }
+/* Light theme: white dashboard project cards — dark text for readability */
+[data-theme="light"] .dashboard-project-card .text-white { color: #171717 !important; }
+[data-theme="light"] .dashboard-project-card .text-zinc-200 { color: #404040 !important; }
+[data-theme="light"] .dashboard-project-card .text-zinc-300 { color: #525252 !important; }
+[data-theme="light"] .dashboard-project-card .text-zinc-400 { color: #737373 !important; }
 [data-theme="light"] .dashboard-project-card .text-zinc-500 { color: #737373 !important; }
-[data-theme="light"] .dashboard-project-card .text-primary { color: #f97316 !important; }
-[data-theme="light"] .dashboard-project-card .text-emerald-400 { color: #34d399 !important; }
-[data-theme="light"] .dashboard-project-card .text-amber-400 { color: #fbbf24 !important; }
-[data-theme="light"] .dashboard-project-card .text-orange-400 { color: #fb923c !important; }
+[data-theme="light"] .dashboard-project-card .text-primary { color: #ea580c !important; }
+[data-theme="light"] .dashboard-project-card .text-emerald-400 { color: #059669 !important; }
+[data-theme="light"] .dashboard-project-card .text-amber-400 { color: #d97706 !important; }
+[data-theme="light"] .dashboard-project-card .text-orange-400 { color: #ea580c !important; }
 
-/* Light theme: flow nodes stay dark — keep white text (override global dark-text overrides) */
-[data-theme="light"] .react-flow__node .text-white { color: #ffffff !important; }
-[data-theme="light"] .react-flow__node .text-white\/90 { color: rgba(255,255,255,0.9) !important; }
-[data-theme="light"] .react-flow__node .text-white\/85 { color: rgba(255,255,255,0.85) !important; }
-[data-theme="light"] .react-flow__node .text-white\/80 { color: rgba(255,255,255,0.8) !important; }
-[data-theme="light"] .react-flow__node .text-white\/70 { color: rgba(255,255,255,0.7) !important; }
-[data-theme="light"] .react-flow__node .text-white\/60 { color: rgba(255,255,255,0.6) !important; }
-[data-theme="light"] .react-flow__node .text-white\/50 { color: rgba(255,255,255,0.5) !important; }
-[data-theme="light"] .react-flow__node .text-white\/40 { color: rgba(255,255,255,0.4) !important; }
-[data-theme="light"] .react-flow__node .text-white\/35 { color: rgba(255,255,255,0.35) !important; }
-[data-theme="light"] .react-flow__node .text-white\/30 { color: rgba(255,255,255,0.3) !important; }
-[data-theme="light"] .react-flow__node .text-white\/25 { color: rgba(255,255,255,0.25) !important; }
-[data-theme="light"] .react-flow__node .text-white\/20 { color: rgba(255,255,255,0.2) !important; }
-[data-theme="light"] .react-flow__node .text-white\/15 { color: rgba(255,255,255,0.15) !important; }
-[data-theme="light"] .react-flow__node .text-white\/10 { color: rgba(255,255,255,0.1) !important; }
-
-/* Light theme: flow node textareas/inputs keep white text */
+/* Light theme: flow node cards — whitish backgrounds, dark text, visible borders */
+[data-theme="light"] .flow-node-card,
+[data-theme="light"] .react-flow__node .flow-node-card {
+  background: #f0f0f0 !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+  border-color: rgba(0,0,0,0.12) !important;
+}
+[data-theme="light"] .react-flow__node .text-white { color: #171717 !important; }
+[data-theme="light"] .react-flow__node .text-white\/90 { color: #171717 !important; }
+[data-theme="light"] .react-flow__node .text-white\/85 { color: #262626 !important; }
+[data-theme="light"] .react-flow__node .text-white\/80 { color: #404040 !important; }
+[data-theme="light"] .react-flow__node .text-white\/70 { color: #525252 !important; }
+[data-theme="light"] .react-flow__node .text-white\/60 { color: #525252 !important; }
+[data-theme="light"] .react-flow__node .text-white\/50 { color: #737373 !important; }
+[data-theme="light"] .react-flow__node .text-white\/40 { color: #737373 !important; }
+[data-theme="light"] .react-flow__node .text-white\/35 { color: #737373 !important; }
+[data-theme="light"] .react-flow__node .text-white\/30 { color: #a3a3a3 !important; }
+[data-theme="light"] .react-flow__node .text-white\/25 { color: #a3a3a3 !important; }
+[data-theme="light"] .react-flow__node .text-white\/20 { color: #a3a3a3 !important; }
+[data-theme="light"] .react-flow__node .text-white\/15 { color: #a3a3a3 !important; }
+[data-theme="light"] .react-flow__node .text-white\/10 { color: #a3a3a3 !important; }
 [data-theme="light"] .react-flow__node input,
 [data-theme="light"] .react-flow__node textarea {
-  color: rgba(255,255,255,0.9) !important;
+  color: #171717 !important;
 }
 [data-theme="light"] .react-flow__node .placeholder-white\/15::placeholder {
-  color: rgba(255,255,255,0.15) !important;
+  color: #a3a3a3 !important;
 }
-
-/* Light theme: flow nodes keep dark backgrounds (override the panel mapping) */
 [data-theme="light"] .react-flow__node .bg-\[\#131313\],
 [data-theme="light"] .react-flow__node .bg-\[\#161410\] {
-  background-color: #131313 !important;
+  background-color: #f0f0f0 !important;
 }
 [data-theme="light"] .react-flow__node .bg-\[\#1a1a1a\] {
-  background-color: #1a1a1a !important;
+  background-color: #f0f0f0 !important;
 }
 [data-theme="light"] .react-flow__node .bg-\[\#151515\] {
-  background-color: #151515 !important;
+  background-color: #f0f0f0 !important;
 }
 
 /* Light theme: use dark text on light surfaces (theme-panel, theme-page) */
@@ -270,7 +319,7 @@
   color: var(--text) !important;
 }
 
-/* Light theme: dark surfaces keep light text — must override theme-panel/theme-page rules above */
+/* Light theme: white cards — dark text (override theme-panel/theme-page) */
 [data-theme="light"] .theme-page .dashboard-project-card .text-white,
 [data-theme="light"] .theme-page .dashboard-project-card .text-white\/90,
 [data-theme="light"] .theme-page .dashboard-project-card .text-white\/85,
@@ -282,12 +331,12 @@
 [data-theme="light"] .theme-panel .dashboard-project-card .text-white,
 [data-theme="light"] .theme-panel .dashboard-project-card h1,
 [data-theme="light"] .theme-panel .dashboard-project-card h2 {
-  color: #ffffff !important;
+  color: #171717 !important;
 }
 [data-theme="light"] .theme-page .dashboard-project-card .text-white\/40,
 [data-theme="light"] .theme-page .dashboard-project-card .text-white\/35,
 [data-theme="light"] .theme-page .dashboard-project-card .text-white\/30 {
-  color: rgba(255,255,255,0.7) !important;
+  color: #737373 !important;
 }
 
 /* Light theme: Monitor section — force visible inputs and light card backgrounds */
@@ -296,8 +345,8 @@
   background-color: rgba(0,0,0,0.04) !important;
 }
 [data-theme="light"] .monitor-option-card {
-  background: linear-gradient(to bottom right, rgba(6,182,212,0.08) 0%, #ffffff 50%, #ffffff 100%) !important;
-  border-color: rgba(6,182,212,0.25) !important;
+  background: #f0f0f0 !important;
+  border-color: rgba(0,0,0,0.08) !important;
 }
 [data-theme="light"] .monitor-option-card h3 {
   color: #171717 !important;
@@ -310,16 +359,16 @@
   color: #0891b2 !important;
 }
 
-/* Light theme: dashboard option cards (Calendar, Planner, Reports) — dark gradients, keep light text */
+/* Light theme: white dashboard option cards — dark text */
 [data-theme="light"] .dashboard-option-card .text-white,
 [data-theme="light"] .dashboard-option-card .text-white\/90,
 [data-theme="light"] .dashboard-option-card .text-white\/85,
 [data-theme="light"] .dashboard-option-card .text-white\/45,
 [data-theme="light"] .dashboard-option-card h3 {
-  color: #ffffff !important;
+  color: #171717 !important;
 }
 [data-theme="light"] .dashboard-option-card .text-white\/45 {
-  color: rgba(255,255,255,0.7) !important;
+  color: #525252 !important;
 }
 
 :root {
@@ -494,19 +543,19 @@ a {
   stroke: rgba(249,115,22,0.9) !important;
 }
 
-/* Dashboard project cards — dark bg, force white text in light theme */
+/* Dashboard project cards — white bg, dark text in light theme */
 [data-theme="light"] .dashboard-project-card h3,
 [data-theme="light"] .dashboard-project-card .text-white {
-  color: #ffffff !important;
+  color: #171717 !important;
 }
 [data-theme="light"] .dashboard-project-card .text-white\/25,
 [data-theme="light"] .dashboard-project-card .text-white\/20,
 [data-theme="light"] .dashboard-project-card .text-white\/30 {
-  color: rgba(255,255,255,0.6) !important;
+  color: #737373 !important;
 }
 [data-theme="light"] .dashboard-project-card input.text-white {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  color: #171717 !important;
+  -webkit-text-fill-color: #171717 !important;
 }
 
 /* Timeline section — bolder text in light theme */
@@ -521,13 +570,45 @@ a {
   color: var(--text-muted) !important;
 }
 
-/* Project canvas box heading (Flow top bar, merged tabs) — dark bg, force white text in light theme */
+/* Project canvas box heading (Flow top bar, merged tabs) — light bg in light theme, dark text */
+[data-theme="light"] .canvas-top-bar {
+  background: rgba(255,255,255,0.95) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08) !important;
+}
 [data-theme="light"] .canvas-top-bar .text-white\/35,
 [data-theme="light"] .canvas-top-bar .text-white\/40,
 [data-theme="light"] .canvas-top-bar .text-white\/50,
-[data-theme="light"] .canvas-top-bar .text-white\/60,
-[data-theme="light"] .canvas-top-bar span {
-  color: rgba(255,255,255,0.85) !important;
+[data-theme="light"] .canvas-top-bar .text-white\/60 {
+  color: var(--text-muted) !important;
+}
+[data-theme="light"] .canvas-top-bar button:not([class*="primary"]) span,
+[data-theme="light"] .canvas-top-bar > div:not([class*="orange"]) span {
+  color: var(--text-muted) !important;
+}
+[data-theme="light"] .canvas-top-bar .text-primary,
+[data-theme="light"] .canvas-top-bar .text-orange-400,
+[data-theme="light"] .canvas-top-bar button[class*="primary"] span {
+  color: #ea580c !important;
+}
+[data-theme="light"] .canvas-top-bar .border-white\/5,
+[data-theme="light"] .canvas-top-bar .border-white\/15,
+[data-theme="light"] .canvas-top-bar .border-white\/\[0\.06\] {
+  border-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .canvas-top-bar .bg-white\/10,
+[data-theme="light"] .canvas-top-bar .bg-white\/\[0\.03\] {
+  background: rgba(0,0,0,0.06) !important;
+}
+[data-theme="light"] .canvas-top-bar .bg-white\/\[0\.04\] {
+  background: rgba(0,0,0,0.04) !important;
+}
+[data-theme="light"] .canvas-top-bar .bg-white\/5 {
+  background: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .canvas-top-bar .text-white\/40:hover,
+[data-theme="light"] .canvas-top-bar .hover\:text-white\/60:hover {
+  color: var(--text) !important;
 }
 
 /* Custom scrollbar — theme-aware */

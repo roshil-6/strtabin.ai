@@ -20,7 +20,7 @@ const SubProjectNode = ({ data, selected }: NodeProps<Node<SubProjectData>>) => 
     return (
         <div
             className={`
-                relative group flex flex-col min-w-[150px] md:min-w-[260px]
+                flow-node-card relative group flex flex-col min-w-[150px] md:min-w-[260px]
                 rounded-2xl overflow-hidden transition-all duration-300
                 ${selected
                     ? 'border-primary/40 shadow-[0_0_0_1px_rgba(218,119,86,0.2),0_6px_20px_rgba(0,0,0,0.2)] scale-[1.01]'

@@ -834,9 +834,9 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    {/* Header — minimal on mobile, full on desktop */}
-                    <header className="mb-3 md:mb-6">
-                        <div className="flex items-center gap-2 mb-1 md:mb-3">
+                    {/* Header — breathing room, clearer hierarchy */}
+                    <header className="mb-6 md:mb-8">
+                        <div className="flex items-center gap-3 mb-4 md:mb-6">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
                                 className="md:hidden p-1.5 bg-white/[0.04] rounded-lg border border-white/[0.05] text-white/50 hover:text-white active:scale-95 transition-all shrink-0"
@@ -844,10 +844,10 @@ export default function Dashboard() {
                                 <Menu size={16} />
                             </button>
                             <div className="flex-1 min-w-0">
-                                <h2 className="text-sm md:text-4xl font-black text-white leading-tight truncate">
+                                <h2 className="text-xl md:text-4xl font-black text-[var(--text)] leading-tight truncate">
                                     {activeFolder ? activeFolder.name : 'Projects'}
                                 </h2>
-                                <p className="text-[9px] text-white/30 md:text-[10px] md:text-white/20 uppercase font-bold tracking-wider hidden md:block mt-0.5">
+                                <p className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider hidden md:block mt-1">
                                     {activeFolder ? 'Folder' : 'Writing & Strategy'}
                                 </p>
                             </div>
@@ -859,90 +859,91 @@ export default function Dashboard() {
                             </button>
                         </div>
 
-                        {/* Stats — compact on mobile, hide labels */}
-                        <div className="flex items-center gap-1.5 md:gap-2 mb-2 md:mb-4 overflow-x-auto custom-scrollbar-hide">
-                            <div className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 shrink-0">
-                                <Flame size={12} className="text-orange-400 md:w-[14px] md:h-[14px]" />
-                                <span className="text-[10px] md:text-xs font-black text-white">{workInsights?.streak ?? 0}</span>
-                                <span className="text-[9px] md:text-[10px] text-white/50 hidden md:inline">streak</span>
+                        {/* Stats — more spacing, softer styling */}
+                        <div className="flex items-center gap-3 md:gap-4 mb-5 md:mb-6 overflow-x-auto custom-scrollbar-hide">
+                            <div className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shrink-0">
+                                <Flame size={14} className="text-orange-400 md:w-4 md:h-4" />
+                                <span className="text-sm md:text-base font-black text-[var(--text)]">{workInsights?.streak ?? 0}</span>
+                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] hidden md:inline">streak</span>
                             </div>
-                            <div className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shrink-0">
-                                <TrendingUp size={12} className="text-emerald-400 md:w-[14px] md:h-[14px]" />
-                                <span className="text-[10px] md:text-xs font-black text-white">{workInsights?.progress?.total ?? 0}</span>
-                                <span className="text-[9px] md:text-[10px] text-white/50 hidden md:inline">pts</span>
+                            <div className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shrink-0">
+                                <TrendingUp size={14} className="text-emerald-400 md:w-4 md:h-4" />
+                                <span className="text-sm md:text-base font-black text-[var(--text)]">{workInsights?.progress?.total ?? 0}</span>
+                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] hidden md:inline">pts</span>
                             </div>
-                            <div className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-white/[0.04] border border-white/10 shrink-0">
-                                <FileText size={12} className="text-primary md:w-[14px] md:h-[14px]" />
-                                <span className="text-[10px] md:text-xs font-black text-white">{filteredCanvases.length}</span>
-                                <span className="text-[9px] md:text-[10px] text-white/50 hidden md:inline">projects</span>
+                            <div className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shrink-0">
+                                <FileText size={14} className="text-[var(--text-muted)] md:w-4 md:h-4" />
+                                <span className="text-sm md:text-base font-black text-[var(--text)]">{filteredCanvases.length}</span>
+                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] hidden md:inline">projects</span>
                             </div>
-                            <div className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-white/[0.04] border border-white/10 shrink-0">
-                                <CheckSquare size={12} className="text-cyan-400 md:w-[14px] md:h-[14px]" />
-                                <span className="text-[10px] md:text-xs font-black text-white">
+                            <div className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shrink-0">
+                                <CheckSquare size={14} className="text-[var(--text-muted)] md:w-4 md:h-4" />
+                                <span className="text-sm md:text-base font-black text-[var(--text)]">
                                     {filteredCanvases.reduce((acc, p) => acc + (p.todos?.filter(t => t.completed).length ?? 0), 0)}
                                 </span>
-                                <span className="text-[9px] md:text-[10px] text-white/50 hidden md:inline">done</span>
+                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] hidden md:inline">done</span>
                             </div>
                         </div>
 
-                        <div className="flex flex-row items-center gap-1 md:gap-2 overflow-x-auto custom-scrollbar-hide pb-1">
+                        {/* Actions — more gap, unified secondary style */}
+                        <div className="flex flex-row items-center gap-2 md:gap-3 overflow-x-auto custom-scrollbar-hide pb-2">
 
                             {/* Action bar — icon-only on mobile for tool feel */}
                             <button
                                 type="button"
                                 onClick={() => navigate('/strab')}
                                 title="STRAB strategy hub — create new strategies and AI-generated canvases"
-                                className="flex items-center justify-center md:gap-2 p-2 md:px-5 md:py-3 bg-primary/8 text-primary border border-primary/25 hover:bg-primary/15 rounded-lg md:rounded-xl active:scale-95 transition-all shrink-0"
+                                className="flex items-center justify-center md:gap-2.5 px-4 py-2.5 md:px-6 md:py-3 bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 rounded-xl active:scale-[0.98] transition-all shrink-0"
                             >
-                                <Bot size={16} className="md:w-[14px] md:h-[14px] shrink-0" />
+                                <Bot size={18} className="md:w-5 md:h-5 shrink-0" />
                                 <span className="hidden md:flex flex-col items-start leading-tight text-left">
                                     <span className="font-black text-sm tracking-tight">STRAB</span>
-                                    <span className="text-[9px] font-bold text-primary/75 uppercase tracking-wider">New strategy</span>
+                                    <span className="text-[9px] font-bold text-primary/80 uppercase tracking-wider">New strategy</span>
                                 </span>
                             </button>
                             <button
                                 onClick={() => navigate('/reports')}
-                                className="flex items-center justify-center md:gap-1.5 p-2 md:px-5 md:py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 rounded-lg md:rounded-xl shrink-0"
+                                className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)] transition-all shrink-0"
                             >
-                                <BarChart2 size={16} className="md:w-[14px] md:h-[14px]" />
-                                <span className="hidden md:inline font-black text-sm">Reports</span>
+                                <BarChart2 size={16} className="md:w-4 md:h-4" />
+                                <span className="hidden md:inline font-bold text-sm">Reports</span>
                             </button>
                             <button
                                 onClick={() => setActiveTab('monitor')}
-                                className="flex items-center justify-center md:gap-1.5 p-2 md:px-5 md:py-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 rounded-lg md:rounded-xl shrink-0"
+                                className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)] transition-all shrink-0"
                             >
-                                <Activity size={16} className="md:w-[14px] md:h-[14px]" />
-                                <span className="hidden md:inline font-black text-sm">Monitor</span>
+                                <Activity size={16} className="md:w-4 md:h-4" />
+                                <span className="hidden md:inline font-bold text-sm">Monitor</span>
                             </button>
                             <button
                                 onClick={() => navigate(`/folder-workflow/${activeFolderId || 'general'}`)}
-                                className="flex items-center justify-center md:gap-1.5 p-2 md:px-6 md:py-3 bg-white/[0.03] text-white/40 hover:text-white border border-white/[0.05] rounded-lg md:rounded-xl shrink-0"
+                                className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)] transition-all shrink-0"
                             >
-                                <Network size={16} className="md:w-[14px] md:h-[14px]" />
+                                <Network size={16} className="md:w-4 md:h-4" />
                                 <span className="hidden md:inline font-bold text-sm">Map</span>
                             </button>
                             <button
                                 onClick={() => navigate('/calendar')}
-                                className="flex items-center justify-center md:gap-1.5 p-2 md:px-5 md:py-3 bg-white/[0.03] text-white/40 hover:text-white border border-white/[0.05] rounded-lg md:rounded-xl shrink-0"
+                                className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)] transition-all shrink-0"
                             >
-                                <Calendar size={16} className="md:w-[14px] md:h-[14px]" />
+                                <Calendar size={16} className="md:w-4 md:h-4" />
                                 <span className="hidden md:inline font-bold text-sm">Calendar</span>
                             </button>
                             {activeTab === 'strategy' && (
                                 <button
                                     onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); }}
-                                    className={`flex items-center justify-center md:gap-1.5 p-2 md:px-6 md:py-3 rounded-lg md:rounded-xl font-bold text-sm border shrink-0 ${selectionMode ? 'bg-orange-500/15 text-orange-400 border-orange-500/40' : 'bg-white/[0.03] text-white/40 border-white/[0.05]'}`}
+                                    className={`flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl font-bold text-sm border shrink-0 transition-all ${selectionMode ? 'bg-primary/15 text-primary border-primary/40' : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border)] hover:text-[var(--text)] hover:border-[var(--border-strong)]'}`}
                                 >
-                                    <GitMerge size={16} className="md:w-[14px] md:h-[14px]" />
+                                    <GitMerge size={16} className="md:w-4 md:h-4" />
                                     <span className="hidden md:inline">{selectionMode ? 'Cancel' : 'Merge'}</span>
                                 </button>
                             )}
 
-                            <div className="hidden md:flex items-center gap-2 ml-auto">
+                            <div className="hidden md:flex items-center gap-3 ml-auto">
                                 <ThemeToggle />
                                 <button
                                     onClick={handleCreate}
-                                    className="flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white/90 transition-all border border-white/10"
+                                    className="flex items-center justify-center gap-2.5 px-8 py-3.5 bg-white text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white/95 transition-all border border-white/10 shadow-lg"
                                 >
                                     <Plus size={18} strokeWidth={3} />
                                     New Project
@@ -951,15 +952,15 @@ export default function Dashboard() {
                         </div>
                     </header>
 
-                    {/* Navigation Tabs — icons + short labels on mobile */}
-                    <div className="flex items-center gap-0 md:gap-6 mb-3 md:mb-6 border-b border-white/[0.04] pb-0 overflow-x-auto custom-scrollbar-hide -mx-1">
+                    {/* Navigation Tabs — more space between */}
+                    <div className="flex items-center gap-2 md:gap-8 mb-4 md:mb-6 border-b border-[var(--border)] pb-4 overflow-x-auto custom-scrollbar-hide">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
                                 type="button"
                                 title={'title' in tab && tab.title ? tab.title : undefined}
                                 onClick={() => { setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab' | 'reports' | 'monitor'); setTabKey(k => k + 1); }}
-                                className={`group flex items-center gap-1 md:gap-3 py-2 px-2 md:px-0 md:pb-4 relative transition-all min-w-[44px] md:min-w-max justify-center md:justify-start shrink-0 ${activeTab === tab.id ? 'text-white' : 'text-white/25 hover:text-white/60'}`}
+                                className={`group flex items-center gap-2 md:gap-3 py-3 px-3 md:px-0 md:pb-4 relative transition-all min-w-[48px] md:min-w-max justify-center md:justify-start shrink-0 ${activeTab === tab.id ? 'text-[var(--text)] font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                             >
                                 <tab.icon size={16} className="shrink-0 md:w-[14px] md:h-[14px]" />
                                 <span className="text-[9px] md:text-xs font-black uppercase tracking-wider hidden sm:inline truncate">{tab.label}</span>
@@ -1479,13 +1480,13 @@ export default function Dashboard() {
                             : '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)';
                 }}
             >
-                {/* Teal accent + progress (mock-inspired) */}
+                {/* Accent bar + progress */}
                 <div className="shrink-0 rounded-t-2xl md:rounded-t-3xl overflow-hidden">
-                    <div className="h-[3px] w-full bg-gradient-to-r from-teal-500 via-cyan-400 to-teal-400" />
+                    <div className="h-[3px] w-full bg-[var(--border)]" />
                     {todoCount > 0 && (
                         <div className="h-1 w-full bg-zinc-800/90">
                             <div
-                                className="h-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all duration-500"
+                                className="h-full bg-[var(--border-strong)] transition-all duration-500"
                                 style={{ width: `${completionRate}%` }}
                             />
                         </div>
@@ -1616,7 +1617,7 @@ export default function Dashboard() {
                                 <span className="text-[10px] font-bold text-zinc-200">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
                             </div>
                             <div className="h-1.5 rounded-full bg-zinc-700/80 overflow-hidden">
-                                <div className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all duration-300" style={{ width: `${completionRate}%` }} />
+                                <div className="h-full rounded-full bg-[var(--border-strong)] transition-all duration-300" style={{ width: `${completionRate}%` }} />
                             </div>
                         </div>
                         <div className="rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2.5">
@@ -1755,7 +1756,7 @@ export default function Dashboard() {
                     boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)',
                 }}
             >
-                <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-3xl bg-gradient-to-r from-teal-500 via-cyan-400 to-violet-500/80" />
+                <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-3xl bg-[var(--border)]" />
 
                 {!selectionMode && (
                     <div className="absolute top-4 right-4 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -1910,7 +1911,7 @@ export default function Dashboard() {
                         <div className="space-y-1.5">
                             <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
                                 <div
-                                    className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all duration-500"
+                                    className="h-full rounded-full bg-[var(--border-strong)] transition-all duration-500"
                                     style={{ width: `${todoCount > 0 ? completionRate : nodeCount > 0 ? 35 : 8}%` }}
                                 />
                             </div>

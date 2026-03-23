@@ -83,7 +83,7 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
 
     return (
         <div
-            className="relative group flex flex-col min-w-[160px] md:min-w-[240px] max-w-[320px] rounded-2xl transition-all duration-200 overflow-hidden"
+            className="flow-node-card relative group flex flex-col min-w-[160px] md:min-w-[240px] max-w-[320px] rounded-2xl transition-all duration-200 overflow-hidden"
             style={{
                 background: `linear-gradient(165deg, #1f1f1d 0%, #1a1a18 50%, #161614 100%)`,
                 border: `1px solid ${selected ? v.selectedBorder : v.border}`,
