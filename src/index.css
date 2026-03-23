@@ -401,11 +401,25 @@ a {
   stroke: rgba(249,115,22,0.6) !important;
 }
 
-/* Connection line while dragging */
+/* Connection line while dragging — clearer visibility */
 .react-flow__connection-path {
-  stroke: rgba(249,115,22,0.7) !important;
-  stroke-width: 2px !important;
-  stroke-dasharray: 6 3 !important;
+  stroke: rgba(249,115,22,0.85) !important;
+  stroke-width: 2.5px !important;
+  stroke-dasharray: 8 4 !important;
+  stroke-linecap: round !important;
+}
+
+/* Handles — larger hit area for easier connection */
+.react-flow__handle {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  border-radius: 50% !important;
+  cursor: crosshair !important;
+}
+.react-flow__handle:hover {
+  transform: scale(1.15);
 }
 
 /* Controls → match app theme */

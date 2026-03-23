@@ -70,8 +70,8 @@ export const WorkflowStepNode = memo(({ id, data, selected }: NodeProps<Node<Wor
                 ${selected ? 'z-50' : 'z-40'}
             `}
         >
-            <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-white/50 !border-none" />
-            <Handle type="target" position={Position.Left} id="left" className="!w-3 !h-3 !bg-white/50 !border-none" />
+            <Handle type="target" position={Position.Top} className="!w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ top: -8, left: '50%', transform: 'translateX(-50%)' }} />
+            <Handle type="target" position={Position.Left} id="left" className="!w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ left: -8, top: '50%', transform: 'translateY(-50%)' }} />
 
             <div className={`
                 p-4 rounded-xl border flex flex-col gap-2 transition-all
@@ -114,8 +114,8 @@ export const WorkflowStepNode = memo(({ id, data, selected }: NodeProps<Node<Wor
                 )}
             </div>
 
-            <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-white/50 !border-none" />
-            <Handle type="source" position={Position.Right} id="right" className="!w-3 !h-3 !bg-white/50 !border-none" />
+            <Handle type="source" position={Position.Bottom} className="!w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ bottom: -8, left: '50%', transform: 'translateX(-50%)' }} />
+            <Handle type="source" position={Position.Right} id="right" className="!w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ right: -8, top: '50%', transform: 'translateY(-50%)' }} />
         </div>
     );
 });

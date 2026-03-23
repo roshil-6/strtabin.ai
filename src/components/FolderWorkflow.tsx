@@ -62,11 +62,12 @@ function WorkflowContent() {
         const newNode: Node = {
             id: `step-${Date.now()}`,
             type: 'step',
-            position: { x: 300 + Math.random() * 150, y: 180 + Math.random() * 80 },
+            position: { x: 400, y: 250 },
             data: { label: 'New step' },
         };
         store.setProjectMapNodes(actualFolderIdStr, [...currentNodes, newNode]);
-    }, [store, actualFolderIdStr, currentNodes]);
+        setTimeout(() => fitView({ duration: 400, padding: 0.2 }), 150);
+    }, [store, actualFolderIdStr, currentNodes, fitView]);
 
     const handleMapFromFolder = useCallback(() => {
         if (folderProjects.length === 0) {
@@ -125,8 +126,11 @@ function WorkflowContent() {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             defaultEdgeOptions={{ type: 'smart' }}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.9 }}
             fitView
             fitViewOptions={{ padding: 0.2, minZoom: 0.5, maxZoom: 1.2 }}
+            connectionRadius={90}
+            connectionLineStyle={{ stroke: '#f97316', strokeWidth: 2.5, strokeDasharray: '8 4' }}
             className="bg-[#050505]"
             zoomOnPinch
             panOnDrag

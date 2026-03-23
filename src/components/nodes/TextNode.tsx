@@ -16,10 +16,10 @@ export default function TextNode({ id, data, selected }: NodeProps) {
     }, [id, updateNodeData]);
 
     const handleClass = `
-        !w-3 !h-3 !rounded-full !bg-[#2a2a2a] !border-2 !border-[#444]
-        hover:!bg-primary hover:!border-primary hover:!scale-125
+        !w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/30 !border-2 !border-primary/50
+        hover:!bg-primary hover:!border-primary hover:!scale-110
         transition-all duration-150 cursor-crosshair
-        md:opacity-0 md:group-hover:opacity-100 opacity-50
+        opacity-80 group-hover:opacity-100 shadow-[0_0_8px_rgba(218,119,86,0.3)]
     `;
 
     const accent = 'rgba(218,119,86,0.5)';
@@ -46,10 +46,10 @@ export default function TextNode({ id, data, selected }: NodeProps) {
                 }}
             />
 
-            <Handle type="target" position={Position.Top} className={handleClass} style={{ top: -6, left: '50%', transform: 'translateX(-50%)' }} />
-            <Handle type="source" position={Position.Right} className={handleClass} style={{ right: -6, top: '50%', transform: 'translateY(-50%)' }} />
-            <Handle type="source" position={Position.Bottom} className={handleClass} style={{ bottom: -6, left: '50%', transform: 'translateX(-50%)' }} />
-            <Handle type="target" position={Position.Left} className={handleClass} style={{ left: -6, top: '50%', transform: 'translateY(-50%)' }} />
+            <Handle type="target" position={Position.Top} className={handleClass} style={{ top: -8, left: '50%', transform: 'translateX(-50%)' }} />
+            <Handle type="source" position={Position.Right} className={handleClass} style={{ right: -8, top: '50%', transform: 'translateY(-50%)' }} />
+            <Handle type="source" position={Position.Bottom} className={handleClass} style={{ bottom: -8, left: '50%', transform: 'translateY(-50%)' }} />
+            <Handle type="target" position={Position.Left} className={handleClass} style={{ left: -8, top: '50%', transform: 'translateY(-50%)' }} />
 
             <div className="px-3 py-3 md:px-4 md:py-4 relative">
                 <div className="absolute inset-0 pointer-events-none rounded-b-2xl opacity-30" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(218,119,86,0.06) 0%, transparent 70%)' }} />

@@ -320,7 +320,7 @@ function CanvasContent() {
         // Skip canvases that are already represented as flow nodes (from a previous Map Folder)
         const existingLinkedIds = new Set(
             nodes
-                .filter(n => (n.type === 'text' || n.type === 'default') && (n.data as Record<string, unknown>)?.linkedSubCanvasId)
+                .filter(n => ['text', 'default', 'question', 'decision'].includes(n.type ?? '') && (n.data as Record<string, unknown>)?.linkedSubCanvasId)
                 .map(n => (n.data as Record<string, unknown>).linkedSubCanvasId as string)
                 .filter(Boolean)
         );
@@ -338,6 +338,9 @@ function CanvasContent() {
         const GAP_X = 50;
         const GAP_Y = 50;
 
+        // Variants: idea, question, decision — free writable boxes
+        const variants: Array<'default' | 'question' | 'decision'> = ['default', 'question', 'decision'];
+
         // Place nodes to the right of any existing nodes, or centred at origin
         const baseX = nodes.length > 0
             ? Math.max(...nodes.map(n => n.position.x + (n.measured?.width ?? NODE_W))) + 80
@@ -349,9 +352,10 @@ function CanvasContent() {
         newSiblings.forEach((sibling, i) => {
             const col = i % COLS;
             const row = Math.floor(i / COLS);
+            const variant = variants[i % 3];
             addNode({
                 id: `folder-node-${sibling.id}`,
-                type: 'text',
+                type: variant,
                 position: {
                     x: baseX + col * (NODE_W + GAP_X),
                     y: baseY + row * (NODE_H + GAP_Y),
@@ -619,16 +623,16 @@ function CanvasContent() {
                             onDrop={onDrop}
                             nodeTypes={nodeTypes}
                             edgeTypes={edgeTypes}
-                            defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
+                            defaultEdgeOptions={{ type: 'smart' }}
                             fitView
                             fitViewOptions={{ minZoom: 0.3, maxZoom: 1.5, padding: 0.2 }}
                             colorMode={resolved}
                             minZoom={0.1}
                             maxZoom={2.5}
-                            connectionRadius={50}
+                            connectionRadius={90}
                             snapToGrid
                             snapGrid={[10, 10]}
-                            connectionLineStyle={{ stroke: '#f97316', strokeWidth: 2, strokeDasharray: '6 3' }}
+                            connectionLineStyle={{ stroke: '#f97316', strokeWidth: 2.5, strokeDasharray: '8 4' }}
                             translateExtent={isMobile ? undefined : [[-4000, -4000], [4000, 4000]]}
                             zoomOnPinch={true}
                             zoomOnScroll={!isMobile}

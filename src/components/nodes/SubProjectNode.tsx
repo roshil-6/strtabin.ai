@@ -10,11 +10,11 @@ interface SubProjectData extends Record<string, unknown> {
 }
 
 const SubProjectNode = ({ data, selected }: NodeProps<Node<SubProjectData>>) => {
-    // Shared handle style
     const handleClass = `
-        !w-3 !h-3 !bg-[#444] !border-2 !border-[#666]
-        hover:!bg-primary hover:!border-primary hover:!scale-125
+        !w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/30 !border-2 !border-primary/50
+        hover:!bg-primary hover:!border-primary hover:!scale-110
         transition-all duration-150 cursor-crosshair
+        opacity-80 group-hover:opacity-100 shadow-[0_0_8px_rgba(218,119,86,0.3)]
     `;
 
     return (
@@ -62,10 +62,10 @@ const SubProjectNode = ({ data, selected }: NodeProps<Node<SubProjectData>>) => 
             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
 
             {/* ── Connection Handles ─────────────────────────────────────────────── */}
-            <Handle type="target" position={Position.Top} className={handleClass} />
-            <Handle type="source" position={Position.Right} className={handleClass} />
-            <Handle type="source" position={Position.Bottom} className={handleClass} />
-            <Handle type="target" position={Position.Left} className={handleClass} />
+            <Handle type="target" position={Position.Top} className={handleClass} style={{ top: -8, left: '50%', transform: 'translateX(-50%)' }} />
+            <Handle type="source" position={Position.Right} className={handleClass} style={{ right: -8, top: '50%', transform: 'translateY(-50%)' }} />
+            <Handle type="source" position={Position.Bottom} className={handleClass} style={{ bottom: -8, left: '50%', transform: 'translateX(-50%)' }} />
+            <Handle type="target" position={Position.Left} className={handleClass} style={{ left: -8, top: '50%', transform: 'translateY(-50%)' }} />
         </div>
     );
 };

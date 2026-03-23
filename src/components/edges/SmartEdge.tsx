@@ -32,21 +32,22 @@ export default function SmartEdge({
                 path={edgePath}
                 style={{
                     ...style,
-                    stroke: 'rgba(249,115,22,0.15)',
-                    strokeWidth: 8,
+                    stroke: 'rgba(249,115,22,0.2)',
+                    strokeWidth: 10,
                     filter: 'blur(4px)',
                     strokeLinecap: 'round',
                 }}
             />
-            {/* Main edge line */}
+            {/* Main edge line — smoother, clearer */}
             <BaseEdge
                 path={edgePath}
                 markerEnd={markerEnd}
                 style={{
                     ...style,
-                    stroke: 'rgba(249,115,22,0.55)',
-                    strokeWidth: 1.5,
+                    stroke: 'rgba(249,115,22,0.6)',
+                    strokeWidth: 2,
                     strokeLinecap: 'round',
+                    strokeLinejoin: 'round',
                 }}
             />
             <EdgeLabelRenderer>

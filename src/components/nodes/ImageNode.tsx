@@ -9,8 +9,8 @@ function ImageNode({ data, selected }: NodeProps) {
             selected ? "ring-2 ring-primary shadow-[0_0_15px_rgba(0,255,135,0.3)]" : "hover:ring-1 hover:ring-white/20"
         )}>
             {/* Handles */}
-            <Handle type="target" position={Position.Top} className="!bg-primary !w-3 !h-3 !rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Handle type="source" position={Position.Bottom} className="!bg-primary !w-3 !h-3 !rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Handle type="target" position={Position.Top} className="!w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/50 !border-2 !border-primary/70 opacity-70 group-hover:opacity-100 transition-all hover:!scale-110 cursor-crosshair" style={{ top: -8, left: '50%', transform: 'translateX(-50%)' }} />
+            <Handle type="source" position={Position.Bottom} className="!w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/50 !border-2 !border-primary/70 opacity-70 group-hover:opacity-100 transition-all hover:!scale-110 cursor-crosshair" style={{ bottom: -8, left: '50%', transform: 'translateX(-50%)' }} />
 
             {/* Image Content */}
             <div className="bg-[#151515]">

@@ -76,9 +76,9 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
     };
 
     const handleClass = `
-        !w-3 !h-3 !rounded-full !bg-[#2a2a2a] !border-2
-        hover:!scale-125 transition-all duration-150 cursor-crosshair
-        md:opacity-0 md:group-hover:opacity-100 opacity-50
+        !w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/30 !border-2 !border-primary/50
+        hover:!bg-primary hover:!scale-110 transition-all duration-150 cursor-crosshair
+        opacity-80 group-hover:opacity-100 shadow-[0_0_8px_rgba(218,119,86,0.3)]
     `;
 
     return (
@@ -163,13 +163,13 @@ const NodeShell = ({ id, data, selected, variant }: ThinkingNodeProps & { varian
 
             {/* Handles */}
             <Handle type="target" position={Position.Top} id="top-target" isConnectable className={handleClass}
-                style={{ top: -6, left: '50%', transform: 'translateX(-50%)', borderColor: v.accent }} />
+                style={{ top: -8, left: '50%', transform: 'translateX(-50%)', borderColor: v.accent }} />
             <Handle type="source" position={Position.Right} id="right-source" isConnectable className={handleClass}
-                style={{ right: -6, top: '50%', transform: 'translateY(-50%)', borderColor: v.accent }} />
+                style={{ right: -8, top: '50%', transform: 'translateY(-50%)', borderColor: v.accent }} />
             <Handle type="source" position={Position.Bottom} id="bottom-source" isConnectable className={handleClass}
-                style={{ bottom: -6, left: '50%', transform: 'translateX(-50%)', borderColor: v.accent }} />
+                style={{ bottom: -8, left: '50%', transform: 'translateX(-50%)', borderColor: v.accent }} />
             <Handle type="target" position={Position.Left} id="left-target" isConnectable className={handleClass}
-                style={{ left: -6, top: '50%', transform: 'translateY(-50%)', borderColor: v.accent }} />
+                style={{ left: -8, top: '50%', transform: 'translateY(-50%)', borderColor: v.accent }} />
         </div>
     );
 };
