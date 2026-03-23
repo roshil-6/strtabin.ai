@@ -73,6 +73,8 @@ export default function Dashboard() {
     const [myUsername, setMyUsername] = useState<string | null>(null);
     const [invitations, setInvitations] = useState<Array<{ id: number; workspace_id: number; workspace_name: string; inviter_username: string | null }>>([]);
     const [workInsights, setWorkInsights] = useState<{ streak: number; progress: { total: number; count: number } } | null>(null);
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const [selectedLogDate, setSelectedLogDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
         initDefaultCanvas();
@@ -1072,20 +1074,58 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* What did I execute today — inline edit from any section */}
+                            {/* What did I execute — record for any specific day */}
                             {(() => {
-                                const todayKey = new Date().toISOString().slice(0, 10);
-                                const todayLogs = Object.entries(dailyExecutionLogs || {})
-                                    .filter(([k]) => k.startsWith(todayKey))
-                                    .map(([k, v]) => ({ canvasId: k === todayKey ? null : k.replace(`${todayKey}_`, ''), ...v }));
-                                const rawGlobal = todayLogs.find(l => !l.canvasId);
+                                const dateKey = selectedLogDate;
+                                const dateLogs = Object.entries(dailyExecutionLogs || {})
+                                    .filter(([k]) => k.startsWith(dateKey))
+                                    .map(([k, v]) => ({ canvasId: k === dateKey ? null : k.replace(`${dateKey}_`, ''), ...v }));
+                                const rawGlobal = dateLogs.find(l => !l.canvasId);
                                 const globalLog = { executed: rawGlobal?.executed ?? '', blocking: rawGlobal?.blocking ?? '', tomorrowAction: rawGlobal?.tomorrowAction ?? '' };
-                                const projectLogs = todayLogs.filter(l => l.canvasId);
+                                const projectLogs = dateLogs.filter(l => l.canvasId);
+                                const datesWithLogs = [...new Set(Object.keys(dailyExecutionLogs || {}).map(k => k.split('_')[0]).filter(Boolean))].sort().reverse().slice(0, 10);
                                 return (
                                     <div className="rounded-3xl border border-[var(--border)] bg-[var(--bg-card)] p-6 md:p-8 shadow-sm">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <Zap size={20} className="text-primary" />
-                                            <h3 className="text-lg font-black text-[var(--text)]">What did I execute today?</h3>
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <Zap size={20} className="text-primary" />
+                                                <h3 className="text-lg font-black text-[var(--text)]">What did I execute?</h3>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedLogDate(todayKey)}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${selectedLogDate === todayKey ? 'bg-primary/20 text-primary ring-1 ring-primary/30' : 'bg-[var(--input-bg)] text-[var(--text-muted)] hover:bg-[var(--input-bg)]/80'}`}
+                                                >
+                                                    Today
+                                                </button>
+                                                <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--text)] cursor-pointer hover:border-primary/30 transition-colors">
+                                                    <Calendar size={14} className="text-[var(--text-muted)]" />
+                                                    <input
+                                                        type="date"
+                                                        value={dateKey}
+                                                        onChange={(e) => setSelectedLogDate(e.target.value)}
+                                                        className="bg-transparent outline-none text-[var(--text)] [color-scheme:inherit]"
+                                                        max={todayKey}
+                                                        title="Pick a date to record execution"
+                                                    />
+                                                </label>
+                                                {datesWithLogs.length > 0 && (
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Recent:</span>
+                                                        {datesWithLogs.filter(d => d !== dateKey).slice(0, 5).map(d => (
+                                                            <button
+                                                                key={d}
+                                                                type="button"
+                                                                onClick={() => setSelectedLogDate(d)}
+                                                                className="px-2 py-1 rounded text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
+                                                            >
+                                                                {d === todayKey ? 'Today' : d}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4">
                                             <div>
@@ -1093,7 +1133,7 @@ export default function Dashboard() {
                                                 <input
                                                     type="text"
                                                     value={globalLog.executed ?? ''}
-                                                    onChange={(e) => setDailyExecutionLog(todayKey, { executed: e.target.value, blocking: globalLog.blocking, tomorrowAction: globalLog.tomorrowAction })}
+                                                    onChange={(e) => setDailyExecutionLog(dateKey, { executed: e.target.value, blocking: globalLog.blocking, tomorrowAction: globalLog.tomorrowAction })}
                                                     placeholder="e.g. Finished draft, called 3 leads"
                                                     className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-primary/30 transition-colors"
                                                 />
@@ -1103,7 +1143,7 @@ export default function Dashboard() {
                                                 <input
                                                     type="text"
                                                     value={globalLog.blocking ?? ''}
-                                                    onChange={(e) => setDailyExecutionLog(todayKey, { executed: globalLog.executed, blocking: e.target.value, tomorrowAction: globalLog.tomorrowAction })}
+                                                    onChange={(e) => setDailyExecutionLog(dateKey, { executed: globalLog.executed, blocking: e.target.value, tomorrowAction: globalLog.tomorrowAction })}
                                                     placeholder="e.g. Waiting on design"
                                                     className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-amber-500/30 transition-colors"
                                                 />
@@ -1113,12 +1153,13 @@ export default function Dashboard() {
                                                 <input
                                                     type="text"
                                                     value={globalLog.tomorrowAction ?? ''}
-                                                    onChange={(e) => setDailyExecutionLog(todayKey, { executed: globalLog.executed, blocking: globalLog.blocking, tomorrowAction: e.target.value })}
+                                                    onChange={(e) => setDailyExecutionLog(dateKey, { executed: globalLog.executed, blocking: globalLog.blocking, tomorrowAction: e.target.value })}
                                                     placeholder="e.g. Ship v1 to beta"
                                                     className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-emerald-500/30 transition-colors"
                                                 />
                                             </div>
                                         </div>
+                                        <p className="text-[10px] text-[var(--text-muted)] mb-2">Recording for <strong>{dateKey === todayKey ? 'today' : dateKey}</strong></p>
                                         {projectLogs.filter(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim()).length > 0 && (
                                             <div className="space-y-2 pt-2 border-t border-[var(--border)]">
                                                 <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">By project</p>
