@@ -44,7 +44,6 @@ import {
     markChatRead,
     getUnreadCount,
 } from '../db/models.js';
-import { initDb } from '../db/index.js';
 
 async function requireAuthMiddleware(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -75,7 +74,6 @@ function sanitize(str, max = 10000) {
 
 export function registerChatRoutes(app, clerkClient) {
     app.locals.clerk = clerkClient;
-    initDb();
 
     // GET /api/users/chatable — list all users you can chat with (share a workspace)
     app.get('/api/users/chatable', requireAuthMiddleware, (req, res) => {

@@ -4,7 +4,6 @@
 
 import crypto from 'crypto';
 import { getOrCreateUser, createSharedCanvas, getSharedCanvas } from '../db/models.js';
-import { initDb } from '../db/index.js';
 
 async function requireAuthMiddleware(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -31,7 +30,6 @@ async function requireAuthMiddleware(req, res, next) {
 
 export function registerCanvasRoutes(app, clerkClient) {
     app.locals.clerk = clerkClient;
-    initDb();
 
     // POST /api/canvas/share — store canvas data, return shareId (auth required)
     app.post('/api/canvas/share', requireAuthMiddleware, (req, res) => {

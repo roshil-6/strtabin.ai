@@ -51,7 +51,6 @@ import {
     getProjectCanvas,
     joinWorkspaceById,
 } from '../db/models.js';
-import { initDb } from '../db/index.js';
 
 // ─── Auth middleware: requires valid Clerk token, sets req.userId (our internal id) ─
 async function requireAuthMiddleware(req, res, next) {
@@ -106,7 +105,6 @@ function validateProjectStatus(s) {
 
 export function registerWorkspaceRoutes(app, clerkClient) {
     app.locals.clerk = clerkClient;
-    initDb();
 
     // POST /api/workspaces/join — join team workspace by ID (auth required)
     app.post('/api/workspaces/join', requireAuthMiddleware, (req, res) => {

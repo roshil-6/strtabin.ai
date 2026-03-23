@@ -1028,8 +1028,6 @@ const io = new Server(httpServer, {
 });
 app.locals.io = io;
 
-initDb();
-
 io.on('connection', async (socket) => {
     const token = socket.handshake.auth?.token;
     let userId = null;
@@ -1069,6 +1067,13 @@ io.emitToChat = (chatId, event, data) => {
     io.to(`chat:${chatId}`).emit(event, data);
 };
 
-httpServer.listen(PORT, () => {
-    console.log(`STRAB AI Server running on port ${PORT}`);
+// Bind 0.0.0.0 so Render/load balancers can reach the service (required on many hosts)
+httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`STRAB AI Server running on 0.0.0.0:${PORT}`);
+    try {
+        initDb();
+    } catch (err) {
+        console.error('❌ Database initialization failed:', err);
+        process.exit(1);
+    }
 });
