@@ -1,5 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot, Network } from 'lucide-react';
+import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot, Network, BookOpen } from 'lucide-react';
+
+const GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
 
 const NAV_ITEMS = [
@@ -191,6 +193,24 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                     </button>
                 );
             })()}
+
+            {/* How to use — marketing guide */}
+            <a
+                href={GUIDE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl w-14 transition-all duration-200 active:scale-90 hover:bg-white/5 border border-transparent"
+                aria-label="How to use Stratabin — opens guide in a new tab"
+                title="How to use Stratabin (guide)"
+            >
+                <BookOpen size={18} style={{ color: 'var(--text-dim)' }} />
+                <span className="text-[8px] font-black uppercase tracking-wider text-center leading-tight" style={{ color: 'var(--text-dim)', opacity: 0.7 }}>
+                    Guide
+                </span>
+                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 theme-elevated border border-[var(--border)] text-[var(--text)] text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
+                    guide.stratabin.com
+                </div>
+            </a>
 
             <div className="mt-2">
                 <ThemeToggle compact />
