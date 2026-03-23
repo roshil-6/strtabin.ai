@@ -665,10 +665,10 @@ When **nodeCount** is 0 (or **canvasIsBlank** is true) AND the user asks you to 
 
 - You MUST **not** only tell them to draw nodes manually. Give a **short** reply (2–4 sentences), then append an **[ACTIONS]** block with **canvasRef "current"** (this is the open project — not a new tab).
 - The block MUST include:
-  - **6–10** `add_node` (mix **nodeType**: default, question, decision, text as fits the topic)
-  - **4–8** `connect_nodes` with valid **fromIndex** / **toIndex** referring to the **order nodes were added** (0-based)
-  - **set_writing** with structured markdown (e.g. overview, phases, audience, risks, next steps — use `\\n` for newlines in JSON)
-  - **3–5** `add_todo` with concrete next tasks
+  - **6–10** \`add_node\` (mix **nodeType**: default, question, decision, text as fits the topic)
+  - **4–8** \`connect_nodes\` with valid **fromIndex** / **toIndex** referring to the **order nodes were added** (0-based)
+  - **set_writing** with structured markdown (e.g. overview, phases, audience, risks, next steps — use \`\\n\` for newlines in JSON)
+  - **3–5** \`add_todo\` with concrete next tasks
 - Layout: x = 100, 340, 580, 820… (~240px apart); use y = 200 and y = 400 (or 440) for a second row so nodes do not overlap.
 
 When **nodeCount** is 0 and the user only asks for **analysis** (risks, summary, "what am I missing") **without** asking to populate the canvas: say the canvas is empty, you cannot analyse structure yet, and **offer** to generate a starter map if they describe their goal.
