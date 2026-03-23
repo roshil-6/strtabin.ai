@@ -234,7 +234,6 @@ export type RFState = {
     currentCanvasId: string | null;
     createCanvas: (initialName?: string, folderId?: string | null) => string;
     populateCanvas: (canvasId: string, nodes: Node[], edges: Edge[]) => void;
-    initDefaultCanvas: () => void;
     deleteCanvas: (id: string) => void;
     duplicateCanvas: (id: string, targetFolderId: string | null) => void;
     setCurrentCanvas: (id: string) => void;
@@ -382,13 +381,6 @@ const useStore = create<RFState>()(
                 if (!trialStart) return 'trial'; // hasn't started yet, we'll start it
                 const elapsed = Date.now() - trialStart;
                 return elapsed < ONE_DAY ? 'trial' : 'expired';
-            },
-
-            initDefaultCanvas: () => {
-                const state = get();
-                const generalCanvases = Object.values(state.canvases).filter(c => (c.folderId || null) === null);
-                const need = Math.max(0, 10 - generalCanvases.length);
-                for (let i = 0; i < need; i++) state.createCanvas('', null);
             },
 
             populateCanvas: (canvasId: string, nodes: Node[], edges: Edge[]) => {

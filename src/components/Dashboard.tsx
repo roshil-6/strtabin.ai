@@ -21,7 +21,7 @@ export default function Dashboard() {
     const {
         canvases, projectCalendarEvents, createCanvas, deleteCanvas, togglePinCanvas, toggleStuckCanvas, toggleCurrentProject,
         mergeCanvases, folders, activeFolderId, createFolder, deleteFolder,
-        setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName, initDefaultCanvas,
+        setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName,
         dailyExecutionLogs, setDailyExecutionLog,
     } = useStore(useShallow(state => ({
         canvases: state.canvases,
@@ -40,7 +40,6 @@ export default function Dashboard() {
         moveItemToFolder: state.moveItemToFolder,
         duplicateCanvas: state.duplicateCanvas,
         updateCanvasName: state.updateCanvasName,
-        initDefaultCanvas: state.initDefaultCanvas,
         dailyExecutionLogs: state.dailyExecutionLogs,
         setDailyExecutionLog: state.setDailyExecutionLog,
     })));
@@ -77,10 +76,9 @@ export default function Dashboard() {
     const [selectedLogDate, setSelectedLogDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
-        initDefaultCanvas();
         const t = setTimeout(() => setIsFirstLoad(false), 400);
         return () => { clearTimeout(t); document.title = 'Stratabin AI — Strategy Workspace'; };
-    }, [initDefaultCanvas]);
+    }, []);
 
     useEffect(() => {
         getToken().then((token) => {

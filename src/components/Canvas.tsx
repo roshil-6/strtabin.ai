@@ -39,7 +39,7 @@ function CanvasContent() {
     const workspaceId = (location.state as { workspaceId?: number })?.workspaceId;
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
-        addNode, addEdge, setCurrentCanvas, initDefaultCanvas, canvases,
+        addNode, addEdge, setCurrentCanvas, canvases,
         addSubCanvasToMerged, syncSubProjectNodes, ensureCanvasExists, loadSharedCanvas
     } = useStore(useShallow((state: RFState) => ({
         nodes: state.nodes,
@@ -50,7 +50,6 @@ function CanvasContent() {
         addNode: state.addNode,
         addEdge: state.addEdge,
         setCurrentCanvas: state.setCurrentCanvas,
-        initDefaultCanvas: state.initDefaultCanvas,
         canvases: state.canvases,
         addSubCanvasToMerged: state.addSubCanvasToMerged,
         syncSubProjectNodes: state.syncSubProjectNodes,
@@ -79,8 +78,6 @@ function CanvasContent() {
 
     useEffect(() => {
         if (!id) {
-            initDefaultCanvas();
-            setCurrentCanvas('default');
             return;
         }
         if (id.startsWith('shared_')) {
@@ -149,7 +146,7 @@ function CanvasContent() {
         }
         ensureCanvasExists(id);
         setCurrentCanvas(id);
-    }, [id, setCurrentCanvas, initDefaultCanvas, ensureCanvasExists, loadSharedCanvas, getToken]);
+    }, [id, setCurrentCanvas, ensureCanvasExists, loadSharedCanvas, getToken]);
 
     // Update page title
     useEffect(() => {
