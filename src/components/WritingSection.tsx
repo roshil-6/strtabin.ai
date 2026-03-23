@@ -352,102 +352,102 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     return (
         <div className="h-full w-full bg-transparent flex flex-col relative">
-            {/* Toolbar */}
-            <div className="h-11 md:h-14 flex items-center px-2 md:px-4 gap-1 bg-transparent sticky top-0 z-20">
+            {/* Toolbar — NotebookLM-style: minimal, content-first */}
+            <div className="h-10 md:h-12 flex items-center px-3 md:px-5 gap-2 bg-transparent sticky top-0 z-20">
                 <div className="flex items-center gap-2 mr-auto min-w-0">
-                    <FileText size={13} className="text-primary shrink-0" />
-                    <span className="text-xs font-bold text-[var(--text-secondary)] truncate max-w-[120px] md:max-w-[200px]" title={projectName}>{projectName}</span>
+                    <FileText size={14} className="text-[var(--text-muted)] shrink-0" />
+                    <span className="text-sm font-medium text-[var(--text-secondary)] truncate max-w-[140px] md:max-w-[220px]" title={projectName}>{projectName}</span>
                     {wc > 0 && (
-                        <span className="hidden sm:flex items-center gap-1 text-[10px] text-[var(--text-muted)] font-medium bg-[var(--input-bg)] px-2 py-0.5 rounded-md border border-[var(--input-border)]">
+                        <span className="hidden sm:flex text-[10px] text-[var(--text-dim)] font-medium">
                             {wc} words
                         </span>
                     )}
                 </div>
 
-                <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-xl p-0.5 border border-white/[0.04]">
+                <div className="flex items-center gap-0.5">
                     <button
                         onClick={() => imageInputRef.current?.click()}
-                        className="p-2 hover:bg-white/[0.06] rounded-lg text-white/35 hover:text-white active:scale-90 transition-all flex items-center justify-center"
+                        className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-all flex items-center justify-center"
                         title="Add Image"
                     >
-                        <ImageIcon size={15} />
+                        <ImageIcon size={16} />
                     </button>
                     <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-2 hover:bg-white/[0.06] rounded-lg text-white/35 hover:text-white active:scale-90 transition-all flex items-center justify-center"
+                        className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-all flex items-center justify-center"
                         title="Add Attachment"
                     >
-                        <File size={15} />
+                        <File size={16} />
                     </button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="*" onChange={handleFileUpload} />
 
                     <button
                         onClick={() => navigate(`/strab/${canvasId}`)}
-                        className="p-2 hover:bg-primary/10 hover:text-primary rounded-lg text-white/35 active:scale-90 transition-all flex items-center justify-center"
+                        className="p-2 rounded-lg text-[var(--text-muted)] hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center"
                         title="Project STRAB — chat & reports"
                     >
-                        <Bot size={15} />
+                        <Bot size={16} />
                     </button>
                 </div>
 
-                <div className="w-px h-4 bg-white/[0.05] mx-0.5 md:mx-1" />
+                <div className="w-px h-4 bg-[var(--border)] mx-1" />
 
-                <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-xl p-0.5 border border-white/[0.04]">
+                <div className="flex items-center gap-0.5">
                     <button
                         onClick={insertSplitSeparator}
-                        className={`flex items-center gap-1 px-2 md:px-2.5 py-1.5 md:py-2 rounded-lg text-[11px] font-bold transition-all active:scale-90 ${isSplitMode ? 'bg-primary/15 text-primary shadow-[0_0_8px_rgba(255,95,31,0.15)]' : 'text-white/35 hover:text-white hover:bg-white/[0.06]'}`}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isSplitMode ? 'bg-primary/10 text-primary' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]'}`}
                         title={isSplitMode ? "Remove Split" : "Split View"}
                     >
-                        <Layout size={13} />
+                        <Layout size={14} />
                         <span className="hidden sm:inline">Split</span>
                     </button>
 
                     <button
                         onClick={() => setShowBranchModal(true)}
-                        className={`flex items-center gap-1 px-2 md:px-2.5 py-1.5 md:py-2 rounded-lg text-[11px] font-bold transition-all active:scale-90 ${showBranchModal ? 'bg-primary/15 text-primary shadow-[0_0_8px_rgba(255,95,31,0.15)]' : 'text-white/35 hover:text-white hover:bg-white/[0.06]'}`}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${showBranchModal ? 'bg-primary/10 text-primary' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]'}`}
                         title="Insert Branch"
                     >
-                        <GitBranch size={13} />
+                        <GitBranch size={14} />
                         <span className="hidden sm:inline">Branch</span>
                     </button>
                 </div>
             </div>
 
-            {/* Content Area */}
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-5 py-5 md:px-8 md:py-7 custom-scrollbar">
-                <div className="mx-auto max-w-4xl pb-8">
+            {/* Content Area — NotebookLM: generous reading width */}
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-5 py-6 md:px-10 md:py-8 custom-scrollbar">
+                <div className="mx-auto max-w-3xl pb-12">
                     {(() => {
                         const isEmpty = !content.trim() && !title.trim();
                         return (
                             <div className="relative transition-all duration-300">
-                                <div className="relative px-3 md:px-4 pt-4 md:pt-5 pb-6 md:pb-8">
-                                    {/* Title — no outline */}
+                                <div className="relative">
+                                    {/* Title — document-first, NotebookLM style */}
                                     <input
                                         type="text"
                                         value={title}
                                         onChange={handleTitleChange}
-                                        placeholder={isEmpty ? "Give your strategy a name..." : "Untitled Strategy"}
-                                        className="w-full bg-transparent outline-none ring-0 border-0 focus:ring-0 focus:border-0 text-4xl md:text-5xl font-bold text-[var(--text)] placeholder-[var(--text-muted)] leading-tight mb-6 md:mb-8"
+                                        placeholder={isEmpty ? "Name your strategy..." : "Untitled"}
+                                        className="w-full bg-transparent outline-none ring-0 border-0 focus:ring-0 focus:border-0 text-3xl md:text-4xl font-semibold text-[var(--text)] placeholder-[var(--text-muted)] leading-tight mb-8"
                                     />
 
-                                    {/* Writing Planner — no inner border/outline */}
-                    <div className="mb-8 rounded-2xl overflow-hidden bg-white/[0.02]">
+                                    {/* Writing Planner — collapsible, minimal */}
+                    <div className="mb-8 rounded-xl border border-[var(--border)] overflow-hidden">
                         <button
                             onClick={() => setPlannerOpen(!plannerOpen)}
-                            className="w-full flex items-center gap-2 px-4 md:px-5 py-3 md:py-4 hover:bg-white/[0.02] active:bg-white/[0.04] transition-all"
+                            className="w-full flex items-center gap-2 px-4 py-3 hover:bg-[var(--input-bg)]/50 transition-colors text-left"
                         >
-                            <CalendarDays size={15} className="text-primary shrink-0" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-white/50 flex-1 text-left">Writing Planner</h4>
+                            <CalendarDays size={16} className="text-[var(--text-muted)] shrink-0" />
+                            <span className="text-sm font-medium text-[var(--text-secondary)] flex-1">Writing Planner</span>
                             {pinnedEvents.length > 0 && (
-                                <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">{pinnedEvents.length}</span>
+                                <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">{pinnedEvents.length}</span>
                             )}
-                            <ChevronDown size={14} className={`text-white/25 transition-transform duration-200 ${plannerOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={16} className={`text-[var(--text-muted)] transition-transform duration-200 ${plannerOpen ? 'rotate-180' : ''}`} />
                         </button>
 
                         {plannerOpen && (
-                            <div className="px-4 md:px-5 pb-4 md:pb-5 space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
+                            <div className="px-4 pb-4 border-t border-[var(--border)] space-y-4 pt-4 animate-in slide-in-from-top-2 fade-in duration-200">
                                 <div className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_auto] gap-2">
                                     <input
                                         type="text"
@@ -479,10 +479,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
                                 {pinnedEvents.length > 0 && (
                                     <div>
-                                        <p className="text-[10px] font-black uppercase tracking-wider text-white/25 mb-2">Pinned in Writing</p>
-                                        <div className="space-y-1.5">
+                                        <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Pinned</p>
+                                        <div className="space-y-2">
                                             {pinnedEvents.map((event) => (
-                                                <div key={event.pinKey} className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                                                <div key={event.pinKey} className="flex items-center gap-2 p-2.5 rounded-lg bg-[var(--input-bg)]">
                                                     <span className="text-[11px] font-bold text-primary min-w-[64px]">{formatDisplayDate(event.date)}</span>
                                                     <span className="text-[11px] text-white/35 min-w-[62px]">{event.time || 'All Day'}</span>
                                                     <span className={`text-sm flex-1 ${event.completed ? 'text-white/35 line-through' : 'text-white/80'}`}>{event.task}</span>
@@ -506,7 +506,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                             {recentEvents.map((event) => {
                                                 const pinned = pinnedKeySet.has(event.pinKey);
                                                 return (
-                                                    <div key={event.pinKey} className="flex items-center gap-2 p-2 rounded-lg border border-white/[0.05] bg-white/[0.02]">
+                                                    <div key={event.pinKey} className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03]">
                                                         <span className="text-[10px] text-white/30 min-w-[58px]">{formatDisplayDate(event.date)}</span>
                                                         <span className="text-[10px] text-white/25 min-w-[58px]">{event.time || 'All Day'}</span>
                                                         <span className={`text-xs flex-1 ${event.completed ? 'text-white/30 line-through' : 'text-white/65'}`}>{event.task}</span>
@@ -584,18 +584,18 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         spellCheck={false}
                     />
 
-                    {/* Two-Column Split Section — appears below main content when active */}
+                    {/* Two-Column Split Section — NotebookLM-style collapsible */}
                     {isSplitMode && (
-                        <div className="mt-8 border border-white/10 rounded-2xl bg-white/[0.02] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="mt-8 rounded-xl border border-[var(--border)] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
                             {/* Split header */}
-                            <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-white/[0.02]">
-                                <div className="flex items-center gap-2 text-white/30">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--input-bg)]/30">
+                                <div className="flex items-center gap-2 text-[var(--text-muted)]">
                                     <Layout size={14} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Split Section</span>
+                                    <span className="text-xs font-medium">Split view</span>
                                 </div>
                                 <button
                                     onClick={insertSplitSeparator}
-                                    className="text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
+                                    className="text-xs font-medium text-[var(--text-muted)] hover:text-red-500 transition-colors px-2 py-1 rounded-md hover:bg-red-500/10"
                                     title="Remove split section"
                                 >
                                     Remove
@@ -605,7 +605,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                             {/* Two columns */}
                             <div className="flex flex-col lg:flex-row">
                                 {/* Column A */}
-                                <div className="flex-1 flex flex-col gap-3 p-5 lg:border-r border-white/10">
+                                <div className="flex-1 flex flex-col gap-3 p-5 lg:border-r border-[var(--border)]">
                                     <input
                                         type="text"
                                         value={headingA}

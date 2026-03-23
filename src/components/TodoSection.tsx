@@ -1,6 +1,6 @@
 import { useParams, useLocation } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { Trash2, CheckSquare, Square } from 'lucide-react';
+import { Trash2, CheckSquare, Square, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ProjectHeader from './ProjectHeader';
 import MobileNav from './MobileNav';
@@ -45,64 +45,66 @@ export default function TodoSection() {
     };
 
     return (
-        <div className="w-screen h-screen theme-page text-white flex flex-col">
+        <div className="w-screen h-screen theme-page text-[var(--text)] flex flex-col">
             <ProjectHeader canvasId={id!} activeTab="tasks" />
 
             <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-2 sm:p-6 md:p-12 pb-20 md:pb-12 w-full max-w-3xl mx-auto">
+                <div className="flex-1 overflow-y-auto py-6 sm:py-8 md:py-12 pb-24 md:pb-12 px-4 sm:px-6 md:px-12 w-full max-w-2xl mx-auto">
 
-                    <form onSubmit={handleAdd} className="flex gap-1.5 md:gap-2 mb-3 md:mb-5">
-                        <input
-                            type="text"
-                            value={newTodo}
-                            onChange={(e) => setNewTodo(e.target.value.slice(0, MAX_TODO_LENGTH))}
-                            placeholder="Add a new task…"
-                            maxLength={MAX_TODO_LENGTH}
-                            aria-label="New task"
-                            className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-lg md:rounded-xl px-3 md:px-4 py-2.5 md:py-3.5 text-sm outline-none focus:border-primary/30 focus:bg-white/[0.06] transition-all placeholder-white/15"
-                        />
-                        <button
-                            type="submit"
-                            className="bg-primary text-black font-bold px-3 md:px-5 py-2.5 md:py-3.5 rounded-lg md:rounded-xl active:scale-90 transition-all shrink-0 text-xs md:text-sm"
-                        >
-                            Add
-                        </button>
+                    {/* NotebookLM-style: inline add — minimal, content-first */}
+                    <form onSubmit={handleAdd} className="mb-8">
+                        <div className="flex items-center gap-3 border-b border-[var(--border)] pb-2 focus-within:border-primary/30 transition-colors">
+                            <button
+                                type="submit"
+                                className="p-2 -ml-2 rounded-full text-[var(--text-muted)] hover:text-primary hover:bg-primary/5 transition-all shrink-0"
+                                aria-label="Add task"
+                            >
+                                <Plus size={20} strokeWidth={2} />
+                            </button>
+                            <input
+                                type="text"
+                                value={newTodo}
+                                onChange={(e) => setNewTodo(e.target.value.slice(0, MAX_TODO_LENGTH))}
+                                placeholder="Add a task…"
+                                maxLength={MAX_TODO_LENGTH}
+                                aria-label="New task"
+                                className="flex-1 bg-transparent text-[15px] md:text-base outline-none placeholder-[var(--text-muted)] min-w-0"
+                            />
+                        </div>
                     </form>
 
-                    {/* Task list */}
-                    <div className="space-y-1.5 md:space-y-2">
+                    {/* Minimal list — NotebookLM note-style rows */}
+                    <div className="space-y-0">
                         {(!canvas.todos || canvas.todos.length === 0) && (
-                            <div className="text-center text-white/15 py-10 md:py-16 text-xs md:text-sm">
-                                <div className="text-3xl mb-3">✓</div>
-                                No tasks yet — add one above
+                            <div className="pt-8 text-center">
+                                <p className="text-[var(--text-muted)] text-sm">No tasks yet</p>
+                                <p className="text-[var(--text-dim)] text-xs mt-1">Type above and press Enter to add one</p>
                             </div>
                         )}
 
                         {canvas.todos?.map(todo => (
                             <div
                                 key={todo.id}
-                                className={`flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-2.5 md:py-3 rounded-lg md:rounded-xl border transition-all ${
-                                    todo.completed
-                                        ? 'bg-transparent border-white/[0.04] opacity-40'
-                                        : 'theme-panel border-white/[0.08] active:bg-white/5'
+                                className={`group flex items-center gap-3 py-3 px-1 -mx-1 rounded-lg transition-colors ${
+                                    todo.completed ? 'opacity-50' : 'hover:bg-[var(--input-bg)]'
                                 }`}
                             >
                                 <button
                                     onClick={() => toggleTodo(id!, todo.id)}
-                                    className={`p-1 md:p-1.5 rounded-md md:rounded-lg transition-colors shrink-0 ${todo.completed ? 'text-primary' : 'text-white/25 hover:text-primary'}`}
-                                    aria-label={todo.completed ? 'Mark as incomplete' : 'Mark as complete'}
+                                    className={`p-1.5 rounded-full transition-all shrink-0 ${todo.completed ? 'text-primary' : 'text-[var(--text-muted)] hover:text-primary'}`}
+                                    aria-label={todo.completed ? 'Mark incomplete' : 'Mark complete'}
                                 >
-                                    {todo.completed ? <CheckSquare size={18} className="md:w-5 md:h-5" /> : <Square size={18} className="md:w-5 md:h-5" />}
+                                    {todo.completed ? <CheckSquare size={18} strokeWidth={2.5} /> : <Square size={18} strokeWidth={2} />}
                                 </button>
-                                <span className={`flex-1 text-[13px] md:text-[15px] leading-snug min-w-0 ${todo.completed ? 'line-through text-white/20' : 'text-white/85'}`}>
+                                <span className={`flex-1 text-[15px] leading-relaxed min-w-0 ${todo.completed ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text)]'}`}>
                                     {todo.text}
                                 </span>
                                 <button
                                     onClick={() => deleteTodo(id!, todo.id)}
-                                    className="p-1.5 md:p-2 rounded-lg md:rounded-xl text-white/15 hover:text-red-400 active:scale-95 transition-all shrink-0"
+                                    className="p-1.5 rounded-full text-[var(--text-dim)] hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                                     aria-label="Delete task"
                                 >
-                                    <Trash2 size={14} className="md:w-4 md:h-4" />
+                                    <Trash2 size={16} />
                                 </button>
                             </div>
                         ))}
