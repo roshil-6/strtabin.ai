@@ -55,7 +55,19 @@ const allowedOrigins = process.env.ALLOWED_ORIGIN
 
 const app = express();
 
-// ─── CORS — registered first so ALL routes get the headers ────────────────
+// ─── Liveness FIRST (before CORS / JSON) — Render & load balancers need this ─
+// Use your *Render* URL (e.g. https://xxx.onrender.com/health), not the marketing site.
+function sendHealth(_req, res) {
+    res.status(200).json({ status: 'ok', database: isDbReady() });
+}
+app.get('/health', sendHealth);
+app.get('/health/', sendHealth);
+app.get('/api/health', sendHealth);
+app.get('/', (_req, res) => {
+    res.status(200).json({ status: 'STRAB Server is running.' });
+});
+
+// ─── CORS — all other routes get these headers ─────────────────────────────
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);
@@ -80,14 +92,6 @@ app.use((req, res, next) => {
     // Canvas share needs larger limit for nodes/edges payload
     if (req.path === '/api/canvas/share' || req.path.match(/^\/api\/projects\/\d+\/canvas$/)) return express.json({ limit: '2mb' })(req, res, next);
     express.json({ limit: '50kb' })(req, res, next);
-});
-
-// ─── Health + Root routes ─────────────────────────────────────────────────
-app.get('/', (_req, res) => {
-    res.json({ status: 'STRAB Server is running.' });
-});
-app.get('/health', (_req, res) => {
-    res.json({ status: 'ok' });
 });
 
 // Razorpay webhook (raw body required for HMAC verification)
