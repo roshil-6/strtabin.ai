@@ -317,11 +317,11 @@ function CanvasContent() {
             return;
         }
 
-        // Skip canvases that are already represented as subproject nodes
+        // Skip canvases that are already represented as flow nodes (from a previous Map Folder)
         const existingLinkedIds = new Set(
             nodes
-                .filter(n => n.type === 'subproject')
-                .map(n => n.data.linkedSubCanvasId as string)
+                .filter(n => (n.type === 'text' || n.type === 'default') && (n.data as Record<string, unknown>)?.linkedSubCanvasId)
+                .map(n => (n.data as Record<string, unknown>).linkedSubCanvasId as string)
                 .filter(Boolean)
         );
 
@@ -333,10 +333,10 @@ function CanvasContent() {
         }
 
         const COLS = 3;
-        const NODE_W = 300;
-        const NODE_H = 160;
-        const GAP_X = 60;
-        const GAP_Y = 60;
+        const NODE_W = 240;
+        const NODE_H = 120;
+        const GAP_X = 50;
+        const GAP_Y = 50;
 
         // Place nodes to the right of any existing nodes, or centred at origin
         const baseX = nodes.length > 0
@@ -351,15 +351,14 @@ function CanvasContent() {
             const row = Math.floor(i / COLS);
             addNode({
                 id: `folder-node-${sibling.id}`,
-                type: 'subproject',
+                type: 'text',
                 position: {
                     x: baseX + col * (NODE_W + GAP_X),
                     y: baseY + row * (NODE_H + GAP_Y),
                 },
                 data: {
-                    label: sibling.name || 'Untitled Project',
+                    label: sibling.name || sibling.title || 'Untitled Project',
                     linkedSubCanvasId: sibling.id,
-                    navigateTo: `/strategy/${sibling.id}`,
                 },
             });
         });
