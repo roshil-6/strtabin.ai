@@ -4,6 +4,8 @@ services:
     env: node
     buildCommand: npm install
     startCommand: node server.js
+    # Helps Render finish deploy: probe lightweight JSON (matches server /health)
+    healthCheckPath: /health
     disk:
       name: strategybox-data
       mountPath: /data

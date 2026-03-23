@@ -427,7 +427,10 @@ const globalLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests. Please wait before trying again.' },
-    skip: (req) => req.method === 'GET' && /^\/api\/projects\/\d+\/canvas$/.test(req.path),
+    skip: (req) => {
+        if (req.path === '/' || req.path === '/health') return true;
+        return req.method === 'GET' && /^\/api\/projects\/\d+\/canvas$/.test(req.path);
+    },
 });
 app.use(globalLimiter);
 
@@ -1070,10 +1073,16 @@ io.emitToChat = (chatId, event, data) => {
 // Bind 0.0.0.0 so Render/load balancers can reach the service (required on many hosts)
 httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`STRAB AI Server running on 0.0.0.0:${PORT}`);
-    try {
-        initDb();
-    } catch (err) {
-        console.error('❌ Database initialization failed:', err);
-        process.exit(1);
-    }
+    // initDb() is synchronous and can block the event loop (SQLite + disk on Render).
+    // If it runs in the listen callback immediately, health checks may time out while deploy
+    // is waiting. Defer so / and /health respond first; DB still loads before typical traffic.
+    setImmediate(() => {
+        try {
+            initDb();
+            console.log('Database ready.');
+        } catch (err) {
+            console.error('❌ Database initialization failed:', err);
+            process.exit(1);
+        }
+    });
 });
