@@ -43,7 +43,9 @@ export default function ProjectHeader({ canvasId, activeTab }: ProjectHeaderProp
                 </button>
                 <div className="flex flex-col min-w-0">
                     <h1 className="text-[11px] md:text-sm font-bold text-[var(--text)] leading-tight truncate max-w-[90px] sm:max-w-[140px] md:max-w-none">
-                        {(canvas?.name && !isDefaultName(canvas.name)) ? canvas.name : (projectTitle || canvas?.name || 'Untitled Project')}
+                        {(canvas?.name && !isDefaultName(canvas.name)) ? canvas.name
+                            : (canvas?.title && !isDefaultName(canvas.title)) ? canvas.title
+                            : (projectTitle || canvas?.name || canvas?.title || 'Untitled Project')}
                     </h1>
                     <span className="text-[9px] md:text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium hidden md:inline">
                         Strategy Board

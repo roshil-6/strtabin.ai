@@ -17,7 +17,9 @@ export default function TodoSection() {
     const canvas = useStore(state => state.canvases[id || '']);
     const projectTitle = (location.state as { projectTitle?: string })?.projectTitle;
 
-    const displayName = (canvas?.name && !isDefaultCanvasName(canvas.name)) ? canvas.name : (projectTitle || canvas?.name || 'Tasks');
+    const displayName = (canvas?.name && !isDefaultCanvasName(canvas.name)) ? canvas.name
+        : (canvas?.title && !isDefaultCanvasName(canvas.title)) ? canvas.title
+        : (projectTitle || canvas?.name || canvas?.title || 'Tasks');
     useEffect(() => {
         document.title = `Tasks — ${displayName} | Stratabin`;
     }, [displayName]);
