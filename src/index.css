@@ -35,6 +35,14 @@
   --note-surface: #222222;
   --note-border: rgba(255, 255, 255, 0.11);
   --note-edge: rgba(255, 255, 255, 0.05);
+  /* Chat (Stratabin messenger-style surfaces) */
+  --chat-bg: #0b141a;
+  --chat-panel: #111b21;
+  --chat-incoming: #202c33;
+  --chat-outgoing: #1c5359;
+  --chat-outgoing-border: rgba(0, 168, 132, 0.35);
+  --chat-list-hover: rgba(255, 255, 255, 0.05);
+  --chat-input-bg: #2a3942;
 }
 
 /* Dark theme: map hardcoded pitch-black to light grey for consistency */
@@ -113,6 +121,13 @@
   --note-surface: #ffffff;
   --note-border: rgba(0, 0, 0, 0.09);
   --note-edge: rgba(0, 0, 0, 0.04);
+  --chat-bg: #e5ddd5;
+  --chat-panel: #ffffff;
+  --chat-incoming: #ffffff;
+  --chat-outgoing: #d9fdd3;
+  --chat-outgoing-border: rgba(0, 0, 0, 0.08);
+  --chat-list-hover: rgba(0, 0, 0, 0.04);
+  --chat-input-bg: #f0f2f5;
 }
 
 /* Note-style card — opaque panel with subtle inset edge */
@@ -127,6 +142,27 @@
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
     0 4px 22px rgba(0, 0, 0, 0.35);
+}
+
+/* Pro card icon well — dashboard / lists */
+.pro-icon-well {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(165deg, var(--input-bg) 0%, color-mix(in srgb, var(--bg-muted) 70%, transparent) 100%);
+  box-shadow: 0 1px 0 var(--note-edge) inset;
+}
+
+/* Messenger-style thread backdrop */
+.stratabin-chat-thread {
+  background-color: var(--chat-bg);
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+[data-theme="light"] .stratabin-chat-thread {
+  background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.06) 1px, transparent 0);
 }
 
 /* Light theme: override common dark-mode text/background classes for visibility */

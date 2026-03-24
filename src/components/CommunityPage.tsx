@@ -33,12 +33,14 @@ import {
   TrendingUp,
   Briefcase,
   BarChart2,
+  Lock,
 } from 'lucide-react';
 import { useMemo } from 'react';
 import useStore from '../store/useStore';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
 import { chatService, type Chat, type Message, type ChatUser } from '../services/chatService';
 import { API_BASE_URL } from '../constants';
+import { mirrorChatMessages, readMirroredMessages } from '../utils/chatLocalMirror';
 
 type ProjectItem = { id: number | string; title: string; workspace_id?: number; workspace_name?: string; canvas_id?: string | null; isCanvas?: boolean };
 
@@ -193,13 +195,24 @@ export default function CommunityPage() {
   useEffect(() => {
     if (activeChat) {
       setLoadingMessages(true);
+      const cached = readMirroredMessages(activeChat.id);
+      if (cached?.length) setMessages(cached);
       getToken().then((token) => {
         if (token) {
-          chatService.getMessages(activeChat.id, token).then((d) => setMessages(d.messages || []));
+          chatService
+            .getMessages(activeChat.id, token)
+            .then((d) => {
+              const list = d.messages || [];
+              setMessages(list);
+              mirrorChatMessages(activeChat.id, list);
+            })
+            .catch(() => {})
+            .finally(() => setLoadingMessages(false));
           chatService.markRead(activeChat.id, token);
           socketRef.current?.emit('chat:join', { chatId: activeChat.id });
+        } else {
+          setLoadingMessages(false);
         }
-        setLoadingMessages(false);
       });
       scrollToBottom();
     } else {
@@ -209,6 +222,10 @@ export default function CommunityPage() {
       if (activeChat) socketRef.current?.emit('chat:leave', { chatId: activeChat.id });
     };
   }, [activeChat?.id, getToken]);
+
+  useEffect(() => {
+    if (activeChat?.id && messages.length > 0) mirrorChatMessages(activeChat.id, messages);
+  }, [activeChat?.id, messages]);
 
   useEffect(() => { scrollToBottom(); }, [messages]);
 
@@ -456,7 +473,7 @@ export default function CommunityPage() {
   }, [feed]);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
+    <div className="flex min-h-[100dvh] flex-col bg-[var(--bg-page)]">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-[var(--bg-page)]/95 backdrop-blur-xl border-b border-[var(--border)]">
         <div className="max-w-5xl mx-auto px-3 py-2 md:px-4 md:py-3">
@@ -513,7 +530,7 @@ export default function CommunityPage() {
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {tab === 'people' ? (
           <div className="flex-1 overflow-y-auto p-3 md:p-6">
             <div className="max-w-2xl mx-auto">
@@ -832,48 +849,52 @@ export default function CommunityPage() {
           </div>
         ) : (
           <>
-            {/* Chat list */}
-            <div className={`w-full md:w-80 md:shrink-0 border-r border-[var(--border)] bg-[var(--bg-panel)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : ''}`}>
+            {/* Chat list — messenger-style rail */}
+            <div
+              className={`flex min-h-0 w-full flex-col border-[var(--border)] bg-[var(--chat-panel)] md:w-[min(100%,360px)] md:shrink-0 md:border-r ${activeChat ? 'hidden md:flex' : ''}`}
+            >
               {loadingChats && loadingChatable ? (
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex flex-1 items-center justify-center py-12">
                   <Loader2 size={24} className="animate-spin text-[var(--text-muted)]" />
                 </div>
               ) : (
-                <div className="flex-1 overflow-y-auto">
-                  <div className="p-4 border-b border-[var(--border)]">
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  <div className="border-b border-[var(--border)] px-3 py-3">
                     <div className="relative">
-                      <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" />
+                      <Search size={17} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" />
                       <input
-                        type="text"
+                        type="search"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search conversations..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-[var(--border-strong)] text-sm"
+                        placeholder="Search"
+                        enterKeyHint="search"
+                        className="w-full rounded-full border border-[var(--border)] bg-[var(--chat-input-bg)] py-2.5 pl-10 pr-3 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--border-strong)]"
                       />
                     </div>
                   </div>
                   {chats.length > 0 && (
-                    <div className="py-2">
-                      <p className="px-4 py-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Conversations</p>
+                    <div>
+                      <p className="px-4 pb-1 pt-3 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Chats</p>
                       {chats.map((c) => (
                         <button
                           key={c.id}
+                          type="button"
                           onClick={() => setActiveChat(c)}
-                          className={`w-full flex items-center gap-3 p-4 hover:bg-[var(--input-bg)] transition-all text-left ${
-                            activeChat?.id === c.id ? 'bg-[var(--input-bg)]' : ''
+                          className={`flex w-full items-center gap-3 border-b border-[var(--border)] px-3 py-3 text-left transition-colors hover:bg-[var(--chat-list-hover)] ${
+                            activeChat?.id === c.id ? 'bg-[var(--chat-list-hover)]' : ''
                           }`}
                         >
-                          <div className="w-12 h-12 rounded-xl note-box flex items-center justify-center shrink-0">
-                            <User size={24} className="text-[var(--text-muted)]" />
+                          <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-[var(--input-bg)] text-sm font-black text-[var(--text-muted)] ring-1 ring-[var(--border)]">
+                            {(chatName(c).slice(0, 2) || '?').toUpperCase()}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-[var(--text)] truncate">{chatName(c)}</p>
-                            <p className="text-xs text-[var(--text-muted)] truncate">{c.last_message || 'No messages yet'}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold text-[var(--text)]">{chatName(c)}</p>
+                            <p className="truncate text-[13px] text-[var(--text-muted)]">{c.last_message || 'Tap to chat'}</p>
                           </div>
                           <div className="shrink-0 text-right">
-                            <p className="text-[10px] text-[var(--text-dim)]">{c.last_message_at ? formatTime(c.last_message_at) : ''}</p>
+                            <p className="text-[11px] tabular-nums text-[var(--text-dim)]">{c.last_message_at ? formatTime(c.last_message_at) : ''}</p>
                             {c.unread && c.unread > 0 && (
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--text)] text-[var(--bg-page)] text-[10px] font-bold mt-1">
+                              <span className="mt-1 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white dark:bg-[#00a884]">
                                 {c.unread}
                               </span>
                             )}
@@ -882,31 +903,34 @@ export default function CommunityPage() {
                       ))}
                     </div>
                   )}
-                  <div className="py-2">
-                    <p className="px-4 py-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Start a conversation</p>
+                  <div>
+                    <p className="px-4 pb-1 pt-4 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">New chat</p>
                     {loadingChatable ? (
-                      <div className="p-4 flex justify-center"><Loader2 size={20} className="animate-spin text-[var(--text-muted)]" /></div>
+                      <div className="flex justify-center p-6">
+                        <Loader2 size={20} className="animate-spin text-[var(--text-muted)]" />
+                      </div>
                     ) : filteredChatable.length === 0 ? (
-                      <div className="p-6 text-center">
+                      <div className="px-4 py-6 text-center">
                         <p className="text-sm text-[var(--text-muted)]">
-                          {chatableUsers.length === 0 ? "Invite people to a workspace to chat." : "No matches."}
+                          {chatableUsers.length === 0 ? 'Invite teammates to a workspace to chat here.' : 'No matches.'}
                         </p>
                       </div>
                     ) : (
                       filteredChatable.map((u) => (
                         <button
                           key={u.id}
+                          type="button"
                           onClick={() => handleStartChat(u)}
-                          className="w-full flex items-center gap-3 p-4 hover:bg-[var(--input-bg)] transition-all text-left"
+                          className="flex w-full items-center gap-3 border-b border-[var(--border)] px-3 py-3 text-left transition-colors hover:bg-[var(--chat-list-hover)]"
                         >
-                          <div className="w-12 h-12 rounded-xl note-box flex items-center justify-center shrink-0">
-                            <User size={24} className="text-[var(--text-muted)]" />
+                          <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-[var(--input-bg)] text-sm font-black text-[var(--text-muted)] ring-1 ring-[var(--border)]">
+                            {(u.username || u.email || '?').slice(0, 2).toUpperCase()}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-[var(--text)] truncate">{u.username || u.email || 'User'}</p>
-                            {u.email && u.username && <p className="text-xs text-[var(--text-muted)] truncate">{u.email}</p>}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold text-[var(--text)]">{u.username || u.email || 'User'}</p>
+                            {u.email && u.username && <p className="truncate text-[13px] text-[var(--text-muted)]">{u.email}</p>}
                           </div>
-                          <MessageCircle size={18} className="text-[var(--text-dim)] shrink-0" />
+                          <MessageCircle size={20} strokeWidth={2} className="shrink-0 text-emerald-600 dark:text-[#53bdeb]" />
                         </button>
                       ))
                     )}
@@ -915,29 +939,39 @@ export default function CommunityPage() {
               )}
             </div>
 
-            {/* Message thread */}
-            <div className={`flex-1 flex flex-col ${!activeChat ? 'hidden md:flex' : ''}`}>
+            {/* Message thread — Stratabin Chat */}
+            <div className={`flex min-h-0 flex-1 flex-col bg-[var(--chat-bg)] ${!activeChat ? 'hidden md:flex' : ''}`}>
               {activeChat ? (
                 <>
-                  <div className="flex items-center gap-3 p-4 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
+                  <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--chat-panel)] px-2 py-2 md:px-3">
                     <button
+                      type="button"
                       onClick={() => setActiveChat(null)}
-                      className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]"
+                      className="rounded-full p-2.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--chat-list-hover)] hover:text-[var(--text)] md:hidden"
+                      aria-label="Back to chats"
                     >
-                      <ChevronLeft size={20} />
+                      <ChevronLeft size={22} strokeWidth={2} />
                     </button>
-                    <div className="w-10 h-10 rounded-xl note-box flex items-center justify-center">
-                      <User size={20} className="text-[var(--text-muted)]" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--input-bg)] text-xs font-black text-[var(--text-muted)] ring-1 ring-[var(--border)]">
+                      {chatName(activeChat).slice(0, 2).toUpperCase()}
                     </div>
-                    <div>
-                      <p className="font-bold text-[var(--text)]">{chatName(activeChat)}</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">{typingUser ? 'typing...' : 'Online'}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-[var(--text)]">{chatName(activeChat)}</p>
+                      <p className="text-[11px] text-[var(--text-muted)]">{typingUser ? 'typing…' : 'Stratabin Chat'}</p>
                     </div>
                   </div>
+                  <div className="flex items-start gap-2 border-b border-[var(--border)] bg-[var(--chat-panel)] px-3 py-2 text-[10px] leading-snug text-[var(--text-dim)]">
+                    <Lock size={12} className="mt-0.5 shrink-0 opacity-80" aria-hidden />
+                    <span>
+                      HTTPS in transit. Recent messages are cached on this device for speed. Full end-to-end encryption across devices is not enabled yet — treat shared links and files as you would in any team app.
+                    </span>
+                  </div>
 
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  <div className="stratabin-chat-thread min-h-0 flex-1 overflow-y-auto px-2 py-3 md:px-4">
                     {loadingMessages ? (
-                      <div className="flex justify-center py-8"><Loader2 size={24} className="animate-spin text-[var(--text-muted)]" /></div>
+                      <div className="flex justify-center py-12">
+                        <Loader2 size={24} className="animate-spin text-[var(--text-muted)]" />
+                      </div>
                     ) : (
                       uniqueMessages.map((m) => {
                         const isMe = m.sender_id === currentUserId;
@@ -950,62 +984,74 @@ export default function CommunityPage() {
                         const isFile = m.type === 'file';
                         const imgUrl = isImage && m.content ? `${API_BASE_URL}${m.content.startsWith('/') ? '' : '/'}${m.content}` : null;
                         const fileUrl = isFile && m.content ? `${API_BASE_URL}${m.content.startsWith('/') ? '' : '/'}${m.content}` : null;
+                        const chip = isMe ? 'bg-white/15 hover:bg-white/25' : 'bg-black/10 hover:bg-black/15 dark:bg-black/25 dark:hover:bg-black/35';
                         return (
-                          <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 rounded-2xl shadow-sm ${isMe ? 'note-box text-[var(--text)] rounded-br-md border-[var(--border-strong)]' : 'note-box text-[var(--text)] rounded-bl-md border-[var(--border)]'}`}>
+                          <div key={m.id} className={`mb-1 flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div
+                              className={`max-w-[min(92vw,520px)] rounded-lg px-2.5 py-1.5 shadow-sm sm:max-w-[78%] ${
+                                isMe
+                                  ? 'rounded-tr-sm border border-[var(--chat-outgoing-border)] bg-[var(--chat-outgoing)] text-[var(--text)]'
+                                  : 'rounded-tl-sm border border-[var(--border)] bg-[var(--chat-incoming)] text-[var(--text)]'
+                              }`}
+                            >
                               {(hasCanvas || hasHighlight || hasProject) && (
-                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                <div className="mb-1.5 flex flex-wrap gap-1">
                                   {(hasCanvas || hasShareId) && (
                                     <button
+                                      type="button"
                                       onClick={() => { if (hasShareId) navigate(`/strategy/shared_${meta.shareId}`); else if (meta.canvasId) navigate(`/strategy/${meta.canvasId}`); }}
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/10 text-xs hover:bg-black/20"
+                                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ${chip}`}
                                     >
-                                      <Link2 size={12} />
-                                      {meta.canvasName || meta.canvasId || 'View canvas'}
+                                      <Link2 size={11} strokeWidth={2} />
+                                      {meta.canvasName || meta.canvasId || 'Canvas'}
                                     </button>
                                   )}
                                   {hasHighlight && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/10 text-xs">
-                                      <Highlighter size={12} />
+                                    <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] ${chip}`}>
+                                      <Highlighter size={11} strokeWidth={2} />
                                       {meta.highlightText}
                                     </span>
                                   )}
                                   {hasProject && !hasShareId && (
                                     <button
+                                      type="button"
                                       onClick={() => { if (meta.canvasId) navigate(`/strategy/${meta.canvasId}`); else if (meta.workspaceId) navigate(`/workspace/${meta.workspaceId}`); }}
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/10 text-xs hover:bg-black/20"
+                                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ${chip}`}
                                     >
-                                      <FolderOpen size={12} />
+                                      <FolderOpen size={11} strokeWidth={2} />
                                       {meta.projectTitle || 'Project'}
                                     </button>
                                   )}
                                 </div>
                               )}
                               {imgUrl && (
-                                <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="block mb-2">
-                                  <img src={imgUrl} alt="Shared" className="max-w-full max-h-64 rounded-lg object-contain" />
+                                <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="mb-1.5 block">
+                                  <img src={imgUrl} alt="Shared" className="max-h-64 max-w-full rounded-md object-contain" />
                                 </a>
                               )}
                               {fileUrl && (
-                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-2 py-1 rounded-lg bg-black/10 hover:bg-black/20 text-sm mb-2">
-                                  <Paperclip size={14} />
-                                  {meta.fileName || 'Download file'}
+                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className={`mb-1.5 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm ${chip}`}>
+                                  <Paperclip size={14} strokeWidth={2} />
+                                  {meta.fileName || 'File'}
                                 </a>
                               )}
-                              {!isImage && <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>}
-                              <div className="flex items-center justify-end gap-1 mt-1">
-                                <span className="text-[10px] opacity-70">{formatTime(m.created_at)}</span>
-                                {isMe && <CheckCheck size={12} className="opacity-70" />}
+                              {!isImage && <p className="whitespace-pre-wrap break-words text-[14.5px] leading-snug">{m.content}</p>}
+                              <div className="mt-0.5 flex items-center justify-end gap-1">
+                                <span className="text-[11px] tabular-nums opacity-70">{formatTime(m.created_at)}</span>
+                                {isMe && <CheckCheck size={14} strokeWidth={2} className="opacity-70" />}
                               </div>
                             </div>
                           </div>
                         );
                       })
                     )}
-                    <div ref={messagesEndRef} />
+                    <div ref={messagesEndRef} className="h-1" />
                   </div>
 
-                  <form onSubmit={handleSend} className="border-t border-[var(--border)]">
+                  <form
+                    onSubmit={handleSend}
+                    className="border-t border-[var(--border)] bg-[var(--chat-panel)] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
+                  >
                     {showAttach && (
                       <div className="p-3 note-box border-b border-[var(--border)] flex flex-col gap-2">
                         <div className="flex items-center gap-2">
@@ -1072,15 +1118,32 @@ export default function CommunityPage() {
                     )}
                     <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, true); e.target.value = ''; }} />
                     <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ''; }} />
-                    <div className="p-4 flex gap-2">
-                      <button type="button" onClick={() => setShowAttach((v) => !v)} className={`p-3 rounded-xl transition-all border border-transparent ${showAttach ? 'note-box border-[var(--border)] text-[var(--text)]' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]'}`}>
-                        <Link2 size={20} />
+                    <div className="flex items-end gap-1.5 px-2 py-2 md:gap-2 md:px-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowAttach((v) => !v)}
+                        className={`shrink-0 rounded-full p-2.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--chat-list-hover)] hover:text-[var(--text)] ${showAttach ? 'bg-[var(--chat-list-hover)] text-[var(--text)]' : ''}`}
+                        aria-label="Attach"
+                      >
+                        <Link2 size={22} strokeWidth={2} />
                       </button>
-                      <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading} className="p-3 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] disabled:opacity-50">
-                        {uploading ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={20} />}
+                      <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        disabled={uploading}
+                        className="shrink-0 rounded-full p-2.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--chat-list-hover)] hover:text-[var(--text)] disabled:opacity-50"
+                        aria-label="Photo"
+                      >
+                        {uploading ? <Loader2 size={22} className="animate-spin" /> : <ImageIcon size={22} strokeWidth={2} />}
                       </button>
-                      <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="p-3 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] disabled:opacity-50">
-                        <Paperclip size={20} />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="shrink-0 rounded-full p-2.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--chat-list-hover)] hover:text-[var(--text)] disabled:opacity-50"
+                        aria-label="File"
+                      >
+                        <Paperclip size={22} strokeWidth={2} />
                       </button>
                       <input
                         type="text"
@@ -1092,12 +1155,18 @@ export default function CommunityPage() {
                             typingEmitRef.current = setTimeout(() => { socketRef.current?.emit('chat:typing', { chatId: activeChat.id }); typingEmitRef.current = undefined; }, 300);
                           }
                         }}
-                        placeholder="Type a message..."
-                        className="flex-1 px-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-[var(--border-strong)]"
+                        placeholder="Message"
+                        enterKeyHint="send"
+                        className="min-h-[44px] flex-1 rounded-full border-0 bg-[var(--chat-input-bg)] px-4 py-2.5 text-[15px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--border-strong)]"
                         onFocus={() => activeChat && socketRef.current?.emit('chat:typing', { chatId: activeChat.id })}
                       />
-                      <button type="submit" disabled={sending || uploading || (!messageInput.trim() && !attachProject)} className="p-3 bg-[var(--text)] text-[var(--bg-page)] rounded-xl hover:opacity-90 transition-all disabled:opacity-50">
-                        {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+                      <button
+                        type="submit"
+                        disabled={sending || uploading || (!messageInput.trim() && !attachProject)}
+                        className="mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white transition-opacity hover:opacity-90 disabled:opacity-40 dark:bg-[#00a884]"
+                        aria-label="Send"
+                      >
+                        {sending ? <Loader2 size={22} className="animate-spin" /> : <Send size={20} strokeWidth={2} className="-ml-0.5" />}
                       </button>
                     </div>
                   </form>

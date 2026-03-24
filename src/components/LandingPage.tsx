@@ -100,7 +100,7 @@ export default function LandingPage() {
             <HexagonBackground />
 
             {/* Header */}
-            <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] theme-panel backdrop-blur-2xl">
+            <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-panel)_88%,transparent)] backdrop-blur-xl backdrop-saturate-150">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 md:w-10 md:h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10">
@@ -203,12 +203,12 @@ export default function LandingPage() {
                         AI Workspace & Strategy Planner for Ideas
                     </div>
 
-                    <h1 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tighter leading-[1.1] mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 break-words">
+                    <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.03em] leading-[1.08] mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 break-words">
                         Unscatter your ideas. <br />
-                        <span className="text-white/40">Notes, flows, and AI.</span>
+                        <span className="text-[var(--text-muted)] font-semibold">Notes, flows, and AI.</span>
                     </h1>
 
-                    <p className="text-base md:text-xl text-white/40 max-w-2xl mx-auto mb-6 leading-relaxed font-medium px-2">
+                    <p className="text-base md:text-lg text-[var(--text-muted)] max-w-2xl mx-auto mb-6 leading-relaxed font-normal px-2">
                         Stratabin is the AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI — unscatter your thoughts and turn them into execution plans.
                     </p>
 
@@ -219,7 +219,7 @@ export default function LandingPage() {
 
                     {/* Demo Video */}
                     <div className="w-full max-w-3xl mx-auto mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400">
-                        <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-2xl aspect-video">
+                        <div className="relative pro-hero-video overflow-hidden aspect-video">
                             <video
                                 src="/strtabin%20ad%203.mp4"
                                 controls
@@ -295,11 +295,11 @@ export default function LandingPage() {
             <section className="py-16 md:py-24 px-4 md:px-6">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-12 md:mb-16">
-                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-3">Everything You Need to Plan and Execute</h2>
-                        <p className="text-white/30 text-sm md:text-base">A complete strategy workspace — not just another project management tool.</p>
+                        <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-[var(--text)]">Everything you need to plan and execute</h2>
+                        <p className="text-[var(--text-muted)] text-sm md:text-base max-w-xl mx-auto leading-relaxed">A complete strategy workspace — writing, canvas, tasks, and AI in one calm surface.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
                         {[
                             { icon: PenTool, title: "Distraction-Free Writing", desc: "Long-form writing editor with split view, branch creation, and a collapsible planner for deep strategic thinking." },
                             { icon: Layout, title: "Interactive Flow Canvas", desc: "Drag-and-drop visual canvas to map ideas as nodes, connect strategies, and see the big picture at a glance." },
@@ -312,10 +312,12 @@ export default function LandingPage() {
                             { icon: Sparkles, title: "Task Management", desc: "Integrated to-do lists for every project. Track progress alongside your strategy, not in a separate tool." },
                             { icon: Zap, title: "Works Everywhere", desc: "Progressive Web App that installs on phones, tablets, and desktops. Touch-optimized mobile interface with offline support." },
                         ].map((feat, i) => (
-                            <div key={i} className="group p-5 md:p-7 bg-white/[0.02] border border-white/[0.04] rounded-2xl hover:border-primary/20 hover:bg-white/[0.03] transition-all duration-300">
-                                <feat.icon size={22} className="text-primary mb-4 group-hover:scale-110 transition-transform" />
-                                <h3 className="text-sm md:text-base font-black text-white mb-2">{feat.title}</h3>
-                                <p className="text-white/30 text-xs md:text-sm leading-relaxed">{feat.desc}</p>
+                            <div key={i} className="pro-surface-card group p-6 md:p-7">
+                                <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] border border-[color-mix(in_srgb,var(--primary)_25%,transparent)] flex items-center justify-center mb-4">
+                                    <feat.icon size={20} className="text-primary" />
+                                </div>
+                                <h3 className="text-sm md:text-base font-semibold text-[var(--text)] mb-2 tracking-tight">{feat.title}</h3>
+                                <p className="text-[var(--text-muted)] text-xs md:text-sm leading-relaxed">{feat.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -326,24 +328,24 @@ export default function LandingPage() {
             <section className="py-16 md:py-24 px-4 md:px-6">
                 <div className="max-w-5xl mx-auto">
                     <div className="text-center mb-12 md:mb-20">
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-3">How Stratabin Works</h2>
-                        <p className="text-white/30 text-sm">From raw idea to structured execution in three steps.</p>
+                        <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-3 text-[var(--text)]">How Stratabin works</h2>
+                        <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto">From raw idea to structured execution in three steps.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                         {[
                             { step: "01", title: "Capture & Write", desc: "Start with your raw ideas in the writing editor. Use split view to compare angles, or branch into visual flowcharts." },
                             { step: "02", title: "Map & Organize", desc: "Drag ideas onto the flow canvas as connected nodes. Merge related projects, create folder workspaces, and let AI organize the structure." },
                             { step: "03", title: "Execute & Track", desc: "Convert strategies into tasks, set calendar deadlines, build timelines, and use STRAB AI reports to monitor progress and identify gaps." },
                         ].map((item, idx) => (
                             <div key={idx} className="relative group">
-                                <div className="absolute -top-8 -left-4 text-8xl md:text-9xl font-black text-white/[0.02] pointer-events-none group-hover:text-primary/[0.06] transition-colors">{item.step}</div>
-                                <div className="p-7 md:p-10 bg-white/[0.02] border border-white/[0.04] rounded-3xl hover:border-primary/20 transition-all relative z-10 h-full flex flex-col">
-                                    <div className="w-10 h-10 md:w-14 md:h-14 bg-white/[0.04] rounded-xl flex items-center justify-center text-primary mb-6 md:mb-8 group-hover:bg-primary group-hover:text-black transition-all text-lg md:text-xl font-black">
+                                <div className="absolute -top-6 -left-2 text-7xl md:text-8xl font-extrabold text-[color-mix(in_srgb,var(--text)_4%,transparent)] pointer-events-none select-none">{item.step}</div>
+                                <div className="pro-step-card p-7 md:p-9 relative z-10 h-full flex flex-col">
+                                    <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-[var(--accent-soft)] border border-[color-mix(in_srgb,var(--primary)_30%,var(--border))] flex items-center justify-center text-primary mb-6 text-sm font-bold tabular-nums">
                                         {item.step}
                                     </div>
-                                    <h3 className="text-xl md:text-2xl font-black mb-4">{item.title}</h3>
-                                    <p className="text-white/35 leading-relaxed text-sm md:text-base">{item.desc}</p>
+                                    <h3 className="text-lg md:text-xl font-semibold mb-3 text-[var(--text)] tracking-tight">{item.title}</h3>
+                                    <p className="text-[var(--text-muted)] leading-relaxed text-sm md:text-base">{item.desc}</p>
                                 </div>
                             </div>
                         ))}
@@ -359,8 +361,8 @@ export default function LandingPage() {
                         <p className="text-white/30 text-sm">Pay once. Use forever. No subscriptions, no surprises.</p>
                     </div>
 
-                    <div className="group relative bg-[var(--bg-muted)] border border-primary/20 rounded-3xl p-7 md:p-14 shadow-2xl overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent pointer-events-none" />
+                    <div className="pro-pricing-shell group relative p-7 md:p-14 overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_srgb,var(--primary)_14%,transparent),transparent)] pointer-events-none" />
                         <div className="absolute top-5 right-5 px-3 py-1 bg-primary text-black text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-full">
                             Lifetime
                         </div>
@@ -429,17 +431,17 @@ export default function LandingPage() {
 
                     <div className="space-y-2 md:space-y-3">
                         {faqs.map((faq, i) => (
-                            <div key={i} className="border border-white/[0.04] rounded-2xl overflow-hidden bg-white/[0.01] hover:bg-white/[0.02] transition-all">
+                            <div key={i} className="pro-faq-item overflow-hidden">
                                 <button
                                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
                                     className="w-full flex items-center justify-between gap-4 px-5 md:px-6 py-4 md:py-5 text-left"
                                 >
-                                    <span className="text-sm md:text-base font-bold text-white/80">{faq.q}</span>
-                                    <ChevronDown size={16} className={`text-white/25 shrink-0 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`} />
+                                    <span className="text-sm md:text-base font-semibold text-[var(--text-secondary)]">{faq.q}</span>
+                                    <ChevronDown size={18} className={`text-[var(--text-dim)] shrink-0 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`} />
                                 </button>
                                 {openFaq === i && (
-                                    <div className="px-5 md:px-6 pb-5 md:pb-6 animate-in slide-in-from-top-1 fade-in duration-200">
-                                        <p className="text-xs md:text-sm text-white/40 leading-relaxed">{faq.a}</p>
+                                    <div className="px-5 md:px-6 pb-5 md:pb-6 pt-0 animate-in slide-in-from-top-1 fade-in duration-200 border-t border-[var(--border)]">
+                                        <p className="text-xs md:text-sm text-[var(--text-muted)] leading-relaxed pt-4">{faq.a}</p>
                                     </div>
                                 )}
                             </div>

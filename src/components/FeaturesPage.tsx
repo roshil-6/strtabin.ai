@@ -26,7 +26,7 @@ export default function FeaturesPage() {
         <div className="min-h-screen theme-page font-sans selection:bg-white/20 relative overflow-x-hidden">
             <HexagonBackground />
 
-            <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] theme-panel backdrop-blur-2xl">
+            <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-panel)_88%,transparent)] backdrop-blur-xl backdrop-saturate-150">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                         <Link to="/" className="flex items-center gap-2.5">
@@ -55,38 +55,40 @@ export default function FeaturesPage() {
                         Back to Home
                     </Link>
 
-                    <h1 className="text-3xl md:text-5xl font-black tracking-tighter leading-tight mb-4">
-                        Stratabin Features: AI Workspace & Strategy Planner for Ideas
+                    <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight mb-4 text-[var(--text)]">
+                        Stratabin features: AI workspace & strategy planner for ideas
                     </h1>
-                    <p className="text-lg text-white/50 mb-16 leading-relaxed">
+                    <p className="text-lg text-[var(--text-muted)] mb-16 leading-relaxed max-w-2xl">
                         Stratabin is the AI workspace and strategy planner that helps you unscatter your thoughts and turn them into execution plans. Here&apos;s everything you get in one unified strategy workspace.
                     </p>
 
                     <section className="space-y-12">
-                        <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-white/90">
-                            Everything You Need to Plan and Execute
+                        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--text)]">
+                            Everything you need to plan and execute
                         </h2>
-                        <p className="text-white/40 leading-relaxed">
+                        <p className="text-[var(--text-muted)] leading-relaxed">
                             Unlike traditional project management tools that only track tasks, Stratabin bridges ideation and execution. Write long-form strategies, branch ideas into visual flowcharts, merge projects, and get AI-powered insights — all in one place.
                         </p>
 
-                        <div className="grid gap-6 md:gap-8">
+                        <div className="grid gap-5 md:gap-6">
                             {features.map((feat, i) => (
-                                <article key={i} className="p-6 md:p-8 bg-white/[0.02] border border-white/[0.04] rounded-2xl hover:border-primary/20 transition-all">
-                                    <feat.icon size={24} className="text-primary mb-4" />
-                                    <h3 className="text-lg md:text-xl font-black text-white mb-2">{feat.title}</h3>
-                                    <p className="text-white/40 text-sm md:text-base leading-relaxed">{feat.desc}</p>
+                                <article key={i} className="pro-surface-card p-6 md:p-8">
+                                    <div className="w-11 h-11 rounded-xl bg-[var(--accent-soft)] border border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] flex items-center justify-center mb-4">
+                                        <feat.icon size={22} className="text-primary" />
+                                    </div>
+                                    <h3 className="text-lg md:text-xl font-semibold text-[var(--text)] mb-2 tracking-tight">{feat.title}</h3>
+                                    <p className="text-[var(--text-muted)] text-sm md:text-base leading-relaxed">{feat.desc}</p>
                                 </article>
                             ))}
                         </div>
                     </section>
 
-                    <section className="mt-20 p-8 md:p-12 bg-white/[0.02] border border-white/[0.06] rounded-3xl">
-                        <h2 className="text-2xl font-black tracking-tighter mb-4">How Stratabin Works: From Idea to Execution</h2>
-                        <ol className="space-y-6 text-white/50">
-                            <li><strong className="text-white/80">1. Capture & Write</strong> — Start with raw ideas in the writing editor. Use split view to compare angles, or branch into visual flowcharts.</li>
-                            <li><strong className="text-white/80">2. Map & Organize</strong> — Drag ideas onto the flow canvas as connected nodes. Merge related projects, create folder workspaces, and let STRAB AI help organize the structure.</li>
-                            <li><strong className="text-white/80">3. Execute & Track</strong> — Convert strategies into tasks, set calendar deadlines, build timelines, and use AI reports to monitor progress and identify gaps.</li>
+                    <section className="mt-20 pro-step-card p-8 md:p-12">
+                        <h2 className="text-2xl font-bold tracking-tight mb-6 text-[var(--text)]">How Stratabin works: idea to execution</h2>
+                        <ol className="space-y-6 text-[var(--text-muted)]">
+                            <li><strong className="text-[var(--text-secondary)] font-semibold">1. Capture & Write</strong> — Start with raw ideas in the writing editor. Use split view to compare angles, or branch into visual flowcharts.</li>
+                            <li><strong className="text-[var(--text-secondary)] font-semibold">2. Map & Organize</strong> — Drag ideas onto the flow canvas as connected nodes. Merge related projects, create folder workspaces, and let STRAB AI help organize the structure.</li>
+                            <li><strong className="text-[var(--text-secondary)] font-semibold">3. Execute & Track</strong> — Convert strategies into tasks, set calendar deadlines, build timelines, and use AI reports to monitor progress and identify gaps.</li>
                         </ol>
                     </section>
 

@@ -414,19 +414,16 @@ export default function Dashboard() {
     function ProjectCardGrid({
         items,
         variant = 'grid',
-        appendCreateTile = false,
     }: {
         items: CanvasData[];
         variant?: 'grid' | 'pinned-hero';
-        appendCreateTile?: boolean;
     }) {
-        if (items.length === 0 && !appendCreateTile) return null;
+        if (items.length === 0) return null;
         return (
             <>
                 {/* Mobile: compact list-style cards */}
                 <div className="md:hidden flex flex-col gap-2">
                     {items.map(p => renderMobileCard(p))}
-                    {appendCreateTile && renderCreateProjectTile('mobile')}
                 </div>
                 {variant === 'pinned-hero' ? (
                     <div className="hidden md:flex flex-col gap-4">
@@ -435,7 +432,6 @@ export default function Dashboard() {
                 ) : (
                     <div className="hidden md:grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {items.map(p => renderProjectCard(p))}
-                        {appendCreateTile && renderCreateProjectTile('desktop')}
                     </div>
                 )}
             </>
@@ -464,8 +460,8 @@ export default function Dashboard() {
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}
                 `}
             >
-                <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
-                    {isMerged ? <GitMerge size={22} className="text-primary" /> : <Icon size={22} className="text-primary" />}
+                <div className="pro-icon-well h-12 w-12 shrink-0">
+                    {isMerged ? <GitMerge size={22} strokeWidth={1.75} className="text-[var(--text-muted)]" /> : <Icon size={22} strokeWidth={1.75} className="text-[var(--text-muted)]" />}
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-white text-base truncate">{displayName}</h3>
@@ -890,7 +886,7 @@ export default function Dashboard() {
 
             {/* Main Content Area — transparent so grid shows through */}
             <main className="min-h-0 flex-1 overflow-y-auto custom-scrollbar bg-transparent">
-                <div className="max-w-7xl mx-auto px-2 pt-2 pb-20 md:px-10 md:pt-10 md:pb-10">
+                <div className="max-w-7xl mx-auto px-2 pt-2 pb-[max(6rem,env(safe-area-inset-bottom,0px)+4rem)] md:px-10 md:pt-10 md:pb-10">
                     {/* Invitations banner */}
                     {invitations.length > 0 && (
                         <div className="mb-4 p-4 note-box rounded-xl flex flex-wrap items-center justify-between gap-3">
@@ -1302,10 +1298,7 @@ export default function Dashboard() {
                                     <div className="flex-1 h-px bg-white/5 ml-2" />
                                 </div>
                                 {mainGridProjects.length > 0 ? (
-                                    <ProjectCardGrid
-                                        items={mainGridProjects}
-                                        appendCreateTile={filteredCanvases.length > 0 && !selectionMode}
-                                    />
+                                    <ProjectCardGrid items={mainGridProjects} />
                                 ) : (
                                     <>
                                     {isFirstLoad && Object.keys(canvases).length === 0 && (
@@ -1390,6 +1383,21 @@ export default function Dashboard() {
                     )}
                 </div>
             </main>
+
+            {activeTab === 'strategy' && !selectionMode && (
+                <button
+                    type="button"
+                    onClick={handleCreate}
+                    className="md:hidden fixed z-30 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--text)] text-[var(--bg-page)] shadow-[0_8px_32px_rgba(0,0,0,0.35)] active:scale-95 transition-transform"
+                    style={{
+                        bottom: 'max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem))',
+                        right: 'max(1rem, env(safe-area-inset-right, 0px))',
+                    }}
+                    aria-label="Create new project"
+                >
+                    <Plus size={26} strokeWidth={2.5} />
+                </button>
+            )}
 
             {/* Create Folder Modal */}
             {showFolderModal && (
@@ -1944,81 +1952,4 @@ export default function Dashboard() {
         );
     }
 
-    function renderCreateProjectTile(mode: 'mobile' | 'desktop') {
-        const top = (
-            <>
-                <div className="w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center mb-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                    <Plus size={28} strokeWidth={2.5} className="text-white/60" />
-                </div>
-                <h3 className="text-base font-black text-white">Create new project</h3>
-                <p className="text-[11px] text-white/40 text-center max-w-[280px] leading-relaxed">
-                    After you create it, use <span className="text-white/55 font-semibold">Project STRAB</span> on this card for <span className="text-white/45">chat, reports &amp; follow-up</span>. For <span className="text-white/55">brand-new strategies</span>, use header <span className="text-primary/90 font-semibold">STRAB</span> <span className="text-white/35">(New strategy)</span> or <span className="text-violet-300/90">AI generated</span> here.
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-bold">
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleCreate();
-                        }}
-                        className="text-teal-400 hover:text-teal-300 transition-colors"
-                    >
-                        Blank
-                    </button>
-                    <span className="text-white/15">·</span>
-                    <span className="text-white/25 cursor-not-allowed" title="Coming soon">
-                        Template
-                    </span>
-                    <span className="text-white/15">·</span>
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/strab');
-                        }}
-                        className="text-violet-400 hover:text-violet-300 transition-colors"
-                    >
-                        AI generated
-                    </button>
-                </div>
-            </>
-        );
-        const cta = (
-            <button
-                type="button"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleCreate();
-                }}
-                className="w-full py-3.5 rounded-xl font-black text-[11px] uppercase tracking-[0.12em] text-white bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-500 hover:via-violet-500 hover:to-purple-500 border border-white/10 shadow-[0_8px_28px_rgba(109,40,217,0.35)] transition-all flex items-center justify-center gap-2"
-            >
-                <Plus size={16} strokeWidth={3} />
-                Create new project
-            </button>
-        );
-
-        if (mode === 'mobile') {
-            return (
-                <div
-                    key="__create_proj__"
-                    className="rounded-2xl md:rounded-3xl border-2 border-dashed border-[color-mix(in_srgb,var(--primary)_35%,var(--border))] bg-[var(--accent-soft)] p-5 flex flex-col items-center text-center gap-3 min-h-[220px] transition-colors hover:border-[color-mix(in_srgb,var(--primary)_55%,var(--border))]"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="flex flex-col items-center gap-3 flex-1">{top}</div>
-                    {cta}
-                </div>
-            );
-        }
-
-        return (
-            <div
-                key="__create_proj__"
-                className="rounded-2xl md:rounded-3xl border-2 border-dashed border-[color-mix(in_srgb,var(--primary)_40%,var(--border))] bg-[color-mix(in_srgb,var(--accent-soft)_80%,transparent)] p-6 flex flex-col items-center text-center gap-3 min-h-[300px] transition-colors hover:border-[color-mix(in_srgb,var(--primary)_60%,var(--border))] hover:bg-[var(--accent-soft)]"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="flex flex-col items-center gap-3 flex-1 w-full">{top}</div>
-                {cta}
-            </div>
-        );
-    }
 }

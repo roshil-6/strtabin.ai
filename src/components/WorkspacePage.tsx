@@ -34,6 +34,7 @@ import {
   Copy,
   RefreshCw,
   Building2,
+  ClipboardList,
 } from 'lucide-react';
 
 /** Theme-aware fields — native selects & inputs stay readable in light/dark */
@@ -90,6 +91,12 @@ export default function WorkspacePage() {
   const workspaceId = id ? parseInt(id, 10) : NaN;
   const isTeam = workspace?.type === 'team';
   const isAdmin = currentUserRole === 'admin';
+
+  const openAssignWorkForMember = (memberId: number) => {
+    setNewTaskUserId(memberId);
+    setActiveTab('tasks');
+    toast.success('Pick the date, describe the task, then tap Add');
+  };
 
   const load = async () => {
     if (isNaN(workspaceId)) return;
@@ -450,19 +457,64 @@ export default function WorkspacePage() {
               <div className="md:col-span-2 space-y-6 overflow-visible">
                 {/* Overview tab */}
                 {isTeam && activeTab === 'overview' && (
-                  <section className="space-y-6">
-                    {/* Virtual office — shared team hub */}
+                  <section className="space-y-5">
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
+                      <div className="note-box flex flex-col rounded-xl border border-[var(--border)] p-3 md:p-4">
+                        <div className="pro-icon-well mb-2 h-9 w-9 shrink-0">
+                          <FolderPlus size={16} strokeWidth={1.75} className="mx-auto text-[var(--text-muted)]" />
+                        </div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Projects</p>
+                        <p className="text-xl font-black text-[var(--text)] md:text-2xl">{projects.length}</p>
+                        <p className="text-[10px] text-[var(--text-dim)]">{projects.filter((p) => p.status === 'executing').length} executing</p>
+                      </div>
+                      <div className="note-box flex flex-col rounded-xl border border-[var(--border)] p-3 md:p-4">
+                        <div className="pro-icon-well mb-2 h-9 w-9 shrink-0">
+                          <ListTodo size={16} strokeWidth={1.75} className="mx-auto text-[var(--text-muted)]" />
+                        </div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Tasks today</p>
+                        <p className="text-xl font-black text-[var(--text)] md:text-2xl">{pendingTasksCount}</p>
+                        <p className="text-[10px] text-[var(--text-dim)]">{completedTasksCount} done</p>
+                      </div>
+                      <div className="note-box flex flex-col rounded-xl border border-[var(--border)] p-3 md:p-4">
+                        <div className="pro-icon-well mb-2 h-9 w-9 shrink-0">
+                          <Users size={16} strokeWidth={1.75} className="mx-auto text-[var(--text-muted)]" />
+                        </div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Team</p>
+                        <p className="text-xl font-black text-[var(--text)] md:text-2xl">{members.length}</p>
+                        <p className="text-[10px] text-[var(--text-dim)]">members</p>
+                      </div>
+                      <div className="note-box flex flex-col justify-between rounded-xl border border-[var(--border)] p-3 md:p-4">
+                        <div className="pro-icon-well mb-2 h-9 w-9 shrink-0">
+                          <Zap size={16} strokeWidth={1.75} className="mx-auto text-[var(--text-muted)]" />
+                        </div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Shortcuts</p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <button type="button" onClick={() => setShowNewProject(true)} className="rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-2 py-1 text-[10px] font-bold text-[var(--text)] hover:border-[var(--border-strong)]">
+                            + Project
+                          </button>
+                          {isAdmin && (
+                            <button type="button" onClick={() => setShowInvite(true)} className="rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-2 py-1 text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text)]">
+                              + Invite
+                            </button>
+                          )}
+                          <button type="button" onClick={() => setActiveTab('tasks')} className="rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-2 py-1 text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text)]">
+                            + Task
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="note-box rounded-2xl border border-[var(--border)] p-5 md:p-6">
-                      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-8">
-                        <div className="min-w-0 space-y-4">
-                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                            <div className="note-box flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--border)]">
-                              <Building2 size={26} className="text-[var(--text-muted)]" />
+                      <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
+                        <div className="space-y-4 lg:col-span-5">
+                          <div className="flex gap-4">
+                            <div className="pro-icon-well flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl">
+                              <Building2 size={26} strokeWidth={1.75} className="text-[var(--text-muted)]" />
                             </div>
-                            <div className="min-w-0 flex-1">
+                            <div className="min-w-0">
                               <h2 className="text-lg font-black tracking-tight text-[var(--text)] md:text-xl">Virtual office</h2>
-                              <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
-                                Shared team hub: same projects, tasks, and chat for everyone. Use the tabs above to switch between overview, projects, team, tasks, and activity.
+                              <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-muted)]">
+                                One shared hub for projects, daily tasks, and team chat. Use the tabs above to drill into each area.
                               </p>
                             </div>
                           </div>
@@ -470,120 +522,141 @@ export default function WorkspacePage() {
                             <button
                               type="button"
                               onClick={() => navigate('/community')}
-                              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--text)] px-4 py-2.5 text-xs font-bold text-[var(--bg-page)] transition-opacity hover:opacity-90 min-[400px]:min-w-[140px] min-[400px]:flex-none"
+                              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--text)] px-4 py-2.5 text-xs font-bold text-[var(--bg-page)] transition-opacity hover:opacity-90"
                             >
-                              <MessageCircle size={14} className="shrink-0" />
+                              <MessageCircle size={16} strokeWidth={2} className="shrink-0" />
                               Team chat
                             </button>
                             <button
                               type="button"
                               onClick={handleCopyWorkspaceLink}
-                              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-2.5 text-xs font-bold text-[var(--text)] transition-colors hover:border-[var(--border-strong)] min-[400px]:min-w-[140px] min-[400px]:flex-none"
+                              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-2.5 text-xs font-bold text-[var(--text)] transition-colors hover:border-[var(--border-strong)]"
                             >
-                              <Share2 size={14} className="shrink-0" />
+                              <Share2 size={16} strokeWidth={2} className="shrink-0" />
                               Copy link
                             </button>
                             <button
                               type="button"
                               onClick={() => setActiveTab('tasks')}
-                              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-2.5 text-xs font-bold text-[var(--text)] transition-colors hover:border-[var(--border-strong)] sm:w-auto sm:flex-1 sm:min-w-[160px]"
+                              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-2.5 text-xs font-bold text-[var(--text)] transition-colors hover:border-[var(--border-strong)] sm:w-auto sm:flex-1"
                             >
-                              <ListTodo size={14} className="shrink-0" />
+                              <ListTodo size={16} strokeWidth={2} className="shrink-0" />
                               Daily tasks
                             </button>
                           </div>
                         </div>
-                        <div className="min-w-0 border-t border-[var(--border)] pt-5 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-                          <p className="text-[10px] font-black uppercase tracking-wider text-[var(--text-dim)]">In the office</p>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {members.slice(0, 12).map((m) => (
-                              <div
-                                key={m.id}
-                                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[10px] font-black text-[var(--text-muted)]"
-                                title={m.username || m.email || 'Member'}
+                        <div className="border-t border-[var(--border)] pt-5 lg:col-span-7 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+                          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-[var(--text-dim)]">Team on deck</p>
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setNewTaskUserId(null);
+                                  setActiveTab('tasks');
+                                  toast.success('Choose a teammate in “Assign to”, then add the task');
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-1.5 text-[10px] font-bold text-[var(--text)] hover:border-[var(--border-strong)]"
                               >
-                                {(m.username || m.email || '?').slice(0, 2).toUpperCase()}
+                                <ClipboardList size={14} strokeWidth={2} />
+                                Open task assigner
+                              </button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4">
+                            {members.slice(0, 12).map((m) => (
+                              <div key={m.id} className="flex flex-col items-center gap-1.5 text-center">
+                                <div
+                                  className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--input-bg)] text-[11px] font-black text-[var(--text-muted)] ring-1 ring-[var(--border)]"
+                                  title={m.username || m.email || 'Member'}
+                                >
+                                  {(m.username || m.email || '?').slice(0, 2).toUpperCase()}
+                                </div>
+                                <p className="line-clamp-1 w-full text-[10px] font-semibold text-[var(--text-muted)]">{m.username || m.email || 'Member'}</p>
+                                {isAdmin && m.id !== currentUserId && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openAssignWorkForMember(m.id)}
+                                    className="text-[9px] font-bold uppercase tracking-wide text-[var(--text-secondary)] underline decoration-[var(--border-strong)] underline-offset-2"
+                                  >
+                                    Assign work
+                                  </button>
+                                )}
                               </div>
                             ))}
                             {members.length > 12 && (
-                              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-muted)] text-[10px] font-bold text-[var(--text-muted)]">
-                                +{members.length - 12}
+                              <div className="flex flex-col items-center justify-center">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-muted)] text-[11px] font-bold text-[var(--text-muted)]">
+                                  +{members.length - 12}
+                                </div>
                               </div>
                             )}
-                            {members.length === 0 && (
-                              <p className="text-sm text-[var(--text-dim)]">No members loaded yet.</p>
-                            )}
+                            {members.length === 0 && <p className="col-span-full text-sm text-[var(--text-dim)]">No members loaded yet.</p>}
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Workspace ID - share with team to let them join */}
                     {isAdmin && (
-                      <div className="p-4 rounded-xl bg-primary/10 border border-primary/30 flex flex-col sm:flex-row sm:items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <Hash size={20} className="text-primary" />
+                      <div className="note-box flex flex-col gap-3 rounded-xl border border-[var(--border)] p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex gap-3">
+                          <div className="pro-icon-well flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                            <ClipboardList size={20} strokeWidth={1.75} className="text-[var(--text-muted)]" />
+                          </div>
                           <div>
-                            <p className="text-xs font-bold text-white/70 uppercase tracking-wider">Workspace ID</p>
-                            <p className="text-lg font-black text-white font-mono">{workspaceId}</p>
+                            <p className="text-sm font-black text-[var(--text)]">Assign work (admin)</p>
+                            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                              Give each teammate dated daily tasks. Opens the Tasks tab with assignee pre-filled when you use Assign work on a person above.
+                            </p>
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewTaskUserId(null);
+                            setActiveTab('tasks');
+                          }}
+                          className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--text)] px-5 py-2.5 text-xs font-bold text-[var(--bg-page)] hover:opacity-90"
+                        >
+                          Go to Tasks
+                        </button>
+                      </div>
+                    )}
+
+                    {isAdmin && (
+                      <div className="note-box flex flex-col gap-3 rounded-xl border border-[var(--border)] p-4 sm:flex-row sm:items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="pro-icon-well flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                            <Hash size={18} strokeWidth={2} className="text-[var(--text-muted)]" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Workspace ID</p>
+                            <p className="font-mono text-lg font-black text-[var(--text)]">{workspaceId}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 sm:ml-auto">
                           <button
+                            type="button"
                             onClick={handleCopyWorkspaceId}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-black font-bold text-sm hover:bg-white transition-all"
+                            className="rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-4 py-2 text-xs font-bold text-[var(--text)] hover:border-[var(--border-strong)]"
                           >
-                            <Copy size={14} />
+                            <Copy size={14} className="mr-1 inline" />
                             Copy ID
                           </button>
                           <button
+                            type="button"
                             onClick={handleCopyJoinLink}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white font-bold text-sm hover:bg-white/20 transition-all"
+                            className="rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-4 py-2 text-xs font-bold text-[var(--text)] hover:border-[var(--border-strong)]"
                           >
-                            <Share2 size={14} />
-                            Copy join link
+                            <Share2 size={14} className="mr-1 inline" />
+                            Join link
                           </button>
                         </div>
-                        <p className="text-[11px] text-white/50 sm:ml-auto">Share the ID or join link. Team members join via Dashboard → Join workspace, or visit the join link.</p>
+                        <p className="w-full text-[11px] text-[var(--text-dim)] sm:col-span-full">
+                          Members join from Dashboard → Join workspace, or use the join link.
+                        </p>
                       </div>
                     )}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-                      <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="flex items-center gap-1.5 md:gap-2 text-white/50 mb-0.5 md:mb-1">
-                          <FolderPlus size={12} className="md:w-3.5 md:h-3.5" />
-                          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider hidden md:inline">Projects</span>
-                        </div>
-                        <p className="text-lg md:text-2xl font-black text-white">{projects.length}</p>
-                        <p className="text-[10px] text-white/40 mt-0.5">{projects.filter((p) => p.status === 'executing').length} in progress</p>
-                      </div>
-                      <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="flex items-center gap-1.5 md:gap-2 text-white/50 mb-0.5 md:mb-1">
-                          <ListTodo size={12} className="md:w-3.5 md:h-3.5" />
-                          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider hidden md:inline">Tasks today</span>
-                        </div>
-                        <p className="text-lg md:text-2xl font-black text-white">{pendingTasksCount}</p>
-                        <p className="text-[10px] text-white/40 mt-0.5">{completedTasksCount} done</p>
-                      </div>
-                      <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="flex items-center gap-1.5 md:gap-2 text-white/50 mb-0.5 md:mb-1">
-                          <Users size={12} className="md:w-3.5 md:h-3.5" />
-                          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider hidden md:inline">Team</span>
-                        </div>
-                        <p className="text-lg md:text-2xl font-black text-white">{members.length}</p>
-                        <p className="text-[10px] text-white/40 mt-0.5">members</p>
-                      </div>
-                      <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="flex items-center gap-1.5 md:gap-2 text-white/50 mb-0.5 md:mb-1">
-                          <Zap size={12} className="md:w-3.5 md:h-3.5" />
-                          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider hidden md:inline">Quick</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 mt-1">
-                          <button onClick={() => setShowNewProject(true)} className="px-2 py-1 text-[10px] font-bold bg-primary/20 text-primary rounded-lg hover:bg-primary/30">+ Project</button>
-                          {isAdmin && <button onClick={() => setShowInvite(true)} className="px-2 py-1 text-[10px] font-bold bg-white/10 text-white/60 rounded-lg hover:bg-white/20">+ Invite</button>}
-                          <button onClick={() => setActiveTab('tasks')} className="px-2 py-1 text-[10px] font-bold bg-white/10 text-white/60 rounded-lg hover:bg-white/20">+ Task</button>
-                        </div>
-                      </div>
-                    </div>
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="rounded-xl bg-white/[0.02] border border-white/10 p-4">
                         <div className="flex items-center justify-between mb-3">
