@@ -452,62 +452,66 @@ export default function WorkspacePage() {
                 {isTeam && activeTab === 'overview' && (
                   <section className="space-y-6">
                     {/* Virtual office — shared team hub */}
-                    <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.08] via-[var(--bg-panel)] to-[var(--bg-page)] p-5 md:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
-                      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
-                      <div className="relative flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
-                        <div className="flex items-start gap-4 flex-1 min-w-0">
-                          <div className="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
-                            <Building2 size={28} className="text-primary" />
-                          </div>
-                          <div className="min-w-0">
-                            <h2 className="text-lg md:text-xl font-black text-[var(--text)] tracking-tight">Virtual office</h2>
-                            <p className="text-sm text-[var(--text-muted)] mt-1 leading-relaxed">
-                              Your team&apos;s shared space — projects, daily tasks, and chat in one place. Everyone sees the same workspace; use tabs to move between work areas.
-                            </p>
-                            <div className="flex flex-wrap gap-2 mt-4">
-                              <button
-                                type="button"
-                                onClick={() => navigate('/community')}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-black font-bold text-xs hover:bg-white transition-colors"
-                              >
-                                <MessageCircle size={14} />
-                                Team chat (Community)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleCopyWorkspaceLink}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-muted)] border border-[var(--border)] text-[var(--text)] font-bold text-xs hover:border-primary/40 transition-colors"
-                              >
-                                <Share2 size={14} />
-                                Copy office link
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setActiveTab('tasks')}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-muted)] border border-[var(--border)] text-[var(--text)] font-bold text-xs hover:border-primary/40 transition-colors"
-                              >
-                                <ListTodo size={14} />
-                                Daily tasks
-                              </button>
+                    <div className="note-box rounded-2xl border border-[var(--border)] p-5 md:p-6">
+                      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-8">
+                        <div className="min-w-0 space-y-4">
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                            <div className="note-box flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--border)]">
+                              <Building2 size={26} className="text-[var(--text-muted)]" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h2 className="text-lg font-black tracking-tight text-[var(--text)] md:text-xl">Virtual office</h2>
+                              <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
+                                Shared team hub: same projects, tasks, and chat for everyone. Use the tabs above to switch between overview, projects, team, tasks, and activity.
+                              </p>
                             </div>
                           </div>
+                          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => navigate('/community')}
+                              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--text)] px-4 py-2.5 text-xs font-bold text-[var(--bg-page)] transition-opacity hover:opacity-90 min-[400px]:min-w-[140px] min-[400px]:flex-none"
+                            >
+                              <MessageCircle size={14} className="shrink-0" />
+                              Team chat
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCopyWorkspaceLink}
+                              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-2.5 text-xs font-bold text-[var(--text)] transition-colors hover:border-[var(--border-strong)] min-[400px]:min-w-[140px] min-[400px]:flex-none"
+                            >
+                              <Share2 size={14} className="shrink-0" />
+                              Copy link
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab('tasks')}
+                              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-2.5 text-xs font-bold text-[var(--text)] transition-colors hover:border-[var(--border-strong)] sm:w-auto sm:flex-1 sm:min-w-[160px]"
+                            >
+                              <ListTodo size={14} className="shrink-0" />
+                              Daily tasks
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-stretch md:items-end gap-2 shrink-0">
-                          <p className="text-[10px] font-black uppercase tracking-wider text-[var(--text-dim)] md:text-right">In the office</p>
-                          <div className="flex flex-wrap gap-1.5 justify-start md:justify-end">
-                            {members.slice(0, 10).map((m) => (
+                        <div className="min-w-0 border-t border-[var(--border)] pt-5 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-[var(--text-dim)]">In the office</p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {members.slice(0, 12).map((m) => (
                               <div
                                 key={m.id}
-                                className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary"
+                                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[10px] font-black text-[var(--text-muted)]"
                                 title={m.username || m.email || 'Member'}
                               >
                                 {(m.username || m.email || '?').slice(0, 2).toUpperCase()}
                               </div>
                             ))}
-                            {members.length > 10 && (
-                              <div className="w-9 h-9 rounded-xl bg-[var(--bg-muted)] border border-[var(--border)] flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)]">
-                                +{members.length - 10}
+                            {members.length > 12 && (
+                              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-muted)] text-[10px] font-bold text-[var(--text-muted)]">
+                                +{members.length - 12}
                               </div>
+                            )}
+                            {members.length === 0 && (
+                              <p className="text-sm text-[var(--text-dim)]">No members loaded yet.</p>
                             )}
                           </div>
                         </div>

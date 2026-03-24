@@ -481,7 +481,7 @@ export default function Dashboard() {
     }
 
     return (
-        <div className="flex h-screen font-sans overflow-hidden relative bg-transparent">
+        <div className="flex h-screen min-h-0 font-sans overflow-hidden relative bg-transparent">
             {/* Join Workspace Modal */}
             {showJoinWorkspaceModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -603,25 +603,27 @@ export default function Dashboard() {
 
             {/* Folder Sidebar */}
             <aside className={`
-                fixed inset-y-0 left-0 z-50 w-72 border-r border-[var(--border)] flex flex-col shrink-0 theme-panel backdrop-blur-2xl transition-transform duration-300 md:relative md:translate-x-0
+                fixed inset-y-0 left-0 z-50 flex h-full max-h-screen w-72 min-h-0 shrink-0 flex-col border-r border-[var(--border)] theme-panel backdrop-blur-2xl transition-transform duration-300 md:relative md:translate-x-0
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
-                <div className="p-3 md:p-8">
-                    <div className="flex items-center justify-between mb-5 md:mb-10">
+                <div className="shrink-0 border-b border-[var(--border)] p-3 md:px-6 md:pt-5 md:pb-4">
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 md:gap-3">
                             <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg md:rounded-xl flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
                                 <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain" />
                             </div>
                             <div>
                                 <h1 className="text-lg md:text-3xl font-black tracking-tighter leading-none text-[var(--text)]">Stratabin<span className="text-[var(--text-muted)]">.</span></h1>
-                                <p className="text-[8px] md:text-[10px] text-white/20 uppercase tracking-[0.2em] mt-0.5 font-bold hidden md:block">Professional Workspace</p>
+                                <p className="text-[8px] md:text-[10px] text-[var(--text-dim)] uppercase tracking-[0.2em] mt-0.5 font-bold hidden md:block">Professional Workspace</p>
                             </div>
                         </div>
-                        <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-white/40 hover:text-white active:scale-95 transition-all rounded-xl">
+                        <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-[var(--text-muted)] hover:text-[var(--text)] active:scale-95 transition-all rounded-xl">
                             <X size={20} />
                         </button>
                     </div>
+                </div>
 
+                <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto custom-scrollbar px-3 py-2 md:px-6 md:py-3">
                     <div className="space-y-1">
                         <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)] mb-4 px-3">Workspaces</h2>
 
@@ -647,7 +649,7 @@ export default function Dashboard() {
                                 </button>
                             </div>
 
-                            <div className="space-y-1 max-h-[40vh] overflow-y-auto custom-scrollbar">
+                            <div className="space-y-1">
                                 {Object.values(folders).map(folder => (
                                     <button
                                         key={folder.id}
@@ -709,7 +711,7 @@ export default function Dashboard() {
                                     </button>
                                 </div>
                             </div>
-                            <div className="space-y-1 max-h-[20vh] overflow-y-auto custom-scrollbar">
+                            <div className="space-y-1">
                                 {teamWorkspaces.map((ws) => (
                                     <button
                                         key={ws.id}
@@ -851,41 +853,43 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className="mt-auto p-6 border-t border-white/5 bg-white/[0.02]">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-white/30">
+                <div className="shrink-0 border-t border-[var(--border)] bg-[var(--bg-panel)] p-4 md:p-5">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-3 text-[var(--text-muted)]">
                             {user?.imageUrl ? (
-                                <img src={user.imageUrl} alt={user.fullName || 'User'} className="w-8 h-8 rounded-full border border-white/10 object-cover" />
+                                <img src={user.imageUrl} alt={user.fullName || 'User'} className="h-8 w-8 shrink-0 rounded-full border border-[var(--border)] object-cover" />
                             ) : (
-                                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--input-bg)] text-[10px] font-bold text-[var(--text)]">
                                     {user?.firstName?.[0] || 'U'}
                                 </div>
                             )}
-                            <div className="text-[11px]">
-                                <p className="text-white/60 font-bold leading-none mb-1">{user?.fullName || user?.firstName || 'User'}</p>
-                                <p className="opacity-50 tracking-wide">{user?.primaryEmailAddress?.emailAddress || 'Signed in'}</p>
+                            <div className="min-w-0 text-[11px]">
+                                <p className="mb-1 truncate font-bold leading-none text-[var(--text)]">{user?.fullName || user?.firstName || 'User'}</p>
+                                <p className="truncate tracking-wide text-[var(--text-dim)]">{user?.primaryEmailAddress?.emailAddress || 'Signed in'}</p>
                             </div>
                         </div>
-                        <button
-                            onClick={() => setShowCredentialsModal(true)}
-                            className="p-2 hover:bg-white/10 text-white/40 hover:text-white rounded-lg transition-colors"
-                            title="Set username & password for easier login"
-                        >
-                            <User size={16} />
-                        </button>
-                        <button
-                            onClick={() => signOut({ redirectUrl: '/' })}
-                            className="p-2 hover:bg-red-500/10 text-white/20 hover:text-red-500 rounded-lg transition-colors"
-                            title="Sign Out"
-                        >
-                            <LogOut size={16} />
-                        </button>
+                        <div className="flex shrink-0 items-center gap-0.5">
+                            <button
+                                onClick={() => setShowCredentialsModal(true)}
+                                className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                title="Set username & password for easier login"
+                            >
+                                <User size={16} />
+                            </button>
+                            <button
+                                onClick={() => signOut({ redirectUrl: '/' })}
+                                className="rounded-lg p-2 text-[var(--text-dim)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                                title="Sign Out"
+                            >
+                                <LogOut size={16} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </aside>
 
             {/* Main Content Area — transparent so grid shows through */}
-            <main className="flex-1 overflow-y-auto custom-scrollbar bg-transparent">
+            <main className="min-h-0 flex-1 overflow-y-auto custom-scrollbar bg-transparent">
                 <div className="max-w-7xl mx-auto px-2 pt-2 pb-20 md:px-10 md:pt-10 md:pb-10">
                     {/* Invitations banner */}
                     {invitations.length > 0 && (
