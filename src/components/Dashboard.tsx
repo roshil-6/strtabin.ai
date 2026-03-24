@@ -4,11 +4,10 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, TrendingUp, LogIn, Hash, ChevronRight, Rocket, BookOpen } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronRight, Rocket, BookOpen } from 'lucide-react';
 
 const DASHBOARD_GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
-import { useTheme } from '../context/ThemeContext';
 import type { CanvasData } from '../store/useStore';
 import { API_BASE_URL } from '../constants';
 import { useAuth } from '@clerk/clerk-react';
@@ -16,7 +15,6 @@ import CreateWorkspaceModal from './CreateWorkspaceModal';
 import { workspaceService, type Workspace } from '../services/workspaceService';
 
 export default function Dashboard() {
-    const { resolved: theme } = useTheme();
     const navigate = useNavigate();
     const {
         canvases, createCanvas, deleteCanvas, togglePinCanvas, toggleStuckCanvas, toggleCurrentProject,
@@ -285,6 +283,7 @@ export default function Dashboard() {
     const filteredCanvases = Object.values(canvases)
         .filter(p => (p.folderId || null) === activeFolderId)
         .filter(hasContent);
+    const dashboardDoneTodos = filteredCanvases.reduce((acc, p) => acc + (p.todos?.filter(t => t.completed).length ?? 0), 0);
 
     // Use filteredCanvases for categorization
     const pinnedProjects = filteredCanvases.filter(p => p.isPinned);
@@ -460,9 +459,8 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`dashboard-project-card flex items-center gap-4 p-4 rounded-3xl active:scale-[0.98] transition-all duration-300 cursor-pointer
-                    bg-gradient-to-br from-[#1a1a1a] to-[#141414] shadow-[0_2px_12px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.04)]
-                    ${isSelected ? 'border-2 border-primary ring-2 ring-primary/30' : 'border border-white/[0.12] hover:border-white/20 active:border-primary/40'}
+                className={`dashboard-project-card flex items-center gap-4 p-4 rounded-2xl md:rounded-3xl active:scale-[0.98] transition-all duration-300 cursor-pointer border
+                    ${isSelected ? 'dashboard-card--selected border-primary ring-2 ring-primary/30 shadow-[0_8px_32px_rgba(218,119,86,0.12)]' : 'border-[var(--border)] hover:border-[color-mix(in_srgb,#da7756_22%,var(--border))]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}
                 `}
             >
@@ -615,7 +613,7 @@ export default function Dashboard() {
                                 <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain" />
                             </div>
                             <div>
-                                <h1 className="text-lg md:text-3xl font-black tracking-tighter leading-none">Stratabin<span className="text-orange-500">.</span></h1>
+                                <h1 className="text-lg md:text-3xl font-black tracking-tighter leading-none text-[var(--text)]">Stratabin<span className="text-[var(--text-muted)]">.</span></h1>
                                 <p className="text-[8px] md:text-[10px] text-white/20 uppercase tracking-[0.2em] mt-0.5 font-bold hidden md:block">Professional Workspace</p>
                             </div>
                         </div>
@@ -625,25 +623,25 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-1">
-                        <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-white/20 mb-4 px-3">Workspaces</h2>
+                        <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)] mb-4 px-3">Workspaces</h2>
 
                         <button
                             onClick={() => { setActiveFolder(null); setIsSidebarOpen(false); }}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${activeFolderId === null
-                                ? 'bg-white/10 text-primary'
-                                : 'text-white/40 hover:bg-white/5 hover:text-white'
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group border border-transparent ${activeFolderId === null
+                                ? 'bg-[var(--input-bg)] text-[var(--text)] border-[var(--border)]'
+                                : 'text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]'
                                 }`}
                         >
-                            <Layout size={18} className={activeFolderId === null ? 'text-primary' : 'text-white/20 group-hover:text-white'} />
+                            <Layout size={18} className={activeFolderId === null ? 'text-[var(--text)]' : 'text-[var(--text-dim)] group-hover:text-[var(--text)]'} />
                             <span className="font-bold text-sm text-left">General Projects</span>
                         </button>
 
                         <div className="pt-6 pb-2">
                             <div className="flex items-center justify-between px-3 mb-4">
-                                <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-white/20">Custom Folders</h2>
+                                <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)]">Custom Folders</h2>
                                 <button
                                     onClick={() => setShowFolderModal(true)}
-                                    className="p-1 hover:bg-white/10 rounded-lg text-white/30 hover:text-primary transition-all"
+                                    className="p-1 hover:bg-[var(--input-bg)] rounded-lg text-[var(--text-dim)] hover:text-[var(--text)] transition-all"
                                 >
                                     <FolderPlus size={16} />
                                 </button>
@@ -654,12 +652,12 @@ export default function Dashboard() {
                                     <button
                                         key={folder.id}
                                         onClick={() => { setActiveFolder(folder.id); setIsSidebarOpen(false); }}
-                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${activeFolderId === folder.id
-                                            ? 'bg-white/10 text-primary'
-                                            : 'text-white/40 hover:bg-white/5 hover:text-white'
+                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group border border-transparent ${activeFolderId === folder.id
+                                            ? 'bg-[var(--input-bg)] text-[var(--text)] border-[var(--border)]'
+                                            : 'text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]'
                                             }`}
                                     >
-                                        <Folder size={18} className={activeFolderId === folder.id ? 'text-primary fill-primary/20' : 'text-white/20 group-hover:text-white'} />
+                                        <Folder size={18} className={activeFolderId === folder.id ? 'text-[var(--text)] fill-[var(--input-bg)]' : 'text-[var(--text-dim)] group-hover:text-[var(--text)]'} />
                                         <span className="font-bold text-sm truncate flex-1 text-left">{folder.name}</span>
                                         <div className="flex opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                             <button
@@ -693,18 +691,18 @@ export default function Dashboard() {
 
                         <div className="pt-6 pb-2">
                             <div className="flex items-center justify-between px-3 mb-4">
-                                <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-white/20">Team Workspaces</h2>
+                                <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)]">Team Workspaces</h2>
                                 <div className="flex gap-1">
                                     <button
                                         onClick={() => setShowJoinWorkspaceModal(true)}
-                                        className="p-1 hover:bg-white/10 rounded-lg text-white/30 hover:text-primary transition-all"
+                                        className="p-1 hover:bg-[var(--input-bg)] rounded-lg text-[var(--text-dim)] hover:text-[var(--text)] transition-all"
                                         title="Join workspace by ID"
                                     >
                                         <LogIn size={16} />
                                     </button>
                                     <button
                                         onClick={() => setShowCreateWorkspaceModal(true)}
-                                        className="p-1 hover:bg-white/10 rounded-lg text-white/30 hover:text-primary transition-all"
+                                        className="p-1 hover:bg-[var(--input-bg)] rounded-lg text-[var(--text-dim)] hover:text-[var(--text)] transition-all"
                                         title="Create workspace"
                                     >
                                         <FolderPlus size={16} />
@@ -716,9 +714,9 @@ export default function Dashboard() {
                                     <button
                                         key={ws.id}
                                         onClick={() => { navigate(`/workspace/${ws.id}`); setIsSidebarOpen(false); }}
-                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-white/40 hover:bg-white/5 hover:text-white"
+                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                                     >
-                                        <Users size={18} className="text-white/20 group-hover:text-white" />
+                                        <Users size={18} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
                                         <span className="font-bold text-sm truncate flex-1 text-left">{ws.name}</span>
                                     </button>
                                 ))}
@@ -728,19 +726,107 @@ export default function Dashboard() {
                             </div>
                         </div>
 
+                        <div className="pt-6 pb-2">
+                            <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)] mb-4 px-3">Tools</h2>
+                            <div className="space-y-1">
+                                <button
+                                    type="button"
+                                    onClick={() => { navigate('/strab'); setIsSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                >
+                                    <Bot size={18} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-bold text-sm text-left">STRAB hub</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { navigate('/reports'); setIsSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                >
+                                    <BarChart2 size={18} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-bold text-sm text-left">Reports</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setActiveTab('monitor'); setTabKey(k => k + 1); setIsSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                >
+                                    <Activity size={18} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-bold text-sm text-left">Monitor</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { navigate(`/folder-workflow/${activeFolderId || 'general'}`); setIsSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                >
+                                    <Network size={18} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-bold text-sm text-left">Map</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { navigate('/calendar'); setIsSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                >
+                                    <Calendar size={18} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-bold text-sm text-left">Calendar</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (selectionMode && activeTab === 'strategy') {
+                                            setSelectionMode(false);
+                                            setSelectedIds([]);
+                                            setIsSidebarOpen(false);
+                                            return;
+                                        }
+                                        setActiveTab('strategy');
+                                        setTabKey((k) => k + 1);
+                                        setSelectionMode(true);
+                                        setSelectedIds([]);
+                                        setIsSidebarOpen(false);
+                                        toast.success('Select two projects to merge');
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all border border-transparent ${selectionMode && activeTab === 'strategy'
+                                        ? 'bg-[var(--input-bg)] text-[var(--text)] border-[var(--border)]'
+                                        : 'text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]'
+                                        }`}
+                                >
+                                    <GitMerge size={18} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-bold text-sm text-left">{selectionMode && activeTab === 'strategy' ? 'Cancel merge' : 'Merge projects'}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 pb-2 border-t border-[var(--border)]">
+                            <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)] mb-3 px-3">Overview</h2>
+                            <div className="space-y-2 px-1">
+                                <div className="flex items-center justify-between px-3 py-2 rounded-xl note-box text-xs">
+                                    <span className="text-[var(--text-muted)] font-bold">Progress</span>
+                                    <span className="font-black text-[var(--text)] tabular-nums">{workInsights?.progress?.total ?? 0} pts</span>
+                                </div>
+                                <div className="flex items-center justify-between px-3 py-2 rounded-xl note-box text-xs">
+                                    <span className="text-[var(--text-muted)] font-bold">Projects</span>
+                                    <span className="font-black text-[var(--text)] tabular-nums">{filteredCanvases.length}</span>
+                                </div>
+                                <div className="flex items-center justify-between px-3 py-2 rounded-xl note-box text-xs">
+                                    <span className="text-[var(--text-muted)] font-bold">Tasks done</span>
+                                    <span className="font-black text-[var(--text)] tabular-nums">{dashboardDoneTodos}</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="pt-4 space-y-1">
                             <button
                                 onClick={() => { navigate(`/profile/${myUsername || user?.username || user?.firstName || 'me'}`); setIsSidebarOpen(false); }}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-white/40 hover:bg-white/5 hover:text-white"
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                             >
-                                <User size={18} className="text-white/20 group-hover:text-white" />
+                                <User size={18} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
                                 <span className="font-bold text-sm text-left">Profile</span>
                             </button>
                             <button
                                 onClick={() => { navigate('/community'); setIsSidebarOpen(false); }}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-white/40 hover:bg-white/5 hover:text-white"
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                             >
-                                <Network size={18} className="text-white/20 group-hover:text-white" />
+                                <Network size={18} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
                                 <span className="font-bold text-sm text-left">Community</span>
                             </button>
                             <a
@@ -748,9 +834,9 @@ export default function Dashboard() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => setIsSidebarOpen(false)}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-white/40 hover:bg-white/5 hover:text-white"
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                             >
-                                <BookOpen size={18} className="text-white/20 group-hover:text-white shrink-0" />
+                                <BookOpen size={18} className="text-[var(--text-dim)] group-hover:text-[var(--text)] shrink-0" />
                                 <span className="font-bold text-sm text-left">How to use</span>
                                 <span className="ml-auto text-[10px] font-bold text-white/25 uppercase tracking-wider">↗</span>
                             </a>
@@ -803,14 +889,14 @@ export default function Dashboard() {
                 <div className="max-w-7xl mx-auto px-2 pt-2 pb-20 md:px-10 md:pt-10 md:pb-10">
                     {/* Invitations banner */}
                     {invitations.length > 0 && (
-                        <div className="mb-4 p-4 bg-primary/10 border border-primary/30 rounded-xl flex flex-wrap items-center justify-between gap-3">
-                            <p className="text-sm font-bold text-white">
+                        <div className="mb-4 p-4 note-box rounded-xl flex flex-wrap items-center justify-between gap-3">
+                            <p className="text-sm font-bold text-[var(--text)]">
                                 You have {invitations.length} workspace invitation{invitations.length > 1 ? 's' : ''}
                             </p>
                             <div className="flex gap-2">
                                 {invitations.slice(0, 3).map((inv) => (
-                                    <div key={inv.id} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg">
-                                        <span className="text-xs text-white/70">{inv.workspace_name}</span>
+                                    <div key={inv.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--input-bg)] border border-[var(--border)]">
+                                        <span className="text-xs text-[var(--text-muted)]">{inv.workspace_name}</span>
                                         <button
                                             onClick={async () => {
                                                 const token = await getToken();
@@ -823,7 +909,7 @@ export default function Dashboard() {
                                                     navigate(`/workspace/${inv.workspace_id}`);
                                                 }
                                             }}
-                                            className="text-xs font-bold text-primary hover:underline"
+                                            className="text-xs font-bold text-[var(--text)] underline decoration-[var(--border-strong)] underline-offset-2 hover:opacity-90"
                                         >
                                             Accept
                                         </button>
@@ -834,114 +920,36 @@ export default function Dashboard() {
                     )}
 
                     {/* Header — breathing room, clearer hierarchy */}
-                    <header className="mb-6 md:mb-8">
-                        <div className="flex items-center gap-3 mb-4 md:mb-6">
+                    <header className="mb-5 md:mb-7">
+                        <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
-                                className="md:hidden p-1.5 bg-white/[0.04] rounded-lg border border-white/[0.05] text-white/50 hover:text-white active:scale-95 transition-all shrink-0"
+                                className="md:hidden p-1.5 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text)] active:scale-95 transition-all shrink-0"
                             >
                                 <Menu size={16} />
                             </button>
                             <div className="flex-1 min-w-0">
-                                <h2 className="text-xl md:text-4xl font-black text-[var(--text)] leading-tight truncate">
+                                <h2 className="text-xl md:text-3xl font-black text-[var(--text)] leading-tight truncate">
                                     {activeFolder ? activeFolder.name : 'Projects'}
                                 </h2>
-                                <p className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider hidden md:block mt-1">
-                                    {activeFolder ? 'Folder' : 'Writing & Strategy'}
+                                <p className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider hidden sm:block mt-0.5">
+                                    {activeFolder ? 'Folder' : 'Writing & strategy'}
                                 </p>
                             </div>
                             <button
+                                type="button"
                                 onClick={handleCreate}
-                                className="md:hidden flex items-center justify-center w-9 h-9 bg-primary text-black font-black rounded-lg active:scale-95 transition-all shrink-0"
+                                className="hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--text)] text-[var(--bg-page)] font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shrink-0"
+                            >
+                                <Plus size={16} strokeWidth={3} />
+                                New project
+                            </button>
+                            <button
+                                onClick={handleCreate}
+                                className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border)] bg-[var(--text)] text-[var(--bg-page)] font-black active:scale-95 transition-all shrink-0"
                             >
                                 <Plus size={18} strokeWidth={3} />
                             </button>
-                        </div>
-
-                        {/* Stats — more spacing, softer styling */}
-                        <div className="flex items-center gap-3 md:gap-4 mb-5 md:mb-6 overflow-x-auto custom-scrollbar-hide">
-                            <div className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shrink-0">
-                                <TrendingUp size={14} className="text-emerald-400 md:w-4 md:h-4" />
-                                <span className="text-sm md:text-base font-black text-[var(--text)]">{workInsights?.progress?.total ?? 0}</span>
-                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] hidden md:inline">pts</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shrink-0">
-                                <FileText size={14} className="text-[var(--text-muted)] md:w-4 md:h-4" />
-                                <span className="text-sm md:text-base font-black text-[var(--text)]">{filteredCanvases.length}</span>
-                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] hidden md:inline">projects</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shrink-0">
-                                <CheckSquare size={14} className="text-[var(--text-muted)] md:w-4 md:h-4" />
-                                <span className="text-sm md:text-base font-black text-[var(--text)]">
-                                    {filteredCanvases.reduce((acc, p) => acc + (p.todos?.filter(t => t.completed).length ?? 0), 0)}
-                                </span>
-                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] hidden md:inline">done</span>
-                            </div>
-                        </div>
-
-                        {/* Actions — more gap, unified secondary style */}
-                        <div className="flex flex-row items-center gap-2 md:gap-3 overflow-x-auto custom-scrollbar-hide pb-2">
-
-                            {/* Action bar — icon-only on mobile for tool feel */}
-                            <button
-                                type="button"
-                                onClick={() => navigate('/strab')}
-                                title="STRAB strategy hub — create new strategies and AI-generated canvases"
-                                className="flex items-center justify-center md:gap-2.5 px-4 py-2.5 md:px-6 md:py-3 bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 rounded-xl active:scale-[0.98] transition-all shrink-0"
-                            >
-                                <Bot size={18} className="md:w-5 md:h-5 shrink-0" />
-                                <span className="hidden md:flex flex-col items-start leading-tight text-left">
-                                    <span className="font-black text-sm tracking-tight">STRAB</span>
-                                    <span className="text-[9px] font-bold text-primary/80 uppercase tracking-wider">New strategy</span>
-                                </span>
-                            </button>
-                            <button
-                                onClick={() => navigate('/reports')}
-                                className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)] transition-all shrink-0"
-                            >
-                                <BarChart2 size={16} className="md:w-4 md:h-4" />
-                                <span className="hidden md:inline font-bold text-sm">Reports</span>
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('monitor')}
-                                className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)] transition-all shrink-0"
-                            >
-                                <Activity size={16} className="md:w-4 md:h-4" />
-                                <span className="hidden md:inline font-bold text-sm">Monitor</span>
-                            </button>
-                            <button
-                                onClick={() => navigate(`/folder-workflow/${activeFolderId || 'general'}`)}
-                                className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)] transition-all shrink-0"
-                            >
-                                <Network size={16} className="md:w-4 md:h-4" />
-                                <span className="hidden md:inline font-bold text-sm">Map</span>
-                            </button>
-                            <button
-                                onClick={() => navigate('/calendar')}
-                                className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)] transition-all shrink-0"
-                            >
-                                <Calendar size={16} className="md:w-4 md:h-4" />
-                                <span className="hidden md:inline font-bold text-sm">Calendar</span>
-                            </button>
-                            {activeTab === 'strategy' && (
-                                <button
-                                    onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); }}
-                                    className={`flex items-center justify-center gap-2 px-4 py-2.5 md:px-5 md:py-3 rounded-xl font-bold text-sm border shrink-0 transition-all ${selectionMode ? 'bg-primary/15 text-primary border-primary/40' : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border)] hover:text-[var(--text)] hover:border-[var(--border-strong)]'}`}
-                                >
-                                    <GitMerge size={16} className="md:w-4 md:h-4" />
-                                    <span className="hidden md:inline">{selectionMode ? 'Cancel' : 'Merge'}</span>
-                                </button>
-                            )}
-
-                            <div className="hidden md:flex items-center gap-3 ml-auto">
-                                <button
-                                    onClick={handleCreate}
-                                    className="flex items-center justify-center gap-2.5 px-8 py-3.5 bg-white text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white/95 transition-all border border-white/10 shadow-lg"
-                                >
-                                    <Plus size={18} strokeWidth={3} />
-                                    New Project
-                                </button>
-                            </div>
                         </div>
                     </header>
 
@@ -958,7 +966,7 @@ export default function Dashboard() {
                                 <tab.icon size={16} className="shrink-0 md:w-[14px] md:h-[14px]" />
                                 <span className="text-[9px] md:text-xs font-black uppercase tracking-wider hidden sm:inline truncate">{tab.label}</span>
                                 {activeTab === tab.id && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--text)] rounded-full opacity-90" />
                                 )}
                             </button>
                         ))}
@@ -999,16 +1007,16 @@ export default function Dashboard() {
                                 {/* General Weekly Planner Option */}
                                 <div
                                     onClick={() => navigate('/calendar?mode=week')}
-                                    className="dashboard-option-card group relative overflow-hidden rounded-3xl p-8 border border-orange-500/10 transition-all duration-300 cursor-pointer
-                                        bg-gradient-to-br from-orange-500/5 via-[#0f0f0f] to-[#0a0a0a]
-                                        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]
-                                        hover:shadow-[0_8px_40px_rgba(249,115,22,0.15),0_0_0_1px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.04)]
-                                        hover:border-orange-500/30 hover:scale-[1.01] active:scale-[0.99]"
+                                    className="dashboard-option-card group relative overflow-hidden rounded-3xl p-8 border border-white/[0.08] transition-all duration-300 cursor-pointer
+                                        bg-gradient-to-br from-[#141414] via-[#0f0f0f] to-[#0a0a0a]
+                                        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]
+                                        hover:shadow-[0_8px_40px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]
+                                        hover:border-white/15 hover:scale-[1.01] active:scale-[0.99]"
                                 >
-                                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="relative">
-                                        <div className="w-14 h-14 rounded-2xl bg-orange-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-orange-500/20 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                                            <CheckCircle2 size={26} className="text-orange-400 group-hover:text-orange-300" />
+                                        <div className="w-14 h-14 rounded-2xl bg-white/[0.06] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-white/[0.08] transition-all duration-300 shadow-inner">
+                                            <CheckCircle2 size={26} className="text-white/90 group-hover:text-white" />
                                         </div>
                                         <h3 className="text-xl font-black text-white mb-2 tracking-tight">General Weekly Planner</h3>
                                         <p className="text-sm text-white/45 leading-relaxed font-medium">
@@ -1443,34 +1451,10 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`dashboard-project-card group relative rounded-2xl md:rounded-3xl border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
-                    ${isSelected ? 'border-orange-500/60 ring-2 ring-orange-500/25' : 'border-white/[0.12] md:border-white/[0.08] md:hover:border-white/[0.18]'}
+                className={`dashboard-project-card group relative rounded-2xl md:rounded-[1.25rem] border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
+                    ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20 shadow-[0_8px_40px_rgba(218,119,86,0.14)]' : 'border-[var(--border)]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
-                style={{
-                    background: theme === 'light'
-                        ? 'linear-gradient(180deg, #3d3d3d 0%, #2d2d2d 100%)'
-                        : 'linear-gradient(180deg, #141414 0%, #0d0d0d 50%, #0a0a0a 100%)',
-                    boxShadow: isSelected
-                        ? '0 0 0 1px rgba(218,119,86,0.4), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)'
-                        : theme === 'light'
-                            ? '0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-                            : '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)',
-                }}
-                onMouseEnter={e => {
-                    const el = e.currentTarget as HTMLDivElement;
-                    if (!isSelected) el.style.boxShadow = theme === 'light'
-                        ? '0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.12)'
-                        : '0 8px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06)';
-                }}
-                onMouseLeave={e => {
-                    const el = e.currentTarget as HTMLDivElement;
-                    el.style.boxShadow = isSelected
-                        ? '0 0 0 1px rgba(218,119,86,0.4), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)'
-                        : theme === 'light'
-                            ? '0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-                            : '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)';
-                }}
             >
                 {/* Accent bar + progress */}
                 <div className="shrink-0 rounded-t-2xl md:rounded-t-3xl overflow-hidden">
@@ -1735,17 +1719,10 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => (selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id)))}
-                className={`group relative rounded-3xl border transition-all duration-300 cursor-pointer overflow-visible flex flex-col md:flex-row md:items-stretch gap-5 md:gap-0 md:min-h-[168px]
-                    ${isSelected ? 'border-orange-500/60 ring-2 ring-orange-500/25' : 'border-white/[0.1] hover:border-teal-500/25'}
+                className={`dashboard-hero-card group relative rounded-2xl md:rounded-3xl border transition-all duration-300 cursor-pointer overflow-visible flex flex-col md:flex-row md:items-stretch gap-5 md:gap-0 md:min-h-[168px]
+                    ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20' : 'border-[var(--border)]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
-                style={{
-                    background:
-                        theme === 'light'
-                            ? 'linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%)'
-                            : 'linear-gradient(135deg, #161616 0%, #0c0c0c 55%, #0a0a0f 100%)',
-                    boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)',
-                }}
             >
                 <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-3xl bg-[var(--border)]" />
 
@@ -2020,7 +1997,7 @@ export default function Dashboard() {
             return (
                 <div
                     key="__create_proj__"
-                    className="rounded-3xl border-2 border-dashed border-teal-500/25 bg-teal-500/[0.04] p-5 flex flex-col items-center text-center gap-3 min-h-[220px]"
+                    className="rounded-2xl md:rounded-3xl border-2 border-dashed border-[color-mix(in_srgb,var(--primary)_35%,var(--border))] bg-[var(--accent-soft)] p-5 flex flex-col items-center text-center gap-3 min-h-[220px] transition-colors hover:border-[color-mix(in_srgb,var(--primary)_55%,var(--border))]"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex flex-col items-center gap-3 flex-1">{top}</div>
@@ -2032,7 +2009,7 @@ export default function Dashboard() {
         return (
             <div
                 key="__create_proj__"
-                className="rounded-3xl border-2 border-dashed border-violet-400/30 bg-gradient-to-br from-violet-500/[0.08] via-transparent to-teal-500/[0.05] p-6 flex flex-col items-center text-center gap-3 min-h-[300px]"
+                className="rounded-2xl md:rounded-3xl border-2 border-dashed border-[color-mix(in_srgb,var(--primary)_40%,var(--border))] bg-[color-mix(in_srgb,var(--accent-soft)_80%,transparent)] p-6 flex flex-col items-center text-center gap-3 min-h-[300px] transition-colors hover:border-[color-mix(in_srgb,var(--primary)_60%,var(--border))] hover:bg-[var(--accent-soft)]"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex flex-col items-center gap-3 flex-1 w-full">{top}</div>

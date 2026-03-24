@@ -459,7 +459,7 @@ export default function CommunityPage() {
     <div className="min-h-screen bg-[var(--bg-page)] flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-[var(--bg-page)]/95 backdrop-blur-xl border-b border-[var(--border)]">
-        <div className="max-w-5xl mx-auto px-3 py-2 md:px-4 md:py-4">
+        <div className="max-w-5xl mx-auto px-3 py-2 md:px-4 md:py-3">
           <div className="flex items-center justify-between gap-2 md:gap-4">
             <div className="flex items-center gap-2 md:gap-3 min-w-0">
               <button
@@ -470,8 +470,8 @@ export default function CommunityPage() {
                 <ArrowLeft size={18} className="md:w-5 md:h-5" />
               </button>
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
-                  <Network size={18} className="text-primary md:w-[22px] md:h-[22px]" />
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl note-box flex items-center justify-center shrink-0">
+                  <Network size={18} className="text-[var(--text-muted)] md:w-[22px] md:h-[22px]" />
                 </div>
                 <div className="min-w-0">
                   <h1 className="font-black text-sm md:text-base text-[var(--text)] truncate">Community</h1>
@@ -481,12 +481,11 @@ export default function CommunityPage() {
             </div>
           </div>
 
-          {/* Tabs — compact on mobile */}
-          <div className="flex gap-1 mt-2 md:mt-4 p-1 rounded-lg md:rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)]">
+          <div className="flex gap-1 mt-2 md:mt-3 p-1 rounded-lg md:rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)]">
             <button
               onClick={() => setTab('feed')}
-              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all ${
-                tab === 'feed' ? 'bg-primary text-black shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
+              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all border border-transparent ${
+                tab === 'feed' ? 'note-box text-[var(--text)] border-[var(--border)] shadow-none' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
               }`}
             >
               <Sparkles size={16} className="md:w-[18px] md:h-[18px]" />
@@ -494,8 +493,8 @@ export default function CommunityPage() {
             </button>
             <button
               onClick={() => setTab('people')}
-              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all ${
-                tab === 'people' ? 'bg-primary text-black shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
+              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all border border-transparent ${
+                tab === 'people' ? 'note-box text-[var(--text)] border-[var(--border)] shadow-none' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
               }`}
             >
               <Users size={16} className="md:w-[18px] md:h-[18px]" />
@@ -503,8 +502,8 @@ export default function CommunityPage() {
             </button>
             <button
               onClick={() => setTab('chat')}
-              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all ${
-                tab === 'chat' ? 'bg-primary text-black shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
+              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all border border-transparent ${
+                tab === 'chat' ? 'note-box text-[var(--text)] border-[var(--border)] shadow-none' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
               }`}
             >
               <MessageCircle size={16} className="md:w-[18px] md:h-[18px]" />
@@ -533,13 +532,13 @@ export default function CommunityPage() {
                     onChange={(e) => setPeopleQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearchPeople()}
                     placeholder="Search..."
-                    className="w-full pl-8 md:pl-10 pr-3 md:pr-4 py-2.5 md:py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg md:rounded-xl text-sm md:text-base text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-primary/50"
+                    className="w-full pl-8 md:pl-10 pr-3 md:pr-4 py-2.5 md:py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg md:rounded-xl text-sm md:text-base text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-[var(--border-strong)]"
                   />
                 </div>
                 <button
                   onClick={handleSearchPeople}
                   disabled={searchingPeople || peopleQuery.trim().length < 2}
-                  className="px-3 md:px-5 py-2.5 md:py-3 bg-primary text-black font-bold rounded-lg md:rounded-xl text-sm hover:bg-primary/90 transition-all disabled:opacity-50 shrink-0"
+                  className="px-3 md:px-5 py-2.5 md:py-3 bg-[var(--text)] text-[var(--bg-page)] font-bold rounded-lg md:rounded-xl text-sm hover:opacity-90 transition-all disabled:opacity-50 shrink-0"
                 >
                   {searchingPeople ? <Loader2 size={20} className="animate-spin" /> : 'Search'}
                 </button>
@@ -556,14 +555,14 @@ export default function CommunityPage() {
                     {feedPeople.slice(0, 12).map((p) => (
                       <div
                         key={p.id}
-                        className="flex items-center justify-between gap-2 md:gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-primary/30 transition-all"
+                        className="flex items-center justify-between gap-2 md:gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl note-box border border-[var(--border)] hover:border-[var(--border-strong)] transition-all"
                       >
                         <button
                           onClick={() => p.username && navigate(`/profile/${p.username}`)}
                           className="flex-1 flex items-center gap-2 md:gap-3 text-left min-w-0"
                         >
-                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 border border-primary/10">
-                            <User size={20} className="text-primary md:w-6 md:h-6" />
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl note-box flex items-center justify-center shrink-0">
+                            <User size={20} className="text-[var(--text-muted)] md:w-6 md:h-6" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-[var(--text)] truncate">{p.username || 'Anonymous'}</p>
@@ -575,7 +574,7 @@ export default function CommunityPage() {
                           {chatableIds.has(p.id) ? (
                             <button
                               onClick={() => handleStartChat({ id: p.id, username: p.username, email: null })}
-                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
                             >
                               <MessageCircle size={14} />
                               Message
@@ -583,7 +582,7 @@ export default function CommunityPage() {
                           ) : (
                             <button
                               onClick={() => openInviteModal({ id: p.id, username: p.username, email: null })}
-                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
                             >
                               <UserPlus size={14} />
                               Connect
@@ -604,11 +603,11 @@ export default function CommunityPage() {
                     {peopleResults.map((u) => (
                       <div
                         key={u.id}
-                        className="flex items-center justify-between gap-2 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl bg-[var(--bg-card)] border border-[var(--border)]"
+                        className="flex items-center justify-between gap-2 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl note-box border border-[var(--border)]"
                       >
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                            <User size={24} className="text-primary" />
+                          <div className="w-12 h-12 rounded-xl note-box flex items-center justify-center shrink-0">
+                            <User size={24} className="text-[var(--text-muted)]" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-[var(--text)] truncate">{u.username || u.email || 'User'}</p>
@@ -626,7 +625,7 @@ export default function CommunityPage() {
                           {chatableIds.has(u.id) ? (
                             <button
                               onClick={() => handleStartChat(u)}
-                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
                             >
                               <MessageCircle size={14} />
                               Message
@@ -634,7 +633,7 @@ export default function CommunityPage() {
                           ) : (
                             <button
                               onClick={() => openInviteModal(u)}
-                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
                             >
                               <UserPlus size={14} />
                               Connect
@@ -662,21 +661,21 @@ export default function CommunityPage() {
                     {chatableUsers.slice(0, 15).map((u) => (
                       <div
                         key={u.id}
-                        className="flex items-center justify-between gap-2 md:gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-primary/30 transition-all"
+                        className="flex items-center justify-between gap-2 md:gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl note-box border border-[var(--border)] hover:border-[var(--border-strong)] transition-all"
                       >
                         <button
                           onClick={() => (u.username || u.email) && navigate(`/profile/${u.username || u.email}`)}
                           className="flex-1 flex items-center gap-3 text-left min-w-0"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                            <User size={20} className="text-primary" />
+                          <div className="w-10 h-10 rounded-xl note-box flex items-center justify-center shrink-0">
+                            <User size={20} className="text-[var(--text-muted)]" />
                           </div>
                           <p className="font-bold text-[var(--text)] truncate">{u.username || u.email || 'User'}</p>
                           <ExternalLink size={14} className="text-[var(--text-dim)] shrink-0" />
                         </button>
                         <button
                           onClick={() => handleStartChat(u)}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
                         >
                           <MessageCircle size={14} />
                           Message
@@ -700,7 +699,7 @@ export default function CommunityPage() {
               </div>
 
               {feedTimeline.length === 0 ? (
-                <div className="py-16 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] text-center">
+                <div className="py-16 rounded-2xl note-box border border-[var(--border)] text-center">
                   <FolderOpen size={48} className="mx-auto text-[var(--text-dim)] mb-4" />
                   <p className="text-[var(--text-muted)] font-medium">No activity yet</p>
                   <p className="text-sm text-[var(--text-dim)] mt-1">Create a public workspace and share projects to see them here.</p>
@@ -710,12 +709,12 @@ export default function CommunityPage() {
                   {feedTimeline.map((post) => (
                     <article
                       key={post.id}
-                      className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] overflow-hidden hover:border-primary/20 transition-all"
+                      className="rounded-2xl note-box border border-[var(--border)] overflow-hidden hover:border-[var(--border-strong)] transition-all"
                     >
                       <div className="p-4">
                         <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 border border-primary/10">
-                            <User size={24} className="text-primary" />
+                          <div className="w-12 h-12 rounded-xl note-box flex items-center justify-center shrink-0">
+                            <User size={24} className="text-[var(--text-muted)]" />
                           </div>
                           <div className="flex-1 min-w-0">
                             {post.type === 'activity' && (
@@ -738,12 +737,12 @@ export default function CommunityPage() {
                                   onClick={() => post.workspace_id && navigate(`/workspace/${post.workspace_id}`)}
                                   className="text-left w-full"
                                 >
-                                  <p className="font-bold text-[var(--text)] hover:text-primary transition-colors">{post.title}</p>
+                                  <p className="font-bold text-[var(--text)] hover:opacity-90 transition-opacity">{post.title}</p>
                                   <p className="text-sm text-[var(--text-muted)] mt-0.5">
                                     {post.workspace_name} • by {post.owner_username || 'Anonymous'}
                                   </p>
                                   {post.assigned_to_username && (
-                                    <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-lg bg-primary/20 text-primary font-bold">
+                                    <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text-muted)] font-bold">
                                       Lead: {post.assigned_to_username}
                                     </span>
                                   )}
@@ -754,7 +753,7 @@ export default function CommunityPage() {
                                     {chatableIds.has(post.owner_id) ? (
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleStartChat({ id: post.owner_id!, username: post.owner_username || null, email: null }); setTab('chat'); }}
-                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
                                       >
                                         <MessageCircle size={14} />
                                         Message
@@ -762,7 +761,7 @@ export default function CommunityPage() {
                                     ) : (
                                       <button
                                         onClick={(e) => { e.stopPropagation(); openInviteModal({ id: post.owner_id!, username: post.owner_username || null, email: null }); }}
-                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
                                       >
                                         <UserPlus size={14} />
                                         Connect
@@ -786,8 +785,8 @@ export default function CommunityPage() {
                                   className="text-left w-full"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <Globe size={16} className="text-primary" />
-                                    <p className="font-bold text-[var(--text)] hover:text-primary transition-colors">{post.title}</p>
+                                    <Globe size={16} className="text-[var(--text-muted)]" />
+                                    <p className="font-bold text-[var(--text)] hover:opacity-90 transition-opacity">{post.title}</p>
                                   </div>
                                   <p className="text-sm text-[var(--text-muted)] mt-0.5">by {post.owner_username || 'Anonymous'}</p>
                                   <p className="text-xs text-[var(--text-dim)] mt-2">{formatRelativeTime(post.created_at)}</p>
@@ -797,7 +796,7 @@ export default function CommunityPage() {
                                     {chatableIds.has(post.owner_id) ? (
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleStartChat({ id: post.owner_id!, username: post.owner_username || null, email: null }); setTab('chat'); }}
-                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
                                       >
                                         <MessageCircle size={14} />
                                         Message
@@ -805,7 +804,7 @@ export default function CommunityPage() {
                                     ) : (
                                       <button
                                         onClick={(e) => { e.stopPropagation(); openInviteModal({ id: post.owner_id!, username: post.owner_username || null, email: null }); }}
-                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 font-bold text-xs"
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] hover:bg-[var(--bg-muted)] font-bold text-xs"
                                       >
                                         <UserPlus size={14} />
                                         Connect
@@ -834,10 +833,10 @@ export default function CommunityPage() {
         ) : (
           <>
             {/* Chat list */}
-            <div className={`w-full md:w-80 border-r border-[var(--border)] flex flex-col ${activeChat ? 'hidden md:flex' : ''}`}>
+            <div className={`w-full md:w-80 md:shrink-0 border-r border-[var(--border)] bg-[var(--bg-panel)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : ''}`}>
               {loadingChats && loadingChatable ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <Loader2 size={24} className="animate-spin text-primary" />
+                  <Loader2 size={24} className="animate-spin text-[var(--text-muted)]" />
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto">
@@ -849,7 +848,7 @@ export default function CommunityPage() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search conversations..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-primary/50 text-sm"
+                        className="w-full pl-10 pr-4 py-2.5 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-[var(--border-strong)] text-sm"
                       />
                     </div>
                   </div>
@@ -864,8 +863,8 @@ export default function CommunityPage() {
                             activeChat?.id === c.id ? 'bg-[var(--input-bg)]' : ''
                           }`}
                         >
-                          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                            <User size={24} className="text-primary" />
+                          <div className="w-12 h-12 rounded-xl note-box flex items-center justify-center shrink-0">
+                            <User size={24} className="text-[var(--text-muted)]" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-[var(--text)] truncate">{chatName(c)}</p>
@@ -874,7 +873,7 @@ export default function CommunityPage() {
                           <div className="shrink-0 text-right">
                             <p className="text-[10px] text-[var(--text-dim)]">{c.last_message_at ? formatTime(c.last_message_at) : ''}</p>
                             {c.unread && c.unread > 0 && (
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-black text-[10px] font-bold mt-1">
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--text)] text-[var(--bg-page)] text-[10px] font-bold mt-1">
                                 {c.unread}
                               </span>
                             )}
@@ -886,7 +885,7 @@ export default function CommunityPage() {
                   <div className="py-2">
                     <p className="px-4 py-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Start a conversation</p>
                     {loadingChatable ? (
-                      <div className="p-4 flex justify-center"><Loader2 size={20} className="animate-spin text-primary" /></div>
+                      <div className="p-4 flex justify-center"><Loader2 size={20} className="animate-spin text-[var(--text-muted)]" /></div>
                     ) : filteredChatable.length === 0 ? (
                       <div className="p-6 text-center">
                         <p className="text-sm text-[var(--text-muted)]">
@@ -900,14 +899,14 @@ export default function CommunityPage() {
                           onClick={() => handleStartChat(u)}
                           className="w-full flex items-center gap-3 p-4 hover:bg-[var(--input-bg)] transition-all text-left"
                         >
-                          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                            <User size={24} className="text-primary" />
+                          <div className="w-12 h-12 rounded-xl note-box flex items-center justify-center shrink-0">
+                            <User size={24} className="text-[var(--text-muted)]" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-[var(--text)] truncate">{u.username || u.email || 'User'}</p>
                             {u.email && u.username && <p className="text-xs text-[var(--text-muted)] truncate">{u.email}</p>}
                           </div>
-                          <MessageCircle size={18} className="text-primary/60 shrink-0" />
+                          <MessageCircle size={18} className="text-[var(--text-dim)] shrink-0" />
                         </button>
                       ))
                     )}
@@ -920,15 +919,15 @@ export default function CommunityPage() {
             <div className={`flex-1 flex flex-col ${!activeChat ? 'hidden md:flex' : ''}`}>
               {activeChat ? (
                 <>
-                  <div className="flex items-center gap-3 p-4 border-b border-[var(--border)] bg-[var(--bg-card)]">
+                  <div className="flex items-center gap-3 p-4 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
                     <button
                       onClick={() => setActiveChat(null)}
                       className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]"
                     >
                       <ChevronLeft size={20} />
                     </button>
-                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                      <User size={20} className="text-primary" />
+                    <div className="w-10 h-10 rounded-xl note-box flex items-center justify-center">
+                      <User size={20} className="text-[var(--text-muted)]" />
                     </div>
                     <div>
                       <p className="font-bold text-[var(--text)]">{chatName(activeChat)}</p>
@@ -938,7 +937,7 @@ export default function CommunityPage() {
 
                   <div className="flex-1 overflow-y-auto p-4 space-y-3">
                     {loadingMessages ? (
-                      <div className="flex justify-center py-8"><Loader2 size={24} className="animate-spin text-primary" /></div>
+                      <div className="flex justify-center py-8"><Loader2 size={24} className="animate-spin text-[var(--text-muted)]" /></div>
                     ) : (
                       uniqueMessages.map((m) => {
                         const isMe = m.sender_id === currentUserId;
@@ -953,7 +952,7 @@ export default function CommunityPage() {
                         const fileUrl = isFile && m.content ? `${API_BASE_URL}${m.content.startsWith('/') ? '' : '/'}${m.content}` : null;
                         return (
                           <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[75%] px-4 py-2 rounded-2xl ${isMe ? 'bg-primary text-black rounded-br-md' : 'bg-[var(--bg-card)] text-[var(--text)] rounded-bl-md border border-[var(--border)]'}`}>
+                            <div className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 rounded-2xl shadow-sm ${isMe ? 'note-box text-[var(--text)] rounded-br-md border-[var(--border-strong)]' : 'note-box text-[var(--text)] rounded-bl-md border-[var(--border)]'}`}>
                               {(hasCanvas || hasHighlight || hasProject) && (
                                 <div className="flex flex-wrap gap-1.5 mb-2">
                                   {(hasCanvas || hasShareId) && (
@@ -1008,9 +1007,9 @@ export default function CommunityPage() {
 
                   <form onSubmit={handleSend} className="border-t border-[var(--border)]">
                     {showAttach && (
-                      <div className="p-3 bg-[var(--bg-card)] border-b border-[var(--border)] flex flex-col gap-2">
+                      <div className="p-3 note-box border-b border-[var(--border)] flex flex-col gap-2">
                         <div className="flex items-center gap-2">
-                          <Link2 size={16} className="text-primary shrink-0" />
+                          <Link2 size={16} className="text-[var(--text-muted)] shrink-0" />
                           <input
                             type="text"
                             value={attachCanvas}
@@ -1020,7 +1019,7 @@ export default function CommunityPage() {
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <Highlighter size={16} className="text-primary shrink-0" />
+                          <Highlighter size={16} className="text-[var(--text-muted)] shrink-0" />
                           <input
                             type="text"
                             value={attachHighlight}
@@ -1031,7 +1030,7 @@ export default function CommunityPage() {
                         </div>
                         {allShareable.length > 0 && (
                           <div ref={projectDropdownRef} className="relative">
-                            <FolderOpen size={16} className="text-primary shrink-0 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <FolderOpen size={16} className="text-[var(--text-muted)] shrink-0 absolute left-3 top-1/2 -translate-y-1/2" />
                             <button
                               type="button"
                               onClick={() => setProjectDropdownOpen((o) => !o)}
@@ -1049,7 +1048,7 @@ export default function CommunityPage() {
                                   <>
                                     <div className="px-3 py-1.5 text-[10px] font-semibold uppercase text-[var(--text-dim)]">My canvases</div>
                                     {storeCanvases.map((p) => (
-                                      <button key={p.id} type="button" onClick={() => { setAttachProject(p); setProjectDropdownOpen(false); }} className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--input-bg)] ${attachProject?.id === p.id && attachProject?.isCanvas ? 'text-primary' : 'text-[var(--text)]'}`}>
+                                      <button key={p.id} type="button" onClick={() => { setAttachProject(p); setProjectDropdownOpen(false); }} className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--input-bg)] ${attachProject?.id === p.id && attachProject?.isCanvas ? 'font-bold text-[var(--text)]' : 'text-[var(--text)]'}`}>
                                         {p.title}
                                       </button>
                                     ))}
@@ -1059,7 +1058,7 @@ export default function CommunityPage() {
                                   <>
                                     <div className="px-3 py-1.5 text-[10px] font-semibold uppercase text-[var(--text-dim)]">Workspace projects</div>
                                     {myProjects.map((p) => (
-                                      <button key={p.id} type="button" onClick={() => { setAttachProject(p); setProjectDropdownOpen(false); }} className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--input-bg)] ${attachProject?.id === p.id && !attachProject?.isCanvas ? 'text-primary' : 'text-[var(--text)]'}`}>
+                                      <button key={p.id} type="button" onClick={() => { setAttachProject(p); setProjectDropdownOpen(false); }} className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--input-bg)] ${attachProject?.id === p.id && !attachProject?.isCanvas ? 'font-bold text-[var(--text)]' : 'text-[var(--text)]'}`}>
                                         {p.title} {p.workspace_name ? `(${p.workspace_name})` : ''}
                                       </button>
                                     ))}
@@ -1074,7 +1073,7 @@ export default function CommunityPage() {
                     <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, true); e.target.value = ''; }} />
                     <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ''; }} />
                     <div className="p-4 flex gap-2">
-                      <button type="button" onClick={() => setShowAttach((v) => !v)} className={`p-3 rounded-xl transition-all ${showAttach ? 'bg-primary/20 text-primary' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]'}`}>
+                      <button type="button" onClick={() => setShowAttach((v) => !v)} className={`p-3 rounded-xl transition-all border border-transparent ${showAttach ? 'note-box border-[var(--border)] text-[var(--text)]' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]'}`}>
                         <Link2 size={20} />
                       </button>
                       <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading} className="p-3 rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] disabled:opacity-50">
@@ -1094,10 +1093,10 @@ export default function CommunityPage() {
                           }
                         }}
                         placeholder="Type a message..."
-                        className="flex-1 px-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-primary/50"
+                        className="flex-1 px-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-[var(--border-strong)]"
                         onFocus={() => activeChat && socketRef.current?.emit('chat:typing', { chatId: activeChat.id })}
                       />
-                      <button type="submit" disabled={sending || uploading || (!messageInput.trim() && !attachProject)} className="p-3 bg-primary text-black rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50">
+                      <button type="submit" disabled={sending || uploading || (!messageInput.trim() && !attachProject)} className="p-3 bg-[var(--text)] text-[var(--bg-page)] rounded-xl hover:opacity-90 transition-all disabled:opacity-50">
                         {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                       </button>
                     </div>
@@ -1132,7 +1131,7 @@ export default function CommunityPage() {
               {workspaces.length === 0 ? (
                 <div className="py-4">
                   <p className="text-[var(--text-muted)] text-sm mb-4">Create a team workspace from the Dashboard first.</p>
-                  <button onClick={() => { setInviteUser(null); navigate('/dashboard'); }} className="w-full px-4 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all">
+                  <button onClick={() => { setInviteUser(null); navigate('/dashboard'); }} className="w-full px-4 py-3 bg-[var(--text)] text-[var(--bg-page)] font-bold rounded-xl hover:opacity-90 transition-all">
                     Go to Dashboard
                   </button>
                 </div>
@@ -1142,10 +1141,10 @@ export default function CommunityPage() {
                     key={w.id}
                     onClick={() => handleSendInvite(w.id)}
                     disabled={invitingWs !== null}
-                    className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border)] hover:border-primary/30 text-left disabled:opacity-50"
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left disabled:opacity-50"
                   >
                     <span className="font-bold text-[var(--text)]">{w.name}</span>
-                    {invitingWs === w.id ? <Loader2 size={18} className="animate-spin text-primary" /> : <UserPlus size={18} className="text-primary" />}
+                    {invitingWs === w.id ? <Loader2 size={18} className="animate-spin text-[var(--text-muted)]" /> : <UserPlus size={18} className="text-[var(--text-muted)]" />}
                   </button>
                 ))
               )}

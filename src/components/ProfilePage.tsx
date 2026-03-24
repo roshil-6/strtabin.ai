@@ -76,7 +76,7 @@ const STATUS_COLORS: Record<string, string> = {
   idea: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   planning: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   executing: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  completed: 'bg-primary/20 text-primary border-primary/30',
+  completed: 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border)]',
 };
 
 export default function ProfilePage() {
@@ -219,15 +219,15 @@ export default function ProfilePage() {
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <Loader2 size={32} className="animate-spin text-primary" />
+            <Loader2 size={32} className="animate-spin text-[var(--text-muted)]" />
           </div>
         ) : error ? (
           <p className="text-red-400 py-8">{error}</p>
         ) : data ? (
           <>
             {/* Cover / Banner — LinkedIn-style, compact on mobile */}
-            <div className="rounded-xl md:rounded-2xl overflow-hidden mb-4 md:mb-6 border border-[var(--border)]">
-              <div className="h-24 sm:h-40 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent" />
+            <div className="rounded-xl md:rounded-2xl overflow-hidden mb-4 md:mb-6 border border-[var(--border)] note-box">
+              <div className="h-24 sm:h-40 bg-gradient-to-br from-[var(--bg-muted)] via-[var(--input-bg)] to-[var(--bg-page)]" />
               <div className="relative px-4 sm:px-8 pb-4 sm:pb-6 -mt-12 sm:-mt-20">
                 <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 sm:gap-4">
                   <div className="shrink-0 relative">
@@ -238,8 +238,8 @@ export default function ProfilePage() {
                         className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl sm:rounded-2xl object-cover border-2 sm:border-4 border-[var(--bg-page)] shadow-xl"
                       />
                     ) : (
-                      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center border-2 sm:border-4 border-[var(--bg-page)] shadow-xl">
-                        <span className="text-xl sm:text-3xl font-black text-primary">
+                      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl sm:rounded-2xl note-box flex items-center justify-center border-2 sm:border-4 border-[var(--bg-page)] shadow-xl">
+                        <span className="text-xl sm:text-3xl font-black text-[var(--text-muted)]">
                           {getInitials(data.user.username, data.user.email)}
                         </span>
                       </div>
@@ -262,14 +262,14 @@ export default function ProfilePage() {
             </div>
 
             {/* Bio section */}
-            <div className="rounded-xl md:rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] p-4 md:p-6 mb-4 md:mb-6">
+            <div className="rounded-xl md:rounded-2xl note-box border border-[var(--border)] p-4 md:p-6 mb-4 md:mb-6">
               {editingBio ? (
                 <div>
                   <textarea
                     value={bioDraft}
                     onChange={(e) => setBioDraft(e.target.value)}
                     placeholder="Share your professional focus, interests, or what you're working on..."
-                    className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-primary/50 resize-none"
+                    className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none focus:border-[var(--border-strong)] resize-none"
                     rows={3}
                     autoFocus
                   />
@@ -277,7 +277,7 @@ export default function ProfilePage() {
                     <button
                       onClick={handleSaveBio}
                       disabled={saving}
-                      className="px-4 py-2 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50"
+                      className="px-4 py-2 bg-[var(--text)] text-[var(--bg-page)] font-bold rounded-xl hover:opacity-90 disabled:opacity-50"
                     >
                       {saving ? <Loader2 size={18} className="animate-spin" /> : 'Save'}
                     </button>
@@ -296,7 +296,7 @@ export default function ProfilePage() {
                     {isOwnProfile && (
                       <button
                         onClick={() => setEditingBio(true)}
-                        className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 font-bold"
+                        className="flex items-center gap-2 text-xs text-[var(--text-muted)] hover:text-[var(--text)] font-bold"
                       >
                         <Pencil size={12} />
                         Edit
@@ -314,27 +314,27 @@ export default function ProfilePage() {
 
             {/* Stats — compact row */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-6">
-              <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-2 md:gap-3">
-                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                  <Target size={18} className="text-primary md:w-5 md:h-5" />
+              <div className="p-3 md:p-4 rounded-lg md:rounded-xl note-box border border-[var(--border)] flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-[var(--input-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                  <Target size={18} className="text-[var(--text-muted)] md:w-5 md:h-5" />
                 </div>
                 <div className="min-w-0">
                   <p className="font-black text-[var(--text)] text-base md:text-lg">{data.progress.total}</p>
                   <p className="text-[9px] md:text-[10px] text-[var(--text-muted)] uppercase tracking-wider hidden md:block">Progress</p>
                 </div>
               </div>
-              <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-2 md:gap-3">
-                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-                  <FolderOpen size={18} className="text-emerald-400 md:w-5 md:h-5" />
+              <div className="p-3 md:p-4 rounded-lg md:rounded-xl note-box border border-[var(--border)] flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-[var(--input-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                  <FolderOpen size={18} className="text-emerald-500/80 md:w-5 md:h-5" />
                 </div>
                 <div>
                   <p className="font-black text-[var(--text)] text-lg">{data.projects.length}</p>
                   <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Projects</p>
                 </div>
               </div>
-              <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-2 md:gap-3">
-                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                  <CheckCircle2 size={18} className="text-primary md:w-5 md:h-5" />
+              <div className="p-3 md:p-4 rounded-lg md:rounded-xl note-box border border-[var(--border)] flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-[var(--input-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                  <CheckCircle2 size={18} className="text-[var(--text-muted)] md:w-5 md:h-5" />
                 </div>
                 <div className="min-w-0">
                   <p className="font-black text-[var(--text)] text-base md:text-lg">{completedCount}</p>
@@ -367,7 +367,7 @@ export default function ProfilePage() {
                   {data.canChat ? (
                     <button
                       onClick={handleMessage}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all text-sm"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-[var(--text)] text-[var(--bg-page)] font-bold rounded-xl hover:opacity-90 transition-all text-sm"
                     >
                       <MessageCircle size={18} />
                       Message
@@ -375,7 +375,7 @@ export default function ProfilePage() {
                   ) : (
                     <button
                       onClick={openInviteModal}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all text-sm"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-[var(--text)] text-[var(--bg-page)] font-bold rounded-xl hover:opacity-90 transition-all text-sm"
                     >
                       <UserPlus size={18} />
                       Connect
@@ -403,7 +403,7 @@ export default function ProfilePage() {
               </div>
               <div className="space-y-3">
                 {data.projects.length === 0 ? (
-                  <div className="py-12 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] text-center">
+                  <div className="py-12 rounded-2xl note-box border border-[var(--border)] text-center">
                     <FolderOpen size={40} className="mx-auto text-[var(--text-dim)] mb-3" />
                     <p className="text-[var(--text-muted)] font-medium">No public projects yet</p>
                     <p className="text-sm text-[var(--text-dim)] mt-1">Create projects in a workspace to showcase your work.</p>
@@ -413,17 +413,17 @@ export default function ProfilePage() {
                     <button
                       key={p.id}
                       onClick={() => (p as { workspace_id?: number }).workspace_id && navigate(`/workspace/${(p as { workspace_id?: number }).workspace_id}`)}
-                      className="w-full p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-primary/30 hover:bg-[var(--bg-elevated)] transition-all text-left group"
+                      className="w-full p-5 rounded-2xl note-box border border-[var(--border)] hover:border-[var(--border-strong)] transition-all text-left group"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-[var(--text)] group-hover:text-primary transition-colors truncate">{p.title}</p>
+                          <p className="font-bold text-[var(--text)] group-hover:opacity-90 transition-opacity truncate">{p.title}</p>
                           <p className="text-sm text-[var(--text-muted)] mt-0.5 truncate">{p.workspace_name}</p>
                           <span className={`inline-block mt-2 text-[10px] px-2.5 py-1 rounded-lg font-bold capitalize border ${STATUS_COLORS[p.status] || 'bg-[var(--input-bg)] text-[var(--text-muted)] border-[var(--border)]'}`}>
                             {p.status}
                           </span>
                         </div>
-                        <ExternalLink size={18} className="text-[var(--text-dim)] group-hover:text-primary shrink-0 mt-1" />
+                        <ExternalLink size={18} className="text-[var(--text-dim)] group-hover:text-[var(--text)] shrink-0 mt-1" />
                       </div>
                     </button>
                   ))
@@ -439,7 +439,7 @@ export default function ProfilePage() {
               </h2>
               <div className="space-y-2">
                 {data.activities.length === 0 ? (
-                  <div className="py-12 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] text-center">
+                  <div className="py-12 rounded-2xl note-box border border-[var(--border)] text-center">
                     <Activity size={40} className="mx-auto text-[var(--text-dim)] mb-3" />
                     <p className="text-[var(--text-muted)] font-medium">No recent activity</p>
                   </div>
@@ -447,9 +447,9 @@ export default function ProfilePage() {
                   data.activities.map((a, i) => {
                     const Icon = getActivityIcon(a.action);
                     return (
-                      <div key={i} className="flex gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                          <Icon size={18} className="text-primary" />
+                      <div key={i} className="flex gap-4 p-4 rounded-2xl note-box border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors">
+                        <div className="w-10 h-10 rounded-xl bg-[var(--input-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                          <Icon size={18} className="text-[var(--text-muted)]" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-[var(--text)] capitalize">{a.action.replace(/_/g, ' ')}</p>
@@ -472,7 +472,7 @@ export default function ProfilePage() {
 
       {inviteModal && data && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setInviteModal(false)}>
-          <div className="bg-[var(--bg-panel)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="note-box border border-[var(--border)] rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-[var(--text)]">Connect via workspace</h3>
               <button onClick={() => setInviteModal(false)} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]">
@@ -488,7 +488,7 @@ export default function ProfilePage() {
                   <p className="text-[var(--text-muted)] text-sm mb-4">Create a team workspace from the Dashboard first.</p>
                   <button
                     onClick={() => { setInviteModal(false); navigate('/dashboard'); }}
-                    className="w-full px-4 py-3 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-[var(--text)] text-[var(--bg-page)] font-bold rounded-xl hover:opacity-90 transition-all"
                   >
                     Go to Dashboard
                   </button>
@@ -499,10 +499,10 @@ export default function ProfilePage() {
                     key={w.id}
                     onClick={() => handleSendInvite(w.id)}
                     disabled={invitingWs !== null}
-                    className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border)] hover:border-primary/30 text-left disabled:opacity-50"
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border)] hover:border-[var(--border-strong)] text-left disabled:opacity-50"
                   >
                     <span className="font-bold text-[var(--text)]">{w.name}</span>
-                    {invitingWs === w.id ? <Loader2 size={18} className="animate-spin text-primary" /> : <UserPlus size={18} className="text-primary" />}
+                    {invitingWs === w.id ? <Loader2 size={18} className="animate-spin text-[var(--text-muted)]" /> : <UserPlus size={18} className="text-[var(--text-muted)]" />}
                   </button>
                 ))
               )}
