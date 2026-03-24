@@ -755,6 +755,13 @@ export default function Dashboard() {
                                 <span className="ml-auto text-[10px] font-bold text-white/25 uppercase tracking-wider">↗</span>
                             </a>
                         </div>
+
+                        <div className="pt-4 mt-4 border-t border-[var(--border)]">
+                            <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)] mb-3 px-3">Theme</h2>
+                            <div className="px-3 flex justify-start">
+                                <ThemeToggle compact />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -927,7 +934,6 @@ export default function Dashboard() {
                             )}
 
                             <div className="hidden md:flex items-center gap-3 ml-auto">
-                                <ThemeToggle />
                                 <button
                                     onClick={handleCreate}
                                     className="flex items-center justify-center gap-2.5 px-8 py-3.5 bg-white text-black font-black uppercase text-xs tracking-widest rounded-xl hover:bg-white/95 transition-all border border-white/10 shadow-lg"
