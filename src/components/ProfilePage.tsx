@@ -8,7 +8,6 @@ import { useAuth } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft,
-  Flame,
   Target,
   FolderOpen,
   Activity,
@@ -35,7 +34,6 @@ import { chatService } from '../services/chatService';
 type ProfileData = {
   user: { id: number; username: string | null; email: string | null; created_at?: string };
   profile: { bio: string | null; avatar_url?: string | null };
-  streak: number;
   progress: { total: number; count: number };
   activities: Array<{ action: string; workspace_name: string; project_title: string | null; created_at: string }>;
   projects: Array<{ id: number; title: string; status: string; workspace_name: string; workspace_id?: number }>;
@@ -120,7 +118,6 @@ export default function ProfilePage() {
           setData({
             user: me.user,
             profile: me.profile || { bio: null },
-            streak: me.streak ?? 0,
             progress: me.progress ?? { total: 0, count: 0 },
             activities: me.activities ?? [],
             projects: me.projects ?? [],
@@ -139,7 +136,8 @@ export default function ProfilePage() {
       workspaceService
         .getProfile(username, token)
         .then((d) => {
-          setData(d);
+          const { streak: _omit, ...profileRest } = d as ProfileData & { streak?: number };
+          setData(profileRest);
           setBioDraft(d.profile?.bio || '');
         })
         .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load profile'))
@@ -246,12 +244,6 @@ export default function ProfilePage() {
                         </span>
                       </div>
                     )}
-                    {data.streak > 0 && (
-                      <div className="absolute -bottom-2 -right-2 px-2 py-1 rounded-lg bg-orange-500/90 text-black text-xs font-bold flex items-center gap-1">
-                        <Flame size={12} />
-                        {data.streak}
-                      </div>
-                    )}
                   </div>
                   <div className="flex-1 text-center sm:text-left min-w-0">
                     <h1 className="text-lg sm:text-3xl font-black text-[var(--text)] truncate">{displayName}</h1>
@@ -321,7 +313,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Stats — compact row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-6">
               <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-2 md:gap-3">
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
                   <Target size={18} className="text-primary md:w-5 md:h-5" />
@@ -329,15 +321,6 @@ export default function ProfilePage() {
                 <div className="min-w-0">
                   <p className="font-black text-[var(--text)] text-base md:text-lg">{data.progress.total}</p>
                   <p className="text-[9px] md:text-[10px] text-[var(--text-muted)] uppercase tracking-wider hidden md:block">Progress</p>
-                </div>
-              </div>
-              <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-2 md:gap-3">
-                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
-                  <Flame size={18} className="text-orange-400 md:w-5 md:h-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-black text-[var(--text)] text-base md:text-lg">{data.streak}</p>
-                  <p className="text-[9px] md:text-[10px] text-[var(--text-muted)] uppercase tracking-wider hidden md:block">Streak</p>
                 </div>
               </div>
               <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-[var(--bg-card)] border border-[var(--border)] flex items-center gap-2 md:gap-3">

@@ -19,13 +19,12 @@ export default function Dashboard() {
     const { resolved: theme } = useTheme();
     const navigate = useNavigate();
     const {
-        canvases, projectCalendarEvents, createCanvas, deleteCanvas, togglePinCanvas, toggleStuckCanvas, toggleCurrentProject,
+        canvases, createCanvas, deleteCanvas, togglePinCanvas, toggleStuckCanvas, toggleCurrentProject,
         mergeCanvases, folders, activeFolderId, createFolder, deleteFolder,
         setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName,
         dailyExecutionLogs, setDailyExecutionLog,
     } = useStore(useShallow(state => ({
         canvases: state.canvases,
-        projectCalendarEvents: state.projectCalendarEvents,
         createCanvas: state.createCanvas,
         deleteCanvas: state.deleteCanvas,
         togglePinCanvas: state.togglePinCanvas,
@@ -71,7 +70,7 @@ export default function Dashboard() {
     const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>([]);
     const [myUsername, setMyUsername] = useState<string | null>(null);
     const [invitations, setInvitations] = useState<Array<{ id: number; workspace_id: number; workspace_name: string; inviter_username: string | null }>>([]);
-    const [workInsights, setWorkInsights] = useState<{ streak: number; progress: { total: number; count: number } } | null>(null);
+    const [workInsights, setWorkInsights] = useState<{ progress: { total: number; count: number } } | null>(null);
     const todayKey = new Date().toISOString().slice(0, 10);
     const [selectedLogDate, setSelectedLogDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
     useEffect(() => {
@@ -87,7 +86,7 @@ export default function Dashboard() {
                 workspaceService.getMe(token).then((d) => {
                     setMyUsername(d.user?.username || null);
                     setInvitations(d.invitations || []);
-                    setWorkInsights({ streak: d.streak ?? 0, progress: d.progress ?? { total: 0, count: 0 } });
+                    setWorkInsights({ progress: d.progress ?? { total: 0, count: 0 } });
                 }).catch(() => {});
             }
         });
@@ -273,21 +272,6 @@ export default function Dashboard() {
         if (!text) return 0;
         return text.trim().split(/\s+/).filter(Boolean).length;
     }
-    function computeStreak(canvasId: string): number {
-        const events = projectCalendarEvents[canvasId] || {};
-        let streak = 0;
-        const d = new Date();
-        for (let i = 0; i < 90; i++) {
-            const key = d.toISOString().slice(0, 10);
-            const dayEvents = events[key] || [];
-            const hasCompleted = dayEvents.length > 0 && dayEvents.some(e => e.completed);
-            if (hasCompleted) streak++;
-            else break;
-            d.setDate(d.getDate() - 1);
-        }
-        return streak;
-    }
-
     // Filter canvases: only show projects with content (user or STRAB created)
     // Exclude empty placeholders (no name, no nodes, no todos, no writing)
     const hasContent = (p: CanvasData) => {
@@ -870,11 +854,6 @@ export default function Dashboard() {
                         {/* Stats — more spacing, softer styling */}
                         <div className="flex items-center gap-3 md:gap-4 mb-5 md:mb-6 overflow-x-auto custom-scrollbar-hide">
                             <div className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shrink-0">
-                                <Flame size={14} className="text-orange-400 md:w-4 md:h-4" />
-                                <span className="text-sm md:text-base font-black text-[var(--text)]">{workInsights?.streak ?? 0}</span>
-                                <span className="text-[10px] md:text-xs text-[var(--text-muted)] hidden md:inline">streak</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shrink-0">
                                 <TrendingUp size={14} className="text-emerald-400 md:w-4 md:h-4" />
                                 <span className="text-sm md:text-base font-black text-[var(--text)]">{workInsights?.progress?.total ?? 0}</span>
                                 <span className="text-[10px] md:text-xs text-[var(--text-muted)] hidden md:inline">pts</span>
@@ -1446,7 +1425,6 @@ export default function Dashboard() {
         const isSelected = selectedIds.includes(p.id);
         const isMerged = !!p.mergedCanvasIds;
         const nodeCount = p.nodes?.length ?? 0;
-        const streak = computeStreak(p.id);
         const todoCount = p.todos?.length ?? 0;
         const completedTodoCount = p.todos?.filter(todo => todo.completed).length ?? 0;
         const completionRate = todoCount > 0 ? Math.round((completedTodoCount / todoCount) * 100) : 0;
@@ -1566,7 +1544,6 @@ export default function Dashboard() {
                                     Merged
                                 </span>
                             )}
-                            {streak > 0 && <span className="text-[8px] font-black text-emerald-400 md:text-[9px]">{streak}d</span>}
                         </div>
                     </div>
 
