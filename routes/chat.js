@@ -53,9 +53,9 @@ export function registerChatRoutes(app, clerkClient) {
     app.locals.clerk = clerkClient;
 
     // GET /api/users/chatable — list all users you can chat with (share a workspace)
-    app.get('/api/users/chatable', requireAuthMiddleware, (req, res) => {
+    app.get('/api/users/chatable', requireAuthMiddleware, async (req, res) => {
         try {
-            const users = getUsersWhoShareWorkspaceWith(req.userId, 100);
+            const users = await getUsersWhoShareWorkspaceWith(req.userId, 100);
             return res.json({ users });
         } catch (err) {
             console.error('Chatable users error:', err);
@@ -64,13 +64,13 @@ export function registerChatRoutes(app, clerkClient) {
     });
 
     // GET /api/users/discover?q=username — search users (only workspace members + feed people)
-    app.get('/api/users/discover', requireAuthMiddleware, (req, res) => {
+    app.get('/api/users/discover', requireAuthMiddleware, async (req, res) => {
         try {
             const q = sanitize(req.query.q, 50);
             if (!q || q.length < 2) {
                 return res.json({ users: [] });
             }
-            const users = searchUsersForChat(q, req.userId, 30);
+            const users = await searchUsersForChat(q, req.userId, 30);
             return res.json({ users });
         } catch (err) {
             console.error('Discover error:', err);
@@ -79,13 +79,13 @@ export function registerChatRoutes(app, clerkClient) {
     });
 
     // GET /api/users/search?q=username — only returns users who share a workspace (request-accepted)
-    app.get('/api/users/search', requireAuthMiddleware, (req, res) => {
+    app.get('/api/users/search', requireAuthMiddleware, async (req, res) => {
         try {
             const q = sanitize(req.query.q, 50);
             if (!q || q.length < 2) {
                 return res.json({ users: [] });
             }
-            const users = searchUsersForChat(q, req.userId, 20);
+            const users = await searchUsersForChat(q, req.userId, 20);
             return res.json({ users });
         } catch (err) {
             console.error('Search error:', err);
@@ -94,9 +94,9 @@ export function registerChatRoutes(app, clerkClient) {
     });
 
     // GET /api/chats - list user's chats (only with users who share a workspace)
-    app.get('/api/chats', requireAuthMiddleware, (req, res) => {
+    app.get('/api/chats', requireAuthMiddleware, async (req, res) => {
         try {
-            const chats = getChatsListEnriched(req.userId);
+            const chats = await getChatsListEnriched(req.userId);
             return res.json({ chats });
         } catch (err) {
             console.error('Chats error:', err);
@@ -105,21 +105,21 @@ export function registerChatRoutes(app, clerkClient) {
     });
 
     // POST /api/chats/direct - create or get direct chat (only with users who share a workspace)
-    app.post('/api/chats/direct', requireAuthMiddleware, (req, res) => {
+    app.post('/api/chats/direct', requireAuthMiddleware, async (req, res) => {
         try {
             const { userId } = req.body || {};
             const otherId = parseInt(userId, 10);
             if (isNaN(otherId) || otherId === req.userId) {
                 return res.status(400).json({ error: 'Invalid user.' });
             }
-            const other = getUserById(otherId);
+            const other = await getUserById(otherId);
             if (!other) return res.status(404).json({ error: 'User not found.' });
-            if (!doUsersShareWorkspace(req.userId, otherId)) {
+            if (!(await doUsersShareWorkspace(req.userId, otherId))) {
                 return res.status(403).json({ error: 'You can only chat with workspace members. Invite them to a workspace first.' });
             }
 
-            const chatId = getOrCreateDirectChat(req.userId, otherId);
-            const chat = getChatWithParticipants(chatId, req.userId);
+            const chatId = await getOrCreateDirectChat(req.userId, otherId);
+            const chat = await getChatWithParticipants(chatId, req.userId);
             return res.json({ chat, chatId });
         } catch (err) {
             console.error('Create chat error:', err);
@@ -128,13 +128,13 @@ export function registerChatRoutes(app, clerkClient) {
     });
 
     // GET /api/chats/:id - get chat
-    app.get('/api/chats/:id', requireAuthMiddleware, (req, res) => {
+    app.get('/api/chats/:id', requireAuthMiddleware, async (req, res) => {
         try {
             const id = parseInt(req.params.id, 10);
             if (isNaN(id)) return res.status(400).json({ error: 'Invalid chat.' });
-            const chat = getChatWithParticipants(id, req.userId);
+            const chat = await getChatWithParticipants(id, req.userId);
             if (!chat) return res.status(404).json({ error: 'Chat not found.' });
-            const unread = getUnreadCount(id, req.userId);
+            const unread = await getUnreadCount(id, req.userId);
             return res.json({ chat, unread });
         } catch (err) {
             console.error('Get chat error:', err);
@@ -143,12 +143,12 @@ export function registerChatRoutes(app, clerkClient) {
     });
 
     // GET /api/chats/:id/messages - get messages
-    app.get('/api/chats/:id/messages', requireAuthMiddleware, (req, res) => {
+    app.get('/api/chats/:id/messages', requireAuthMiddleware, async (req, res) => {
         try {
             const id = parseInt(req.params.id, 10);
             if (isNaN(id)) return res.status(400).json({ error: 'Invalid chat.' });
             const beforeId = req.query.before ? parseInt(req.query.before, 10) : null;
-            const messages = getMessages(id, req.userId, beforeId || undefined, 50);
+            const messages = await getMessages(id, req.userId, beforeId || undefined, 50);
             return res.json({ messages });
         } catch (err) {
             console.error('Messages error:', err);
@@ -169,7 +169,7 @@ export function registerChatRoutes(app, clerkClient) {
     });
 
     // POST /api/chats/:id/messages - send message
-    app.post('/api/chats/:id/messages', requireAuthMiddleware, (req, res) => {
+    app.post('/api/chats/:id/messages', requireAuthMiddleware, async (req, res) => {
         try {
             const id = parseInt(req.params.id, 10);
             if (isNaN(id)) return res.status(400).json({ error: 'Invalid chat.' });
@@ -192,13 +192,13 @@ export function registerChatRoutes(app, clerkClient) {
             if (shareId) metadata.shareId = sanitize(shareId, 50);
             if (fileName) metadata.fileName = sanitize(fileName, 200);
 
-            const msgId = createMessage(id, req.userId, contentOrUrl || '[file]', msgType, replyToId || null, Object.keys(metadata).length ? metadata : null);
+            const msgId = await createMessage(id, req.userId, contentOrUrl || '[file]', msgType, replyToId || null, Object.keys(metadata).length ? metadata : null);
             if (!msgId) return res.status(403).json({ error: 'Not found or access denied.' });
 
-            const msg = getMessage(msgId);
+            const msg = await getMessage(msgId);
             const io = req.app.locals?.io;
             if (io) {
-                const chat = getChatWithParticipants(id, req.userId);
+                const chat = await getChatWithParticipants(id, req.userId);
                 const recipientIds = (chat?.participants || []).filter(p => p.id !== req.userId).map(p => p.id);
                 recipientIds.forEach(uid => io.to(`user:${uid}`).emit('chat:message', { chatId: id, message: msg }));
                 io.to(`chat:${id}`).emit('chat:message', { chatId: id, message: msg });
@@ -211,11 +211,11 @@ export function registerChatRoutes(app, clerkClient) {
     });
 
     // POST /api/chats/:id/read - mark as read
-    app.post('/api/chats/:id/read', requireAuthMiddleware, (req, res) => {
+    app.post('/api/chats/:id/read', requireAuthMiddleware, async (req, res) => {
         try {
             const id = parseInt(req.params.id, 10);
             if (isNaN(id)) return res.status(400).json({ error: 'Invalid chat.' });
-            markChatRead(id, req.userId);
+            await markChatRead(id, req.userId);
             return res.json({ ok: true });
         } catch (err) {
             return res.status(500).json({ error: 'Failed to mark read.' });

@@ -1,33 +1,52 @@
 /**
- * Database initialization and connection
- * SQLite for now; schema designed for easy PostgreSQL migration later
+ * Database initialization: PostgreSQL (DATABASE_URL) or SQLite (DATABASE_PATH / local file).
  */
 
 import Database from 'better-sqlite3';
 import { readFileSync, mkdirSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { initPostgres, attachSqlite, isPostgres } from './driver.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.DATABASE_PATH || join(__dirname, '..', 'data', 'strategybox.db');
 
-if (!process.env.DATABASE_PATH) {
-    console.warn('⚠️  DATABASE_PATH not set — database will be lost on redeploy.');
-    console.warn('   On Render: upgrade to Starter plan, add disk (mount /data), set DATABASE_PATH=/data/strategybox.db');
+if (!process.env.DATABASE_URL?.trim() && !process.env.DATABASE_PATH) {
+    console.warn('⚠️  DATABASE_PATH not set — SQLite database will be lost on redeploy.');
+    console.warn('   On Render: use DATABASE_URL (Postgres) or disk + DATABASE_PATH=/data/strategybox.db');
 }
 
 let db = null;
-/** After a failed init, skip retry spam (getDb will throw a clear error). */
 let dbInitFailed = false;
+let postgresReady = false;
 
 export function isDbReady() {
+    if (isPostgres()) return postgresReady;
     return !!db;
 }
 
 /**
- * Initialize database: create data dir, run schema, return connection
+ * Initialize database (async when using PostgreSQL).
  */
-export function initDb() {
+export async function initDb() {
+    const pgUrl = process.env.DATABASE_URL?.trim();
+    if (pgUrl) {
+        if (dbInitFailed) {
+            const e = new Error('Database unavailable (initialization failed — see server logs).');
+            e.code = 'DB_INIT_FAILED';
+            throw e;
+        }
+        try {
+            await initPostgres(pgUrl);
+            postgresReady = true;
+            return null;
+        } catch (err) {
+            dbInitFailed = true;
+            postgresReady = false;
+            throw err;
+        }
+    }
+
     if (db) return db;
     if (dbInitFailed) {
         const e = new Error('Database unavailable (initialization failed — see server logs).');
@@ -38,44 +57,25 @@ export function initDb() {
     try {
         const dataDir = dirname(DB_PATH);
         if (!existsSync(dataDir)) {
-            try {
-                mkdirSync(dataDir, { recursive: true });
-            } catch (err) {
-                console.error(`❌ Cannot create database dir ${dataDir}:`, err.message);
-                if (process.env.DATABASE_PATH) {
-                    console.error('   Check that the disk is mounted and the path is correct.');
-                }
-                throw err;
-            }
+            mkdirSync(dataDir, { recursive: true });
         }
 
-        try {
-            db = new Database(DB_PATH);
-        } catch (err) {
-            console.error(`❌ Cannot open database at ${DB_PATH}:`, err.message);
-            if (process.env.DATABASE_PATH && err.message.includes('unable to open')) {
-                console.error('   The disk may not be mounted. On Render: ensure disk is attached and mount path matches DATABASE_PATH.');
-            }
-            throw err;
-        }
+        db = new Database(DB_PATH);
         db.pragma('journal_mode = WAL');
         db.pragma('foreign_keys = ON');
-        // Wait on locks instead of failing immediately under concurrent writes (e.g. canvas saves + chat).
         db.pragma('busy_timeout = 8000');
 
         const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
         db.exec(schema);
 
-        // Migration: add assigned_to to projects if missing
         try {
-            const cols = db.prepare("PRAGMA table_info(projects)").all();
-            if (!cols.some(c => c.name === 'assigned_to')) {
+            const cols = db.prepare('PRAGMA table_info(projects)').all();
+            if (!cols.some((c) => c.name === 'assigned_to')) {
                 db.exec('ALTER TABLE projects ADD COLUMN assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL');
                 console.log('📦 Migration: added assigned_to to projects');
             }
-        } catch (e) { /* column may already exist */ }
+        } catch { /* ignore */ }
 
-        // Migration: shared_canvases table (for chat canvas sharing)
         try {
             db.exec(`
             CREATE TABLE IF NOT EXISTS shared_canvases (
@@ -87,9 +87,8 @@ export function initDb() {
             )
         `);
             db.exec('CREATE INDEX IF NOT EXISTS idx_shared_canvases_share_id ON shared_canvases(share_id)');
-        } catch (e) { /* table may already exist */ }
+        } catch { /* ignore */ }
 
-        // Migration: project_canvases table (for team workspace canvas persistence)
         try {
             db.exec(`
             CREATE TABLE IF NOT EXISTS project_canvases (
@@ -99,9 +98,8 @@ export function initDb() {
             )
         `);
             db.exec('CREATE INDEX IF NOT EXISTS idx_project_canvases_project ON project_canvases(project_id)');
-        } catch (e) { /* table may already exist */ }
+        } catch { /* ignore */ }
 
-        // Performance: composite / extra indexes (safe IF NOT EXISTS)
         try {
             db.exec(`
                 CREATE INDEX IF NOT EXISTS idx_projects_workspace_updated ON projects(workspace_id, updated_at DESC);
@@ -112,12 +110,15 @@ export function initDb() {
             console.warn('Index migration note:', e?.message || e);
         }
 
-        console.log(`📦 Database initialized at ${DB_PATH}${process.env.DATABASE_PATH ? ' (persistent)' : ' (EPHEMERAL — data lost on redeploy)'}`);
+        attachSqlite(db);
+        console.log(`📦 SQLite initialized at ${DB_PATH}${process.env.DATABASE_PATH ? ' (persistent)' : ' (ephemeral on redeploy)'}`);
         return db;
     } catch (err) {
         dbInitFailed = true;
         if (db) {
-            try { db.close(); } catch { /* ignore */ }
+            try {
+                db.close();
+            } catch { /* ignore */ }
             db = null;
         }
         throw err;
@@ -125,11 +126,14 @@ export function initDb() {
 }
 
 /**
- * Get database connection (call initDb first)
+ * @deprecated Models use db/driver.js. SQLite only.
  */
 export function getDb() {
-    if (!db) return initDb();
+    if (isPostgres()) {
+        throw new Error('getDb() is SQLite-only; use async model functions with DATABASE_URL.');
+    }
+    if (!db) throw new Error('Database not initialized — call await initDb() first.');
     return db;
 }
 
-export default { initDb, getDb };
+export default { initDb, getDb, isDbReady };

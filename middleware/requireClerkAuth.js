@@ -24,7 +24,7 @@ export async function requireClerkAuth(req, res, next) {
         const { clerkUser, clerkId } = await resolveBearerToClerkUser(token, clerk);
         req.clerkUser = clerkUser;
         req.clerkUserId = clerkId;
-        req.userId = getOrCreateUser(clerkUser);
+        req.userId = await getOrCreateUser(clerkUser);
         next();
     } catch (err) {
         if (err?.code === 'AUTH_NOT_CONFIGURED') {
