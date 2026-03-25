@@ -92,41 +92,91 @@ export async function qRun(sql, params = []) {
     return { changes: info.changes, lastInsertRowid: Number(info.lastInsertRowid) || null };
 }
 
+/** Remove leading full-line -- comments (do not drop the whole chunk if it starts with a comment). */
+function stripLeadingLineComments(chunk) {
+    let s = chunk.trim();
+    while (s.length > 0) {
+        const lines = s.split('\n');
+        const first = lines[0].trim();
+        if (first === '' || first.startsWith('--')) {
+            lines.shift();
+            s = lines.join('\n').trim();
+            continue;
+        }
+        break;
+    }
+    return s;
+}
+
 function splitSqlStatements(sql) {
     return sql
-        .split(/;\s*\n/)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0 && !s.startsWith('--'));
+        .replace(/\r\n/g, '\n')
+        .split(/;\s*(?:\n|$)/)
+        .map((s) => stripLeadingLineComments(s))
+        .filter((s) => s.length > 0);
+}
+
+/**
+ * Safe summary for logs (no password).
+ * @param {string} connectionString
+ */
+export function summarizePgUrl(connectionString) {
+    try {
+        const normalized = connectionString.replace(/^postgres(ql)?:/i, 'http:');
+        const u = new URL(normalized);
+        return {
+            host: u.hostname,
+            port: u.port || '(default)',
+            database: (u.pathname || '').replace(/^\//, '') || '(none)',
+        };
+    } catch {
+        return { host: '(unparseable URL)', port: '', database: '' };
+    }
 }
 
 /**
  * @param {import('better-sqlite3').Database} db
  */
 export async function initPostgres(connectionString) {
-    usePostgres = true;
     const ssl =
         /localhost|127\.0\.0\.1/i.test(connectionString) && !connectionString.includes('sslmode=require')
             ? undefined
             : { rejectUnauthorized: false };
-    pool = new pg.Pool({
+
+    /** @type {import('pg').Pool} */
+    const newPool = new pg.Pool({
         connectionString,
         max: 20,
         idleTimeoutMillis: 30_000,
-        connectionTimeoutMillis: 15_000,
+        connectionTimeoutMillis: 20_000,
         ssl,
     });
+
     const schemaPath = join(__dirname, 'schema.postgres.sql');
     const schema = readFileSync(schemaPath, 'utf8');
-    const client = await pool.connect();
+
     try {
-        for (const stmt of splitSqlStatements(schema)) {
-            await client.query(stmt);
+        const client = await newPool.connect();
+        try {
+            let n = 0;
+            for (const stmt of splitSqlStatements(schema)) {
+                n += 1;
+                await client.query(stmt);
+            }
+            if (n === 0) {
+                throw new Error('schema.postgres.sql produced zero statements — check file format.');
+            }
+        } finally {
+            client.release();
         }
-    } finally {
-        client.release();
+        await newPool.query('SELECT 1');
+        pool = newPool;
+        usePostgres = true;
+        console.log('📦 PostgreSQL connected (DATABASE_URL)');
+    } catch (err) {
+        await newPool.end().catch(() => {});
+        throw err;
     }
-    await pool.query('SELECT 1');
-    console.log('📦 PostgreSQL connected (DATABASE_URL)');
 }
 
 /**
