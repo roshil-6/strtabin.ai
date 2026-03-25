@@ -202,7 +202,7 @@ export default function StrabView() {
 
         // Build node label map for readable connection descriptions
         const nodeLabels = new Map(
-            nodes.map(n => [n.id, (n.data?.label as string)?.trim() || `(${n.type || 'node'})`])
+            nodes.map(n => [n.id, (n.data?.label as string)?.trim() || `(${n.type || 'idea'})`])
         );
 
         // Describe each connection as "A → B"
@@ -277,7 +277,7 @@ export default function StrabView() {
                 unit: g.unit,
             })) || [],
             workspaceId: workspaceId ?? undefined,
-            /** True when there are no nodes — server uses this to require [ACTIONS] for “build strategy” requests */
+            /** True when there are no ideas on canvas — server uses this to require [ACTIONS] for “build strategy” requests */
             canvasIsBlank: nodes.length === 0,
         };
     }, [resolvedName, canvas, id, dailyExecutionLogs, workspaceId]);
@@ -311,11 +311,11 @@ export default function StrabView() {
 
             if (nodeCount === 0) {
                 parts.push(
-                    'Your canvas is empty — describe what you\'re building, or ask me to **generate a full strategy on the canvas** (e.g. product launch, GTM roadmap). I can add nodes, connections, writing, and tasks for you.',
+                    'Your canvas is empty — describe what you\'re building, or ask me to **generate a full strategy on the canvas** (e.g. product launch, GTM roadmap). I can add ideas, connections, writing, and tasks for you.',
                 );
             } else {
                 const stage = nodeCount < 4 ? 'early planning' : nodeCount < 10 ? 'active development' : 'detailed execution';
-                parts.push(`You're in **${stage}** with ${nodeCount} nodes${edgeCount > 0 ? ` and ${edgeCount} connections` : ' but no connections yet'}.`);
+                parts.push(`You're in **${stage}** with ${nodeCount} ideas${edgeCount > 0 ? ` and ${edgeCount} connections` : ' but no connections yet'}.`);
 
                 if (edgeCount === 0 && nodeCount > 1) {
                     parts.push('Your ideas aren\'t linked — connect them to reveal your strategy flow.');
@@ -559,7 +559,7 @@ export default function StrabView() {
             `Generate a comprehensive analysis report for "${resolvedName}". ` +
             `Structure it with these exact sections:\n` +
             `1. PROJECT SNAPSHOT — what this project is about, its current stage\n` +
-            `2. CANVAS ANALYSIS — what the node map and connections reveal about the strategy, key themes, gaps\n` +
+            `2. CANVAS ANALYSIS — what the idea map and connections reveal about the strategy, key themes, gaps\n` +
             `3. TASK STATUS — completion rate, which pending tasks need attention first, any blockers\n` +
             `4. WRITING REVIEW — key points in the writing section, quality, what's missing (if writing exists)\n` +
             `5. TIMELINE STATUS — progress against stated milestones (if timeline exists)\n` +
@@ -595,7 +595,7 @@ export default function StrabView() {
     /** Explicit wording so the model emits [ACTIONS] on an empty canvas */
     const EMPTY_CANVAS_BUILD_PROMPTS = [
         {
-            label: 'Generate a full product launch strategy on this canvas (nodes, connections, writing, tasks)',
+            label: 'Generate a full product launch strategy on this canvas (ideas, connections, writing, tasks)',
             icon: '🚀',
         },
         {
@@ -1039,7 +1039,7 @@ export default function StrabView() {
                             {canvas.nodes.length === 0 && (
                                 <div className="bg-primary/[0.06] border border-primary/20 p-5 rounded-2xl">
                                     <div className="text-[10px] font-black uppercase tracking-widest text-primary/80 mb-3">Start from blank</div>
-                                    <p className="text-[11px] text-white/45 mb-3">Project STRAB can still expand <strong className="text-white/55">this</strong> canvas (nodes, links, writing, tasks). For an all-new strategy workspace, use <strong className="text-white/55">Dashboard → STRAB (New strategy)</strong>.</p>
+                                    <p className="text-[11px] text-white/45 mb-3">Project STRAB can still expand <strong className="text-white/55">this</strong> canvas (ideas, links, writing, tasks). For an all-new strategy workspace, use <strong className="text-white/55">Dashboard → STRAB (New strategy)</strong>.</p>
                                     <div className="grid grid-cols-1 gap-2">
                                         {EMPTY_CANVAS_BUILD_PROMPTS.map(({ label, icon }) => (
                                             <button

@@ -196,7 +196,7 @@ function WorkflowContent() {
                         </p>
                         <div className="flex items-center justify-center gap-1 text-white/30 text-xs">
                             <HelpCircle size={14} />
-                            <span>Drag between nodes to create connections</span>
+                            <span>Drag between ideas to create connections</span>
                         </div>
                     </div>
                 </Panel>

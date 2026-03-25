@@ -260,7 +260,7 @@ function CanvasContent() {
     const handleBranch = useCallback(() => {
         const selectedNode = nodes.find(n => n.selected);
         if (!selectedNode) {
-            toast('Select a node first', { icon: '👆' });
+            toast('Select an idea first', { icon: '👆' });
             return;
         }
         const newNodeId = `node-${Date.now()}`;
@@ -289,7 +289,7 @@ function CanvasContent() {
             toast('Flow is already empty');
             return;
         }
-        if (!window.confirm('Clear the entire flow? All nodes and connections will be removed.')) return;
+        if (!window.confirm('Clear the entire flow? All ideas and connections will be removed.')) return;
         onEdgesChange(edges.map(e => ({ type: 'remove' as const, id: e.id })));
         onNodesChange(nodes.map(n => ({ type: 'remove' as const, id: n.id })));
         toast.success('Flow cleared');
@@ -299,7 +299,7 @@ function CanvasContent() {
     const handleSplit = useCallback(() => {
         const selectedNode = nodes.find(n => n.selected);
         if (!selectedNode) {
-            toast('Select a node first', { icon: '👆' });
+            toast('Select an idea first', { icon: '👆' });
             return;
         }
         const time = Date.now();
@@ -698,7 +698,7 @@ function CanvasContent() {
                             </div>
                         </ReactFlow>}
 
-                        {/* Mobile floating toolbar — Add Box, Branch, Option, node types, zoom */}
+                        {/* Mobile floating toolbar — Add Box, Branch, Option, idea types, zoom */}
                         {isMobile && mobileTab === 'map' && (
                             <div className="absolute bottom-2 left-2 right-2 z-50 flex flex-col gap-2">
                                 {/* Row 1: Add actions — Box, Branch, Option, Note, Idea */}

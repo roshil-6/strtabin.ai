@@ -468,7 +468,7 @@ export default function Dashboard() {
                     {projectQuickActionsRow(p)}
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-white/50">
                         {todoCount > 0 && <span>{completionRate}% done</span>}
-                        {nodeCount > 0 && <span>• {nodeCount} nodes</span>}
+                        {nodeCount > 0 && <span>• {nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>}
                     </div>
                 </div>
                 {selectionMode ? (isSelected ? <CheckCircle2 size={22} className="text-primary shrink-0" /> : <div className="w-6 h-6 rounded-full border-2 border-white/20 shrink-0" />) : <ChevronRight size={20} className="text-white/30 shrink-0" />}
@@ -1610,7 +1610,7 @@ export default function Dashboard() {
                         <div className="project-card-stat-box rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2 md:py-2.5">
                             <div className="flex items-center justify-between mb-1 md:mb-1.5">
                                 <span className="text-[10px] uppercase tracking-[0.12em] font-black text-primary">Structure</span>
-                                <span className="text-[11px] font-bold text-zinc-200">{nodeCount} nodes</span>
+                                <span className="text-[11px] font-bold text-zinc-200">{nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>
                             </div>
                             <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400">
                                 <span className="inline-flex items-center gap-1 truncate"><ListTodo size={10} className="text-primary/80 shrink-0" />{todoCount} tasks</span>
@@ -1630,13 +1630,13 @@ export default function Dashboard() {
                     {/* Mobile: compact stat (shown only when Tasks/Structure would be too tall) — now redundant, kept as fallback */}
                     <div className="hidden items-center gap-2 mb-2 text-[10px] text-zinc-400 font-medium">
                         {todoCount > 0 && <span>{completionRate}% done</span>}
-                        {nodeCount > 0 && <span>• {nodeCount} nodes</span>}
+                        {nodeCount > 0 && <span>• {nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>}
                         {wc > 0 && <span>• {wc}w</span>}
                     </div>
 
                     {!hasContent && (
                         <div className="hidden md:block mb-4 rounded-lg border border-dashed border-primary/30 px-2.5 py-2 text-[10px] font-semibold text-zinc-500">
-                            Start by adding nodes, tasks, or notes to enrich this project.
+                            Start by adding ideas, tasks, or notes to enrich this project.
                         </div>
                     )}
 
@@ -1908,7 +1908,7 @@ export default function Dashboard() {
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                                 <Network size={12} className="text-violet-400/70" />
-                                {nodeCount} nodes
+                                {nodeCount} idea{nodeCount !== 1 ? 's' : ''}
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                                 <Clock size={12} className="text-orange-400/70" />

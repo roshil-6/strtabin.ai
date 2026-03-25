@@ -12,8 +12,8 @@ export default function FeaturesPage() {
 
     const features = [
         { icon: PenTool, title: 'Distraction-Free Writing', desc: 'Long-form writing editor with split view, branch creation, and a collapsible planner. Organize scattered thoughts into clear strategy documents before mapping them visually.' },
-        { icon: Layout, title: 'Interactive Flow Canvas', desc: 'Drag-and-drop visual canvas to map ideas as nodes and connect strategies. See the big picture at a glance — ideal for idea to execution planning.' },
-        { icon: Bot, title: 'STRAB AI Intelligence', desc: 'Context-aware AI that analyzes your entire project — nodes, writing, tasks — and provides strategic insights, gap analysis, and actionable recommendations.' },
+        { icon: Layout, title: 'Interactive Flow Canvas', desc: 'Drag-and-drop visual canvas to map ideas and connect strategies. See the big picture at a glance — ideal for idea to execution planning.' },
+        { icon: Bot, title: 'STRAB AI Intelligence', desc: 'Context-aware AI that analyzes your entire project — ideas, writing, tasks — and provides strategic insights, gap analysis, and actionable recommendations.' },
         { icon: GitBranch, title: 'Branch & Merge Ideas', desc: 'Split one idea into multiple branches, or merge separate strategy canvases into a unified project overview. Perfect for complex multi-project strategies.' },
         { icon: Calendar, title: 'Calendar & Timeline', desc: 'Built-in calendar with event reminders and a timeline planner tied directly to your strategy projects. Track execution alongside planning.' },
         { icon: FolderOpen, title: 'Folder Workspaces', desc: 'Organize projects into custom folders with dedicated workflow maps showing inter-project relationships. Keep your strategy workspace clean.' },
@@ -87,7 +87,7 @@ export default function FeaturesPage() {
                         <h2 className="text-2xl font-bold tracking-tight mb-6 text-[var(--text)]">How Stratabin works: idea to execution</h2>
                         <ol className="space-y-6 text-[var(--text-muted)]">
                             <li><strong className="text-[var(--text-secondary)] font-semibold">1. Capture & Write</strong> — Start with raw ideas in the writing editor. Use split view to compare angles, or branch into visual flowcharts.</li>
-                            <li><strong className="text-[var(--text-secondary)] font-semibold">2. Map & Organize</strong> — Drag ideas onto the flow canvas as connected nodes. Merge related projects, create folder workspaces, and let STRAB AI help organize the structure.</li>
+                            <li><strong className="text-[var(--text-secondary)] font-semibold">2. Map & Organize</strong> — Drag ideas onto the flow canvas and connect them. Merge related projects, create folder workspaces, and let STRAB AI help organize the structure.</li>
                             <li><strong className="text-[var(--text-secondary)] font-semibold">3. Execute & Track</strong> — Convert strategies into tasks, set calendar deadlines, build timelines, and use AI reports to monitor progress and identify gaps.</li>
                         </ol>
                     </section>

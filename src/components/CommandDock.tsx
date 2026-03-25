@@ -31,7 +31,7 @@ const NODE_TYPES: {
         accent: '#f59e0b',
         bg: 'rgba(245,158,11,0.08)',
         border: 'rgba(245,158,11,0.2)',
-        desc: 'Add a question node',
+        desc: 'Add a question',
     },
     {
         type: 'decision',
