@@ -60,6 +60,8 @@ export function initDb() {
         }
         db.pragma('journal_mode = WAL');
         db.pragma('foreign_keys = ON');
+        // Wait on locks instead of failing immediately under concurrent writes (e.g. canvas saves + chat).
+        db.pragma('busy_timeout = 8000');
 
         const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
         db.exec(schema);
@@ -98,6 +100,17 @@ export function initDb() {
         `);
             db.exec('CREATE INDEX IF NOT EXISTS idx_project_canvases_project ON project_canvases(project_id)');
         } catch (e) { /* table may already exist */ }
+
+        // Performance: composite / extra indexes (safe IF NOT EXISTS)
+        try {
+            db.exec(`
+                CREATE INDEX IF NOT EXISTS idx_projects_workspace_updated ON projects(workspace_id, updated_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_invitations_invitee_user ON invitations(invitee_user_id);
+                CREATE INDEX IF NOT EXISTS idx_activity_workspace_created ON activity_logs(workspace_id, created_at DESC);
+            `);
+        } catch (e) {
+            console.warn('Index migration note:', e?.message || e);
+        }
 
         console.log(`📦 Database initialized at ${DB_PATH}${process.env.DATABASE_PATH ? ' (persistent)' : ' (EPHEMERAL — data lost on redeploy)'}`);
         return db;

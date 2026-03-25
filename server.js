@@ -16,6 +16,7 @@ import { registerWorkspaceRoutes } from './routes/workspaces.js';
 import { registerChatRoutes } from './routes/chat.js';
 import { getOrCreateUser } from './db/models.js';
 import { initDb, isDbReady } from './db/index.js';
+import { getClerkUserCached, invalidateClerkUserCache } from './lib/clerkUserCache.js';
 
 dotenv.config();
 
@@ -183,7 +184,7 @@ app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json
         }
 
         // Safeguard: verify the resolved user's email matches payer (prevents wrong-user updates)
-        const targetUser = await clerk.users.getUser(resolvedUserId);
+        const targetUser = await getClerkUserCached(clerk, resolvedUserId);
         const targetEmails = (targetUser.emailAddresses || []).map(e => (e.emailAddress || '').toLowerCase().trim());
         if (payerEmail && !targetEmails.includes(payerEmail)) {
             console.warn(`Webhook: resolved user ${resolvedUserId} email (${targetEmails.join(',')}) does not match payment email (${payerEmail}). Skipping update.`);
@@ -210,6 +211,7 @@ app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json
                 lastPaymentId: typeof payment?.id === 'string' ? payment.id : undefined,
             },
         });
+        invalidateClerkUserCache(resolvedUserId);
 
         return res.status(200).json({ ok: true, userId: resolvedUserId });
     } catch (error) {
@@ -235,7 +237,7 @@ app.post('/api/payments/create-link', async (req, res) => {
             if (payloadB64) {
                 const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
                 if (decoded.sub) {
-                    await clerk.users.getUser(decoded.sub);
+                    await getClerkUserCached(clerk, decoded.sub);
                     clerkUserId = decoded.sub;
                 }
             }
@@ -308,7 +310,7 @@ app.post('/api/payments/verify', async (req, res) => {
         userId = decoded.sub;
         if (!userId) throw new Error('No sub claim in token.');
         // Validate the user actually exists in Clerk (this is the real auth check)
-        await clerk.users.getUser(userId);
+        await getClerkUserCached(clerk, userId);
     } catch (err) {
         const errMsg = err?.message || String(err);
         console.error('❌ Token decode/user lookup failed:', errMsg);
@@ -317,7 +319,7 @@ app.post('/api/payments/verify', async (req, res) => {
 
     try {
         // ── 2. Check if already paid in Clerk (handles stale browser cache) ──
-        const clerkUser = await clerk.users.getUser(userId);
+        const clerkUser = await getClerkUserCached(clerk, userId);
         const alreadyPaid = Boolean(
             clerkUser.publicMetadata?.isPaid === true ||
             clerkUser.publicMetadata?.paid === true ||
@@ -375,6 +377,7 @@ app.post('/api/payments/verify', async (req, res) => {
                     verifiedAt: new Date().toISOString(),
                 },
             });
+            invalidateClerkUserCache(userId);
 
             return res.status(200).json({ ok: true, paid: true, source: 'razorpay_verified' });
         }
@@ -405,7 +408,7 @@ app.post('/api/user/set-credentials', async (req, res) => {
         const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
         userId = decoded.sub;
         if (!userId) throw new Error('No sub claim.');
-        await clerk.users.getUser(userId);
+        await getClerkUserCached(clerk, userId);
     } catch (err) {
         return res.status(401).json({ error: 'Invalid or expired token.' });
     }
@@ -419,6 +422,7 @@ app.post('/api/user/set-credentials', async (req, res) => {
             updates.username = username;
         }
         await clerk.users.updateUser(userId, updates);
+        invalidateClerkUserCache(userId);
         return res.status(200).json({ ok: true });
     } catch (error) {
         const msg = error?.errors?.[0]?.message || error?.message || String(error);
@@ -447,36 +451,70 @@ app.use(helmet({
     }
 }));
 
-// ─── Global Rate Limiter — 120 requests / 15 min per IP ───────────────────
-// Skip team project canvas GET: authenticated, large payloads elsewhere; repeated
-// client effect runs + SPA navigation were tripping 429 and blocking workspace opens.
+// ─── Global rate limit: relaxed defaults; per-user when Bearer JWT has `sub` ─
+// Env: RATE_LIMIT_GLOBAL_WINDOW_MS, RATE_LIMIT_GLOBAL_MAX, RATE_LIMIT_GLOBAL_SKIP_CANVAS_POST=1
+const GLOBAL_RL_WINDOW_MS = Number(process.env.RATE_LIMIT_GLOBAL_WINDOW_MS || 15 * 60 * 1000);
+const GLOBAL_RL_MAX = Number(process.env.RATE_LIMIT_GLOBAL_MAX || 500);
+
+function clerkSubFromBearer(req) {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ') || auth.length < 24) return null;
+    try {
+        const token = auth.slice(7).trim();
+        const payloadB64 = token.split('.')[1];
+        if (!payloadB64) return null;
+        const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+        return typeof decoded?.sub === 'string' && decoded.sub.length > 0 ? decoded.sub : null;
+    } catch {
+        return null;
+    }
+}
+
 const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 200,
+    windowMs: GLOBAL_RL_WINDOW_MS,
+    max: GLOBAL_RL_MAX,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests. Please wait before trying again.' },
+    keyGenerator: (req) => {
+        const sub = clerkSubFromBearer(req);
+        if (sub) return `user:${sub}`;
+        return req.ip || req.socket?.remoteAddress || 'unknown';
+    },
     skip: (req) => {
-        if (req.path === '/' || req.path === '/health') return true;
-        return req.method === 'GET' && /^\/api\/projects\/\d+\/canvas$/.test(req.path);
+        if (req.path === '/' || req.path === '/health' || req.path === '/api/health') return true;
+        if (req.method === 'GET' && /^\/api\/projects\/\d+\/canvas$/.test(req.path)) return true;
+        if (process.env.RATE_LIMIT_GLOBAL_SKIP_CANVAS_POST === '1' && req.method === 'POST' && /^\/api\/projects\/\d+\/canvas$/.test(req.path)) {
+            return true;
+        }
+        return false;
     },
 });
 app.use(globalLimiter);
 
-// ─── AI Rate Limiter — 20 AI requests / 10 min per IP (cost protection) ──
+// ─── AI rate limit (cost protection) — env: RATE_LIMIT_AI_WINDOW_MS, RATE_LIMIT_AI_MAX ─
+const AI_RL_WINDOW_MS = Number(process.env.RATE_LIMIT_AI_WINDOW_MS || 10 * 60 * 1000);
+const AI_RL_MAX = Number(process.env.RATE_LIMIT_AI_MAX || 50);
 const aiLimiter = rateLimit({
-    windowMs: 10 * 60 * 1000,
-    max: 20,
+    windowMs: AI_RL_WINDOW_MS,
+    max: AI_RL_MAX,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'AI request limit reached. Please wait a few minutes.' },
     skipSuccessfulRequests: false,
+    keyGenerator: (req) => {
+        const sub = clerkSubFromBearer(req);
+        if (sub) return `ai:user:${sub}`;
+        return `ai:ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`;
+    },
 });
 
-// ─── Guest AI Rate Limiter — 2 requests / 24h per IP ───────────────────────
+// ─── Guest AI — env: RATE_LIMIT_GUEST_AI_WINDOW_MS, RATE_LIMIT_GUEST_AI_MAX ─
+const GUEST_AI_WINDOW_MS = Number(process.env.RATE_LIMIT_GUEST_AI_WINDOW_MS || 24 * 60 * 60 * 1000);
+const GUEST_AI_MAX = Number(process.env.RATE_LIMIT_GUEST_AI_MAX || 5);
 const guestAiLimiter = rateLimit({
-    windowMs: 24 * 60 * 60 * 1000,
-    max: 2,
+    windowMs: GUEST_AI_WINDOW_MS,
+    max: GUEST_AI_MAX,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Guest AI limit reached. Sign up to continue.' },
@@ -519,7 +557,7 @@ async function requireAuth(req, res, next) {
             const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
             const uid = decoded.sub;
             if (!uid) throw new Error('No sub claim.');
-            await clerk.users.getUser(uid);
+            await getClerkUserCached(clerk, uid);
         } catch (clerkErr) {
             console.error('❌ requireAuth user lookup failed:', clerkErr?.message || clerkErr);
             return res.status(401).json({ error: 'Unauthorized: invalid token.' });
@@ -1070,7 +1108,7 @@ io.on('connection', async (socket) => {
                 const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
                 const clerkId = decoded.sub;
                 if (clerkId) {
-                    const clerkUser = await clerk.users.getUser(clerkId);
+                    const clerkUser = await getClerkUserCached(clerk, clerkId);
                     userId = getOrCreateUser(clerkUser);
                 }
             }

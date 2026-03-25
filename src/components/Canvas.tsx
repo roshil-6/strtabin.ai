@@ -178,26 +178,44 @@ function CanvasContent() {
     const projMatch = id?.match(/^proj_(\d+)$/);
     const projectIdForSave = projMatch ? parseInt(projMatch[1], 10) : null;
     const saveProjectCanvasRef = useRef<ReturnType<typeof setTimeout>>();
+    /** Latest payload for debounced save (avoids stale closure in timer). */
+    const pendingCanvasSaveRef = useRef<{
+        projectId: number;
+        nodes: Node[];
+        edges: Edge[];
+        writingContent: string;
+        name: string;
+    } | null>(null);
+    const CANVAS_SAVE_DEBOUNCE_MS = 2500;
     useEffect(() => {
         if (!projectIdForSave || !currentCanvas) return;
-        saveProjectCanvasRef.current && clearTimeout(saveProjectCanvasRef.current);
+        pendingCanvasSaveRef.current = {
+            projectId: projectIdForSave,
+            nodes,
+            edges,
+            writingContent: currentCanvas.writingContent || '',
+            name: currentCanvas.name || currentCanvas.title || '',
+        };
+        if (saveProjectCanvasRef.current) clearTimeout(saveProjectCanvasRef.current);
         saveProjectCanvasRef.current = setTimeout(async () => {
+            const payload = pendingCanvasSaveRef.current;
+            if (!payload || payload.projectId !== projectIdForSave) return;
             try {
                 const token = await getToken();
                 await workspaceService.saveProjectCanvas(
-                    projectIdForSave,
+                    payload.projectId,
                     {
-                        nodes,
-                        edges,
-                        writingContent: currentCanvas.writingContent || '',
-                        name: currentCanvas.name || currentCanvas.title || '',
+                        nodes: payload.nodes,
+                        edges: payload.edges,
+                        writingContent: payload.writingContent,
+                        name: payload.name,
                     },
                     token
                 );
             } catch {
                 /* ignore save errors */
             }
-        }, 1500);
+        }, CANVAS_SAVE_DEBOUNCE_MS);
         return () => {
             if (saveProjectCanvasRef.current) clearTimeout(saveProjectCanvasRef.current);
         };

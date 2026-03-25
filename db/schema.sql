@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS invitations (
 CREATE INDEX IF NOT EXISTS idx_invitations_workspace ON invitations(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_invitations_workspace_status ON invitations(workspace_id, status);
 CREATE INDEX IF NOT EXISTS idx_invitations_invitee ON invitations(invitee_email_normalized, status);
+CREATE INDEX IF NOT EXISTS idx_invitations_invitee_user ON invitations(invitee_user_id);
 
 -- Projects: within workspaces
 CREATE TABLE IF NOT EXISTS projects (
@@ -100,6 +101,7 @@ CREATE TABLE IF NOT EXISTS projects (
 );
 
 CREATE INDEX IF NOT EXISTS idx_projects_workspace ON projects(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_projects_workspace_updated ON projects(workspace_id, updated_at DESC);
 
 -- Project canvases: team workspace canvas persistence (nodes, edges, writingContent)
 CREATE TABLE IF NOT EXISTS project_canvases (
@@ -140,6 +142,7 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 CREATE INDEX IF NOT EXISTS idx_activity_workspace ON activity_logs(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_activity_user ON activity_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_workspace_created ON activity_logs(workspace_id, created_at DESC);
 
 -- Notifications: for invites, mentions, etc.
 CREATE TABLE IF NOT EXISTS notifications (

@@ -671,7 +671,20 @@ export default function WorkspacePage() {
                           )}
                         </div>
                         {projects.length === 0 ? (
-                          <p className="text-white/30 text-xs py-4">No projects yet.</p>
+                          <div className="flex flex-col items-center py-6 text-center gap-3">
+                            <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10 shrink-0">
+                              <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                            </div>
+                            <p className="text-white/40 text-xs font-bold">No projects yet</p>
+                            <button
+                              type="button"
+                              onClick={() => setShowNewProject(true)}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-black text-xs font-black hover:opacity-95 transition-opacity"
+                            >
+                              <Plus size={14} strokeWidth={2.5} />
+                              New project
+                            </button>
+                          </div>
                         ) : (
                           <div className="space-y-2">
                             {projects.slice(0, 5).map((p) => {
@@ -760,7 +773,30 @@ export default function WorkspacePage() {
                   )}
                   <div className="space-y-2 overflow-visible">
                     {projects.length === 0 ? (
-                      <p className="text-white/30 text-sm py-8 text-center">No projects yet. Create one to get started.</p>
+                      <div className="flex flex-col items-center justify-center py-12 md:py-16 px-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center gap-4">
+                        <div className="relative">
+                          <div className="w-20 h-20 md:w-24 md:h-24 rounded-[1.25rem] bg-white flex items-center justify-center overflow-hidden shadow-2xl border-2 border-white/10">
+                            <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                          </div>
+                          <div className="absolute -top-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                            <Plus size={14} className="text-black" strokeWidth={2.5} />
+                          </div>
+                        </div>
+                        <div className="space-y-1 max-w-sm">
+                          <h3 className="text-base md:text-lg font-black text-white">Start this workspace</h3>
+                          <p className="text-xs md:text-sm text-white/40 leading-relaxed">
+                            Create your first project to open the strategy canvas, writing, and tasks for this workspace.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowNewProject(true)}
+                          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-black text-sm font-black hover:opacity-95 transition-opacity shadow-[0_4px_24px_rgba(249,115,22,0.25)]"
+                        >
+                          <Plus size={18} strokeWidth={2.5} />
+                          New project
+                        </button>
+                      </div>
                     ) : (
                       (isTeam ? filteredProjects : projects).map((project) => {
                         const Icon = STATUS_ICONS[project.status];
@@ -1375,7 +1411,14 @@ export default function WorkspacePage() {
       {showNewProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-2xl p-6">
-            <h3 className="text-lg font-black text-white mb-4">New project</h3>
+            {projects.length === 0 && (
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10">
+                  <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                </div>
+              </div>
+            )}
+            <h3 className={`text-lg font-black text-white mb-4 ${projects.length === 0 ? 'text-center' : ''}`}>New project</h3>
             <form onSubmit={handleCreateProject} className="space-y-3">
               <input
                 type="text"

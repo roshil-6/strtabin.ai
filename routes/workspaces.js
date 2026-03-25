@@ -51,6 +51,7 @@ import {
     getProjectCanvas,
     joinWorkspaceById,
 } from '../db/models.js';
+import { getClerkUserCached } from '../lib/clerkUserCache.js';
 
 // ─── Auth middleware: requires valid Clerk token, sets req.userId (our internal id) ─
 async function requireAuthMiddleware(req, res, next) {
@@ -695,7 +696,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                             const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
                             const clerkId = decoded.sub;
                             if (clerkId) {
-                                const clerkUser = await clerk.users.getUser(clerkId);
+                                const clerkUser = await getClerkUserCached(clerk, clerkId);
                                 const viewerId = getOrCreateUser(clerkUser);
                                 canChat = viewerId !== user.id && doUsersShareWorkspace(viewerId, user.id);
                             }

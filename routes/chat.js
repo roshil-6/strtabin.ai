@@ -44,6 +44,7 @@ import {
     markChatRead,
     getUnreadCount,
 } from '../db/models.js';
+import { getClerkUserCached } from '../lib/clerkUserCache.js';
 
 async function requireAuthMiddleware(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -60,7 +61,7 @@ async function requireAuthMiddleware(req, res, next) {
         const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
         const clerkId = decoded.sub;
         if (!clerkId) throw new Error('No sub claim.');
-        const clerkUser = await clerk.users.getUser(clerkId);
+        const clerkUser = await getClerkUserCached(clerk, clerkId);
         req.userId = getOrCreateUser(clerkUser);
         next();
     } catch (err) {
