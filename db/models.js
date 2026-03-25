@@ -91,6 +91,26 @@ export function getWorkspace(id) {
     return db.prepare('SELECT * FROM workspaces WHERE id = ?').get(id);
 }
 
+/** Cheap fingerprint for polling: any change to workspace, members, projects, activity, tasks, or team canvases bumps `revision`. */
+export function getWorkspaceRevision(workspaceId) {
+    const db = getDb();
+    const row = db.prepare(`
+        SELECT
+            w.updated_at AS w_u,
+            (SELECT COUNT(*) FROM workspace_members wm WHERE wm.workspace_id = w.id) AS member_count,
+            (SELECT IFNULL(MAX(p.updated_at), '') FROM projects p WHERE p.workspace_id = w.id) AS p_max,
+            (SELECT IFNULL(MAX(al.created_at), '') FROM activity_logs al WHERE al.workspace_id = w.id) AS a_max,
+            (SELECT IFNULL(MAX(wm.joined_at), '') FROM workspace_members wm WHERE wm.workspace_id = w.id) AS m_max,
+            (SELECT IFNULL(MAX(mdt.updated_at), '') FROM member_daily_tasks mdt WHERE mdt.workspace_id = w.id) AS t_max,
+            (SELECT IFNULL(MAX(pc.updated_at), '') FROM project_canvases pc
+                INNER JOIN projects pj ON pj.id = pc.project_id WHERE pj.workspace_id = w.id) AS c_max
+        FROM workspaces w WHERE w.id = ?
+    `).get(workspaceId);
+    if (!row) return null;
+    const revision = `${row.w_u}|${row.member_count}|${row.p_max}|${row.a_max}|${row.m_max}|${row.t_max}|${row.c_max}`;
+    return { revision };
+}
+
 export function updateWorkspace(id, { name, visibility }) {
     const db = getDb();
     const updates = [];
@@ -206,6 +226,7 @@ export function joinWorkspaceById(workspaceId, userId) {
     const existing = db.prepare('SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?').get(workspaceId, userId);
     if (existing) return false;
     db.prepare('INSERT INTO workspace_members (workspace_id, user_id, role) VALUES (?, ?, ?)').run(workspaceId, userId, 'member');
+    db.prepare("UPDATE workspaces SET updated_at = datetime('now') WHERE id = ?").run(workspaceId);
     return true;
 }
 
@@ -393,6 +414,7 @@ export function updateMemberRole(workspaceId, userId, newRole) {
     if (!member) return false;
     if (newRole !== 'admin' && newRole !== 'member') return false;
     db.prepare('UPDATE workspace_members SET role = ? WHERE workspace_id = ? AND user_id = ?').run(newRole, workspaceId, userId);
+    db.prepare("UPDATE workspaces SET updated_at = datetime('now') WHERE id = ?").run(workspaceId);
     return true;
 }
 
@@ -603,6 +625,103 @@ export function getChatsForUser(userId) {
         JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = ?
         ORDER BY c.updated_at DESC
     `).all(userId);
+}
+
+/** @param {number[]} chatIds */
+export function getBatchChatParticipants(chatIds) {
+    const db = getDb();
+    if (!chatIds.length) return new Map();
+    const ph = chatIds.map(() => '?').join(',');
+    const rows = db.prepare(`
+        SELECT cp.chat_id, u.id, u.username, u.email
+        FROM chat_participants cp
+        JOIN users u ON u.id = cp.user_id
+        WHERE cp.chat_id IN (${ph})
+        ORDER BY cp.chat_id, u.id
+    `).all(...chatIds);
+    /** @type {Map<number, { id: number, username: string | null, email: string | null }[]>} */
+    const map = new Map();
+    for (const r of rows) {
+        const list = map.get(r.chat_id) || [];
+        list.push({ id: r.id, username: r.username, email: r.email });
+        map.set(r.chat_id, list);
+    }
+    return map;
+}
+
+/** @param {number} userId @param {number[]} chatIds */
+export function getBatchUnreadCounts(userId, chatIds) {
+    const db = getDb();
+    if (!chatIds.length) return new Map();
+    const ph = chatIds.map(() => '?').join(',');
+    const rows = db.prepare(`
+        SELECT
+            cp.chat_id,
+            CASE
+                WHEN cp.last_read_at IS NULL THEN
+                    (SELECT COUNT(*) FROM messages m WHERE m.chat_id = cp.chat_id AND m.sender_id != ?)
+                ELSE
+                    (SELECT COUNT(*) FROM messages m WHERE m.chat_id = cp.chat_id AND m.sender_id != ? AND m.created_at > cp.last_read_at)
+            END AS unread
+        FROM chat_participants cp
+        WHERE cp.user_id = ? AND cp.chat_id IN (${ph})
+    `).all(userId, userId, userId, ...chatIds);
+    return new Map(rows.map((r) => [r.chat_id, r.unread || 0]));
+}
+
+/** @param {number} userId @param {number[]} candidateOtherIds */
+export function getUserIdsSharingWorkspaceWith(userId, candidateOtherIds) {
+    const db = getDb();
+    if (!candidateOtherIds.length) return new Set();
+    const ph = candidateOtherIds.map(() => '?').join(',');
+    const rows = db.prepare(`
+        SELECT DISTINCT wm2.user_id AS other_id
+        FROM workspace_members wm1
+        JOIN workspace_members wm2 ON wm2.workspace_id = wm1.workspace_id AND wm2.user_id IN (${ph})
+        WHERE wm1.user_id = ?
+    `).all(...candidateOtherIds, userId);
+    return new Set(rows.map((r) => r.other_id));
+}
+
+/**
+ * Chat list for sidebar: same shape as previous N+1 route, fewer DB round-trips.
+ */
+export function getChatsListEnriched(userId) {
+    const chats = getChatsForUser(userId);
+    if (!chats.length) return [];
+    const chatIds = chats.map((c) => c.id);
+    const participantsMap = getBatchChatParticipants(chatIds);
+    const unreadMap = getBatchUnreadCounts(userId, chatIds);
+    const otherIds = [];
+    for (const cid of chatIds) {
+        const parts = participantsMap.get(cid) || [];
+        const other = parts.find((p) => p.id !== userId);
+        if (other) otherIds.push(other.id);
+    }
+    const uniqueOthers = [...new Set(otherIds)];
+    const shareSet = getUserIdsSharingWorkspaceWith(userId, uniqueOthers);
+
+    return chats
+        .map((c) => {
+            const participants = participantsMap.get(c.id) || [];
+            const otherUser = participants.find((p) => p.id !== userId) || null;
+            if (otherUser && !shareSet.has(otherUser.id)) return null;
+            const chat = {
+                id: c.id,
+                type: c.type,
+                name: c.name,
+                updated_at: c.updated_at,
+                last_message: c.last_message,
+                last_message_at: c.last_message_at,
+            };
+            return {
+                ...chat,
+                participants,
+                otherUser,
+                unread: unreadMap.get(c.id) ?? 0,
+            };
+        })
+        .filter(Boolean);
 }
 
 export function getChatWithParticipants(chatId, userId) {

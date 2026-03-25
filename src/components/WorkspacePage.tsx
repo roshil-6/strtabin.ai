@@ -3,7 +3,7 @@
  * Structured team workspace with tabs, tools, and overview
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
@@ -87,6 +87,7 @@ export default function WorkspacePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'team' | 'tasks' | 'activity'>('overview');
   const [projectStatusFilter, setProjectStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const workspaceRevisionRef = useRef<string | null>(null);
 
   const workspaceId = id ? parseInt(id, 10) : NaN;
   const isTeam = workspace?.type === 'team';
@@ -109,6 +110,7 @@ export default function WorkspacePage() {
       setActivities(data.activities || []);
       setCurrentUserRole(data.currentUserRole || null);
       setCurrentUserId(data.currentUserId ?? null);
+      if (typeof data.revision === 'string') workspaceRevisionRef.current = data.revision;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load workspace';
       toast.error(msg === 'Workspace not found.' ? 'This workspace doesn\'t exist or was removed.' : msg);
@@ -135,7 +137,19 @@ export default function WorkspacePage() {
 
   useEffect(() => {
     if (!workspace || !isTeam) return;
-    const interval = setInterval(() => load(), 30000);
+    const tick = async () => {
+      const token = await getToken();
+      if (!token) return;
+      try {
+        const { revision } = await workspaceService.getWorkspaceRevision(workspaceId, token);
+        if (revision == null) return;
+        if (workspaceRevisionRef.current !== null && revision === workspaceRevisionRef.current) return;
+        await load();
+      } catch {
+        /* ignore transient errors */
+      }
+    };
+    const interval = setInterval(tick, 30000);
     return () => clearInterval(interval);
   }, [workspaceId, workspace, isTeam]);
 

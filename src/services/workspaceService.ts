@@ -116,7 +116,20 @@ export const workspaceService = {
   },
 
   async getWorkspace(id: number, token: string | null) {
-    return fetchWithAuth(`/api/workspaces/${id}`, {}, token);
+    return fetchWithAuth(`/api/workspaces/${id}`, {}, token) as Promise<{
+      workspace: Workspace;
+      members: WorkspaceMember[];
+      projects: Project[];
+      activities: ActivityLog[];
+      currentUserRole: string | null;
+      currentUserId: number | null;
+      revision?: string | null;
+    }>;
+  },
+
+  /** Lightweight poll for team workspace sync (compare to full `getWorkspace` revision). */
+  async getWorkspaceRevision(id: number, token: string | null) {
+    return fetchWithAuth(`/api/workspaces/${id}/revision`, {}, token) as Promise<{ revision: string | null }>;
   },
 
   async inviteMember(

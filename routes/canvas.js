@@ -4,30 +4,7 @@
 
 import crypto from 'crypto';
 import { getOrCreateUser, createSharedCanvas, getSharedCanvas } from '../db/models.js';
-import { getClerkUserCached } from '../lib/clerkUserCache.js';
-
-async function requireAuthMiddleware(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized.' });
-    }
-    const token = authHeader.slice(7).trim();
-    const clerk = req.app.locals?.clerk;
-    if (!clerk) return res.status(503).json({ error: 'Auth not configured.' });
-
-    try {
-        const payloadB64 = token.split('.')[1];
-        if (!payloadB64) throw new Error('Malformed token.');
-        const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-        const clerkId = decoded.sub;
-        if (!clerkId) throw new Error('No sub claim.');
-        const clerkUser = await getClerkUserCached(clerk, clerkId);
-        req.userId = getOrCreateUser(clerkUser);
-        next();
-    } catch (err) {
-        return res.status(401).json({ error: 'Invalid token.' });
-    }
-}
+import { requireClerkAuth as requireAuthMiddleware } from '../middleware/requireClerkAuth.js';
 
 export function registerCanvasRoutes(app, clerkClient) {
     app.locals.clerk = clerkClient;

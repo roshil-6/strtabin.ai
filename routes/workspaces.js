@@ -50,38 +50,11 @@ import {
     saveProjectCanvas,
     getProjectCanvas,
     joinWorkspaceById,
+    getWorkspaceRevision,
 } from '../db/models.js';
 import { getClerkUserCached } from '../lib/clerkUserCache.js';
-
-// ─── Auth middleware: requires valid Clerk token, sets req.userId (our internal id) ─
-async function requireAuthMiddleware(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized: no token provided.' });
-    }
-    const token = authHeader.slice(7).trim();
-    if (!token) return res.status(401).json({ error: 'Unauthorized: empty token.' });
-
-    const clerk = req.app.locals?.clerk;
-    if (!clerk) return res.status(503).json({ error: 'Auth service not configured.' });
-
-    try {
-        const payloadB64 = token.split('.')[1];
-        if (!payloadB64) throw new Error('Malformed token.');
-        const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-        const clerkId = decoded.sub;
-        if (!clerkId) throw new Error('No sub claim.');
-        const clerkUser = await clerk.users.getUser(clerkId);
-        const userId = getOrCreateUser(clerkUser);
-        req.clerkUser = clerkUser;
-        req.userId = userId;
-        req.clerkUserId = clerkId;
-        next();
-    } catch (err) {
-        console.error('Auth failed:', err?.message || err);
-        return res.status(401).json({ error: 'Invalid or expired token.' });
-    }
-}
+import { verifyBearerSub } from '../lib/clerkAuth.js';
+import { requireClerkAuth as requireAuthMiddleware } from '../middleware/requireClerkAuth.js';
 
 // ─── Input validation helpers ───────────────────────────────────────────────
 function sanitizeStr(val, maxLen = 200) {
@@ -201,6 +174,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const activities = getWorkspaceActivity(id, 30);
             const myMember = members.find(m => m.id === req.userId);
             const currentUserRole = ws.owner_id === req.userId ? 'admin' : (myMember?.role || null);
+            const rev = getWorkspaceRevision(id);
 
             return res.json({
                 workspace: ws,
@@ -208,6 +182,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 projects,
                 currentUserRole,
                 currentUserId: req.userId,
+                revision: rev?.revision ?? null,
                 activities: activities.map(a => ({
                     ...a,
                     metadata: a.metadata ? JSON.parse(a.metadata) : null,
@@ -216,6 +191,25 @@ export function registerWorkspaceRoutes(app, clerkClient) {
         } catch (err) {
             console.error('Get workspace error:', err);
             return res.status(500).json({ error: 'Failed to load workspace.' });
+        }
+    });
+
+    // GET /api/workspaces/:id/revision — lightweight poll (team sync without full payload)
+    app.get('/api/workspaces/:id/revision', requireAuthMiddleware, (req, res) => {
+        try {
+            const id = parseInt(req.params.id, 10);
+            if (isNaN(id)) return res.status(400).json({ error: 'Invalid workspace ID.' });
+
+            const ws = getWorkspace(id);
+            if (!ws) return res.status(404).json({ error: 'Workspace not found.' });
+            if (!hasWorkspaceAccess(req.userId, id)) {
+                return res.status(403).json({ error: 'Access denied.' });
+            }
+            const rev = getWorkspaceRevision(id);
+            return res.json({ revision: rev?.revision ?? null });
+        } catch (err) {
+            console.error('Workspace revision error:', err);
+            return res.status(500).json({ error: 'Failed to load revision.' });
         }
     });
 
@@ -689,18 +683,12 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (authHeader?.startsWith('Bearer ')) {
                 const token = authHeader.slice(7).trim();
                 const clerk = req.app.locals?.clerk;
-                if (clerk && token) {
+                const sub = token && clerk ? await verifyBearerSub(token) : null;
+                if (sub && clerk) {
                     try {
-                        const payloadB64 = token.split('.')[1];
-                        if (payloadB64) {
-                            const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-                            const clerkId = decoded.sub;
-                            if (clerkId) {
-                                const clerkUser = await getClerkUserCached(clerk, clerkId);
-                                const viewerId = getOrCreateUser(clerkUser);
-                                canChat = viewerId !== user.id && doUsersShareWorkspace(viewerId, user.id);
-                            }
-                        }
+                        const clerkUser = await getClerkUserCached(clerk, sub);
+                        const viewerId = getOrCreateUser(clerkUser);
+                        canChat = viewerId !== user.id && doUsersShareWorkspace(viewerId, user.id);
                     } catch { /* ignore */ }
                 }
             }

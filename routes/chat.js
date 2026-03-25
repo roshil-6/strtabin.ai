@@ -30,13 +30,12 @@ const upload = multer({
 });
 
 import {
-    getOrCreateUser,
     getUserById,
     getUsersWhoShareWorkspaceWith,
     searchUsersForChat,
     doUsersShareWorkspace,
     getOrCreateDirectChat,
-    getChatsForUser,
+    getChatsListEnriched,
     getChatWithParticipants,
     getMessages,
     createMessage,
@@ -44,30 +43,7 @@ import {
     markChatRead,
     getUnreadCount,
 } from '../db/models.js';
-import { getClerkUserCached } from '../lib/clerkUserCache.js';
-
-async function requireAuthMiddleware(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized.' });
-    }
-    const token = authHeader.slice(7).trim();
-    const clerk = req.app.locals?.clerk;
-    if (!clerk) return res.status(503).json({ error: 'Auth not configured.' });
-
-    try {
-        const payloadB64 = token.split('.')[1];
-        if (!payloadB64) throw new Error('Malformed token.');
-        const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-        const clerkId = decoded.sub;
-        if (!clerkId) throw new Error('No sub claim.');
-        const clerkUser = await getClerkUserCached(clerk, clerkId);
-        req.userId = getOrCreateUser(clerkUser);
-        next();
-    } catch (err) {
-        return res.status(401).json({ error: 'Invalid token.' });
-    }
-}
+import { requireClerkAuth as requireAuthMiddleware } from '../middleware/requireClerkAuth.js';
 
 function sanitize(str, max = 10000) {
     return str == null ? '' : String(str).trim().slice(0, max);
@@ -120,18 +96,8 @@ export function registerChatRoutes(app, clerkClient) {
     // GET /api/chats - list user's chats (only with users who share a workspace)
     app.get('/api/chats', requireAuthMiddleware, (req, res) => {
         try {
-            const chats = getChatsForUser(req.userId);
-            const enriched = chats
-                .map(c => {
-                    const detail = getChatWithParticipants(c.id, req.userId);
-                    const unread = getUnreadCount(c.id, req.userId);
-                    return { ...c, ...detail, unread };
-                })
-                .filter(c => {
-                    const otherId = c.otherUser?.id;
-                    return !otherId || doUsersShareWorkspace(req.userId, otherId);
-                });
-            return res.json({ chats: enriched });
+            const chats = getChatsListEnriched(req.userId);
+            return res.json({ chats });
         } catch (err) {
             console.error('Chats error:', err);
             return res.status(500).json({ error: 'Failed to load chats.' });

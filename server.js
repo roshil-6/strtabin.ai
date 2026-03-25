@@ -7,7 +7,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
@@ -17,6 +18,8 @@ import { registerChatRoutes } from './routes/chat.js';
 import { getOrCreateUser } from './db/models.js';
 import { initDb, isDbReady } from './db/index.js';
 import { getClerkUserCached, invalidateClerkUserCache } from './lib/clerkUserCache.js';
+import { resolveBearerToClerkUser, verifyBearerSub } from './lib/clerkAuth.js';
+import { initRedisInfrastructure } from './lib/redisInfra.js';
 
 dotenv.config();
 
@@ -58,6 +61,12 @@ const allowedOrigins = envOrigins.length > 0
       ];
 
 const app = express();
+
+// Behind Railway/Render/Vercel proxy, req.ip must reflect the client for rate limits
+const trustProxyEnv = process.env.TRUST_PROXY;
+if (trustProxyEnv === '1' || trustProxyEnv === 'true') {
+    app.set('trust proxy', 1);
+}
 
 function isAllowedOrigin(origin) {
     if (!origin) return false;
@@ -233,14 +242,8 @@ app.post('/api/payments/create-link', async (req, res) => {
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     if (token && clerk) {
         try {
-            const payloadB64 = token.split('.')[1];
-            if (payloadB64) {
-                const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-                if (decoded.sub) {
-                    await getClerkUserCached(clerk, decoded.sub);
-                    clerkUserId = decoded.sub;
-                }
-            }
+            const sub = await verifyBearerSub(token);
+            if (sub) clerkUserId = sub;
         } catch { /* ignore — create link without notes */ }
     }
 
@@ -299,21 +302,13 @@ app.post('/api/payments/verify', async (req, res) => {
         return res.status(401).json({ error: 'Missing authorization token.' });
     }
 
-    // Decode JWT payload (middle part) to extract sub (user ID) without JWKS dependency.
-    // We then validate by fetching the real Clerk user — if the user doesn't exist in Clerk,
-    // the request is rejected.
     let userId;
     try {
-        const payloadB64 = token.split('.')[1];
-        if (!payloadB64) throw new Error('Malformed token.');
-        const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-        userId = decoded.sub;
-        if (!userId) throw new Error('No sub claim in token.');
-        // Validate the user actually exists in Clerk (this is the real auth check)
-        await getClerkUserCached(clerk, userId);
+        const { clerkId } = await resolveBearerToClerkUser(token, clerk);
+        userId = clerkId;
     } catch (err) {
         const errMsg = err?.message || String(err);
-        console.error('❌ Token decode/user lookup failed:', errMsg);
+        console.error('❌ Token verification failed:', errMsg);
         return res.status(401).json({ error: 'Invalid or expired token.', detail: errMsg });
     }
 
@@ -403,12 +398,8 @@ app.post('/api/user/set-credentials', async (req, res) => {
     if (!token) return res.status(401).json({ error: 'Missing authorization token.' });
     let userId;
     try {
-        const payloadB64 = token.split('.')[1];
-        if (!payloadB64) throw new Error('Malformed token.');
-        const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-        userId = decoded.sub;
-        if (!userId) throw new Error('No sub claim.');
-        await getClerkUserCached(clerk, userId);
+        const { clerkId } = await resolveBearerToClerkUser(token, clerk);
+        userId = clerkId;
     } catch (err) {
         return res.status(401).json({ error: 'Invalid or expired token.' });
     }
@@ -437,6 +428,18 @@ app.post('/api/user/set-credentials', async (req, res) => {
     }
 });
 
+// ─── Verified Clerk `sub` for /api (rate-limit keys; no forged JWT payload) ─
+app.use(async (req, res, next) => {
+    req.clerkVerifiedSub = null;
+    if (!clerk || !CLERK_SECRET_KEY) return next();
+    if (!req.path.startsWith('/api')) return next();
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ')) return next();
+    const sub = await verifyBearerSub(auth.slice(7).trim());
+    if (sub) req.clerkVerifiedSub = sub;
+    next();
+});
+
 // ─── Security Headers (helmet) ────────────────────────────────────────────
 app.use(helmet({
     crossOriginEmbedderPolicy: false,
@@ -451,23 +454,21 @@ app.use(helmet({
     }
 }));
 
+const redisInfra = await initRedisInfrastructure();
+const redisSendCommand = redisInfra.sendCommand;
+const applySocketRedisAdapter = redisInfra.applySocketAdapter;
+const mkRedisStore = (prefix) =>
+    redisSendCommand ? new RedisStore({ sendCommand: redisSendCommand, prefix }) : undefined;
+
 // ─── Global rate limit: relaxed defaults; per-user when Bearer JWT has `sub` ─
 // Env: RATE_LIMIT_GLOBAL_WINDOW_MS, RATE_LIMIT_GLOBAL_MAX, RATE_LIMIT_GLOBAL_SKIP_CANVAS_POST=1
+// With REDIS_URL: counts are shared across all server instances.
 const GLOBAL_RL_WINDOW_MS = Number(process.env.RATE_LIMIT_GLOBAL_WINDOW_MS || 15 * 60 * 1000);
 const GLOBAL_RL_MAX = Number(process.env.RATE_LIMIT_GLOBAL_MAX || 500);
 
 function clerkSubFromBearer(req) {
-    const auth = req.headers.authorization;
-    if (!auth || !auth.startsWith('Bearer ') || auth.length < 24) return null;
-    try {
-        const token = auth.slice(7).trim();
-        const payloadB64 = token.split('.')[1];
-        if (!payloadB64) return null;
-        const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-        return typeof decoded?.sub === 'string' && decoded.sub.length > 0 ? decoded.sub : null;
-    } catch {
-        return null;
-    }
+    const sub = req.clerkVerifiedSub;
+    return typeof sub === 'string' && sub.length > 0 ? sub : null;
 }
 
 const globalLimiter = rateLimit({
@@ -475,11 +476,13 @@ const globalLimiter = rateLimit({
     max: GLOBAL_RL_MAX,
     standardHeaders: true,
     legacyHeaders: false,
+    store: mkRedisStore('rl:sbx:global'),
     message: { error: 'Too many requests. Please wait before trying again.' },
     keyGenerator: (req) => {
         const sub = clerkSubFromBearer(req);
         if (sub) return `user:${sub}`;
-        return req.ip || req.socket?.remoteAddress || 'unknown';
+        const ip = req.ip || req.socket?.remoteAddress || '127.0.0.1';
+        return ipKeyGenerator(ip);
     },
     skip: (req) => {
         if (req.path === '/' || req.path === '/health' || req.path === '/api/health') return true;
@@ -500,12 +503,14 @@ const aiLimiter = rateLimit({
     max: AI_RL_MAX,
     standardHeaders: true,
     legacyHeaders: false,
+    store: mkRedisStore('rl:sbx:ai'),
     message: { error: 'AI request limit reached. Please wait a few minutes.' },
     skipSuccessfulRequests: false,
     keyGenerator: (req) => {
         const sub = clerkSubFromBearer(req);
         if (sub) return `ai:user:${sub}`;
-        return `ai:ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`;
+        const ip = req.ip || req.socket?.remoteAddress || '127.0.0.1';
+        return `ai:ip:${ipKeyGenerator(ip)}`;
     },
 });
 
@@ -517,6 +522,7 @@ const guestAiLimiter = rateLimit({
     max: GUEST_AI_MAX,
     standardHeaders: true,
     legacyHeaders: false,
+    store: mkRedisStore('rl:sbx:guest'),
     message: { error: 'Guest AI limit reached. Sign up to continue.' },
     skipSuccessfulRequests: false,
 });
@@ -549,17 +555,11 @@ async function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'Unauthorized: empty token.' });
     }
 
-    // If Clerk is configured, verify the token cryptographically
     if (clerk) {
         try {
-            const payloadB64 = token.split('.')[1];
-            if (!payloadB64) throw new Error('Malformed token.');
-            const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-            const uid = decoded.sub;
-            if (!uid) throw new Error('No sub claim.');
-            await getClerkUserCached(clerk, uid);
+            await resolveBearerToClerkUser(token, clerk);
         } catch (clerkErr) {
-            console.error('❌ requireAuth user lookup failed:', clerkErr?.message || clerkErr);
+            console.error('❌ requireAuth verification failed:', clerkErr?.message || clerkErr);
             return res.status(401).json({ error: 'Unauthorized: invalid token.' });
         }
     }
@@ -1098,20 +1098,18 @@ const io = new Server(httpServer, {
 });
 app.locals.io = io;
 
+if (applySocketRedisAdapter) {
+    applySocketRedisAdapter(io);
+    console.log('📦 Socket.io using Redis adapter (multi-instance safe)');
+}
+
 io.on('connection', async (socket) => {
     const token = socket.handshake.auth?.token;
     let userId = null;
     if (token && clerk) {
         try {
-            const payloadB64 = token.split('.')[1];
-            if (payloadB64) {
-                const decoded = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-                const clerkId = decoded.sub;
-                if (clerkId) {
-                    const clerkUser = await getClerkUserCached(clerk, clerkId);
-                    userId = getOrCreateUser(clerkUser);
-                }
-            }
+            const { clerkUser } = await resolveBearerToClerkUser(String(token), clerk);
+            userId = getOrCreateUser(clerkUser);
         } catch { /* ignore */ }
     }
     if (!userId) {
