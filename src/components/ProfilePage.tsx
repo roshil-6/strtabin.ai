@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, UserProfile, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft,
@@ -27,6 +27,7 @@ import {
   ExternalLink,
   ChevronRight,
   Network,
+  KeyRound,
 } from 'lucide-react';
 import { workspaceService } from '../services/workspaceService';
 import { chatService } from '../services/chatService';
@@ -83,6 +84,7 @@ export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const { user: clerkUser, isLoaded: clerkUserLoaded } = useUser();
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,6 +95,7 @@ export default function ProfilePage() {
   const [inviteModal, setInviteModal] = useState(false);
   const [workspaces, setWorkspaces] = useState<Array<{ id: number; name: string; type: string; role?: string }>>([]);
   const [invitingWs, setInvitingWs] = useState<number | null>(null);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
 
   const isOwnProfile = data && currentUserId === data.user.id;
   const displayName = data?.user?.username || data?.user?.email || 'Anonymous';
@@ -361,6 +364,16 @@ export default function ProfilePage() {
                     <Network size={18} />
                     Community
                   </button>
+                  {clerkUserLoaded && clerkUser && (
+                    <button
+                      type="button"
+                      onClick={() => setShowSecurityModal(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-[var(--text)] hover:bg-[var(--input-bg)] font-bold text-sm transition-all"
+                    >
+                      <KeyRound size={18} />
+                      Password & security
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
@@ -506,6 +519,51 @@ export default function ProfilePage() {
                   </button>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSecurityModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="security-modal-title"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm"
+          onClick={(e) => e.target === e.currentTarget && setShowSecurityModal(false)}
+        >
+          <div
+            className="relative flex flex-col w-full max-w-lg max-h-[min(90dvh,800px)] rounded-2xl bg-[var(--bg-page)] border border-[var(--border)] shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-[var(--border)] shrink-0">
+              <div>
+                <h2 id="security-modal-title" className="text-base font-black text-[var(--text)]">
+                  Account & security
+                </h2>
+                <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                  Open <span className="font-semibold text-[var(--text)]">Security</span> to change your password.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSecurityModal(false)}
+                className="p-2 rounded-xl hover:bg-[var(--input-bg)] text-[var(--text-muted)] shrink-0"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 min-h-[280px] p-2 sm:p-4">
+              <UserProfile
+                routing="hash"
+                appearance={{
+                  elements: {
+                    rootBox: 'w-full',
+                    card: 'shadow-none border-0 bg-transparent',
+                  },
+                }}
+              />
             </div>
           </div>
         </div>
