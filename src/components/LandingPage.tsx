@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
-import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, UserX, Users } from 'lucide-react';
+import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, User, Lock, Menu } from 'lucide-react';
 
 import { fetchPaymentLink, GUEST_TRIAL_KEY } from '../constants';
 import HexagonBackground from './HexagonBackground';
@@ -13,23 +13,24 @@ export default function LandingPage() {
     const { isSignedIn, isLoaded: authLoaded, getToken } = useAuth();
     const [showHowTo, setShowHowTo] = useState(false);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
-    const [showGetStartedDropdown, setShowGetStartedDropdown] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const [formEmail, setFormEmail] = useState('');
+    const [formUsername, setFormUsername] = useState('');
+    const [formPassword, setFormPassword] = useState('');
+    const mobileNavRef = useRef<HTMLDivElement>(null);
 
     const isLoaded = authLoaded;
 
     useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setShowGetStartedDropdown(false);
+        const close = (e: MouseEvent) => {
+            if (mobileNavRef.current && !mobileNavRef.current.contains(e.target as Node)) {
+                setMobileNavOpen(false);
             }
         };
-        if (showGetStartedDropdown) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showGetStartedDropdown]);
+        if (mobileNavOpen) document.addEventListener('mousedown', close);
+        return () => document.removeEventListener('mousedown', close);
+    }, [mobileNavOpen]);
 
     useEffect(() => {
         if (authLoaded && isSignedIn) {
@@ -48,6 +49,30 @@ export default function LandingPage() {
             localStorage.setItem(GUEST_TRIAL_KEY, Date.now().toString());
         }
         navigate('/dashboard', { replace: true });
+    };
+
+    const handleLandingGetStarted = (e: FormEvent) => {
+        e.preventDefault();
+        const email = formEmail.trim();
+        const username = formUsername.trim();
+        const password = formPassword;
+        if (!email && (!username || !password)) {
+            toast.error('Enter your email for a free code, or username and password to sign in.');
+            return;
+        }
+        try {
+            sessionStorage.setItem(
+                'stratabin-auth-prefill',
+                JSON.stringify({ email: email || undefined, username: username || undefined, password: password || undefined }),
+            );
+        } catch {
+            /* ignore */
+        }
+        navigate('/auth');
+    };
+
+    const scrollToDiscover = () => {
+        document.getElementById('discover')?.scrollIntoView({ behavior: 'smooth' });
     };
 
     const handlePayment = async () => {
@@ -100,173 +125,232 @@ export default function LandingPage() {
             <HexagonBackground />
 
             {/* Header */}
-            <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-panel)_88%,transparent)] backdrop-blur-xl backdrop-saturate-150">
-                <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 md:w-10 md:h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10">
-                            <img src="/favicon.png" alt="Stratabin — AI workspace and strategy planner for ideas" className="w-full h-full object-contain" />
+            <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-panel)_92%,transparent)] backdrop-blur-xl backdrop-saturate-150">
+                <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 h-14 sm:h-16 md:h-20 flex items-center justify-between gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 shrink">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white rounded-lg sm:rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10 shrink-0">
+                            <img src="/favicon.png" alt="" className="w-full h-full object-contain" />
                         </div>
-                        <span className="text-xl md:text-2xl font-black tracking-tighter text-white">Stratabin<span className="text-primary">.</span></span>
+                        <span className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-white truncate">Stratabin<span className="text-primary">.</span></span>
                     </div>
-                    <nav className="flex items-center gap-2 md:gap-4">
+                    <nav className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
                         <ThemeToggle />
-                        <button
-                            onClick={() => setShowHowTo(true)}
-                            className="text-xs md:text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 flex items-center"
-                        >
-                            How it Works
-                        </button>
-                        <Link
-                            to="/features"
-                            className="hidden md:flex text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 items-center"
-                        >
-                            Features
-                        </Link>
-                        <Link
-                            to="/#pricing"
-                            onClick={(e) => {
-                                if (window.location.pathname === '/') {
-                                    e.preventDefault();
-                                    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
-                                }
-                            }}
-                            className="flex text-xs md:text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 items-center"
-                        >
-                            Pricing
-                        </Link>
-                        <button
-                            onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-                            className="hidden md:flex text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 items-center"
-                        >
-                            FAQ
-                        </button>
-                        <div className="relative" ref={dropdownRef}>
-                            {isSignedIn ? (
-                                <button
-                                    onClick={() => navigate('/dashboard')}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
-                                >
-                                    Go to Dashboard
-                                    <ArrowRight size={14} />
-                                </button>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={() => setShowGetStartedDropdown(!showGetStartedDropdown)}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
-                                    >
-                                        Get Started
-                                        <ChevronDown size={14} className={`transition-transform ${showGetStartedDropdown ? 'rotate-180' : ''}`} />
+                        <div className="hidden lg:flex items-center gap-1">
+                            <button type="button" onClick={() => setShowHowTo(true)} className="text-sm font-semibold text-white/40 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5">
+                                How it works
+                            </button>
+                            <Link to="/features" className="text-sm font-semibold text-white/40 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5">
+                                Features
+                            </Link>
+                            <Link
+                                to="/#pricing"
+                                onClick={(e) => {
+                                    if (window.location.pathname === '/') {
+                                        e.preventDefault();
+                                        document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                                    }
+                                }}
+                                className="text-sm font-semibold text-white/40 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5"
+                            >
+                                Pricing
+                            </Link>
+                            <button type="button" onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm font-semibold text-white/40 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5">
+                                FAQ
+                            </button>
+                        </div>
+                        <div className="relative lg:hidden" ref={mobileNavRef}>
+                            <button
+                                type="button"
+                                onClick={() => setMobileNavOpen((o) => !o)}
+                                className="flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 bg-white/[0.04] text-white/80 hover:bg-white/10"
+                                aria-expanded={mobileNavOpen}
+                                aria-label="Menu"
+                            >
+                                <Menu size={20} />
+                            </button>
+                            {mobileNavOpen && (
+                                <div className="absolute right-0 top-full mt-2 w-52 py-2 rounded-xl border border-white/10 bg-[color-mix(in_srgb,var(--bg-panel)_96%,black)] shadow-xl backdrop-blur-xl z-50">
+                                    <button type="button" onClick={() => { setMobileNavOpen(false); setShowHowTo(true); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10">
+                                        How it works
                                     </button>
-                                    {showGetStartedDropdown && (
-                                        <div className="absolute right-0 top-full mt-2 py-2 min-w-[200px] bg-[var(--bg-muted)] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
-                                            <button
-                                                onClick={() => {
-                                                    setShowGetStartedDropdown(false);
-                                                    handleGuestAccess();
-                                                }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
-                                            >
-                                                <UserX size={16} className="text-primary" />
-                                                Continue as Guest
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setShowGetStartedDropdown(false);
-                                                    navigate('/auth');
-                                                }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
-                                            >
-                                                <Mail size={16} className="text-primary" />
-                                                Email Login
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
+                                    <Link to="/features" onClick={() => setMobileNavOpen(false)} className="block px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10">
+                                        Features
+                                    </Link>
+                                    <Link
+                                        to="/#pricing"
+                                        onClick={(e) => {
+                                            setMobileNavOpen(false);
+                                            if (window.location.pathname === '/') {
+                                                e.preventDefault();
+                                                document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                                            }
+                                        }}
+                                        className="block px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
+                                    >
+                                        Pricing
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setMobileNavOpen(false);
+                                            document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' });
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
+                                    >
+                                        FAQ
+                                    </button>
+                                    <Link
+                                        to="/auth"
+                                        onClick={() => setMobileNavOpen(false)}
+                                        className="block px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10 border-t border-white/10 mt-1 pt-2"
+                                    >
+                                        Sign in
+                                    </Link>
+                                    <button type="button" onClick={() => { setMobileNavOpen(false); handleGuestAccess(); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-primary hover:bg-white/10">
+                                        Continue as guest
+                                    </button>
+                                </div>
                             )}
                         </div>
+                        {isSignedIn ? (
+                            <button
+                                type="button"
+                                onClick={() => navigate('/dashboard')}
+                                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-xs sm:text-sm whitespace-nowrap"
+                            >
+                                Dashboard
+                                <ArrowRight size={14} className="opacity-80" />
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={handleGuestAccess}
+                                    className="hidden lg:inline-flex text-xs font-semibold text-white/45 hover:text-white px-2 py-2 rounded-xl hover:bg-white/5 whitespace-nowrap"
+                                >
+                                    Guest
+                                </button>
+                                <Link
+                                    to="/auth"
+                                    className="shrink-0 text-xs sm:text-sm font-semibold text-white/50 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5 whitespace-nowrap"
+                                >
+                                    Sign in
+                                </Link>
+                            </>
+                        )}
                     </nav>
                 </div>
             </header>
 
-            {/* H1 Hero — primary keyword in first 100 words */}
-            <section id="hero-cta" className="pt-32 md:pt-40 pb-16 md:pb-20 px-4 md:px-6 text-center">
-                <div className="max-w-4xl mx-auto">
-                    <div className="mb-10 flex justify-center animate-in fade-in zoom-in duration-1000">
-                        <div className="relative w-20 h-20 md:w-24 md:h-24 bg-white rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center overflow-hidden shadow-2xl border-4 border-white/5">
-                            <img src="/favicon.png" alt="Stratabin — AI workspace and strategy planner for ideas" className="w-full h-full object-contain" />
-                        </div>
-                    </div>
-
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.06] text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-                        <Zap size={13} />
-                        AI Workspace & Strategy Planner for Ideas
-                    </div>
-
-                    <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.03em] leading-[1.08] mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 break-words">
-                        Unscatter your ideas. <br />
-                        <span className="text-[var(--text-muted)] font-semibold">Notes, flows, and AI.</span>
+            {/* Hero — tagline + signup only; everything else below #discover */}
+            <section id="hero-signup" className="pt-24 sm:pt-28 md:pt-36 pb-8 sm:pb-12 px-4 md:px-6 scroll-mt-20 min-h-[calc(100dvh-3.5rem)] flex flex-col justify-center">
+                <div className="max-w-lg mx-auto w-full text-center">
+                    <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">Stratabin</p>
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-[1.12] mb-3">
+                        Unscatter your ideas.
                     </h1>
-
-                    <p className="text-base md:text-lg text-[var(--text-muted)] max-w-2xl mx-auto mb-6 leading-relaxed font-normal px-2">
-                        Stratabin is the AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI — unscatter your thoughts and turn them into execution plans.
+                    <p className="text-sm sm:text-base text-[var(--text-muted)] mb-8 max-w-md mx-auto leading-relaxed">
+                        One workspace for notes, flow canvases, and STRAB AI — plan and execute in one place.
                     </p>
 
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-                        <Users size={13} />
-                        Now with Team Workspaces — Build & execute together
-                    </div>
-
-                    {/* Demo Video */}
-                    <div className="w-full max-w-3xl mx-auto mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400">
-                        <div className="relative pro-hero-video overflow-hidden aspect-video">
-                            <video
-                                src="/strtabin%20ad%203.mp4"
-                                controls
-                                playsInline
-                                className="w-full h-full object-contain"
-                            >
-                                Your browser does not support the video tag.
-                            </video>
-                        </div>
-                        <p className="text-center text-white/30 text-xs mt-3 font-medium">See Stratabin in action</p>
-                    </div>
-
-                    <div className="flex items-center justify-center gap-2 mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300">
-                        <div className="px-3 py-1 bg-white/[0.04] border border-white/[0.06] rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.15em] text-primary flex items-center gap-2">
-                            <Zap size={10} fill="currentColor" />
-                            For Students & Professionals
-                        </div>
-                    </div>
-
-                    <div className="scroll-mt-24">
                     {!isLoaded ? (
-                        <div className="flex items-center justify-center gap-3 px-8 py-4 bg-white/5 border border-white/10 rounded-2xl animate-pulse mx-auto w-fit">
-                            <div className="w-5 h-5 border-2 border-white/10 border-t-white rounded-full animate-spin" />
-                            <span className="text-sm font-bold text-white/40 uppercase tracking-widest">Checking access...</span>
+                        <div className="flex items-center justify-center gap-3 px-6 py-4 bg-white/[0.04] border border-white/10 rounded-2xl animate-pulse mx-auto w-full max-w-md">
+                            <div className="w-5 h-5 border-2 border-white/10 border-t-white rounded-full animate-spin shrink-0" />
+                            <span className="text-xs font-semibold text-white/45">Loading…</span>
                         </div>
                     ) : isSignedIn ? (
                         <button
+                            type="button"
                             onClick={() => navigate('/dashboard')}
-                            className="group relative flex items-center gap-3 px-7 md:px-8 py-3.5 md:py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_4px_30px_rgba(255,119,86,0.3)] active:scale-95 mx-auto text-sm md:text-base"
+                            className="w-full max-w-md mx-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-black font-bold rounded-2xl hover:bg-white transition-all text-sm shadow-lg"
                         >
                             <Zap size={18} fill="currentColor" />
-                            Go to Dashboard
-                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            Go to dashboard
+                            <ArrowRight size={18} />
                         </button>
                     ) : (
-                        <button
-                            onClick={() => navigate('/auth')}
-                            className="group relative flex items-center gap-3 px-7 md:px-8 py-3.5 md:py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_4px_30px_rgba(255,119,86,0.3)] active:scale-95 mx-auto text-sm md:text-base"
+                        <form
+                            onSubmit={handleLandingGetStarted}
+                            className="w-full max-w-md mx-auto text-left rounded-2xl border border-white/[0.08] bg-[color-mix(in_srgb,var(--bg-panel)_75%,transparent)] backdrop-blur-xl p-5 sm:p-7 shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
                         >
-                            <Zap size={18} fill="currentColor" />
-                            Get Started
-                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
+                            <p className="text-center text-xs text-white/45 mb-5 font-medium">
+                                New here? We&apos;ll email you a code. Already have an account? Use username and password.
+                            </p>
+                            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35 mb-1.5">Email</label>
+                            <div className="relative mb-4">
+                                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+                                <input
+                                    type="email"
+                                    value={formEmail}
+                                    onChange={(e) => setFormEmail(e.target.value)}
+                                    autoComplete="email"
+                                    placeholder="you@example.com"
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white text-sm placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30"
+                                />
+                            </div>
+                            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35 mb-1.5">Username</label>
+                            <div className="relative mb-4">
+                                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+                                <input
+                                    type="text"
+                                    value={formUsername}
+                                    onChange={(e) => setFormUsername(e.target.value)}
+                                    autoComplete="username"
+                                    placeholder="For password sign-in"
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white text-sm placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30"
+                                />
+                            </div>
+                            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35 mb-1.5">Password</label>
+                            <div className="relative mb-5">
+                                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+                                <input
+                                    type="password"
+                                    value={formPassword}
+                                    onChange={(e) => setFormPassword(e.target.value)}
+                                    autoComplete="current-password"
+                                    placeholder="If you use password login"
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white text-sm placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={!isLoaded}
+                                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary text-black font-bold text-sm hover:bg-white transition-colors disabled:opacity-50 shadow-md"
+                            >
+                                <Zap size={17} fill="currentColor" />
+                                Continue
+                                <ArrowRight size={17} />
+                            </button>
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mt-4 pt-4 border-t border-white/[0.06]">
+                                <button type="button" onClick={handleGuestAccess} className="text-xs font-medium text-white/40 hover:text-white/70 transition-colors">
+                                    Continue as guest — 24h trial
+                                </button>
+                                <span className="hidden sm:inline text-white/15">·</span>
+                                <button type="button" onClick={scrollToDiscover} className="text-xs font-semibold text-primary hover:text-white transition-colors inline-flex items-center gap-1">
+                                    Product tour & pricing
+                                    <ChevronDown size={14} className="opacity-80" />
+                                </button>
+                            </div>
+                        </form>
                     )}
-                    </div>
                 </div>
             </section>
+
+            {/* Video, features, pricing, FAQ — below the fold */}
+            <div id="discover" className="scroll-mt-20">
+                <section className="py-12 md:py-16 px-4 md:px-6 border-t border-white/[0.05]">
+                    <div className="max-w-3xl mx-auto text-center mb-6">
+                        <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight mb-2">See Stratabin in action</h2>
+                        <p className="text-sm text-white/40">Walkthrough, features, and pricing below.</p>
+                    </div>
+                    <div className="w-full max-w-3xl mx-auto">
+                        <div className="relative pro-hero-video overflow-hidden rounded-2xl border border-white/10 aspect-video bg-black/40">
+                            <video src="/strtabin%20ad%203.mp4" controls playsInline className="w-full h-full object-contain">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </section>
 
             {/* H2 — What is Stratabin / Problem-Solution */}
             <section className="py-16 md:py-24 px-4 md:px-6 relative overflow-hidden">
@@ -449,6 +533,8 @@ export default function LandingPage() {
                     </div>
                 </div>
             </section>
+
+            </div>
 
             {/* Footer with semantic links */}
             <footer className="border-t border-white/[0.04] py-10 md:py-14 px-4 md:px-6">

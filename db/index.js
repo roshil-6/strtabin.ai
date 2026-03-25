@@ -11,7 +11,17 @@ import { initPostgres, attachSqlite, isPostgres } from './driver.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.DATABASE_PATH || join(__dirname, '..', 'data', 'strategybox.db');
 
-if (!process.env.DATABASE_URL?.trim() && !process.env.DATABASE_PATH) {
+/** Strip whitespace and accidental wrapping quotes from dashboard paste. */
+function normalizeDatabaseUrl(raw) {
+    if (!raw) return '';
+    let s = String(raw).trim();
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        s = s.slice(1, -1).trim();
+    }
+    return s;
+}
+
+if (!normalizeDatabaseUrl(process.env.DATABASE_URL || '') && !process.env.DATABASE_PATH) {
     console.warn('⚠️  DATABASE_PATH not set — SQLite database will be lost on redeploy.');
     console.warn('   On Render: use DATABASE_URL (Postgres) or disk + DATABASE_PATH=/data/strategybox.db');
 }
@@ -29,7 +39,7 @@ export function isDbReady() {
  * Initialize database (async when using PostgreSQL).
  */
 export async function initDb() {
-    const pgUrl = process.env.DATABASE_URL?.trim();
+    const pgUrl = normalizeDatabaseUrl(process.env.DATABASE_URL || '');
     if (pgUrl) {
         if (dbInitFailed) {
             const e = new Error('Database unavailable (initialization failed — see server logs).');

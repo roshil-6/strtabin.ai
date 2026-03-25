@@ -196,3 +196,4 @@ CREATE TABLE IF NOT EXISTS shared_canvases (
 );
 
 CREATE INDEX IF NOT EXISTS idx_shared_canvases_share_id ON shared_canvases(share_id);
+

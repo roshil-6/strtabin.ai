@@ -41,6 +41,24 @@ export default function AuthPage() {
         }
     }, [authMode, authStep]);
 
+    /** Prefill from landing page “Get started” form */
+    useEffect(() => {
+        const raw = sessionStorage.getItem('stratabin-auth-prefill');
+        if (!raw) return;
+        try {
+            const p = JSON.parse(raw) as { email?: string; username?: string; password?: string };
+            sessionStorage.removeItem('stratabin-auth-prefill');
+            if (p.email) setEmail(p.email);
+            if (p.username) setUsername(p.username);
+            if (p.password) setPassword(p.password);
+            if (p.username?.trim() && p.password) {
+                setAuthMode('username');
+            }
+        } catch {
+            sessionStorage.removeItem('stratabin-auth-prefill');
+        }
+    }, []);
+
     const sendCodeToEmail = async (emailToUse: string) => {
         if (!isLoaded || !signIn || !signUp) return;
         setLoading(true);
@@ -205,25 +223,26 @@ export default function AuthPage() {
                         </p>
                     </div>
 
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="flex gap-2 p-1 bg-white/[0.04] rounded-xl border border-white/10 w-full">
-                            <button
-                                type="button"
-                                onClick={() => { setAuthMode('email'); setAuthError(null); setAuthStep('email'); }}
-                                className={`flex-1 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${authMode === 'email' ? 'bg-primary text-black' : 'text-white/50 hover:text-white/80'}`}
-                            >
-                                <Mail size={14} className="inline mr-1.5 -mt-0.5" />
-                                Email
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => { setAuthMode('username'); setAuthError(null); }}
-                                className={`flex-1 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${authMode === 'username' ? 'bg-primary text-black' : 'text-white/50 hover:text-white/80'}`}
-                            >
-                                <User size={14} className="inline mr-1.5 -mt-0.5" />
-                                Username
-                            </button>
-                        </div>
+                    <div className="flex flex-col items-center gap-4 w-full">
+                        <div className="w-full rounded-2xl border border-white/10 bg-white/[0.02] p-5 md:p-6 backdrop-blur-sm">
+                            <div className="flex gap-2 p-1 bg-white/[0.04] rounded-xl border border-white/10 w-full mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => { setAuthMode('email'); setAuthError(null); setAuthStep('email'); }}
+                                    className={`flex-1 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${authMode === 'email' ? 'bg-primary text-black' : 'text-white/50 hover:text-white/80'}`}
+                                >
+                                    <Mail size={14} className="inline mr-1.5 -mt-0.5" />
+                                    Email
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setAuthMode('username'); setAuthError(null); }}
+                                    className={`flex-1 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${authMode === 'username' ? 'bg-primary text-black' : 'text-white/50 hover:text-white/80'}`}
+                                >
+                                    <User size={14} className="inline mr-1.5 -mt-0.5" />
+                                    Username
+                                </button>
+                            </div>
 
                         {authMode === 'email' ? (
                             authStep === 'email' ? (
@@ -319,6 +338,24 @@ export default function AuthPage() {
                                 </p>
                             </form>
                         )}
+
+                            {authMode === 'username' && (
+                                <p className="text-xs text-center text-white/45 mt-5 pt-4 border-t border-white/10">
+                                    New user?{' '}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setAuthMode('email');
+                                            setAuthError(null);
+                                            setAuthStep('email');
+                                        }}
+                                        className="text-primary font-semibold hover:underline"
+                                    >
+                                        Create account
+                                    </button>
+                                </p>
+                            )}
+                        </div>
 
                         {authError && (
                             <p className="text-red-400 text-sm font-bold text-center">{authError}</p>

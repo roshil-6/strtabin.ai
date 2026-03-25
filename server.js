@@ -17,6 +17,7 @@ import { registerWorkspaceRoutes } from './routes/workspaces.js';
 import { registerChatRoutes } from './routes/chat.js';
 import { getOrCreateUser } from './db/models.js';
 import { initDb, isDbReady } from './db/index.js';
+import { summarizePgUrl } from './db/driver.js';
 import { getClerkUserCached, invalidateClerkUserCache } from './lib/clerkUserCache.js';
 import { resolveBearerToClerkUser, verifyBearerSub } from './lib/clerkAuth.js';
 import { initRedisInfrastructure } from './lib/redisInfra.js';
@@ -1141,8 +1142,21 @@ io.emitToChat = (chatId, event, data) => {
         await initDb();
         console.log('Database ready.');
     } catch (err) {
-        console.error('❌ Database initialization failed — service stays up. Fix DATABASE_URL / disk + DATABASE_PATH.');
-        console.error(err?.message || err);
+        const pgUrl = process.env.DATABASE_URL?.trim()?.replace(/^['"]|['"]$/g, '')?.trim() || '';
+        const usingPg = !!pgUrl;
+        console.error('❌ Database initialization failed — service stays up.');
+        if (usingPg) {
+            const u = summarizePgUrl(pgUrl);
+            console.error('  Mode: PostgreSQL (DATABASE_URL is set)');
+            console.error('  Host:', u.host, 'port:', u.port, 'database:', u.database);
+            console.error('  Fix: use the exact "External" / connection URL from your host, include ?sslmode=require if asked, check password and that the DB allows this region\'s IPs.');
+        } else {
+            console.error('  Mode: SQLite (DATABASE_URL empty)');
+            console.error('  Path:', process.env.DATABASE_PATH || '(default: ./data/strategybox.db under app folder)');
+            console.error('  Fix: add a Render disk mounted at /data and set DATABASE_PATH=/data/strategybox.db, or set DATABASE_URL to Postgres instead.');
+        }
+        console.error('  Error:', err?.message || err);
+        if (err?.code) console.error('  Code:', err.code);
     }
     httpServer.listen(PORT, '0.0.0.0', () => {
         console.log(`STRAB AI Server running on 0.0.0.0:${PORT} (PORT=${process.env.PORT || 'default'})`);
