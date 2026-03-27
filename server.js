@@ -310,7 +310,8 @@ app.post('/api/payments/verify', async (req, res) => {
     } catch (err) {
         const errMsg = err?.message || String(err);
         console.error('❌ Token verification failed:', errMsg);
-        return res.status(401).json({ error: 'Invalid or expired token.', detail: errMsg });
+        // Do not echo errMsg to the client — may contain auth-provider internals.
+        return res.status(401).json({ error: 'Invalid or expired token.' });
     }
 
     try {
@@ -425,7 +426,7 @@ app.post('/api/user/set-credentials', async (req, res) => {
             return res.status(400).json({ error: 'Password sign-in is not enabled. Enable it in Clerk Dashboard → User & Authentication → Authentication strategies.' });
         }
         console.error('Set credentials error:', error);
-        return res.status(400).json({ error: msg || 'Could not update credentials.' });
+        return res.status(400).json({ error: 'Could not update credentials. Please try again.' });
     }
 });
 

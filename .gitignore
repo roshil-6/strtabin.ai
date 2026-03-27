@@ -24,6 +24,9 @@ dist-ssr
 *.sw?
 .env
 .env.local
+# Any other env variants (keep .env.example tracked)
+.env.*
+!.env.example
 
 # SQLite database (runtime data)
 data/
