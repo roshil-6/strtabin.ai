@@ -633,12 +633,24 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const project = await getProject(projectId);
             if (!project) return res.status(404).json({ error: 'Project not found.' });
             if (!(await hasWorkspaceAccess(req.userId, project.workspace_id))) return res.status(403).json({ error: 'Access denied.' });
-            const { nodes, edges, writingContent, name } = req.body || {};
+            const { nodes, edges, writingContent, name, todos } = req.body || {};
+            const safeTodos = Array.isArray(todos)
+                ? todos.slice(0, 500).map((t) => {
+                    if (!t || typeof t !== 'object') return null;
+                    const id = typeof t.id === 'string' && t.id.trim()
+                        ? t.id.trim().slice(0, 80)
+                        : crypto.randomUUID();
+                    const text = typeof t.text === 'string' ? t.text.slice(0, 2000) : '';
+                    const completed = Boolean(t.completed);
+                    return text ? { id, text, completed } : null;
+                }).filter(Boolean)
+                : [];
             const data = {
                 nodes: Array.isArray(nodes) ? nodes : [],
                 edges: Array.isArray(edges) ? edges : [],
                 writingContent: typeof writingContent === 'string' ? writingContent.slice(0, 500000) : '',
                 name: typeof name === 'string' ? name.trim().slice(0, 200) : project.title,
+                todos: safeTodos,
             };
             const dataStr = JSON.stringify(data);
             if (dataStr.length > 600000) return res.status(400).json({ error: 'Canvas too large.' });

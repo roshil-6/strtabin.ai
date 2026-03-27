@@ -122,6 +122,9 @@ function CanvasContent() {
                         nodes: (data.nodes || []) as Node[],
                         edges: (data.edges || []) as Edge[],
                         writingContent: data.writingContent as string | undefined,
+                        todos: Array.isArray(data.todos)
+                            ? (data.todos as Array<{ id: string; text: string; completed: boolean }>)
+                            : undefined,
                     });
                 } catch (err) {
                     if (cancelled) return;
@@ -185,6 +188,7 @@ function CanvasContent() {
         edges: Edge[];
         writingContent: string;
         name: string;
+        todos: Array<{ id: string; text: string; completed: boolean }>;
     } | null>(null);
     const CANVAS_SAVE_DEBOUNCE_MS = 2500;
     useEffect(() => {
@@ -195,6 +199,7 @@ function CanvasContent() {
             edges,
             writingContent: currentCanvas.writingContent || '',
             name: currentCanvas.name || currentCanvas.title || '',
+            todos: currentCanvas.todos || [],
         };
         if (saveProjectCanvasRef.current) clearTimeout(saveProjectCanvasRef.current);
         saveProjectCanvasRef.current = setTimeout(async () => {
@@ -209,6 +214,7 @@ function CanvasContent() {
                         edges: payload.edges,
                         writingContent: payload.writingContent,
                         name: payload.name,
+                        todos: payload.todos,
                     },
                     token
                 );
@@ -219,7 +225,7 @@ function CanvasContent() {
         return () => {
             if (saveProjectCanvasRef.current) clearTimeout(saveProjectCanvasRef.current);
         };
-    }, [projectIdForSave, nodes, edges, currentCanvas?.writingContent, currentCanvas?.name, currentCanvas?.title, getToken]);
+    }, [projectIdForSave, nodes, edges, currentCanvas?.writingContent, currentCanvas?.name, currentCanvas?.title, currentCanvas?.todos, getToken]);
 
     // Enhanced Nodes with Actions
     const enhancedNodes = useMemo(() => {

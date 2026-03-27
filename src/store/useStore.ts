@@ -246,7 +246,13 @@ export type RFState = {
     addCanvasDoc: (id: string, doc: { name: string; url: string }) => void;
     deleteCanvasDoc: (id: string, docId: string) => void;
     ensureCanvasExists: (id: string) => void;
-    loadSharedCanvas: (id: string, data: { name?: string; nodes: Node[]; edges: Edge[]; writingContent?: string }) => void;
+    loadSharedCanvas: (id: string, data: {
+        name?: string;
+        nodes: Node[];
+        edges: Edge[];
+        writingContent?: string;
+        todos?: Array<{ id: string; text: string; completed: boolean }>;
+    }) => void;
     updateCanvasTimeline: (id: string, content: string) => void;
     addCanvasTodo: (id: string, text: string) => void;
     toggleCanvasTodo: (id: string, todoId: string) => void;
@@ -735,27 +741,50 @@ const useStore = create<RFState>()(
                 }));
             },
 
-            loadSharedCanvas: (id: string, data: { name?: string; nodes: Node[]; edges: Edge[]; writingContent?: string }) => {
+            loadSharedCanvas: (id: string, data: {
+                name?: string;
+                nodes: Node[];
+                edges: Edge[];
+                writingContent?: string;
+                todos?: Array<{ id: string; text: string; completed: boolean }>;
+            }) => {
                 const now = Date.now();
                 const nodes = Array.isArray(data.nodes) ? data.nodes : [];
                 const edges = Array.isArray(data.edges) ? data.edges : [];
-                const newCanvas: CanvasData = {
-                    id,
-                    name: data.name || 'Shared canvas',
-                    nodes,
-                    edges,
-                    writingContent: data.writingContent || '',
-                    folderId: null,
-                    updatedAt: now,
-                    attachments: [],
-                    images: [],
-                };
-                set((state) => ({
-                    canvases: { ...state.canvases, [id]: newCanvas },
-                    currentCanvasId: id,
-                    nodes,
-                    edges,
-                }));
+                set((state) => {
+                    const prev = state.canvases[id];
+                    const todos = Array.isArray(data.todos)
+                        ? data.todos
+                            .filter((t) => t && typeof t.text === 'string' && t.text.trim() !== '')
+                            .map((t) => ({
+                                id: typeof t.id === 'string' && t.id ? t.id : generateId(),
+                                text: String(t.text).slice(0, 2000),
+                                completed: Boolean(t.completed),
+                            }))
+                        : (prev?.todos || []);
+                    const newCanvas: CanvasData = {
+                        ...(prev || {}),
+                        id,
+                        name: data.name || prev?.name || 'Shared canvas',
+                        nodes,
+                        edges,
+                        writingContent: data.writingContent ?? prev?.writingContent ?? '',
+                        todos,
+                        updatedAt: now,
+                        attachments: prev?.attachments ?? [],
+                        images: prev?.images ?? [],
+                        folderId: prev?.folderId,
+                        mergedCanvasIds: prev?.mergedCanvasIds,
+                        timelineContent: prev?.timelineContent,
+                        goals: prev?.goals,
+                    };
+                    return {
+                        canvases: { ...state.canvases, [id]: newCanvas },
+                        currentCanvasId: id,
+                        nodes,
+                        edges,
+                    };
+                });
             },
 
             updateCanvasTimeline: (id, content) => {
@@ -770,8 +799,23 @@ const useStore = create<RFState>()(
             addCanvasTodo: (id, text) => {
                 set((state) => {
                     const canvas = state.canvases[id];
-                    const currentTodos = canvas.todos || [];
                     const newTodo = { id: generateId(), text, completed: false };
+                    if (!canvas) {
+                        return {
+                            canvases: {
+                                ...state.canvases,
+                                [id]: {
+                                    id,
+                                    name: '',
+                                    nodes: [],
+                                    edges: [],
+                                    todos: [newTodo],
+                                    updatedAt: Date.now(),
+                                },
+                            },
+                        };
+                    }
+                    const currentTodos = canvas.todos || [];
                     return {
                         canvases: {
                             ...state.canvases,

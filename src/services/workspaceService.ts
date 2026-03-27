@@ -272,7 +272,13 @@ export const workspaceService = {
 
   async saveProjectCanvas(
     projectId: number,
-    data: { nodes: unknown[]; edges: unknown[]; writingContent?: string; name?: string },
+    data: {
+      nodes: unknown[];
+      edges: unknown[];
+      writingContent?: string;
+      name?: string;
+      todos?: Array<{ id: string; text: string; completed: boolean }>;
+    },
     token: string | null
   ) {
     return fetchWithAuth(
