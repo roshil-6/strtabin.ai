@@ -509,12 +509,14 @@ function CanvasContent() {
                 <Sidebar canvasId={id || 'default'} />
             </div>
 
-            {/* Content Container
-                On mobile: height stops at the bottom nav (80px) so nothing is ever hidden behind it.
-                On desktop: full height as before. */}
+            {/* Content: mobile height = viewport minus fixed nav (62px + home-indicator safe area). min-h-0 = flex children can shrink. */}
             <div
-                className={`flex-1 flex w-full ${isMerged ? 'pt-12 md:pt-14' : ''}`}
-                style={{ height: isMobile ? 'calc(100% - 80px)' : '100%' }}
+                className={`flex-1 flex min-h-0 w-full ${isMerged ? 'pt-12 md:pt-14' : ''}`}
+                style={
+                    isMobile
+                        ? { height: 'calc(100% - 62px - env(safe-area-inset-bottom, 0px))' }
+                        : { height: '100%' }
+                }
             >
 
                 {/* Merged Tabs Bar */}
@@ -578,7 +580,7 @@ function CanvasContent() {
                 <div
                     className={`
                         ${mobileTab === 'write' ? 'flex' : 'hidden'} 
-                        md:flex w-full md:w-[45%] md:min-w-[380px] h-full relative z-10 bg-transparent
+                        md:flex w-full md:w-[45%] md:min-w-[380px] min-h-0 h-full relative z-10 bg-transparent
                         md:border-r md:border-white/[0.06] md:pr-px
                     `}
                     style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
@@ -605,12 +607,15 @@ function CanvasContent() {
                 <div
                     className={`
                         ${mobileTab === 'map' ? 'flex' : 'hidden'} 
-                        md:flex flex-1 min-w-0 h-full relative flex-col
+                        md:flex flex-1 min-h-0 min-w-0 h-full relative flex-col
                     `}
                     style={{ overscrollBehavior: 'contain' }}
                     onWheel={(e) => e.stopPropagation()}
                 >
-                    <div className="flex-1 w-full h-full relative" style={{ touchAction: 'none', overscrollBehavior: 'none' }}>
+                    <div
+                        className="flex flex-col flex-1 min-h-0 w-full h-full relative"
+                        style={{ touchAction: 'none', overscrollBehavior: 'none' }}
+                    >
                         {/* Flow Top Bar — compact on mobile */}
                         <div className={`canvas-top-bar absolute ${isMerged ? 'top-[4.5rem]' : 'top-1.5 md:top-4'} left-1.5 right-1.5 md:left-4 md:right-4 h-10 md:h-14 bg-white/[0.04] backdrop-blur-xl rounded-2xl border border-white/[0.08] flex items-center px-2 md:px-4 z-40 justify-between transition-all`}>
                             <div className="flex items-center gap-2 md:gap-2.5">
@@ -653,6 +658,7 @@ function CanvasContent() {
                             </div>
                         </div>
 
+                        <div className="flex-1 min-h-0 w-full relative">
                         {(!isMobile || mobileTab === 'map') && <ReactFlow
                             nodes={enhancedNodes}
                             edges={edges}
@@ -703,16 +709,16 @@ function CanvasContent() {
                                 }} />
                             </div>
                         </ReactFlow>}
+                        </div>
 
-                        {/* Mobile floating toolbar — add boxes (Idea/Note/etc.), Branch, Option, zoom. z-[100] so it stays above bottom nav (z-50). */}
+                        {/* Mobile: toolbar in normal flow (not absolute) so spacing stays consistent above bottom nav */}
                         {isMobile && mobileTab === 'map' && (
-                            <div className="absolute bottom-3 left-2 right-2 z-[100] flex flex-col gap-1.5">
-                                <p className="text-center text-[9px] font-black uppercase tracking-[0.2em] text-white/45">
+                            <div className="shrink-0 z-[100] w-full px-2 pt-3 pb-1 space-y-2.5 border-t border-white/[0.06] bg-[#060606]/92 backdrop-blur-xl md:hidden">
+                                <p className="text-center text-[9px] font-black uppercase tracking-[0.18em] text-white/50">
                                     Add to flow
                                 </p>
-                                {/* Row 1: Add actions — Idea & Note = boxes; Branch, Option, etc. */}
-                                <div className="flex items-center justify-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar-hide">
-                                    <div className="flex items-center gap-1.5 bg-[#0e0e0e]/95 backdrop-blur-2xl px-2 py-2 rounded-2xl border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.6)] shrink-0">
+                                <div className="flex items-center justify-center gap-2 overflow-x-auto pb-0.5 custom-scrollbar-hide -mx-0.5 px-0.5">
+                                    <div className="flex items-center gap-1.5 bg-[#121212] px-2.5 py-2 rounded-2xl border border-white/[0.07] shadow-lg shrink-0">
                                         <button
                                             onClick={() => handleAddNode('default')}
                                             className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-primary/15 text-primary border border-primary/20 active:scale-90 transition-all"
@@ -769,13 +775,12 @@ function CanvasContent() {
                                         </button>
                                     </div>
                                 </div>
-                                {/* Row 2: Zoom + fit */}
-                                <div className="flex items-center justify-between px-2">
-                                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#0e0e0e]/80 text-white/30">
+                                <div className="flex items-center justify-between gap-2 px-0.5 pb-1">
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] text-white/35">
                                         <Move size={10} />
                                         <span className="text-[8px] font-bold tracking-wider">DRAG TO PAN</span>
                                     </div>
-                                    <div className="flex items-center gap-1 bg-[#0e0e0e]/95 backdrop-blur-2xl px-2 py-1.5 rounded-xl border border-white/[0.06]">
+                                    <div className="flex items-center gap-0.5 bg-[#121212] px-1.5 py-1 rounded-xl border border-white/[0.07]">
                                         <button onClick={() => fitView({ duration: 400, padding: 0.25 })} className="p-2 rounded-lg text-white/50 active:bg-white/10" aria-label="Fit view"><Maximize size={15} /></button>
                                         <button onClick={() => zoomIn({ duration: 200 })} className="p-2 rounded-lg text-white/50 active:bg-white/10" aria-label="Zoom in"><ZoomIn size={15} /></button>
                                         <button onClick={() => zoomOut({ duration: 200 })} className="p-2 rounded-lg text-white/50 active:bg-white/10" aria-label="Zoom out"><ZoomOut size={15} /></button>
