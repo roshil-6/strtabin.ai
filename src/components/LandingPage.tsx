@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, type FormEvent } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
-import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, User, Lock, Menu } from 'lucide-react';
+import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, UserX, Users } from 'lucide-react';
 
 import { fetchPaymentLink, GUEST_TRIAL_KEY } from '../constants';
 import HexagonBackground from './HexagonBackground';
@@ -13,24 +13,23 @@ export default function LandingPage() {
     const { isSignedIn, isLoaded: authLoaded, getToken } = useAuth();
     const [showHowTo, setShowHowTo] = useState(false);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
+    const [showGetStartedDropdown, setShowGetStartedDropdown] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState(false);
-    const [mobileNavOpen, setMobileNavOpen] = useState(false);
-    const [formEmail, setFormEmail] = useState('');
-    const [formUsername, setFormUsername] = useState('');
-    const [formPassword, setFormPassword] = useState('');
-    const mobileNavRef = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const isLoaded = authLoaded;
 
     useEffect(() => {
-        const close = (e: MouseEvent) => {
-            if (mobileNavRef.current && !mobileNavRef.current.contains(e.target as Node)) {
-                setMobileNavOpen(false);
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setShowGetStartedDropdown(false);
             }
         };
-        if (mobileNavOpen) document.addEventListener('mousedown', close);
-        return () => document.removeEventListener('mousedown', close);
-    }, [mobileNavOpen]);
+        if (showGetStartedDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showGetStartedDropdown]);
 
     useEffect(() => {
         if (authLoaded && isSignedIn) {
@@ -49,30 +48,6 @@ export default function LandingPage() {
             localStorage.setItem(GUEST_TRIAL_KEY, Date.now().toString());
         }
         navigate('/dashboard', { replace: true });
-    };
-
-    const handleLandingGetStarted = (e: FormEvent) => {
-        e.preventDefault();
-        const email = formEmail.trim();
-        const username = formUsername.trim();
-        const password = formPassword;
-        if (!email && (!username || !password)) {
-            toast.error('Enter your email for a free code, or username and password to sign in.');
-            return;
-        }
-        try {
-            sessionStorage.setItem(
-                'stratabin-auth-prefill',
-                JSON.stringify({ email: email || undefined, username: username || undefined, password: password || undefined }),
-            );
-        } catch {
-            /* ignore */
-        }
-        navigate('/auth');
-    };
-
-    const scrollToDiscover = () => {
-        document.getElementById('discover')?.scrollIntoView({ behavior: 'smooth' });
     };
 
     const handlePayment = async () => {
@@ -116,7 +91,7 @@ export default function LandingPage() {
         },
         {
             q: "What can STRAB AI actually do?",
-            a: "STRAB AI reads your entire project context — ideas on the canvas, writing, tasks, timelines — and provides strategic analysis, gap identification, progress reports, and actionable recommendations. It's a strategy co-pilot, not just a chatbot."
+            a: "STRAB AI reads your entire project context — nodes, writing, tasks, timelines — and provides strategic analysis, gap identification, progress reports, and actionable recommendations. It's a strategy co-pilot, not just a chatbot."
         },
     ];
 
@@ -125,232 +100,173 @@ export default function LandingPage() {
             <HexagonBackground />
 
             {/* Header */}
-            <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-panel)_92%,transparent)] backdrop-blur-xl backdrop-saturate-150">
-                <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 h-14 sm:h-16 md:h-20 flex items-center justify-between gap-2 min-w-0">
-                    <div className="flex items-center gap-2 min-w-0 shrink">
-                        <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white rounded-lg sm:rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10 shrink-0">
-                            <img src="/favicon.png" alt="" className="w-full h-full object-contain" />
+            <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] theme-panel backdrop-blur-2xl">
+                <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 md:w-10 md:h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10">
+                            <img src="/favicon.png" alt="Stratabin — AI workspace and strategy planner for ideas" className="w-full h-full object-contain" />
                         </div>
-                        <span className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-white truncate">Stratabin<span className="text-primary">.</span></span>
+                        <span className="text-xl md:text-2xl font-black tracking-tighter text-white">Stratabin<span className="text-primary">.</span></span>
                     </div>
-                    <nav className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
+                    <nav className="flex items-center gap-2 md:gap-4">
                         <ThemeToggle />
-                        <div className="hidden lg:flex items-center gap-1">
-                            <button type="button" onClick={() => setShowHowTo(true)} className="text-sm font-semibold text-white/40 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5">
-                                How it works
-                            </button>
-                            <Link to="/features" className="text-sm font-semibold text-white/40 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5">
-                                Features
-                            </Link>
-                            <Link
-                                to="/#pricing"
-                                onClick={(e) => {
-                                    if (window.location.pathname === '/') {
-                                        e.preventDefault();
-                                        document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
-                                    }
-                                }}
-                                className="text-sm font-semibold text-white/40 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5"
-                            >
-                                Pricing
-                            </Link>
-                            <button type="button" onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm font-semibold text-white/40 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5">
-                                FAQ
-                            </button>
-                        </div>
-                        <div className="relative lg:hidden" ref={mobileNavRef}>
-                            <button
-                                type="button"
-                                onClick={() => setMobileNavOpen((o) => !o)}
-                                className="flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 bg-white/[0.04] text-white/80 hover:bg-white/10"
-                                aria-expanded={mobileNavOpen}
-                                aria-label="Menu"
-                            >
-                                <Menu size={20} />
-                            </button>
-                            {mobileNavOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-52 py-2 rounded-xl border border-white/10 bg-[color-mix(in_srgb,var(--bg-panel)_96%,black)] shadow-xl backdrop-blur-xl z-50">
-                                    <button type="button" onClick={() => { setMobileNavOpen(false); setShowHowTo(true); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10">
-                                        How it works
-                                    </button>
-                                    <Link to="/features" onClick={() => setMobileNavOpen(false)} className="block px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10">
-                                        Features
-                                    </Link>
-                                    <Link
-                                        to="/#pricing"
-                                        onClick={(e) => {
-                                            setMobileNavOpen(false);
-                                            if (window.location.pathname === '/') {
-                                                e.preventDefault();
-                                                document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
-                                            }
-                                        }}
-                                        className="block px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
-                                    >
-                                        Pricing
-                                    </Link>
+                        <button
+                            onClick={() => setShowHowTo(true)}
+                            className="text-xs md:text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 flex items-center"
+                        >
+                            How it Works
+                        </button>
+                        <Link
+                            to="/features"
+                            className="hidden md:flex text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 items-center"
+                        >
+                            Features
+                        </Link>
+                        <Link
+                            to="/#pricing"
+                            onClick={(e) => {
+                                if (window.location.pathname === '/') {
+                                    e.preventDefault();
+                                    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                                }
+                            }}
+                            className="flex text-xs md:text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 items-center"
+                        >
+                            Pricing
+                        </Link>
+                        <button
+                            onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
+                            className="hidden md:flex text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 items-center"
+                        >
+                            FAQ
+                        </button>
+                        <div className="relative" ref={dropdownRef}>
+                            {isSignedIn ? (
+                                <button
+                                    onClick={() => navigate('/dashboard')}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
+                                >
+                                    Go to Dashboard
+                                    <ArrowRight size={14} />
+                                </button>
+                            ) : (
+                                <>
                                     <button
-                                        type="button"
-                                        onClick={() => {
-                                            setMobileNavOpen(false);
-                                            document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' });
-                                        }}
-                                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
+                                        onClick={() => setShowGetStartedDropdown(!showGetStartedDropdown)}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
                                     >
-                                        FAQ
+                                        Get Started
+                                        <ChevronDown size={14} className={`transition-transform ${showGetStartedDropdown ? 'rotate-180' : ''}`} />
                                     </button>
-                                    <Link
-                                        to="/auth"
-                                        onClick={() => setMobileNavOpen(false)}
-                                        className="block px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10 border-t border-white/10 mt-1 pt-2"
-                                    >
-                                        Sign in
-                                    </Link>
-                                    <button type="button" onClick={() => { setMobileNavOpen(false); handleGuestAccess(); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-primary hover:bg-white/10">
-                                        Continue as guest
-                                    </button>
-                                </div>
+                                    {showGetStartedDropdown && (
+                                        <div className="absolute right-0 top-full mt-2 py-2 min-w-[200px] bg-[var(--bg-muted)] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                                            <button
+                                                onClick={() => {
+                                                    setShowGetStartedDropdown(false);
+                                                    handleGuestAccess();
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
+                                            >
+                                                <UserX size={16} className="text-primary" />
+                                                Continue as Guest
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowGetStartedDropdown(false);
+                                                    navigate('/auth');
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
+                                            >
+                                                <Mail size={16} className="text-primary" />
+                                                Email Login
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
-                        {isSignedIn ? (
-                            <button
-                                type="button"
-                                onClick={() => navigate('/dashboard')}
-                                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-xs sm:text-sm whitespace-nowrap"
-                            >
-                                Dashboard
-                                <ArrowRight size={14} className="opacity-80" />
-                            </button>
-                        ) : (
-                            <>
-                                <button
-                                    type="button"
-                                    onClick={handleGuestAccess}
-                                    className="hidden lg:inline-flex text-xs font-semibold text-white/45 hover:text-white px-2 py-2 rounded-xl hover:bg-white/5 whitespace-nowrap"
-                                >
-                                    Guest
-                                </button>
-                                <Link
-                                    to="/auth"
-                                    className="shrink-0 text-xs sm:text-sm font-semibold text-white/50 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5 whitespace-nowrap"
-                                >
-                                    Sign in
-                                </Link>
-                            </>
-                        )}
                     </nav>
                 </div>
             </header>
 
-            {/* Hero — tagline + signup only; everything else below #discover */}
-            <section id="hero-signup" className="pt-24 sm:pt-28 md:pt-36 pb-8 sm:pb-12 px-4 md:px-6 scroll-mt-20 min-h-[calc(100dvh-3.5rem)] flex flex-col justify-center">
-                <div className="max-w-lg mx-auto w-full text-center">
-                    <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">Stratabin</p>
-                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-[1.12] mb-3">
-                        Unscatter your ideas.
+            {/* H1 Hero — primary keyword in first 100 words */}
+            <section id="hero-cta" className="pt-32 md:pt-40 pb-16 md:pb-20 px-4 md:px-6 text-center">
+                <div className="max-w-4xl mx-auto">
+                    <div className="mb-10 flex justify-center animate-in fade-in zoom-in duration-1000">
+                        <div className="relative w-20 h-20 md:w-24 md:h-24 bg-white rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center overflow-hidden shadow-2xl border-4 border-white/5">
+                            <img src="/favicon.png" alt="Stratabin — AI workspace and strategy planner for ideas" className="w-full h-full object-contain" />
+                        </div>
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.06] text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                        <Zap size={13} />
+                        AI Workspace & Strategy Planner for Ideas
+                    </div>
+
+                    <h1 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tighter leading-[1.1] mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 break-words">
+                        Unscatter your ideas. <br />
+                        <span className="text-white/40">Notes, flows, and AI.</span>
                     </h1>
-                    <p className="text-sm sm:text-base text-[var(--text-muted)] mb-8 max-w-md mx-auto leading-relaxed">
-                        One workspace for notes, flow canvases, and STRAB AI — plan and execute in one place.
+
+                    <p className="text-base md:text-xl text-white/40 max-w-2xl mx-auto mb-6 leading-relaxed font-medium px-2">
+                        Stratabin is the AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI — unscatter your thoughts and turn them into execution plans.
                     </p>
 
-                    {!isLoaded ? (
-                        <div className="flex items-center justify-center gap-3 px-6 py-4 bg-white/[0.04] border border-white/10 rounded-2xl animate-pulse mx-auto w-full max-w-md">
-                            <div className="w-5 h-5 border-2 border-white/10 border-t-white rounded-full animate-spin shrink-0" />
-                            <span className="text-xs font-semibold text-white/45">Loading…</span>
-                        </div>
-                    ) : isSignedIn ? (
-                        <button
-                            type="button"
-                            onClick={() => navigate('/dashboard')}
-                            className="w-full max-w-md mx-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-black font-bold rounded-2xl hover:bg-white transition-all text-sm shadow-lg"
-                        >
-                            <Zap size={18} fill="currentColor" />
-                            Go to dashboard
-                            <ArrowRight size={18} />
-                        </button>
-                    ) : (
-                        <form
-                            onSubmit={handleLandingGetStarted}
-                            className="w-full max-w-md mx-auto text-left rounded-2xl border border-white/[0.08] bg-[color-mix(in_srgb,var(--bg-panel)_75%,transparent)] backdrop-blur-xl p-5 sm:p-7 shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
-                        >
-                            <p className="text-center text-xs text-white/45 mb-5 font-medium">
-                                New here? We&apos;ll email you a code. Already have an account? Use username and password.
-                            </p>
-                            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35 mb-1.5">Email</label>
-                            <div className="relative mb-4">
-                                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
-                                <input
-                                    type="email"
-                                    value={formEmail}
-                                    onChange={(e) => setFormEmail(e.target.value)}
-                                    autoComplete="email"
-                                    placeholder="you@example.com"
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white text-sm placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30"
-                                />
-                            </div>
-                            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35 mb-1.5">Username</label>
-                            <div className="relative mb-4">
-                                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
-                                <input
-                                    type="text"
-                                    value={formUsername}
-                                    onChange={(e) => setFormUsername(e.target.value)}
-                                    autoComplete="username"
-                                    placeholder="For password sign-in"
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white text-sm placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30"
-                                />
-                            </div>
-                            <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/35 mb-1.5">Password</label>
-                            <div className="relative mb-5">
-                                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
-                                <input
-                                    type="password"
-                                    value={formPassword}
-                                    onChange={(e) => setFormPassword(e.target.value)}
-                                    autoComplete="current-password"
-                                    placeholder="If you use password login"
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white text-sm placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={!isLoaded}
-                                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary text-black font-bold text-sm hover:bg-white transition-colors disabled:opacity-50 shadow-md"
-                            >
-                                <Zap size={17} fill="currentColor" />
-                                Continue
-                                <ArrowRight size={17} />
-                            </button>
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mt-4 pt-4 border-t border-white/[0.06]">
-                                <button type="button" onClick={handleGuestAccess} className="text-xs font-medium text-white/40 hover:text-white/70 transition-colors">
-                                    Continue as guest — 24h trial
-                                </button>
-                                <span className="hidden sm:inline text-white/15">·</span>
-                                <button type="button" onClick={scrollToDiscover} className="text-xs font-semibold text-primary hover:text-white transition-colors inline-flex items-center gap-1">
-                                    Product tour & pricing
-                                    <ChevronDown size={14} className="opacity-80" />
-                                </button>
-                            </div>
-                        </form>
-                    )}
-                </div>
-            </section>
-
-            {/* Video, features, pricing, FAQ — below the fold */}
-            <div id="discover" className="scroll-mt-20">
-                <section className="py-12 md:py-16 px-4 md:px-6 border-t border-white/[0.05]">
-                    <div className="max-w-3xl mx-auto text-center mb-6">
-                        <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight mb-2">See Stratabin in action</h2>
-                        <p className="text-sm text-white/40">Walkthrough, features, and pricing below.</p>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+                        <Users size={13} />
+                        Now with Team Workspaces — Build & execute together
                     </div>
-                    <div className="w-full max-w-3xl mx-auto">
-                        <div className="relative pro-hero-video overflow-hidden rounded-2xl border border-white/10 aspect-video bg-black/40">
-                            <video src="/strtabin%20ad%203.mp4" controls playsInline className="w-full h-full object-contain">
+
+                    {/* Demo Video */}
+                    <div className="w-full max-w-3xl mx-auto mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400">
+                        <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-2xl aspect-video">
+                            <video
+                                src="/strtabin%20ad%203.mp4"
+                                controls
+                                playsInline
+                                className="w-full h-full object-contain"
+                            >
                                 Your browser does not support the video tag.
                             </video>
                         </div>
+                        <p className="text-center text-white/30 text-xs mt-3 font-medium">See Stratabin in action</p>
                     </div>
-                </section>
+
+                    <div className="flex items-center justify-center gap-2 mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300">
+                        <div className="px-3 py-1 bg-white/[0.04] border border-white/[0.06] rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.15em] text-primary flex items-center gap-2">
+                            <Zap size={10} fill="currentColor" />
+                            For Students & Professionals
+                        </div>
+                    </div>
+
+                    <div className="scroll-mt-24">
+                    {!isLoaded ? (
+                        <div className="flex items-center justify-center gap-3 px-8 py-4 bg-white/5 border border-white/10 rounded-2xl animate-pulse mx-auto w-fit">
+                            <div className="w-5 h-5 border-2 border-white/10 border-t-white rounded-full animate-spin" />
+                            <span className="text-sm font-bold text-white/40 uppercase tracking-widest">Checking access...</span>
+                        </div>
+                    ) : isSignedIn ? (
+                        <button
+                            onClick={() => navigate('/dashboard')}
+                            className="group relative flex items-center gap-3 px-7 md:px-8 py-3.5 md:py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_4px_30px_rgba(255,119,86,0.3)] active:scale-95 mx-auto text-sm md:text-base"
+                        >
+                            <Zap size={18} fill="currentColor" />
+                            Go to Dashboard
+                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => navigate('/auth')}
+                            className="group relative flex items-center gap-3 px-7 md:px-8 py-3.5 md:py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_4px_30px_rgba(255,119,86,0.3)] active:scale-95 mx-auto text-sm md:text-base"
+                        >
+                            <Zap size={18} fill="currentColor" />
+                            Get Started
+                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    )}
+                    </div>
+                </div>
+            </section>
 
             {/* H2 — What is Stratabin / Problem-Solution */}
             <section className="py-16 md:py-24 px-4 md:px-6 relative overflow-hidden">
@@ -379,15 +295,15 @@ export default function LandingPage() {
             <section className="py-16 md:py-24 px-4 md:px-6">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-12 md:mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-[var(--text)]">Everything you need to plan and execute</h2>
-                        <p className="text-[var(--text-muted)] text-sm md:text-base max-w-xl mx-auto leading-relaxed">A complete strategy workspace — writing, canvas, tasks, and AI in one calm surface.</p>
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-3">Everything You Need to Plan and Execute</h2>
+                        <p className="text-white/30 text-sm md:text-base">A complete strategy workspace — not just another project management tool.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         {[
                             { icon: PenTool, title: "Distraction-Free Writing", desc: "Long-form writing editor with split view, branch creation, and a collapsible planner for deep strategic thinking." },
-                            { icon: Layout, title: "Interactive Flow Canvas", desc: "Drag-and-drop visual canvas to map ideas, connect strategies, and see the big picture at a glance." },
-                            { icon: Bot, title: "STRAB AI Intelligence", desc: "Context-aware AI that analyzes your entire project — ideas, writing, tasks — and provides strategic insights and gap analysis." },
+                            { icon: Layout, title: "Interactive Flow Canvas", desc: "Drag-and-drop visual canvas to map ideas as nodes, connect strategies, and see the big picture at a glance." },
+                            { icon: Bot, title: "STRAB AI Intelligence", desc: "Context-aware AI that analyzes your entire project — nodes, writing, tasks — and provides strategic insights and gap analysis." },
                             { icon: GitBranch, title: "Branch & Merge Ideas", desc: "Split one idea into multiple branches, or merge separate strategy canvases into a unified project overview." },
                             { icon: Calendar, title: "Calendar & Timeline", desc: "Built-in calendar with event reminders and a timeline planner tied directly to your strategy projects." },
                             { icon: FolderOpen, title: "Folder Workspaces", desc: "Organize projects into custom folders with dedicated workflow maps showing inter-project relationships." },
@@ -396,12 +312,10 @@ export default function LandingPage() {
                             { icon: Sparkles, title: "Task Management", desc: "Integrated to-do lists for every project. Track progress alongside your strategy, not in a separate tool." },
                             { icon: Zap, title: "Works Everywhere", desc: "Progressive Web App that installs on phones, tablets, and desktops. Touch-optimized mobile interface with offline support." },
                         ].map((feat, i) => (
-                            <div key={i} className="pro-surface-card group p-6 md:p-7">
-                                <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] border border-[color-mix(in_srgb,var(--primary)_25%,transparent)] flex items-center justify-center mb-4">
-                                    <feat.icon size={20} className="text-primary" />
-                                </div>
-                                <h3 className="text-sm md:text-base font-semibold text-[var(--text)] mb-2 tracking-tight">{feat.title}</h3>
-                                <p className="text-[var(--text-muted)] text-xs md:text-sm leading-relaxed">{feat.desc}</p>
+                            <div key={i} className="group p-5 md:p-7 bg-white/[0.02] border border-white/[0.04] rounded-2xl hover:border-primary/20 hover:bg-white/[0.03] transition-all duration-300">
+                                <feat.icon size={22} className="text-primary mb-4 group-hover:scale-110 transition-transform" />
+                                <h3 className="text-sm md:text-base font-black text-white mb-2">{feat.title}</h3>
+                                <p className="text-white/30 text-xs md:text-sm leading-relaxed">{feat.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -412,24 +326,24 @@ export default function LandingPage() {
             <section className="py-16 md:py-24 px-4 md:px-6">
                 <div className="max-w-5xl mx-auto">
                     <div className="text-center mb-12 md:mb-20">
-                        <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-3 text-[var(--text)]">How Stratabin works</h2>
-                        <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto">From raw idea to structured execution in three steps.</p>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-3">How Stratabin Works</h2>
+                        <p className="text-white/30 text-sm">From raw idea to structured execution in three steps.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
                         {[
                             { step: "01", title: "Capture & Write", desc: "Start with your raw ideas in the writing editor. Use split view to compare angles, or branch into visual flowcharts." },
-                            { step: "02", title: "Map & Organize", desc: "Drag ideas onto the flow canvas and connect them. Merge related projects, create folder workspaces, and let AI organize the structure." },
+                            { step: "02", title: "Map & Organize", desc: "Drag ideas onto the flow canvas as connected nodes. Merge related projects, create folder workspaces, and let AI organize the structure." },
                             { step: "03", title: "Execute & Track", desc: "Convert strategies into tasks, set calendar deadlines, build timelines, and use STRAB AI reports to monitor progress and identify gaps." },
                         ].map((item, idx) => (
                             <div key={idx} className="relative group">
-                                <div className="absolute -top-6 -left-2 text-7xl md:text-8xl font-extrabold text-[color-mix(in_srgb,var(--text)_4%,transparent)] pointer-events-none select-none">{item.step}</div>
-                                <div className="pro-step-card p-7 md:p-9 relative z-10 h-full flex flex-col">
-                                    <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-[var(--accent-soft)] border border-[color-mix(in_srgb,var(--primary)_30%,var(--border))] flex items-center justify-center text-primary mb-6 text-sm font-bold tabular-nums">
+                                <div className="absolute -top-8 -left-4 text-8xl md:text-9xl font-black text-white/[0.02] pointer-events-none group-hover:text-primary/[0.06] transition-colors">{item.step}</div>
+                                <div className="p-7 md:p-10 bg-white/[0.02] border border-white/[0.04] rounded-3xl hover:border-primary/20 transition-all relative z-10 h-full flex flex-col">
+                                    <div className="w-10 h-10 md:w-14 md:h-14 bg-white/[0.04] rounded-xl flex items-center justify-center text-primary mb-6 md:mb-8 group-hover:bg-primary group-hover:text-black transition-all text-lg md:text-xl font-black">
                                         {item.step}
                                     </div>
-                                    <h3 className="text-lg md:text-xl font-semibold mb-3 text-[var(--text)] tracking-tight">{item.title}</h3>
-                                    <p className="text-[var(--text-muted)] leading-relaxed text-sm md:text-base">{item.desc}</p>
+                                    <h3 className="text-xl md:text-2xl font-black mb-4">{item.title}</h3>
+                                    <p className="text-white/35 leading-relaxed text-sm md:text-base">{item.desc}</p>
                                 </div>
                             </div>
                         ))}
@@ -445,8 +359,8 @@ export default function LandingPage() {
                         <p className="text-white/30 text-sm">Pay once. Use forever. No subscriptions, no surprises.</p>
                     </div>
 
-                    <div className="pro-pricing-shell group relative p-7 md:p-14 overflow-hidden">
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_srgb,var(--primary)_14%,transparent),transparent)] pointer-events-none" />
+                    <div className="group relative bg-[var(--bg-muted)] border border-primary/20 rounded-3xl p-7 md:p-14 shadow-2xl overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent pointer-events-none" />
                         <div className="absolute top-5 right-5 px-3 py-1 bg-primary text-black text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-full">
                             Lifetime
                         </div>
@@ -515,17 +429,17 @@ export default function LandingPage() {
 
                     <div className="space-y-2 md:space-y-3">
                         {faqs.map((faq, i) => (
-                            <div key={i} className="pro-faq-item overflow-hidden">
+                            <div key={i} className="border border-white/[0.04] rounded-2xl overflow-hidden bg-white/[0.01] hover:bg-white/[0.02] transition-all">
                                 <button
                                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
                                     className="w-full flex items-center justify-between gap-4 px-5 md:px-6 py-4 md:py-5 text-left"
                                 >
-                                    <span className="text-sm md:text-base font-semibold text-[var(--text-secondary)]">{faq.q}</span>
-                                    <ChevronDown size={18} className={`text-[var(--text-dim)] shrink-0 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`} />
+                                    <span className="text-sm md:text-base font-bold text-white/80">{faq.q}</span>
+                                    <ChevronDown size={16} className={`text-white/25 shrink-0 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`} />
                                 </button>
                                 {openFaq === i && (
-                                    <div className="px-5 md:px-6 pb-5 md:pb-6 pt-0 animate-in slide-in-from-top-1 fade-in duration-200 border-t border-[var(--border)]">
-                                        <p className="text-xs md:text-sm text-[var(--text-muted)] leading-relaxed pt-4">{faq.a}</p>
+                                    <div className="px-5 md:px-6 pb-5 md:pb-6 animate-in slide-in-from-top-1 fade-in duration-200">
+                                        <p className="text-xs md:text-sm text-white/40 leading-relaxed">{faq.a}</p>
                                     </div>
                                 )}
                             </div>
@@ -533,8 +447,6 @@ export default function LandingPage() {
                     </div>
                 </div>
             </section>
-
-            </div>
 
             {/* Footer with semantic links */}
             <footer className="border-t border-white/[0.04] py-10 md:py-14 px-4 md:px-6">
@@ -597,7 +509,7 @@ export default function LandingPage() {
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
                                 {[
-                                    { step: "01", title: "Capture & Flow", description: "Map out your initial thoughts using our fluid canvas. Add ideas, link them, and visualize the big picture without friction.", icon: Zap },
+                                    { step: "01", title: "Capture & Flow", description: "Map out your initial thoughts using our fluid canvas. Create nodes, link ideas, and visualize the big picture without friction.", icon: Zap },
                                     { step: "02", title: "Organize Intelligence", description: "STRAB AI automatically categorizes and structures your data. Merge related canvases or group them into dedicated workspaces.", icon: Bot },
                                     { step: "03", title: "Execute with Clarity", description: "Convert strategies into actionable task lists and timelines. Sync across all devices and track progress in real-time.", icon: Check },
                                 ].map((item, idx) => (
