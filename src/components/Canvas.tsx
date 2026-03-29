@@ -704,10 +704,13 @@ function CanvasContent() {
                             </div>
                         </ReactFlow>}
 
-                        {/* Mobile floating toolbar — Add Box, Branch, Option, idea types, zoom */}
+                        {/* Mobile floating toolbar — add boxes (Idea/Note/etc.), Branch, Option, zoom. z-[100] so it stays above bottom nav (z-50). */}
                         {isMobile && mobileTab === 'map' && (
-                            <div className="absolute bottom-2 left-2 right-2 z-50 flex flex-col gap-2">
-                                {/* Row 1: Add actions — Box, Branch, Option, Note, Idea */}
+                            <div className="absolute bottom-3 left-2 right-2 z-[100] flex flex-col gap-1.5">
+                                <p className="text-center text-[9px] font-black uppercase tracking-[0.2em] text-white/45">
+                                    Add to flow
+                                </p>
+                                {/* Row 1: Add actions — Idea & Note = boxes; Branch, Option, etc. */}
                                 <div className="flex items-center justify-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar-hide">
                                     <div className="flex items-center gap-1.5 bg-[#0e0e0e]/95 backdrop-blur-2xl px-2 py-2 rounded-2xl border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.6)] shrink-0">
                                         <button
