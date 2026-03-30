@@ -13,6 +13,8 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import useStore, { type RFState } from '../store/useStore';
+import { resolveFolderMapSettings } from '../lib/folderMapSettings';
+import FolderMapSettingsPanel from './FolderMapSettingsPanel';
 import { chatService } from '../services/chatService';
 import { workspaceService } from '../services/workspaceService';
 import { useAuth } from '@clerk/clerk-react';
@@ -24,7 +26,7 @@ import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen, ZoomIn, ZoomOut, Move, GitBranch, Split, Type, Lightbulb, HelpCircle, Trash2 } from 'lucide-react';
+import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen, ZoomIn, ZoomOut, Move, GitBranch, Split, Type, Lightbulb, HelpCircle, Trash2, Settings2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
@@ -39,7 +41,7 @@ function CanvasContent() {
     const workspaceId = (location.state as { workspaceId?: number })?.workspaceId;
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
-        addNode, addEdge, setCurrentCanvas, canvases,
+        addNode, addEdge, setCurrentCanvas, canvases, folders,
         addSubCanvasToMerged, syncSubProjectNodes, ensureCanvasExists, loadSharedCanvas
     } = useStore(useShallow((state: RFState) => ({
         nodes: state.nodes,
@@ -51,6 +53,7 @@ function CanvasContent() {
         addEdge: state.addEdge,
         setCurrentCanvas: state.setCurrentCanvas,
         canvases: state.canvases,
+        folders: state.folders,
         addSubCanvasToMerged: state.addSubCanvasToMerged,
         syncSubProjectNodes: state.syncSubProjectNodes,
         ensureCanvasExists: state.ensureCanvasExists,
@@ -333,13 +336,16 @@ function CanvasContent() {
     // Selector needs to be updated to include createCanvas and updateNodeData
     // ... (Use a more complete selector or individual hooks if needed, but for now assuming selector provides these)
 
-    // Auto-populate the canvas with subproject nodes for every other canvas in the same folder
+    // Auto-populate the canvas with subproject nodes for every other canvas in the same folder (layout from folder map settings)
     const handleAutoMapFolder = useCallback(() => {
         const canvas = canvases[activeCanvasId];
         if (!canvas?.folderId) {
             toast.error('This project is not in a folder. Move it to a folder first.');
             return;
         }
+
+        const folder = folders[canvas.folderId];
+        const map = resolveFolderMapSettings(folder, 'canvas');
 
         const siblings = Object.values(canvases).filter(
             c => c.folderId === canvas.folderId && c.id !== activeCanvasId
@@ -365,16 +371,14 @@ function CanvasContent() {
             return;
         }
 
-        const COLS = 3;
+        const COLS = map.mapColumns;
         const NODE_W = 240;
         const NODE_H = 120;
-        const GAP_X = 50;
-        const GAP_Y = 50;
+        const GAP_X = map.gapX;
+        const GAP_Y = map.gapY;
 
-        // Variants: idea, question, decision — free writable boxes
         const variants: Array<'default' | 'question' | 'decision'> = ['default', 'question', 'decision'];
 
-        // Place nodes to the right of any existing nodes, or centred at origin
         const baseX = nodes.length > 0
             ? Math.max(...nodes.map(n => n.position.x + (n.measured?.width ?? NODE_W))) + 80
             : -(Math.min(newSiblings.length, COLS) * (NODE_W + GAP_X)) / 2;
@@ -385,7 +389,10 @@ function CanvasContent() {
         newSiblings.forEach((sibling, i) => {
             const col = i % COLS;
             const row = Math.floor(i / COLS);
-            const variant = variants[i % 3];
+            const variant =
+                map.canvasNodeVariant === 'rotate'
+                    ? variants[i % 3]
+                    : map.canvasNodeVariant;
             addNode({
                 id: `folder-node-${sibling.id}`,
                 type: variant,
@@ -402,7 +409,7 @@ function CanvasContent() {
 
         setTimeout(() => fitView({ duration: 600, padding: 0.2 }), 80);
         toast.success(`Mapped ${newSiblings.length} project${newSiblings.length !== 1 ? 's' : ''} from folder`);
-    }, [activeCanvasId, canvases, nodes, addNode, fitView]);
+    }, [activeCanvasId, canvases, folders, nodes, addNode, fitView]);
 
     const onNodeDoubleClick = useCallback(() => {
         // Double click navigation disabled
@@ -459,6 +466,19 @@ function CanvasContent() {
 
 
     const [mobileTab, setMobileTab] = useState<'write' | 'map'>('write');
+    const [folderMapPanelOpen, setFolderMapPanelOpen] = useState(false);
+    const folderMapPanelRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!folderMapPanelOpen) return;
+        const onDoc = (e: MouseEvent) => {
+            const t = e.target;
+            if (t instanceof HTMLElement && folderMapPanelRef.current && !folderMapPanelRef.current.contains(t)) {
+                setFolderMapPanelOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onDoc);
+        return () => document.removeEventListener('mousedown', onDoc);
+    }, [folderMapPanelOpen]);
     // Track mobile state so we can conditionally unmount ReactFlow when not in map tab
     // (prevents React Flow's global keydown handlers from intercepting Space in inputs)
     const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
@@ -637,14 +657,39 @@ function CanvasContent() {
                                     <span className="text-[10px] font-bold hidden sm:inline">Clear Flow</span>
                                 </button>
                                 {canvases[activeCanvasId]?.folderId && (
-                                    <button
-                                        onClick={handleAutoMapFolder}
-                                        className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-white/10 hover:text-white active:scale-95 transition-all"
-                                        aria-label="Auto-map folder projects"
-                                    >
-                                        <FolderOpen size={13} />
-                                        <span className="text-[10px] font-bold hidden sm:inline">Map Folder</span>
-                                    </button>
+                                    <div className="relative flex items-center gap-0.5" ref={folderMapPanelRef}>
+                                        <button
+                                            onClick={handleAutoMapFolder}
+                                            className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-white/10 hover:text-white active:scale-95 transition-all"
+                                            aria-label="Auto-map folder projects"
+                                        >
+                                            <FolderOpen size={13} />
+                                            <span className="text-[10px] font-bold hidden sm:inline">Map Folder</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFolderMapPanelOpen((o) => !o)}
+                                            className={`flex items-center justify-center p-1.5 md:px-2 md:py-1.5 rounded-lg md:rounded-xl border transition-all active:scale-95 ${
+                                                folderMapPanelOpen
+                                                    ? 'bg-primary/20 border-primary/35 text-primary'
+                                                    : 'bg-white/[0.04] text-white/45 border-white/[0.06] hover:bg-white/10 hover:text-white'
+                                            }`}
+                                            aria-expanded={folderMapPanelOpen}
+                                            aria-label="Folder map options"
+                                            title="Map layout for this folder"
+                                        >
+                                            <Settings2 size={14} />
+                                        </button>
+                                        {folderMapPanelOpen && (
+                                            <div
+                                                className="absolute right-0 top-[calc(100%+6px)] w-[min(calc(100vw-1.5rem),20rem)] p-4 rounded-2xl border border-white/[0.08] bg-[#0a0a0a]/98 backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.65)] z-[100] max-h-[min(70vh,28rem)] overflow-y-auto text-left"
+                                                data-theme="dark"
+                                            >
+                                                <p className="text-xs font-black text-white/90 uppercase tracking-wider mb-3">Folder map</p>
+                                                <FolderMapSettingsPanel folderId={canvases[activeCanvasId]!.folderId!} />
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                                 <button
                                     onClick={() => navigate(`/strab/${id || 'default'}`)}

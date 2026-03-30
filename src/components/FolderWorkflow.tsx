@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
     ReactFlow,
@@ -15,15 +15,15 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import useStore from '../store/useStore';
-import { ArrowLeft, Plus, FolderOpen, LayoutGrid, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Plus, FolderOpen, LayoutGrid, HelpCircle, Settings2 } from 'lucide-react';
+import FolderMapSettingsPanel from './FolderMapSettingsPanel';
+import { resolveFolderMapSettings } from '../lib/folderMapSettings';
 import WorkflowStepNode from './nodes/WorkflowStepNode';
 import SmartEdge from './edges/SmartEdge';
 import toast from 'react-hot-toast';
 
 const NODE_W = 200;
 const NODE_H = 120;
-const GAP_X = 80;
-const GAP_Y = 60;
 
 function WorkflowContent() {
     const navigate = useNavigate();
@@ -38,6 +38,26 @@ function WorkflowContent() {
         if (!targetFolderId) return { name: 'General Projects', id: 'general' };
         return store.folders[targetFolderId] || { name: 'Unknown Folder', id: targetFolderId };
     }, [targetFolderId, store.folders]);
+
+    const folderRecord = targetFolderId ? store.folders[targetFolderId] : undefined;
+    const mapLayout = useMemo(
+        () => resolveFolderMapSettings(folderRecord, 'workflow'),
+        [folderRecord]
+    );
+
+    const [mapOptsOpen, setMapOptsOpen] = useState(false);
+    const mapOptsRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!mapOptsOpen) return;
+        const onDoc = (e: MouseEvent) => {
+            const t = e.target;
+            if (t instanceof HTMLElement && mapOptsRef.current && !mapOptsRef.current.contains(t)) {
+                setMapOptsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onDoc);
+        return () => document.removeEventListener('mousedown', onDoc);
+    }, [mapOptsOpen]);
 
     // Projects in this folder
     const folderProjects = useMemo(() => {
@@ -79,13 +99,15 @@ function WorkflowContent() {
             toast.success('All folder projects are already on the map.');
             return;
         }
-        const COLS = 3;
+        const COLS = mapLayout.mapColumns;
+        const gapX = mapLayout.gapX;
+        const gapY = mapLayout.gapY;
         const baseX = currentNodes.length > 0
-            ? Math.max(...currentNodes.map(n => n.position.x + NODE_W)) + GAP_X
-            : -((Math.min(toAdd.length, COLS) * (NODE_W + GAP_X)) / 2);
+            ? Math.max(...currentNodes.map(n => n.position.x + NODE_W)) + gapX
+            : -((Math.min(toAdd.length, COLS) * (NODE_W + gapX)) / 2);
         const baseY = currentNodes.length > 0
             ? Math.min(...currentNodes.map(n => n.position.y))
-            : -(Math.ceil(toAdd.length / COLS) * (NODE_H + GAP_Y)) / 2;
+            : -(Math.ceil(toAdd.length / COLS) * (NODE_H + gapY)) / 2;
 
         const newNodes: Node[] = toAdd.map((p, i) => {
             const col = i % COLS;
@@ -94,8 +116,8 @@ function WorkflowContent() {
                 id: `project-${p.id}`,
                 type: 'step',
                 position: {
-                    x: baseX + col * (NODE_W + GAP_X),
-                    y: baseY + row * (NODE_H + GAP_Y),
+                    x: baseX + col * (NODE_W + gapX),
+                    y: baseY + row * (NODE_H + gapY),
                 },
                 data: {
                     label: p.name || p.title || 'Untitled',
@@ -108,7 +130,7 @@ function WorkflowContent() {
         store.setProjectMapNodes(actualFolderIdStr, [...currentNodes, ...newNodes]);
         setTimeout(() => fitView({ duration: 400, padding: 0.15 }), 100);
         toast.success(`Added ${toAdd.length} project${toAdd.length !== 1 ? 's' : ''} to map`);
-    }, [folderProjects, existingLinkedIds, currentNodes, store, actualFolderIdStr, fitView]);
+    }, [folderProjects, existingLinkedIds, currentNodes, store, actualFolderIdStr, fitView, mapLayout]);
 
     const onNodesChange = (changes: NodeChange[]) => store.onProjectMapNodesChange(actualFolderIdStr, changes);
     const onEdgesChange = (changes: EdgeChange[]) => store.onProjectMapEdgesChange(actualFolderIdStr, changes);
@@ -165,15 +187,37 @@ function WorkflowContent() {
                 </div>
             </Panel>
 
-            <Panel position="top-right" className="m-4 flex flex-col sm:flex-row gap-2">
+            <Panel position="top-right" className="m-4 flex flex-col sm:flex-row gap-2 items-end sm:items-center">
                 {targetFolderId && folderProjects.length > 0 && (
-                    <button
-                        onClick={handleMapFromFolder}
-                        className="flex items-center gap-2 bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30 px-4 py-2.5 rounded-xl font-bold text-sm transition-all"
-                    >
-                        <FolderOpen size={18} />
-                        <span>Add from folder</span>
-                    </button>
+                    <div className="relative flex items-center gap-1" ref={mapOptsRef}>
+                        <button
+                            onClick={handleMapFromFolder}
+                            className="flex items-center gap-2 bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30 px-4 py-2.5 rounded-xl font-bold text-sm transition-all"
+                        >
+                            <FolderOpen size={18} />
+                            <span>Add from folder</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMapOptsOpen((o) => !o)}
+                            className={`flex items-center justify-center w-11 h-11 rounded-xl border font-bold transition-all ${
+                                mapOptsOpen
+                                    ? 'bg-primary/25 border-primary/40 text-primary'
+                                    : 'bg-[#0e0e0e] border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.06]'
+                            }`}
+                            aria-expanded={mapOptsOpen}
+                            aria-label="Folder map layout options"
+                            title="Map layout for this folder"
+                        >
+                            <Settings2 size={18} />
+                        </button>
+                        {mapOptsOpen && (
+                            <div className="absolute right-0 top-[calc(100%+8px)] w-[min(calc(100vw-2rem),20rem)] p-4 rounded-2xl border border-white/[0.08] bg-[#0a0a0a]/98 backdrop-blur-xl shadow-xl z-[200] max-h-[min(70vh,28rem)] overflow-y-auto">
+                                <p className="text-xs font-black text-white/90 uppercase tracking-wider mb-3">Folder map</p>
+                                <FolderMapSettingsPanel folderId={targetFolderId} showCanvasOptions />
+                            </div>
+                        )}
+                    </div>
                 )}
                 <button
                     onClick={handleAddStep}

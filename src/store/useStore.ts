@@ -98,10 +98,24 @@ export type Comment = {
     createdAt: number;
 };
 
+/** Per-folder layout when mapping projects onto the workflow map or strategy canvas “Map Folder”. */
+export type FolderMapSettings = {
+    /** Grid columns when placing projects (2–5). */
+    mapColumns?: number;
+    /** Tighter or roomier spacing between placed nodes. */
+    spacingPreset?: 'compact' | 'default' | 'roomy';
+    /**
+     * Strategy canvas only: how linked-project boxes are typed when using Map Folder.
+     * `rotate` cycles idea / question / decision; otherwise every box uses one type.
+     */
+    canvasNodeVariant?: 'rotate' | 'default' | 'question' | 'decision';
+};
+
 export type Folder = {
     id: string;
     name: string;
     createdAt: number;
+    mapSettings?: FolderMapSettings;
 };
 
 export type CanvasGoal = {
@@ -326,6 +340,7 @@ export type RFState = {
     createFolder: (name: string) => string;
     deleteFolder: (id: string) => void;
     updateFolderName: (id: string, name: string) => void;
+    updateFolderMapSettings: (id: string, settings: Partial<FolderMapSettings>) => void;
     setActiveFolder: (id: string | null) => void;
     moveItemToFolder: (itemId: string, type: 'canvas' | 'timeline' | 'diagram', folderId: string | null) => void;
 
@@ -1614,6 +1629,22 @@ const useStore = create<RFState>()(
                             ...state.folders,
                             [id]: { ...folder, name }
                         }
+                    };
+                });
+            },
+
+            updateFolderMapSettings: (id, settings) => {
+                set((state) => {
+                    const folder = state.folders[id];
+                    if (!folder) return {};
+                    return {
+                        folders: {
+                            ...state.folders,
+                            [id]: {
+                                ...folder,
+                                mapSettings: { ...folder.mapSettings, ...settings },
+                            },
+                        },
                     };
                 });
             },
