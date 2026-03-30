@@ -14,6 +14,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import useStore, { type RFState } from '../store/useStore';
 import { resolveFolderMapSettings } from '../lib/folderMapSettings';
+import { canvasHasUserFacingName } from '../lib/canvasProjectFilter';
 import FolderMapSettingsPanel from './FolderMapSettingsPanel';
 import { chatService } from '../services/chatService';
 import { workspaceService } from '../services/workspaceService';
@@ -348,7 +349,10 @@ function CanvasContent() {
         const map = resolveFolderMapSettings(folder, 'canvas');
 
         const siblings = Object.values(canvases).filter(
-            c => c.folderId === canvas.folderId && c.id !== activeCanvasId
+            (c) =>
+                c.folderId === canvas.folderId &&
+                c.id !== activeCanvasId &&
+                canvasHasUserFacingName(c)
         );
 
         if (siblings.length === 0) {

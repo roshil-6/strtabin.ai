@@ -18,6 +18,7 @@ import useStore from '../store/useStore';
 import { ArrowLeft, Plus, FolderOpen, LayoutGrid, HelpCircle, Settings2 } from 'lucide-react';
 import FolderMapSettingsPanel from './FolderMapSettingsPanel';
 import { resolveFolderMapSettings } from '../lib/folderMapSettings';
+import { canvasHasUserFacingName } from '../lib/canvasProjectFilter';
 import WorkflowStepNode from './nodes/WorkflowStepNode';
 import SmartEdge from './edges/SmartEdge';
 import toast from 'react-hot-toast';
@@ -76,7 +77,10 @@ function WorkflowContent() {
     // Projects in this folder
     const folderProjects = useMemo(() => {
         return Object.values(store.canvases).filter(
-            c => (c.folderId || null) === targetFolderId && !c.mergedCanvasIds
+            (c) =>
+                (c.folderId || null) === targetFolderId &&
+                !c.mergedCanvasIds &&
+                canvasHasUserFacingName(c)
         );
     }, [store.canvases, targetFolderId]);
 
