@@ -159,12 +159,35 @@ function WorkflowContent() {
             preventScrolling
         >
             <Background color="rgba(255,255,255,0.04)" gap={24} size={1} variant={BackgroundVariant.Dots} />
+
+            {/* Empty state first + low z-index so header/toolbars always paint above it */}
+            {isEmpty && (
+                <Panel
+                    position="top-left"
+                    className="z-[5] pointer-events-none !left-1/2 !top-1/2 !right-auto !-translate-x-1/2 !-translate-y-1/2 !m-0 max-w-[min(100vw-2rem,22rem)] w-full"
+                >
+                    <div className="bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-8 text-center w-full">
+                        <LayoutGrid size={48} className="mx-auto text-white/20 mb-4" />
+                        <h3 className="text-lg font-bold text-white mb-2">Start your workflow map</h3>
+                        <p className="text-sm text-white/50 mb-6">
+                            {targetFolderId && folderProjects.length > 0
+                                ? 'Click "Add from folder" to map your projects, or "Add step" for custom workflow steps.'
+                                : 'Click "Add step" to create workflow steps. Connect them to show dependencies.'}
+                        </p>
+                        <div className="flex items-center justify-center gap-1 text-white/30 text-xs">
+                            <HelpCircle size={14} />
+                            <span>Drag between ideas to create connections</span>
+                        </div>
+                    </div>
+                </Panel>
+            )}
+
             <Controls
                 position="bottom-right"
-                className="bg-[#0e0e0e] border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] mb-4 mr-4 [&>button]:bg-[#0e0e0e] [&>button]:border-white/[0.06] [&>button]:text-white [&>button:hover]:bg-primary/20"
+                className="z-20 bg-[#0e0e0e] border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] mb-4 mr-4 [&>button]:bg-[#0e0e0e] [&>button]:border-white/[0.06] [&>button]:text-white [&>button:hover]:bg-primary/20"
             />
 
-            <Panel position="top-left" className="m-4 flex flex-col gap-2">
+            <Panel position="top-left" className="z-40 m-4 flex flex-col gap-2">
                 <button
                     onClick={() => {
                         store.setActiveFolder(targetFolderId || null);
@@ -177,7 +200,7 @@ function WorkflowContent() {
                 </button>
             </Panel>
 
-            <Panel position="top-center" className="m-4 left-1/2 -translate-x-1/2">
+            <Panel position="top-center" className="z-40 m-4 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)]">
                 <div className="bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/[0.06] px-6 py-4 rounded-2xl shadow-xl text-center">
                     <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">{folderDetails.name}</h1>
                     <p className="text-xs text-white/40 mt-1 uppercase tracking-wider font-bold">Workflow & dependency map</p>
@@ -187,7 +210,7 @@ function WorkflowContent() {
                 </div>
             </Panel>
 
-            <Panel position="top-right" className="m-4 flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+            <Panel position="top-right" className="z-40 m-4 flex flex-col sm:flex-row gap-2 items-end sm:items-center">
                 {targetFolderId && folderProjects.length > 0 && (
                     <div className="relative flex items-center gap-1" ref={mapOptsRef}>
                         <button
@@ -227,24 +250,6 @@ function WorkflowContent() {
                     <span>Add step</span>
                 </button>
             </Panel>
-
-            {isEmpty && (
-                <Panel position="top-left" className="left-1/2 -translate-x-1/2 mt-36 pointer-events-none">
-                    <div className="bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-8 max-w-md text-center w-[320px]">
-                        <LayoutGrid size={48} className="mx-auto text-white/20 mb-4" />
-                        <h3 className="text-lg font-bold text-white mb-2">Start your workflow map</h3>
-                        <p className="text-sm text-white/50 mb-6">
-                            {targetFolderId && folderProjects.length > 0
-                                ? 'Click "Add from folder" to map your projects, or "Add step" for custom workflow steps.'
-                                : 'Click "Add step" to create workflow steps. Connect them to show dependencies.'}
-                        </p>
-                        <div className="flex items-center justify-center gap-1 text-white/30 text-xs">
-                            <HelpCircle size={14} />
-                            <span>Drag between ideas to create connections</span>
-                        </div>
-                    </div>
-                </Panel>
-            )}
         </ReactFlow>
     );
 }
