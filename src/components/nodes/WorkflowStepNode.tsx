@@ -66,17 +66,17 @@ export const WorkflowStepNode = memo(({ id, data, selected }: NodeProps<Node<Wor
     return (
         <div
             className={`
-                min-w-[180px] max-w-[250px] relative transition-all group
+                min-w-[132px] max-w-[180px] md:min-w-[180px] md:max-w-[250px] relative transition-all group
                 ${selected ? 'z-50' : 'z-40'}
             `}
         >
-            <Handle type="target" position={Position.Top} className="!w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ top: -8, left: '50%', transform: 'translateX(-50%)' }} />
-            <Handle type="target" position={Position.Left} id="left" className="!w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ left: -8, top: '50%', transform: 'translateY(-50%)' }} />
+            <Handle type="target" position={Position.Top} className="!w-3 !h-3 md:!w-4 md:!h-4 !min-w-3 !min-h-3 md:!min-w-4 md:!min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ top: -6, left: '50%', transform: 'translateX(-50%)' }} />
+            <Handle type="target" position={Position.Left} id="left" className="!w-3 !h-3 md:!w-4 md:!h-4 !min-w-3 !min-h-3 md:!min-w-4 md:!min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ left: -6, top: '50%', transform: 'translateY(-50%)' }} />
 
             <div className={`
-                p-4 rounded-xl border flex flex-col gap-2 transition-all
+                p-2.5 md:p-4 rounded-lg md:rounded-xl border flex flex-col gap-1 md:gap-2 transition-all
                 ${selected
-                    ? 'bg-[#1a1a1a] border-primary text-white shadow-[0_0_20px_rgba(218,119,86,0.3)] scale-105'
+                    ? 'bg-[#1a1a1a] border-primary text-white shadow-[0_0_20px_rgba(218,119,86,0.3)] md:scale-105'
                     : 'bg-[#111] border-[#333] text-white/80 hover:bg-[#1a1a1a] hover:border-white/40 shadow-lg'
                 }
             `}>
@@ -85,13 +85,13 @@ export const WorkflowStepNode = memo(({ id, data, selected }: NodeProps<Node<Wor
                 <button
                     onClick={deleteNode}
                     className={`
-                        absolute -top-3 -right-3 p-1.5 bg-red-500/20 text-red-500 rounded-lg border border-red-500/30
+                        absolute -top-2 -right-2 md:-top-3 md:-right-3 p-1 md:p-1.5 bg-red-500/20 text-red-500 rounded-lg border border-red-500/30
                         hover:bg-red-500 hover:text-white transition-all
                         ${selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
                     `}
                     title="Delete Step"
                 >
-                    <Trash2 size={14} />
+                    <Trash2 size={12} />
                 </button>
 
                 {isEditing ? (
@@ -101,12 +101,12 @@ export const WorkflowStepNode = memo(({ id, data, selected }: NodeProps<Node<Wor
                         onChange={(e) => setLabel(e.target.value)}
                         onBlur={handleBlur}
                         onKeyDown={handleKeyDown}
-                        className="w-full bg-[#0a0a0a] border border-primary/50 rounded p-2 text-sm text-white font-bold text-center outline-none focus:border-primary"
+                        className="w-full bg-[#0a0a0a] border border-primary/50 rounded p-1.5 md:p-2 text-xs md:text-sm text-white font-bold text-center outline-none focus:border-primary"
                     />
                 ) : (
                     <div
                         onClick={isProject ? openProject : () => setIsEditing(true)}
-                        className={`w-full p-2 text-sm text-white font-bold text-center break-words select-none ${isProject ? 'cursor-pointer hover:text-primary transition-colors flex items-center justify-center gap-1.5' : 'cursor-text'}`}
+                        className={`w-full p-1 md:p-2 text-xs md:text-sm text-white font-bold text-center break-words select-none ${isProject ? 'cursor-pointer hover:text-primary transition-colors flex items-center justify-center gap-1' : 'cursor-text'}`}
                     >
                         {label || 'New Step'}
                         {isProject && <ExternalLink size={12} className="opacity-60 shrink-0" />}
@@ -114,8 +114,8 @@ export const WorkflowStepNode = memo(({ id, data, selected }: NodeProps<Node<Wor
                 )}
             </div>
 
-            <Handle type="source" position={Position.Bottom} className="!w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ bottom: -8, left: '50%', transform: 'translateX(-50%)' }} />
-            <Handle type="source" position={Position.Right} id="right" className="!w-4 !h-4 !min-w-4 !min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ right: -8, top: '50%', transform: 'translateY(-50%)' }} />
+            <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 md:!w-4 md:!h-4 !min-w-3 !min-h-3 md:!min-w-4 md:!min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ bottom: -6, left: '50%', transform: 'translateX(-50%)' }} />
+            <Handle type="source" position={Position.Right} id="right" className="!w-3 !h-3 md:!w-4 md:!h-4 !min-w-3 !min-h-3 md:!min-w-4 md:!min-h-4 !rounded-full !bg-primary/40 !border-2 !border-primary/60 opacity-90 hover:!bg-primary hover:!scale-110 cursor-crosshair transition-all" style={{ right: -6, top: '50%', transform: 'translateY(-50%)' }} />
         </div>
     );
 });

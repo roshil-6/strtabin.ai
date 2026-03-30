@@ -46,14 +46,28 @@ function WorkflowContent() {
     );
 
     const [mapOptsOpen, setMapOptsOpen] = useState(false);
-    const mapOptsRef = useRef<HTMLDivElement>(null);
+    const mapOptsDesktopRef = useRef<HTMLDivElement>(null);
+    const mapOptsMobileRef = useRef<HTMLDivElement>(null);
+    const mapOptsSheetRef = useRef<HTMLDivElement>(null);
+    const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+    useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', onResize, { passive: true });
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
     useEffect(() => {
         if (!mapOptsOpen) return;
         const onDoc = (e: MouseEvent) => {
             const t = e.target;
-            if (t instanceof HTMLElement && mapOptsRef.current && !mapOptsRef.current.contains(t)) {
-                setMapOptsOpen(false);
+            if (!(t instanceof HTMLElement)) return;
+            if (
+                mapOptsDesktopRef.current?.contains(t) ||
+                mapOptsMobileRef.current?.contains(t) ||
+                mapOptsSheetRef.current?.contains(t)
+            ) {
+                return;
             }
+            setMapOptsOpen(false);
         };
         document.addEventListener('mousedown', onDoc);
         return () => document.removeEventListener('mousedown', onDoc);
@@ -79,15 +93,17 @@ function WorkflowContent() {
     ), [currentNodes]);
 
     const handleAddStep = useCallback(() => {
+        const stepW = isMobile ? 155 : NODE_W;
+        const stepH = isMobile ? 96 : NODE_H;
         const newNode: Node = {
             id: `step-${Date.now()}`,
             type: 'step',
-            position: { x: 400, y: 250 },
+            position: { x: stepW * 1.2, y: stepH * 1.5 },
             data: { label: 'New step' },
         };
         store.setProjectMapNodes(actualFolderIdStr, [...currentNodes, newNode]);
-        setTimeout(() => fitView({ duration: 400, padding: 0.2 }), 150);
-    }, [store, actualFolderIdStr, currentNodes, fitView]);
+        setTimeout(() => fitView({ duration: 400, padding: isMobile ? 0.35 : 0.2 }), 150);
+    }, [store, actualFolderIdStr, currentNodes, fitView, isMobile]);
 
     const handleMapFromFolder = useCallback(() => {
         if (folderProjects.length === 0) {
@@ -102,12 +118,16 @@ function WorkflowContent() {
         const COLS = mapLayout.mapColumns;
         const gapX = mapLayout.gapX;
         const gapY = mapLayout.gapY;
+        const W = isMobile ? 155 : NODE_W;
+        const H = isMobile ? 96 : NODE_H;
         const baseX = currentNodes.length > 0
-            ? Math.max(...currentNodes.map(n => n.position.x + NODE_W)) + gapX
-            : -((Math.min(toAdd.length, COLS) * (NODE_W + gapX)) / 2);
+            ? Math.max(
+                  ...currentNodes.map((n) => n.position.x + (n.measured?.width ?? NODE_W))
+              ) + gapX
+            : -((Math.min(toAdd.length, COLS) * (W + gapX)) / 2);
         const baseY = currentNodes.length > 0
             ? Math.min(...currentNodes.map(n => n.position.y))
-            : -(Math.ceil(toAdd.length / COLS) * (NODE_H + gapY)) / 2;
+            : -(Math.ceil(toAdd.length / COLS) * (H + gapY)) / 2;
 
         const newNodes: Node[] = toAdd.map((p, i) => {
             const col = i % COLS;
@@ -116,8 +136,8 @@ function WorkflowContent() {
                 id: `project-${p.id}`,
                 type: 'step',
                 position: {
-                    x: baseX + col * (NODE_W + gapX),
-                    y: baseY + row * (NODE_H + gapY),
+                    x: baseX + col * (W + gapX),
+                    y: baseY + row * (H + gapY),
                 },
                 data: {
                     label: p.name || p.title || 'Untitled',
@@ -128,17 +148,19 @@ function WorkflowContent() {
         });
 
         store.setProjectMapNodes(actualFolderIdStr, [...currentNodes, ...newNodes]);
-        setTimeout(() => fitView({ duration: 400, padding: 0.15 }), 100);
+        setTimeout(() => fitView({ duration: 400, padding: isMobile ? 0.35 : 0.15 }), 100);
         toast.success(`Added ${toAdd.length} project${toAdd.length !== 1 ? 's' : ''} to map`);
-    }, [folderProjects, existingLinkedIds, currentNodes, store, actualFolderIdStr, fitView, mapLayout]);
+    }, [folderProjects, existingLinkedIds, currentNodes, store, actualFolderIdStr, fitView, mapLayout, isMobile]);
 
     const onNodesChange = (changes: NodeChange[]) => store.onProjectMapNodesChange(actualFolderIdStr, changes);
     const onEdgesChange = (changes: EdgeChange[]) => store.onProjectMapEdgesChange(actualFolderIdStr, changes);
     const onConnect = (connection: Connection) => store.onProjectMapConnect(actualFolderIdStr, connection);
 
     const isEmpty = currentNodes.length === 0;
+    const showFolderActions = !!(targetFolderId && folderProjects.length > 0);
 
     return (
+        <>
         <ReactFlow
             nodes={currentNodes}
             edges={currentEdges}
@@ -148,10 +170,16 @@ function WorkflowContent() {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             defaultEdgeOptions={{ type: 'smart' }}
-            defaultViewport={{ x: 0, y: 0, zoom: 0.9 }}
+            defaultViewport={{ x: 0, y: 0, zoom: isMobile ? 0.75 : 0.9 }}
             fitView
-            fitViewOptions={{ padding: 0.2, minZoom: 0.5, maxZoom: 1.2 }}
-            connectionRadius={90}
+            fitViewOptions={{
+                padding: isMobile ? 0.28 : 0.2,
+                minZoom: isMobile ? 0.22 : 0.5,
+                maxZoom: isMobile ? 1.35 : 1.2,
+            }}
+            minZoom={isMobile ? 0.15 : 0.5}
+            maxZoom={isMobile ? 1.5 : 1.2}
+            connectionRadius={isMobile ? 56 : 90}
             connectionLineStyle={{ stroke: '#f97316', strokeWidth: 2.5, strokeDasharray: '8 4' }}
             className="bg-[#050505]"
             zoomOnPinch
@@ -184,35 +212,35 @@ function WorkflowContent() {
 
             <Controls
                 position="bottom-right"
-                className="z-20 bg-[#0e0e0e] border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] mb-4 mr-4 [&>button]:bg-[#0e0e0e] [&>button]:border-white/[0.06] [&>button]:text-white [&>button:hover]:bg-primary/20"
+                className="z-20 bg-[#0e0e0e] border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] mb-4 mr-4 max-md:!mb-[5.5rem] [&>button]:bg-[#0e0e0e] [&>button]:border-white/[0.06] [&>button]:text-white [&>button:hover]:bg-primary/20"
             />
 
-            <Panel position="top-left" className="z-40 m-4 flex flex-col gap-2">
+            <Panel position="top-left" className={`z-40 flex flex-col gap-2 ${isMobile ? 'm-2' : 'm-4'}`}>
                 <button
                     onClick={() => {
                         store.setActiveFolder(targetFolderId || null);
                         navigate('/dashboard');
                     }}
-                    className="flex items-center gap-2 text-white/60 hover:text-white bg-[#0e0e0e]/95 backdrop-blur-xl px-4 py-2.5 rounded-xl border border-white/[0.08] hover:bg-white/[0.04] transition-all group"
+                    className="flex items-center gap-2 text-white/60 hover:text-white bg-[#0e0e0e]/95 backdrop-blur-xl px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-white/[0.08] hover:bg-white/[0.04] transition-all group"
                 >
                     <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
-                    <span className="text-sm font-bold">Back</span>
+                    <span className="text-xs md:text-sm font-bold">Back</span>
                 </button>
             </Panel>
 
-            <Panel position="top-center" className="z-40 m-4 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)]">
-                <div className="bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/[0.06] px-6 py-4 rounded-2xl shadow-xl text-center">
-                    <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">{folderDetails.name}</h1>
-                    <p className="text-xs text-white/40 mt-1 uppercase tracking-wider font-bold">Workflow & dependency map</p>
-                    <p className="text-[11px] text-white/30 mt-2 max-w-md mx-auto">
+            <Panel position="top-center" className={`z-40 left-1/2 -translate-x-1/2 max-w-[calc(100vw-1rem)] ${isMobile ? 'm-2 mt-14' : 'm-4'}`}>
+                <div className="bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/[0.06] px-3 py-2.5 md:px-6 md:py-4 rounded-xl md:rounded-2xl shadow-xl text-center">
+                    <h1 className="text-base md:text-2xl font-black text-white tracking-tight line-clamp-2">{folderDetails.name}</h1>
+                    <p className="text-[10px] md:text-xs text-white/40 mt-0.5 md:mt-1 uppercase tracking-wider font-bold">Workflow & dependency map</p>
+                    <p className="text-[10px] md:text-[11px] text-white/30 mt-1 md:mt-2 max-w-md mx-auto hidden sm:block">
                         Map projects and steps, connect dependencies, and visualize your workflow.
                     </p>
                 </div>
             </Panel>
 
-            <Panel position="top-right" className="z-40 m-4 flex flex-col sm:flex-row gap-2 items-end sm:items-center">
-                {targetFolderId && folderProjects.length > 0 && (
-                    <div className="relative flex items-center gap-1" ref={mapOptsRef}>
+            <Panel position="top-right" className="z-40 m-4 hidden md:flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+                {showFolderActions && (
+                    <div className="relative flex items-center gap-1" ref={mapOptsDesktopRef}>
                         <button
                             onClick={handleMapFromFolder}
                             className="flex items-center gap-2 bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30 px-4 py-2.5 rounded-xl font-bold text-sm transition-all"
@@ -251,6 +279,58 @@ function WorkflowContent() {
                 </button>
             </Panel>
         </ReactFlow>
+
+        {/* Phone: fixed bar so "Add from folder" / settings / "Add step" are never off-screen */}
+        {isMobile && (
+            <div
+                className="fixed bottom-0 left-0 right-0 z-[100] flex items-stretch justify-center gap-1.5 px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-[#060606]/[0.97] backdrop-blur-xl border-t border-white/[0.06] shadow-[0_-8px_32px_rgba(0,0,0,0.5)]"
+                ref={mapOptsMobileRef}
+            >
+                {showFolderActions && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={handleMapFromFolder}
+                            className="flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-xl bg-primary/15 text-primary border border-primary/25 font-bold text-[11px] leading-tight"
+                        >
+                            <FolderOpen size={20} strokeWidth={2.2} />
+                            <span className="truncate w-full text-center">From folder</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMapOptsOpen((o) => !o)}
+                            className={`shrink-0 flex flex-col items-center justify-center gap-0.5 py-2 px-2.5 rounded-xl border font-bold text-[10px] ${
+                                mapOptsOpen
+                                    ? 'bg-primary/25 border-primary/40 text-primary'
+                                    : 'bg-[#121212] border-white/[0.08] text-white/70'
+                            }`}
+                            aria-label="Map layout options"
+                        >
+                            <Settings2 size={20} />
+                            <span>Map</span>
+                        </button>
+                    </>
+                )}
+                <button
+                    type="button"
+                    onClick={handleAddStep}
+                    className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-xl bg-primary text-black font-bold text-[11px] leading-tight ${showFolderActions ? '' : 'flex-[2]'}`}
+                >
+                    <Plus size={22} strokeWidth={2.5} />
+                    <span>Add step</span>
+                </button>
+            </div>
+        )}
+        {isMobile && mapOptsOpen && showFolderActions && (
+            <div
+                ref={mapOptsSheetRef}
+                className="fixed left-2 right-2 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-[110] max-h-[55vh] overflow-y-auto rounded-2xl border border-white/[0.08] bg-[#0a0a0a]/98 backdrop-blur-xl p-4 shadow-xl"
+            >
+                <p className="text-xs font-black text-white/90 uppercase tracking-wider mb-3">Folder map</p>
+                {targetFolderId && <FolderMapSettingsPanel folderId={targetFolderId} showCanvasOptions />}
+            </div>
+        )}
+        </>
     );
 }
 
@@ -264,7 +344,7 @@ function WorkflowWithProvider() {
 
 export default function FolderWorkflow() {
     return (
-        <div className="w-full h-screen bg-[#050505] relative">
+        <div className="w-full h-[100dvh] max-md:pb-[72px] box-border bg-[#050505] relative">
             <WorkflowWithProvider />
         </div>
     );
