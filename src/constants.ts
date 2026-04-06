@@ -1,46 +1,14 @@
 // Time constants
 export const ONE_DAY = 24 * 60 * 60 * 1000;
-
-/** localStorage key for guest trial start timestamp */
-export const GUEST_TRIAL_KEY = 'guest-trial-start';
 export const ONE_WEEK = 7 * ONE_DAY;
 
 // Storage
 export const STORAGE_KEY = 'strategy-box-storage';
 export const LEGACY_STORAGE_KEY = 'startergy-box-storage';
-/** Backup of guest-created projects before sign-up; restored when user pays and returns */
+/** Backup of local projects before sign-up; restored when main storage is empty after auth */
 export const GUEST_DATA_BACKUP_KEY = 'strategy-box-guest-backup';
 
-/** Backup guest projects before navigating to sign-up; ensures data survives auth flow */
-export function backupGuestData(): void {
-    try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        if (data) localStorage.setItem(GUEST_DATA_BACKUP_KEY, data);
-    } catch { /* ignore */ }
-}
-
-// External links (static link — single-use, prefer create-link API for fresh links)
-export const RAZORPAY_LINK = 'https://rzp.io/rzp/vxWpvWM';
-
-/** Fetches a fresh payment link from the API. Each user gets their own link (fixes "already paid" for shared links). */
-export async function fetchPaymentLink(token?: string | null): Promise<string> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(`${API_BASE_URL}/api/payments/create-link`, {
-        method: 'POST',
-        headers,
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Could not create payment link');
-    if (!data.short_url || typeof data.short_url !== 'string') throw new Error('Invalid response from server');
-    return data.short_url;
-}
-
-// Guest AI limit — 2 messages total before upgrade
-export const GUEST_AI_LIMIT = 2;
-export const GUEST_AI_COUNT_KEY = 'guest-ai-count';
-
-// Pro AI limit — 12 prompts per day (resets at midnight UTC)
+// Pro AI limit — prompts per day (resets at midnight UTC) for signed-in users
 export const PRO_AI_DAILY_LIMIT = 12;
 const PRO_AI_DAILY_KEY_PREFIX = 'pro-ai-daily-';
 
@@ -90,26 +58,6 @@ export function refundProAiMessage(userId: string): void {
             localStorage.setItem(key, JSON.stringify({ date: today, count: parsed.count - 1 }));
         }
     } catch { /* ignore */ }
-}
-
-export function getGuestAiRemaining(): number {
-    const raw = localStorage.getItem(GUEST_AI_COUNT_KEY);
-    const used = raw ? parseInt(raw, 10) : 0;
-    return Math.max(0, GUEST_AI_LIMIT - used);
-}
-
-export function consumeGuestAiMessage(): boolean {
-    const raw = localStorage.getItem(GUEST_AI_COUNT_KEY);
-    const used = raw ? parseInt(raw, 10) : 0;
-    if (used >= GUEST_AI_LIMIT) return false;
-    localStorage.setItem(GUEST_AI_COUNT_KEY, String(used + 1));
-    return true;
-}
-
-export function refundGuestAiMessage(): void {
-    const raw = localStorage.getItem(GUEST_AI_COUNT_KEY);
-    const used = raw ? parseInt(raw, 10) : 0;
-    if (used > 0) localStorage.setItem(GUEST_AI_COUNT_KEY, String(used - 1));
 }
 
 // API — build-time URL. For mobile (Capacitor): set VITE_API_URL to your deployed backend when building.

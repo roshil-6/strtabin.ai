@@ -18,7 +18,6 @@ import ProfilePage from './components/ProfilePage';
 import CommunityPage from './components/CommunityPage';
 import AuthGate from './components/AuthGate';
 import UserSyncOnLoad from './components/UserSyncOnLoad';
-import PaywallGate from './components/PaywallGate';
 import ProjectBackground from './components/ProjectBackground';
 import NotFoundPage from './components/NotFoundPage';
 
@@ -40,21 +39,21 @@ function App() {
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/features" element={<FeaturesPage />} />
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
-      <Route path="/dashboard" element={<AuthGate><PaywallGate><Dashboard /></PaywallGate></AuthGate>} />
-      <Route path="/folder-workflow/:folderId" element={<AuthGate><PaywallGate><FolderWorkflow /></PaywallGate></AuthGate>} />
-      <Route path="/strategy/:id" element={<AuthGate><PaywallGate><Canvas /></PaywallGate></AuthGate>} />
-      <Route path="/canvas/:id" element={<AuthGate><PaywallGate><Canvas /></PaywallGate></AuthGate>} />
-      <Route path="/timeline/:id" element={<AuthGate><PaywallGate><TimelineSection /></PaywallGate></AuthGate>} />
-      <Route path="/todo/:id" element={<AuthGate><PaywallGate><TodoSection /></PaywallGate></AuthGate>} />
-      <Route path="/calendar/:id" element={<AuthGate><PaywallGate><CalendarView /></PaywallGate></AuthGate>} />
-      <Route path="/calendar" element={<AuthGate><PaywallGate><CalendarView /></PaywallGate></AuthGate>} />
-      <Route path="/reports" element={<AuthGate><PaywallGate><ReportsSelectPage /></PaywallGate></AuthGate>} />
-      <Route path="/strab" element={<AuthGate><PaywallGate><StrabHome /></PaywallGate></AuthGate>} />
-      <Route path="/strab/:id" element={<AuthGate><PaywallGate><StrabView /></PaywallGate></AuthGate>} />
-      <Route path="/workspace/:id" element={<AuthGate><PaywallGate><WorkspacePage /></PaywallGate></AuthGate>} />
-      <Route path="/join/:id" element={<AuthGate><PaywallGate><JoinWorkspacePage /></PaywallGate></AuthGate>} />
+      <Route path="/dashboard" element={<AuthGate><Dashboard /></AuthGate>} />
+      <Route path="/folder-workflow/:folderId" element={<AuthGate><FolderWorkflow /></AuthGate>} />
+      <Route path="/strategy/:id" element={<AuthGate><Canvas /></AuthGate>} />
+      <Route path="/canvas/:id" element={<AuthGate><Canvas /></AuthGate>} />
+      <Route path="/timeline/:id" element={<AuthGate><TimelineSection /></AuthGate>} />
+      <Route path="/todo/:id" element={<AuthGate><TodoSection /></AuthGate>} />
+      <Route path="/calendar/:id" element={<AuthGate><CalendarView /></AuthGate>} />
+      <Route path="/calendar" element={<AuthGate><CalendarView /></AuthGate>} />
+      <Route path="/reports" element={<AuthGate><ReportsSelectPage /></AuthGate>} />
+      <Route path="/strab" element={<AuthGate><StrabHome /></AuthGate>} />
+      <Route path="/strab/:id" element={<AuthGate><StrabView /></AuthGate>} />
+      <Route path="/workspace/:id" element={<AuthGate><WorkspacePage /></AuthGate>} />
+      <Route path="/join/:id" element={<AuthGate><JoinWorkspacePage /></AuthGate>} />
       <Route path="/feed" element={<Navigate to="/community" replace />} />
-      <Route path="/community" element={<AuthGate><PaywallGate><CommunityPage /></PaywallGate></AuthGate>} />
+      <Route path="/community" element={<AuthGate><CommunityPage /></AuthGate>} />
       <Route path="/profile/:username" element={<ProfilePage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

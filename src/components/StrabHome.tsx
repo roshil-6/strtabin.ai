@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { getGuestAiRemaining, consumeGuestAiMessage, refundGuestAiMessage, getProAiRemaining, consumeProAiMessage, refundProAiMessage } from '../constants';
+import { getProAiRemaining, consumeProAiMessage, refundProAiMessage } from '../constants';
 import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { sendGeneralStrabMessage, strabVisibleAssistantText, type ChatMessage } from '../services/strabService';
@@ -183,15 +183,7 @@ function parseAndExecuteActions(
 export default function StrabHome() {
     const navigate = useNavigate();
     const { user } = useUser();
-    const paidUsers = useStore(s => s.paidUsers);
-    const isPaid = Boolean(user && (
-        user.publicMetadata?.isPaid === true ||
-        user.publicMetadata?.paid === true ||
-        user.publicMetadata?.hasPaidAccess === true ||
-        paidUsers[user.id]
-    ));
     const { getToken } = useAuth();
-    const isGuest = !user;
 
     const { createCanvas, populateCanvas, updateCanvasName, updateCanvasWriting, addCanvasTodo } =
         useStore(useShallow(s => ({
@@ -205,14 +197,12 @@ export default function StrabHome() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
     const [proAiRemaining, setProAiRemaining] = useState(() => (user?.id ? getProAiRemaining(user.id) : 12));
     const abortRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
-        if (isGuest) setGuestAiRemaining(getGuestAiRemaining());
-        if (isPaid && user?.id) setProAiRemaining(getProAiRemaining(user.id));
-    }, [messages, isGuest, isPaid, user?.id]);
+        if (user?.id) setProAiRemaining(getProAiRemaining(user.id));
+    }, [messages, user?.id]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -229,17 +219,7 @@ export default function StrabHome() {
     const sendMessage = useCallback(async (text: string) => {
         if (!text.trim() || isLoading) return;
 
-        if (isGuest) {
-            const remaining = getGuestAiRemaining();
-            if (remaining <= 0) {
-                toast.error('Guest AI limit reached. Sign up to continue.', {
-                    style: { background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' },
-                });
-                navigate('/', { replace: true });
-                return;
-            }
-        }
-        if (isPaid && user?.id) {
+        if (user?.id) {
             const remaining = getProAiRemaining(user.id);
             if (remaining <= 0) {
                 toast.error('Daily AI limit reached (12/day). Resets at midnight UTC.', {
@@ -257,11 +237,7 @@ export default function StrabHome() {
         setMessages(prev => [...prev, userMsg, assistantMsg]);
         setIsLoading(true);
 
-        if (isGuest) {
-            consumeGuestAiMessage();
-            setGuestAiRemaining(getGuestAiRemaining());
-        }
-        if (isPaid && user?.id) {
+        if (user?.id) {
             consumeProAiMessage(user.id);
             setProAiRemaining(getProAiRemaining(user.id));
         }
@@ -317,11 +293,7 @@ export default function StrabHome() {
             }
         } catch (err) {
             if ((err as Error).name === 'AbortError') return;
-            if (isGuest) {
-                refundGuestAiMessage();
-                setGuestAiRemaining(getGuestAiRemaining());
-            }
-            if (isPaid && user?.id) {
+            if (user?.id) {
                 refundProAiMessage(user.id);
                 setProAiRemaining(getProAiRemaining(user.id));
             }
@@ -340,7 +312,7 @@ export default function StrabHome() {
             setIsLoading(false);
             abortRef.current = null;
         }
-    }, [isLoading, messages, getToken, createCanvas, populateCanvas, updateCanvasName, updateCanvasWriting, addCanvasTodo, isGuest, isPaid, user?.id, navigate]);
+    }, [isLoading, messages, getToken, createCanvas, populateCanvas, updateCanvasName, updateCanvasWriting, addCanvasTodo, user?.id, navigate]);
 
     const handleSend = useCallback(() => {
         if (input.trim()) sendMessage(input.trim());
@@ -375,24 +347,13 @@ export default function StrabHome() {
                 </button>
 
                 <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    {isGuest && (
-                        <button
-                            onClick={() => navigate('/', { replace: true })}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold hover:bg-primary/20 transition-all shrink-0"
-                        >
-                            <Sparkles size={12} />
-                            {guestAiRemaining > 0 ? `${guestAiRemaining} AI left` : 'Upgrade'}
-                        </button>
-                    )}
-                    {isPaid && (
-                        <span
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/60 text-[10px] font-bold shrink-0"
-                            title="Resets at midnight UTC"
-                        >
-                            <Sparkles size={12} />
-                            {proAiRemaining > 0 ? `${proAiRemaining}/12 today` : 'Limit reached'}
-                        </span>
-                    )}
+                    <span
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/60 text-[10px] font-bold shrink-0"
+                        title="Resets at midnight UTC"
+                    >
+                        <Sparkles size={12} />
+                        {proAiRemaining > 0 ? `${proAiRemaining}/12 today` : 'Limit reached'}
+                    </span>
                     <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(249,115,22,0.15)]">
                         <Network size={14} className="text-primary" />
                     </div>

@@ -306,42 +306,6 @@
   box-shadow: var(--card-shadow-hover) !important;
 }
 
-/* Light theme: subscription/paywall cards — dark grey for visibility */
-[data-theme="light"] .subscription-card {
-  background: linear-gradient(180deg, #2d2d2d 0%, #252525 100%) !important;
-  border-color: rgba(255,255,255,0.12) !important;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.06) !important;
-}
-[data-theme="light"] .subscription-card .text-white,
-[data-theme="light"] .subscription-card .text-white\/60 { color: #ffffff !important; }
-[data-theme="light"] .subscription-card .text-white\/40 { color: rgba(255,255,255,0.7) !important; }
-
-[data-theme="light"] .paywall-page .paywall-features-card,
-[data-theme="light"] .paywall-page .paywall-verify-card {
-  background: linear-gradient(180deg, #2d2d2d 0%, #252525 100%) !important;
-  border-color: rgba(255,255,255,0.12) !important;
-}
-[data-theme="light"] .paywall-page .paywall-features-card .text-white,
-[data-theme="light"] .paywall-page .paywall-features-card .text-white\/70,
-[data-theme="light"] .paywall-page .paywall-verify-card .text-white,
-[data-theme="light"] .paywall-page .paywall-verify-card .text-white\/70,
-[data-theme="light"] .paywall-page .paywall-verify-card .text-white\/55 { color: #e5e5e5 !important; }
-[data-theme="light"] .paywall-page .paywall-verify-card input {
-  background: rgba(0,0,0,0.2) !important;
-  border-color: rgba(255,255,255,0.15) !important;
-  color: #ffffff !important;
-}
-[data-theme="light"] .paywall-page .paywall-verify-card .placeholder-white\/40::placeholder {
-  color: rgba(255,255,255,0.4) !important;
-}
-[data-theme="light"] .paywall-page .paywall-icon-box {
-  background: #2d2d2d !important;
-  border-color: rgba(255,255,255,0.12) !important;
-}
-[data-theme="light"] .paywall-page .paywall-icon-box .text-white\/30 {
-  color: rgba(255,255,255,0.8) !important;
-}
-
 /* Light theme: white dashboard project cards — dark text for readability */
 [data-theme="light"] .dashboard-project-card .text-white { color: #171717 !important; }
 [data-theme="light"] .dashboard-project-card .text-zinc-200 { color: #404040 !important; }

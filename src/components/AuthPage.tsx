@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-react';
-import { Zap, ArrowRight, Mail, UserX, User, Lock } from 'lucide-react';
-import { GUEST_TRIAL_KEY } from '../constants';
+import { Zap, ArrowRight, Mail, User, Lock } from 'lucide-react';
 import { restoreGuestDataIfNeeded } from '../store/useStore';
 import HexagonBackground from './HexagonBackground';
 import ThemeToggle from './ThemeToggle';
@@ -21,7 +20,7 @@ export default function AuthPage() {
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
     const [authStep, setAuthStep] = useState<'email' | 'code'>('email');
-    const [authMode, setAuthMode] = useState<'email' | 'username'>(modeParam === 'username' ? 'username' : 'email');
+    const [authMode, setAuthMode] = useState<'email' | 'username'>(modeParam === 'email' ? 'email' : 'username');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isSignUpFlow, setIsSignUpFlow] = useState(false);
@@ -136,7 +135,6 @@ export default function AuthPage() {
                 if (result.status === 'complete') {
                     try { localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email); } catch { /* ignore */ }
                     await setSignUpActive({ session: result.createdSessionId });
-                    transferGuestTrial(result.createdUserId);
                     if (restoreGuestDataIfNeeded()) {
                         window.location.href = '/dashboard';
                         return;
@@ -148,7 +146,6 @@ export default function AuthPage() {
                 if (result.status === 'complete') {
                     try { localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email); } catch { /* ignore */ }
                     await setSignInActive({ session: result.createdSessionId });
-                    transferGuestTrial(result.createdSessionId);
                     if (restoreGuestDataIfNeeded()) {
                         window.location.href = '/dashboard';
                         return;
@@ -162,22 +159,6 @@ export default function AuthPage() {
         } finally {
             setLoading(false);
         }
-    };
-
-    const transferGuestTrial = (userId?: string | null) => {
-        const guestStart = localStorage.getItem(GUEST_TRIAL_KEY);
-        if (guestStart && userId) {
-            const key = `trial-handoff-${userId}`;
-            localStorage.setItem(key, guestStart);
-            localStorage.removeItem(GUEST_TRIAL_KEY);
-        }
-    };
-
-    const handleGuestAccess = () => {
-        if (!localStorage.getItem(GUEST_TRIAL_KEY)) {
-            localStorage.setItem(GUEST_TRIAL_KEY, Date.now().toString());
-        }
-        navigate('/dashboard', { replace: true });
     };
 
     if (!isLoaded) {
@@ -219,7 +200,7 @@ export default function AuthPage() {
                             Sign in or create an account
                         </h1>
                         <p className="text-white/40 text-sm">
-                            Use email, username, or continue as guest
+                            Sign in with username and password, or use email for a one-time code
                         </p>
                     </div>
 
@@ -334,7 +315,7 @@ export default function AuthPage() {
                                     <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                                 </button>
                                 <p className="text-[10px] text-white/30 text-center">
-                                    Paid users: set username & password in Dashboard for easier login
+                                    After email sign-up, you can add a username and password in your profile
                                 </p>
                             </form>
                         )}
@@ -361,15 +342,6 @@ export default function AuthPage() {
                             <p className="text-red-400 text-sm font-bold text-center">{authError}</p>
                         )}
 
-                        <div className="w-full border-t border-white/10 pt-6 mt-2">
-                            <button
-                                onClick={handleGuestAccess}
-                                className="w-full flex items-center justify-center gap-2 py-3 text-sm text-white/40 hover:text-white/70 transition-colors font-medium rounded-xl hover:bg-white/5"
-                            >
-                                <UserX size={16} className="text-primary" />
-                                Continue as Guest — 24hr free trial, no sign-up
-                            </button>
-                        </div>
                     </div>
                 </div>
             </main>

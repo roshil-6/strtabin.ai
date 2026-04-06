@@ -16,7 +16,7 @@ import {
     MarkerType,
 } from '@xyflow/react';
 import { NotificationManager } from '../services/NotificationManager';
-import { ONE_DAY, STORAGE_KEY, LEGACY_STORAGE_KEY, ONE_WEEK, GUEST_DATA_BACKUP_KEY } from '../constants';
+import { STORAGE_KEY, LEGACY_STORAGE_KEY, ONE_WEEK, GUEST_DATA_BACKUP_KEY } from '../constants';
 
 // Migrate data from the old misspelled localStorage key to the new one
 // Also restore guest-created projects if main storage was cleared during sign-up
@@ -62,7 +62,7 @@ function migrateStorage() {
             mainData = legacyData;
         }
 
-        // Restore guest projects when user signs up and pays — main may be empty after auth
+        // Restore local backup when main storage is empty after auth
         if (backupData) {
             const mainHasProjects = mainData && (() => {
                 try {
@@ -352,12 +352,6 @@ export type RFState = {
     onProjectMapConnect: (folderId: string, connection: Connection) => void;
     setProjectMapNodes: (folderId: string, nodes: Node[]) => void;
 
-    // Trial & Access
-    trialStartedAt: Record<string, number>; // userId -> timestamp
-    paidUsers: Record<string, boolean>; // userId -> paid
-    startTrial: (userId: string, overrideTimestamp?: number) => void;
-    setPaidUser: (userId: string) => void;
-    getAccessStatus: (userId: string) => 'trial' | 'expired' | 'paid';
 };
 
 const useStore = create<RFState>()(
@@ -378,32 +372,6 @@ const useStore = create<RFState>()(
             activeFolderId: null,
             projectMapNodes: {},
             projectMapEdges: {},
-            trialStartedAt: {},
-            paidUsers: {},
-
-            startTrial: (userId: string, overrideTimestamp?: number) => {
-                set((state) => {
-                    if (state.trialStartedAt[userId] && !overrideTimestamp) return state;
-                    const ts = overrideTimestamp ?? state.trialStartedAt[userId] ?? Date.now();
-                    return { trialStartedAt: { ...state.trialStartedAt, [userId]: ts } };
-                });
-            },
-
-            setPaidUser: (userId: string) => {
-                set((state) => ({
-                    paidUsers: { ...state.paidUsers, [userId]: true }
-                }));
-            },
-
-            getAccessStatus: (userId: string) => {
-                const state = get();
-                if (state.paidUsers[userId]) return 'paid';
-                const trialStart = state.trialStartedAt[userId];
-                if (!trialStart) return 'trial'; // hasn't started yet, we'll start it
-                const elapsed = Date.now() - trialStart;
-                return elapsed < ONE_DAY ? 'trial' : 'expired';
-            },
-
             populateCanvas: (canvasId: string, nodes: Node[], edges: Edge[]) => {
                 set((state) => {
                     const canvas = state.canvases[canvasId];

@@ -11,14 +11,13 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
-import crypto from 'crypto';
 import { createClerkClient } from '@clerk/backend';
 import { registerWorkspaceRoutes } from './routes/workspaces.js';
 import { registerChatRoutes } from './routes/chat.js';
 import { getOrCreateUser } from './db/models.js';
 import { initDb, isDbReady } from './db/index.js';
 import { summarizePgUrl } from './db/driver.js';
-import { getClerkUserCached, invalidateClerkUserCache } from './lib/clerkUserCache.js';
+import { invalidateClerkUserCache } from './lib/clerkUserCache.js';
 import { resolveBearerToClerkUser, verifyBearerSub } from './lib/clerkAuth.js';
 import { initRedisInfrastructure } from './lib/redisInfra.js';
 
@@ -27,10 +26,6 @@ dotenv.config();
 // ─── Startup Validation ────────────────────────────────────────────────────
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CLERK_SECRET_KEY  = process.env.CLERK_SECRET_KEY;
-const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
-const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
-const FRONTEND_URL = process.env.FRONTEND_URL || process.env.ALLOWED_ORIGIN?.split(',')[0]?.trim() || 'https://stratabin.com';
 const PORT = process.env.PORT || 3001;
 
 if (!ANTHROPIC_API_KEY) {
@@ -39,10 +34,6 @@ if (!ANTHROPIC_API_KEY) {
 if (!CLERK_SECRET_KEY) {
     console.warn('⚠️  WARNING: CLERK_SECRET_KEY is not set. Token verification is disabled.');
 }
-if (!RAZORPAY_WEBHOOK_SECRET) {
-    console.warn('⚠️  WARNING: RAZORPAY_WEBHOOK_SECRET is not set. Payment webhook verification is disabled.');
-}
-
 // ─── Clerk Client (for token verification) ────────────────────────────────
 const clerk = CLERK_SECRET_KEY
     ? createClerkClient({ secretKey: CLERK_SECRET_KEY })
@@ -121,278 +112,15 @@ app.get('/', (_req, res) => {
     res.status(200).json({ status: 'STRAB Server is running.' });
 });
 
-// ─── Body Parser (before all routes except raw webhook) ───────────────────
+// ─── Body Parser ───────────────────────────────────────────────────────────
 // Register early so req.body is available in all JSON route handlers
 app.use((req, res, next) => {
-    if (req.path === '/api/payments/razorpay/webhook') return next();
     // Canvas share needs larger limit for nodes/edges payload
     if (req.path === '/api/canvas/share' || req.path.match(/^\/api\/projects\/\d+\/canvas$/)) return express.json({ limit: '2mb' })(req, res, next);
     express.json({ limit: '50kb' })(req, res, next);
 });
 
-// Razorpay webhook (raw body required for HMAC verification)
-app.post('/api/payments/razorpay/webhook', express.raw({ type: 'application/json', limit: '200kb' }), async (req, res) => {
-    if (!RAZORPAY_WEBHOOK_SECRET || !clerk) {
-        return res.status(503).json({ error: 'Payment verification is not configured.' });
-    }
-
-    try {
-        const signature = req.headers['x-razorpay-signature'];
-        if (!signature || typeof signature !== 'string') {
-            return res.status(400).json({ error: 'Missing webhook signature.' });
-        }
-
-        const expected = crypto
-            .createHmac('sha256', RAZORPAY_WEBHOOK_SECRET)
-            .update(req.body)
-            .digest('hex');
-
-        const sigBuf = Buffer.from(signature, 'utf8');
-        const expectedBuf = Buffer.from(expected, 'utf8');
-        if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
-            return res.status(401).json({ error: 'Invalid webhook signature.' });
-        }
-
-        const payload = JSON.parse(req.body.toString('utf8'));
-        const eventName = String(payload?.event || '');
-
-        // Only process successful payment events.
-        const supportedEvents = new Set(['payment.captured', 'order.paid', 'payment_link.paid']);
-        if (!supportedEvents.has(eventName)) {
-            return res.status(200).json({ ok: true, ignored: true, event: eventName });
-        }
-
-        // Extract payment entity — support payment.captured, order.paid, payment_link.paid
-        const plink = payload?.payload?.payment_link?.entity;
-        const payment =
-            payload?.payload?.payment?.entity ||
-            payload?.payload?.order?.entity?.payments?.[0] ||
-            (plink?.payments && plink.payments[0]) ||
-            null;
-
-        const notes = payment?.notes && typeof payment.notes === 'object' ? payment.notes : {};
-        const clerkUserId = typeof notes.clerkUserId === 'string'
-            ? notes.clerkUserId
-            : (typeof notes.clerk_user_id === 'string' ? notes.clerk_user_id : '');
-        const payerEmail = (
-            typeof payment?.email === 'string' ? payment.email :
-            (plink?.customer?.email && typeof plink.customer.email === 'string') ? plink.customer.email :
-            typeof notes.email === 'string' ? notes.email : ''
-        ).trim().toLowerCase();
-
-        let resolvedUserId = clerkUserId;
-        if (!resolvedUserId && payerEmail) {
-            const users = await clerk.users.getUserList({ emailAddress: [payerEmail], limit: 1 });
-            resolvedUserId = users?.data?.[0]?.id || '';
-        }
-
-        if (!resolvedUserId) {
-            return res.status(202).json({
-                ok: true,
-                warning: 'Payment received but no Clerk user could be resolved. Include notes.clerkUserId in Razorpay payments.',
-            });
-        }
-
-        // Safeguard: verify the resolved user's email matches payer (prevents wrong-user updates)
-        const targetUser = await getClerkUserCached(clerk, resolvedUserId);
-        const targetEmails = (targetUser.emailAddresses || []).map(e => (e.emailAddress || '').toLowerCase().trim());
-        if (payerEmail && !targetEmails.includes(payerEmail)) {
-            console.warn(`Webhook: resolved user ${resolvedUserId} email (${targetEmails.join(',')}) does not match payment email (${payerEmail}). Skipping update.`);
-            return res.status(202).json({
-                ok: true,
-                warning: 'Payment email does not match any Stratabin account. User must log in with the email used for payment.',
-            });
-        }
-        if (!payerEmail && !clerkUserId) {
-            return res.status(202).json({
-                ok: true,
-                warning: 'Payment has no email. Cannot attribute to a user. Include notes.clerkUserId when creating the payment link.',
-            });
-        }
-
-        await clerk.users.updateUserMetadata(resolvedUserId, {
-            publicMetadata: {
-                isPaid: true,
-                paid: true,
-                hasPaidAccess: true,
-                paidAt: new Date().toISOString(),
-                paymentProvider: 'razorpay',
-                lastPaymentEvent: eventName,
-                lastPaymentId: typeof payment?.id === 'string' ? payment.id : undefined,
-            },
-        });
-        invalidateClerkUserCache(resolvedUserId);
-
-        return res.status(200).json({ ok: true, userId: resolvedUserId });
-    } catch (error) {
-        console.error('Payment webhook error:', error);
-        return res.status(500).json({ error: 'Webhook processing failed.' });
-    }
-});
-
-// ─── Create Payment Link (fresh link per user — fixes "already paid" for shared links) ─
-// Razorpay payment links are single-use. A static link shows "already paid" after first use.
-// This endpoint creates a NEW link for each request so every user can pay.
-app.post('/api/payments/create-link', async (req, res) => {
-    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-        return res.status(503).json({ error: 'Payment links are not configured. Contact support.' });
-    }
-
-    let clerkUserId = null;
-    const authHeader = req.headers['authorization'] || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    if (token && clerk) {
-        try {
-            const sub = await verifyBearerSub(token);
-            if (sub) clerkUserId = sub;
-        } catch { /* ignore — create link without notes */ }
-    }
-
-    try {
-        const rzpAuth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64');
-        const callbackUrl = `${FRONTEND_URL.replace(/\/$/, '')}/dashboard`;
-        const body = {
-            amount: 6400, // ₹64 in paise
-            currency: 'INR',
-            description: 'Stratabin — Lifetime access (one-time payment)',
-            callback_url: callbackUrl,
-            callback_method: 'get',
-            ...(clerkUserId && { notes: { clerkUserId } }),
-        };
-        const rzpRes = await fetch('https://api.razorpay.com/v1/payment_links', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Basic ${rzpAuth}`,
-            },
-            body: JSON.stringify(body),
-        });
-        if (!rzpRes.ok) {
-            const errText = await rzpRes.text();
-            console.error('Razorpay create-link error:', rzpRes.status, errText);
-            return res.status(502).json({ error: 'Could not create payment link. Please try again.' });
-        }
-        const data = await rzpRes.json();
-        const shortUrl = data.short_url;
-        if (!shortUrl || typeof shortUrl !== 'string') {
-            return res.status(502).json({ error: 'Invalid response from payment provider.' });
-        }
-        return res.status(200).json({ short_url: shortUrl });
-    } catch (error) {
-        console.error('Create payment link error:', error);
-        return res.status(500).json({ error: 'Could not create payment link. Please try again.' });
-    }
-});
-
-// ─── Manual Payment Verification ──────────────────────────────────────────
-// Called by the user when they click "I have paid" on the paywall.
-// Flow:
-//   1. Verify Clerk JWT — identify the caller.
-//   2. Get fresh Clerk metadata — if already paid, return success immediately.
-//   3. If paymentId provided — call Razorpay API to confirm capture + email match.
-//   4. If verified — update Clerk metadata and return success.
-app.post('/api/payments/verify', async (req, res) => {
-    if (!clerk) {
-        return res.status(503).json({ error: 'Auth service not configured.' });
-    }
-
-    // ── 1. Authenticate caller ──────────────────────────────────────────────
-    const authHeader = req.headers['authorization'] || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    if (!token) {
-        return res.status(401).json({ error: 'Missing authorization token.' });
-    }
-
-    let userId;
-    try {
-        const { clerkId } = await resolveBearerToClerkUser(token, clerk);
-        userId = clerkId;
-    } catch (err) {
-        const errMsg = err?.message || String(err);
-        console.error('❌ Token verification failed:', errMsg);
-        // Do not echo errMsg to the client — may contain auth-provider internals.
-        return res.status(401).json({ error: 'Invalid or expired token.' });
-    }
-
-    try {
-        // ── 2. Check if already paid in Clerk (handles stale browser cache) ──
-        const clerkUser = await getClerkUserCached(clerk, userId);
-        const alreadyPaid = Boolean(
-            clerkUser.publicMetadata?.isPaid === true ||
-            clerkUser.publicMetadata?.paid === true ||
-            clerkUser.publicMetadata?.hasPaidAccess === true
-        );
-
-        if (alreadyPaid) {
-            return res.status(200).json({ ok: true, paid: true, source: 'clerk_cache' });
-        }
-
-        // ── 3. Verify via Razorpay API if keys + paymentId are available ─────
-        const { paymentId } = req.body || {};
-
-        if (RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET && typeof paymentId === 'string' && paymentId.startsWith('pay_')) {
-            const rzpAuth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64');
-            const rzpRes = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, {
-                headers: { Authorization: `Basic ${rzpAuth}` },
-            });
-
-            if (!rzpRes.ok) {
-                return res.status(400).json({ error: 'Payment ID not found in Razorpay. Please check and try again.' });
-            }
-
-            const payment = await rzpRes.json();
-
-            // Must be captured (i.e. money actually received)
-            if (payment.status !== 'captured') {
-                return res.status(400).json({ error: `Payment status is "${payment.status}", not captured yet.` });
-            }
-
-            // When payment has email: verify it matches this account (prevents sharing payment IDs)
-            // When payment has no email: allow verification (some payment methods don't include email)
-            const clerkEmails = clerkUser.emailAddresses.map(e => (e.emailAddress || '').toLowerCase().trim());
-            const paymentEmail = (
-                payment.email ||
-                (payment.customer && payment.customer.email) ||
-                ''
-            ).toLowerCase().trim();
-            if (paymentEmail && !clerkEmails.includes(paymentEmail)) {
-                console.warn(`Payment ${paymentId} email (${paymentEmail}) does not match Clerk user ${userId} emails (${clerkEmails.join(', ')})`);
-                return res.status(400).json({
-                    error: 'The email on this payment does not match your account. Please log in with the account that made the payment.',
-                });
-            }
-
-            // ── 4. All checks passed — mark paid in Clerk ───────────────────
-            await clerk.users.updateUserMetadata(userId, {
-                publicMetadata: {
-                    isPaid: true,
-                    paid: true,
-                    hasPaidAccess: true,
-                    paidAt: new Date().toISOString(),
-                    paymentProvider: 'razorpay',
-                    verifiedPaymentId: paymentId,
-                    verifiedAt: new Date().toISOString(),
-                },
-            });
-            invalidateClerkUserCache(userId);
-
-            return res.status(200).json({ ok: true, paid: true, source: 'razorpay_verified' });
-        }
-
-        // ── No Razorpay keys or no paymentId — cannot verify ─────────────────
-        return res.status(202).json({
-            ok: false,
-            paid: false,
-            message: 'Payment still processing. You will be redirected automatically after payment, or check again in a few seconds.',
-        });
-
-    } catch (error) {
-        console.error('Payment verify error:', error);
-        return res.status(500).json({ error: 'Verification failed. Please try again.' });
-    }
-});
-
-// ─── Set Username & Password (for paid users — easier login) ─────────────────
+// ─── Set Username & Password (optional — easier repeat login) ─────────────────
 app.post('/api/user/set-credentials', async (req, res) => {
     if (!clerk) return res.status(503).json({ error: 'Auth service not configured.' });
     const authHeader = req.headers['authorization'] || '';
@@ -515,35 +243,6 @@ const aiLimiter = rateLimit({
         return `ai:ip:${ipKeyGenerator(ip)}`;
     },
 });
-
-// ─── Guest AI — env: RATE_LIMIT_GUEST_AI_WINDOW_MS, RATE_LIMIT_GUEST_AI_MAX ─
-const GUEST_AI_WINDOW_MS = Number(process.env.RATE_LIMIT_GUEST_AI_WINDOW_MS || 24 * 60 * 60 * 1000);
-const GUEST_AI_MAX = Number(process.env.RATE_LIMIT_GUEST_AI_MAX || 5);
-const guestAiLimiter = rateLimit({
-    windowMs: GUEST_AI_WINDOW_MS,
-    max: GUEST_AI_MAX,
-    standardHeaders: true,
-    legacyHeaders: false,
-    store: mkRedisStore('rl:sbx:guest'),
-    message: { error: 'Guest AI limit reached. Sign up to continue.' },
-    skipSuccessfulRequests: false,
-});
-
-// ─── Optional Auth — allow guests (no token) or validate token ──────────────
-function optionalAuth(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        req.isGuest = true;
-        return next();
-    }
-    requireAuth(req, res, next);
-}
-
-// ─── Apply guest limit for guests, normal limit for authenticated ──────────
-function guestOrAuthLimiter(req, res, next) {
-    if (req.isGuest) return guestAiLimiter(req, res, next);
-    return aiLimiter(req, res, next);
-}
 
 // ─── Token Validator ──────────────────────────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -825,7 +524,7 @@ ${JSON.stringify(cleanContext, null, 2)}
 `;
 }
 
-app.post('/api/chat', optionalAuth, guestOrAuthLimiter, async (req, res) => {
+app.post('/api/chat', requireAuth, aiLimiter, async (req, res) => {
     try {
         const { messages, projectContext, stream: wantsStream } = req.body;
 
@@ -979,7 +678,7 @@ IDENTITY:
 - Conversational replies: 2–4 sentences max.
 `;
 
-app.post('/api/strab-general', optionalAuth, guestOrAuthLimiter, async (req, res) => {
+app.post('/api/strab-general', requireAuth, aiLimiter, async (req, res) => {
     try {
         const { messages, stream: wantsStream } = req.body;
 

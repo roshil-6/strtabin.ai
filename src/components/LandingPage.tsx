@@ -1,35 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
-import { Check, Zap, ArrowRight, Mail, Bot, X, Compass, Target, Rocket, ChevronDown, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, UserX, Users } from 'lucide-react';
+import { Check, Zap, ArrowRight, Bot, X, Compass, Target, Rocket, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, ChevronDown, Gift, Smartphone } from 'lucide-react';
 
-import { fetchPaymentLink, GUEST_TRIAL_KEY } from '../constants';
 import HexagonBackground from './HexagonBackground';
 import ThemeToggle from './ThemeToggle';
-import toast from 'react-hot-toast';
 
 export default function LandingPage() {
     const navigate = useNavigate();
-    const { isSignedIn, isLoaded: authLoaded, getToken } = useAuth();
+    const { isSignedIn, isLoaded: authLoaded } = useAuth();
     const [showHowTo, setShowHowTo] = useState(false);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
-    const [showGetStartedDropdown, setShowGetStartedDropdown] = useState(false);
-    const [paymentLoading, setPaymentLoading] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const isLoaded = authLoaded;
-
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setShowGetStartedDropdown(false);
-            }
-        };
-        if (showGetStartedDropdown) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showGetStartedDropdown]);
 
     useEffect(() => {
         if (authLoaded && isSignedIn) {
@@ -43,27 +26,6 @@ export default function LandingPage() {
         }
     }, []);
 
-    const handleGuestAccess = () => {
-        if (!localStorage.getItem(GUEST_TRIAL_KEY)) {
-            localStorage.setItem(GUEST_TRIAL_KEY, Date.now().toString());
-        }
-        navigate('/dashboard', { replace: true });
-    };
-
-    const handlePayment = async () => {
-        setPaymentLoading(true);
-        try {
-            const token = await getToken?.();
-            const url = await fetchPaymentLink(token ?? undefined);
-            window.open(url, '_blank');
-        } catch (err) {
-            console.error('Payment link error:', err);
-            toast.error((err as Error)?.message || 'Could not open payment. Please try again.');
-        } finally {
-            setPaymentLoading(false);
-        }
-    };
-
     const faqs = [
         {
             q: "What is Stratabin and how does the AI strategy planning work?",
@@ -71,7 +33,7 @@ export default function LandingPage() {
         },
         {
             q: "Is Stratabin free to use?",
-            a: "Yes — Stratabin offers a free trial so you can explore every feature. After the trial, full lifetime access is available for a one-time payment of ₹64 (India) or $2 (International). No subscriptions, no hidden fees."
+            a: "Yes. Stratabin is free to use — create an account with email or username and password. STRAB AI has a generous daily limit per account to keep the service sustainable for everyone."
         },
         {
             q: "Can I use Stratabin on my phone or tablet?",
@@ -132,7 +94,7 @@ export default function LandingPage() {
                             }}
                             className="flex text-xs md:text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 items-center"
                         >
-                            Pricing
+                            Free access
                         </Link>
                         <button
                             onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
@@ -140,51 +102,23 @@ export default function LandingPage() {
                         >
                             FAQ
                         </button>
-                        <div className="relative" ref={dropdownRef}>
-                            {isSignedIn ? (
-                                <button
-                                    onClick={() => navigate('/dashboard')}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
-                                >
-                                    Go to Dashboard
-                                    <ArrowRight size={14} />
-                                </button>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={() => setShowGetStartedDropdown(!showGetStartedDropdown)}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
-                                    >
-                                        Get Started
-                                        <ChevronDown size={14} className={`transition-transform ${showGetStartedDropdown ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {showGetStartedDropdown && (
-                                        <div className="absolute right-0 top-full mt-2 py-2 min-w-[200px] bg-[var(--bg-muted)] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
-                                            <button
-                                                onClick={() => {
-                                                    setShowGetStartedDropdown(false);
-                                                    handleGuestAccess();
-                                                }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
-                                            >
-                                                <UserX size={16} className="text-primary" />
-                                                Continue as Guest
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setShowGetStartedDropdown(false);
-                                                    navigate('/auth');
-                                                }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
-                                            >
-                                                <Mail size={16} className="text-primary" />
-                                                Email Login
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
+                        {isSignedIn ? (
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
+                            >
+                                Go to Dashboard
+                                <ArrowRight size={14} />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => navigate('/auth')}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
+                            >
+                                Sign in
+                                <ArrowRight size={14} />
+                            </button>
+                        )}
                     </nav>
                 </div>
             </header>
@@ -351,70 +285,95 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* H2 — Pricing */}
-            <section id="pricing" className="py-16 md:py-24 px-4 md:px-6 relative overflow-hidden">
-                <div className="max-w-3xl mx-auto relative z-10">
-                    <div className="text-center mb-10 md:mb-16">
-                        <h2 className="text-2xl md:text-3xl font-black mb-3">Simple, One-Time Pricing</h2>
-                        <p className="text-white/30 text-sm">Pay once. Use forever. No subscriptions, no surprises.</p>
+            {/* H2 — Free access */}
+            <section id="pricing" className="py-16 md:py-28 px-4 md:px-6 relative overflow-hidden">
+                <div className="max-w-5xl mx-auto relative z-10">
+                    <div className="text-center mb-12 md:mb-16 max-w-2xl mx-auto">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-[10px] md:text-xs font-black uppercase tracking-widest mb-5 md:mb-6">
+                            <Gift size={14} className="shrink-0" />
+                            Full workspace — $0
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-white mb-4 md:mb-5 leading-[1.1]">
+                            Everything you need to plan{' '}
+                            <span className="text-white/35">and ship</span>
+                        </h2>
+                        <p className="text-white/40 text-sm md:text-base leading-relaxed">
+                            One account unlocks canvases, STRAB AI, team workspaces, and your calendar — no tiers, no timer, no card on file.
+                        </p>
                     </div>
 
-                    <div className="group relative bg-[var(--bg-muted)] border border-primary/20 rounded-3xl p-7 md:p-14 shadow-2xl overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent pointer-events-none" />
-                        <div className="absolute top-5 right-5 px-3 py-1 bg-primary text-black text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-full">
-                            Lifetime
-                        </div>
+                    <div className="relative rounded-[1.75rem] md:rounded-[2rem] border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-transparent p-px shadow-[0_24px_80px_-12px_rgba(0,0,0,0.55)]">
+                        <div className="relative rounded-[1.65rem] md:rounded-[1.85rem] bg-[var(--bg-muted)] overflow-hidden">
+                            <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(218,119,86,0.12),transparent)]" aria-hidden />
+                            <div className="relative z-[1] p-6 md:p-10 lg:p-12">
+                                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-10 lg:gap-14 mb-10 md:mb-12">
+                                    <div className="lg:max-w-md">
+                                        <p className="text-primary font-bold uppercase tracking-[0.2em] text-[10px] md:text-xs mb-3">
+                                            What&apos;s included
+                                        </p>
+                                        <p className="text-xl md:text-2xl font-black text-white leading-snug mb-3">
+                                            The same tools students and teams use to turn messy ideas into executable plans.
+                                        </p>
+                                        <p className="text-white/45 text-sm leading-relaxed">
+                                            STRAB AI uses a fair daily limit per account so the service stays fast and available for everyone.
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 lg:justify-end lg:pt-1">
+                                        {['No paywall', 'No trial expiry', 'Sign in with email or username'].map((label) => (
+                                            <span
+                                                key={label}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[11px] md:text-xs font-semibold text-white/70"
+                                            >
+                                                <Check size={12} className="text-primary shrink-0" strokeWidth={3} />
+                                                {label}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
 
-                        <div className="mb-8 md:mb-10 flex flex-col md:flex-row md:items-center md:gap-12">
-                            <div>
-                                <h3 className="text-primary font-bold uppercase tracking-widest text-xs mb-4">Full Access — Lifetime</h3>
-                                <div className="flex items-baseline gap-3 mb-2">
-                                    <span className="text-5xl md:text-6xl font-black text-white">₹64</span>
-                                    <div className="flex flex-col">
-                                        <span className="text-white/70 font-bold text-sm">India</span>
-                                        <span className="text-white/60 text-xs">One-time payment</span>
-                                    </div>
-                                </div>
-                                <div className="flex items-baseline gap-3 mt-3">
-                                    <span className="text-2xl md:text-3xl font-black text-white/60">$2</span>
-                                    <div className="flex flex-col">
-                                        <span className="text-white/70 font-bold text-sm">International</span>
-                                        <span className="text-white/60 text-xs">USD, one-time</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="hidden md:block w-px h-32 bg-white/[0.06] shrink-0" />
-                            <div className="space-y-3 mt-6 md:mt-0 flex-1">
-                                {[
-                                    "Unlimited Strategy Canvases",
-                                    "STRAB AI Intelligence — Full Access",
-                                    "Team & Social Workspaces",
-                                    "Folder Workflow Maps",
-                                    "Writing, Tasks & Calendar",
-                                    "Install on Phone (PWA)",
-                                    "All Future Updates Included",
-                                ].map((feature, i) => (
-                                    <div key={i} className="flex items-center gap-3 text-xs md:text-sm font-medium text-white/75">
-                                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-black shrink-0">
-                                            <Check size={11} strokeWidth={3} />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-10 md:mb-12">
+                                    {[
+                                        { icon: Layout, title: 'Strategy canvases', desc: 'Unlimited flow maps and project boards' },
+                                        { icon: Bot, title: 'STRAB AI', desc: 'Project-aware assistant with a daily usage cap' },
+                                        { icon: Users, title: 'Team workspaces', desc: 'Invite people, share visibility, collaborate' },
+                                        { icon: FolderOpen, title: 'Folder maps', desc: 'See how folders and projects connect' },
+                                        { icon: PenTool, title: 'Writing & tasks', desc: 'Long-form notes plus integrated to-dos' },
+                                        { icon: Smartphone, title: 'Install anywhere', desc: 'PWA on phone, tablet, and desktop' },
+                                    ].map(({ icon: Icon, title, desc }) => (
+                                        <div
+                                            key={title}
+                                            className="group flex gap-4 p-4 md:p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-primary/25 hover:bg-white/[0.05] transition-all duration-300"
+                                        >
+                                            <div className="w-11 h-11 shrink-0 rounded-xl bg-primary/12 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
+                                                <Icon size={20} strokeWidth={2} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h3 className="font-black text-white text-sm md:text-base mb-0.5 leading-tight">{title}</h3>
+                                                <p className="text-white/40 text-xs md:text-[13px] leading-relaxed">{desc}</p>
+                                            </div>
                                         </div>
-                                        {feature}
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => (isSignedIn ? navigate('/dashboard') : navigate('/auth'))}
+                                        className="group flex-1 sm:flex-initial sm:min-w-[240px] flex items-center justify-center gap-3 py-4 px-8 bg-primary text-black rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white transition-all shadow-[0_12px_40px_rgba(218,119,86,0.2)] active:scale-[0.98]"
+                                    >
+                                        <Zap size={18} fill="currentColor" className="group-hover:scale-110 transition-transform" />
+                                        {isSignedIn ? 'Open dashboard' : 'Get started free'}
+                                        <ArrowRight size={16} className="opacity-70 group-hover:translate-x-0.5 transition-transform" />
+                                    </button>
+                                    <Link
+                                        to="/features"
+                                        className="text-center sm:text-left text-sm font-bold text-white/35 hover:text-primary transition-colors py-2"
+                                    >
+                                        Browse all features →
+                                    </Link>
+                                </div>
                             </div>
                         </div>
-
-                        <button
-                            onClick={() => handlePayment()}
-                            disabled={paymentLoading}
-                            className="w-full py-4 md:py-5 bg-primary text-black rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest hover:bg-white transition-all shadow-[0_10px_40px_rgba(218,119,86,0.15)] flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            <Zap size={18} fill="currentColor" />
-                            {paymentLoading ? 'Opening payment...' : 'Get Full Access — ₹64 / $2'}
-                        </button>
-                        <p className="text-center text-white/55 text-[11px] md:text-xs mt-4">
-                            Secured by Razorpay · No recurring charges
-                        </p>
                     </div>
                 </div>
             </section>
@@ -561,12 +520,6 @@ export default function LandingPage() {
                 </div>
             )}
 
-                   {paymentLoading && (
-                <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center">
-                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-                    <p className="text-primary font-black uppercase text-xs tracking-widest animate-pulse">Opening payment...</p>
-                </div>
-            )}
         </div>
     );
 }
