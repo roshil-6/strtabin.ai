@@ -6,7 +6,16 @@ import useStore from '../store/useStore';
 import { sendStrabMessageStreaming, strabVisibleAssistantText, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
 import { workspaceService } from '../services/workspaceService';
-import { getProAiRemaining, consumeProAiMessage, refundProAiMessage, PRO_AI_DAILY_LIMIT } from '../constants';
+import {
+    getProAiRemaining,
+    consumeProAiMessage,
+    refundProAiMessage,
+    PRO_AI_DAILY_LIMIT,
+    getGuestAiRemaining,
+    consumeGuestAiMessage,
+    refundGuestAiMessage,
+    GUEST_AI_LIMIT,
+} from '../constants';
 import { Network, Send, Sparkles, ArrowLeft, Trash2, Target, Plus } from 'lucide-react';
 import MobileNav from './MobileNav';
 import type { Node, Edge } from '@xyflow/react';
@@ -151,7 +160,8 @@ export default function StrabView() {
     const [searchParams] = useSearchParams();
     const workspaceId = (location.state as { workspaceId?: number })?.workspaceId;
     const { user } = useUser();
-    const { getToken } = useAuth();
+    const { getToken, isSignedIn, isLoaded: authLoaded } = useAuth();
+    const isGuest = authLoaded && !isSignedIn;
     const canvas = useStore(state => state.canvases[id || '']);
     const dailyExecutionLogs = useStore(state => state.dailyExecutionLogs);
     const addCanvasGoal = useStore(state => state.addCanvasGoal);
@@ -172,6 +182,7 @@ export default function StrabView() {
     const tabParam = searchParams.get('tab');
     const [activeTab, setActiveTab] = useState<'chat' | 'reports'>(tabParam === 'reports' ? 'reports' : 'chat');
     const [proAiRemaining, setProAiRemaining] = useState(() => (user?.id ? getProAiRemaining(user.id) : PRO_AI_DAILY_LIMIT));
+    const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -180,8 +191,9 @@ export default function StrabView() {
     }, [searchParams]);
 
     useEffect(() => {
+        if (isGuest) setGuestAiRemaining(getGuestAiRemaining());
         if (user?.id) setProAiRemaining(getProAiRemaining(user.id));
-    }, [chatHistory, user?.id]);
+    }, [chatHistory, isGuest, user?.id]);
 
     const resolvedName = canvas?.name && canvas.name !== 'Untitled Canvas' ? canvas.name : 'Project';
 
@@ -344,12 +356,21 @@ export default function StrabView() {
             if (lastMsg.role === 'user' && lastMsg.content.includes('Regarding this part:')) {
                 window.history.replaceState({}, '', window.location.pathname);
                 const triggerAi = async () => {
+                    if (isGuest && getGuestAiRemaining() <= 0) {
+                        toast.error('Guest AI limit reached. Sign in for more.');
+                        navigate('/auth', { replace: true });
+                        return;
+                    }
                     if (user?.id && getProAiRemaining(user.id) <= 0) {
                         toast.error('Daily AI limit reached (12/day). Resets at midnight UTC.');
                         return;
                     }
                     setIsLoading(true);
                     addChatMessage(id!, { role: 'assistant', content: '' });
+                    if (isGuest) {
+                        consumeGuestAiMessage();
+                        setGuestAiRemaining(getGuestAiRemaining());
+                    }
                     if (user?.id) {
                         consumeProAiMessage(user.id);
                         setProAiRemaining(getProAiRemaining(user.id));
@@ -400,6 +421,10 @@ export default function StrabView() {
                         updateLastChatMessage(id!, cleanText);
                         if (didUpdate) toast.success('Flow updated');
                     } catch (err) {
+                        if (isGuest) {
+                            refundGuestAiMessage();
+                            setGuestAiRemaining(getGuestAiRemaining());
+                        }
                         if (user?.id) {
                             refundProAiMessage(user.id);
                             setProAiRemaining(getProAiRemaining(user.id));
@@ -415,7 +440,7 @@ export default function StrabView() {
                 triggerAi();
             }
         }
-    }, [id, chatHistory, isLoading, projectContext, addChatMessage, updateLastChatMessage, getToken, user?.id, navigate, workspaceId, populateCanvas, updateCanvasWriting, addCanvasTodo, ensureCanvasExists]);
+    }, [id, chatHistory, isLoading, projectContext, addChatMessage, updateLastChatMessage, getToken, user?.id, navigate, workspaceId, populateCanvas, updateCanvasWriting, addCanvasTodo, ensureCanvasExists, isGuest]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -424,6 +449,13 @@ export default function StrabView() {
     const sendMessage = useCallback(async (message: string) => {
         if (!message.trim() || isLoading) return;
 
+        if (isGuest) {
+            if (getGuestAiRemaining() <= 0) {
+                toast.error('Guest AI limit reached. Sign in for more.');
+                navigate('/auth', { replace: true });
+                return;
+            }
+        }
         if (user?.id) {
             const remaining = getProAiRemaining(user.id);
             if (remaining <= 0) {
@@ -437,6 +469,10 @@ export default function StrabView() {
         addChatMessage(id!, { role: 'assistant', content: '' });
         setIsLoading(true);
 
+        if (isGuest) {
+            consumeGuestAiMessage();
+            setGuestAiRemaining(getGuestAiRemaining());
+        }
         if (user?.id) {
             consumeProAiMessage(user.id);
             setProAiRemaining(getProAiRemaining(user.id));
@@ -489,6 +525,10 @@ export default function StrabView() {
             updateLastChatMessage(id!, cleanText);
             if (didUpdate) toast.success('Flow updated');
         } catch (err) {
+            if (isGuest) {
+                refundGuestAiMessage();
+                setGuestAiRemaining(getGuestAiRemaining());
+            }
             if (user?.id) {
                 refundProAiMessage(user.id);
                 setProAiRemaining(getProAiRemaining(user.id));
@@ -501,7 +541,7 @@ export default function StrabView() {
         } finally {
             setIsLoading(false);
         }
-    }, [id, chatHistory, projectContext, addChatMessage, updateLastChatMessage, populateCanvas, updateCanvasWriting, addCanvasTodo, ensureCanvasExists, workspaceId, getToken, isLoading, user?.id, navigate]);
+    }, [id, chatHistory, projectContext, addChatMessage, updateLastChatMessage, populateCanvas, updateCanvasWriting, addCanvasTodo, ensureCanvasExists, workspaceId, getToken, isLoading, user?.id, navigate, isGuest]);
 
     const handleSend = useCallback(() => {
         if (!input.trim()) return;
@@ -616,13 +656,25 @@ export default function StrabView() {
                 </div>
 
                 <div className="flex items-center gap-2 md:gap-3 shrink-0">
-                    <span
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/60 text-[10px] md:text-[11px] font-bold"
-                        title="Resets at midnight UTC"
-                    >
-                        <Sparkles size={12} />
-                        {proAiRemaining > 0 ? `${proAiRemaining}/12 today` : 'Limit reached'}
-                    </span>
+                    {isGuest ? (
+                        <button
+                            type="button"
+                            onClick={() => navigate('/auth')}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[10px] md:text-[11px] font-bold hover:bg-amber-500/20 transition-colors"
+                            title="Sign in for higher STRAB limits"
+                        >
+                            <Sparkles size={12} />
+                            {guestAiRemaining > 0 ? `${guestAiRemaining}/${GUEST_AI_LIMIT} guest` : 'Sign in'}
+                        </button>
+                    ) : (
+                        <span
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/60 text-[10px] md:text-[11px] font-bold"
+                            title="Resets at midnight UTC"
+                        >
+                            <Sparkles size={12} />
+                            {proAiRemaining > 0 ? `${proAiRemaining}/12 today` : 'Limit reached'}
+                        </span>
+                    )}
                     <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04]">
                         <button
                             onClick={() => setActiveTab('chat')}

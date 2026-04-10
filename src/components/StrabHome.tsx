@@ -2,7 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { getProAiRemaining, consumeProAiMessage, refundProAiMessage } from '../constants';
+import {
+    getProAiRemaining,
+    consumeProAiMessage,
+    refundProAiMessage,
+    getGuestAiRemaining,
+    consumeGuestAiMessage,
+    refundGuestAiMessage,
+    GUEST_AI_LIMIT,
+} from '../constants';
 import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { sendGeneralStrabMessage, strabVisibleAssistantText, type ChatMessage } from '../services/strabService';
@@ -183,7 +191,8 @@ function parseAndExecuteActions(
 export default function StrabHome() {
     const navigate = useNavigate();
     const { user } = useUser();
-    const { getToken } = useAuth();
+    const { getToken, isSignedIn, isLoaded: authLoaded } = useAuth();
+    const isGuest = authLoaded && !isSignedIn;
 
     const { createCanvas, populateCanvas, updateCanvasName, updateCanvasWriting, addCanvasTodo } =
         useStore(useShallow(s => ({
@@ -198,11 +207,13 @@ export default function StrabHome() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [proAiRemaining, setProAiRemaining] = useState(() => (user?.id ? getProAiRemaining(user.id) : 12));
+    const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
     const abortRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
+        if (isGuest) setGuestAiRemaining(getGuestAiRemaining());
         if (user?.id) setProAiRemaining(getProAiRemaining(user.id));
-    }, [messages, user?.id]);
+    }, [messages, isGuest, user?.id]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -219,6 +230,15 @@ export default function StrabHome() {
     const sendMessage = useCallback(async (text: string) => {
         if (!text.trim() || isLoading) return;
 
+        if (isGuest) {
+            if (getGuestAiRemaining() <= 0) {
+                toast.error('Guest AI limit reached. Sign in for more.', {
+                    style: { background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' },
+                });
+                navigate('/auth', { replace: true });
+                return;
+            }
+        }
         if (user?.id) {
             const remaining = getProAiRemaining(user.id);
             if (remaining <= 0) {
@@ -237,6 +257,10 @@ export default function StrabHome() {
         setMessages(prev => [...prev, userMsg, assistantMsg]);
         setIsLoading(true);
 
+        if (isGuest) {
+            consumeGuestAiMessage();
+            setGuestAiRemaining(getGuestAiRemaining());
+        }
         if (user?.id) {
             consumeProAiMessage(user.id);
             setProAiRemaining(getProAiRemaining(user.id));
@@ -293,6 +317,10 @@ export default function StrabHome() {
             }
         } catch (err) {
             if ((err as Error).name === 'AbortError') return;
+            if (isGuest) {
+                refundGuestAiMessage();
+                setGuestAiRemaining(getGuestAiRemaining());
+            }
             if (user?.id) {
                 refundProAiMessage(user.id);
                 setProAiRemaining(getProAiRemaining(user.id));
@@ -312,7 +340,7 @@ export default function StrabHome() {
             setIsLoading(false);
             abortRef.current = null;
         }
-    }, [isLoading, messages, getToken, createCanvas, populateCanvas, updateCanvasName, updateCanvasWriting, addCanvasTodo, user?.id, navigate]);
+    }, [isLoading, messages, getToken, createCanvas, populateCanvas, updateCanvasName, updateCanvasWriting, addCanvasTodo, user?.id, navigate, isGuest]);
 
     const handleSend = useCallback(() => {
         if (input.trim()) sendMessage(input.trim());
@@ -347,13 +375,25 @@ export default function StrabHome() {
                 </button>
 
                 <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <span
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/60 text-[10px] font-bold shrink-0"
-                        title="Resets at midnight UTC"
-                    >
-                        <Sparkles size={12} />
-                        {proAiRemaining > 0 ? `${proAiRemaining}/12 today` : 'Limit reached'}
-                    </span>
+                    {isGuest ? (
+                        <button
+                            type="button"
+                            onClick={() => navigate('/auth')}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[10px] font-bold shrink-0 hover:bg-amber-500/20 transition-colors"
+                            title="Sign in for higher STRAB limits"
+                        >
+                            <Sparkles size={12} />
+                            {guestAiRemaining > 0 ? `${guestAiRemaining}/${GUEST_AI_LIMIT} guest` : 'Sign in'}
+                        </button>
+                    ) : (
+                        <span
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/60 text-[10px] font-bold shrink-0"
+                            title="Resets at midnight UTC"
+                        >
+                            <Sparkles size={12} />
+                            {proAiRemaining > 0 ? `${proAiRemaining}/12 today` : 'Limit reached'}
+                        </span>
+                    )}
                     <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(249,115,22,0.15)]">
                         <Network size={14} className="text-primary" />
                     </div>

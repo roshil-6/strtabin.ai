@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useSignIn, useSignUp, useAuth } from '@clerk/clerk-react';
 import { Zap, ArrowRight, Mail, User, Lock } from 'lucide-react';
+import { enableGuestMode } from '../constants';
 import { restoreGuestDataIfNeeded } from '../store/useStore';
 import HexagonBackground from './HexagonBackground';
 import ThemeToggle from './ThemeToggle';
@@ -341,6 +342,19 @@ export default function AuthPage() {
                         {authError && (
                             <p className="text-red-400 text-sm font-bold text-center">{authError}</p>
                         )}
+
+                        <div className="w-full border-t border-white/10 pt-6 mt-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    enableGuestMode();
+                                    navigate('/dashboard', { replace: true });
+                                }}
+                                className="w-full py-3 text-sm text-white/45 hover:text-white/85 font-medium rounded-xl hover:bg-white/5 transition-colors"
+                            >
+                                Continue without signing in — explore the app locally
+                            </button>
+                        </div>
 
                     </div>
                 </div>

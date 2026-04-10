@@ -2,14 +2,17 @@ import { useAuth } from '@clerk/clerk-react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { serverWarmup } from '../services/serverWarmup';
+import { isGuestModeEnabled } from '../constants';
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
     const { isLoaded, isSignedIn } = useAuth();
     const navigate = useNavigate();
 
+    const allowWithoutSignIn = isGuestModeEnabled();
+
     useEffect(() => {
         if (!isLoaded) return;
-        if (isSignedIn) {
+        if (isSignedIn || isGuestModeEnabled()) {
             serverWarmup.start();
             return;
         }
@@ -29,13 +32,13 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         );
     }
 
-    if (!isSignedIn) {
-        return (
-            <div className="w-screen h-screen theme-page flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin" />
-            </div>
-        );
+    if (isSignedIn || allowWithoutSignIn) {
+        return <>{children}</>;
     }
 
-    return <>{children}</>;
+    return (
+        <div className="w-screen h-screen theme-page flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin" />
+        </div>
+    );
 }

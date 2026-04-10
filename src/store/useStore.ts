@@ -330,6 +330,8 @@ export type RFState = {
     // Sub-Project & Merged Workflow
     convertNodeToProject: (canvasId: string, nodeId: string) => string;
     addSubCanvasToMerged: (mergedId: string) => string;
+    /** First click turns a single project into a multi-page project; later clicks add pages like addSubCanvasToMerged. */
+    addCanvasPage: (parentId: string) => string;
     checkNotifications: () => void;
     syncSubProjectNodes: (mergedId: string) => void;
     toggleCurrentProject: (id: string) => void;
@@ -1349,22 +1351,24 @@ const useStore = create<RFState>()(
             },
 
             addSubCanvasToMerged: (mergedId) => {
-                const subId = generateId();
-                const folderId = get().activeFolderId;
-                const newCanvas: CanvasData = {
-                    id: subId,
-                    name: 'New Sequence',
-                    nodes: [],
-                    edges: [],
-                    folderId,
-                    updatedAt: Date.now(),
-                };
-
+                let subId = '';
                 set((state) => {
                     const mergedCanvas = state.canvases[mergedId];
                     if (!mergedCanvas) return {};
 
                     const existingSubIds = mergedCanvas.mergedCanvasIds || [];
+                    const pageNum = existingSubIds.length + 1;
+                    subId = generateId();
+                    const folderId = get().activeFolderId;
+                    const newCanvas: CanvasData = {
+                        id: subId,
+                        name: `Page ${pageNum}`,
+                        nodes: [],
+                        edges: [],
+                        folderId,
+                        updatedAt: Date.now(),
+                    };
+
                     return {
                         canvases: {
                             ...state.canvases,
@@ -1378,6 +1382,68 @@ const useStore = create<RFState>()(
                     };
                 });
                 return subId;
+            },
+
+            addCanvasPage: (parentId) => {
+                const parent = get().canvases[parentId];
+                if (!parent) return parentId;
+
+                if (parent.mergedCanvasIds && parent.mergedCanvasIds.length > 0) {
+                    return get().addSubCanvasToMerged(parentId);
+                }
+
+                const page1Id = generateId();
+                const page2Id = generateId();
+                const folderId = parent.folderId;
+                const now = Date.now();
+
+                const page1: CanvasData = {
+                    id: page1Id,
+                    name: 'Page 1',
+                    nodes: JSON.parse(JSON.stringify(parent.nodes || [])) as Node[],
+                    edges: JSON.parse(JSON.stringify(parent.edges || [])) as Edge[],
+                    writingContent: parent.writingContent || '',
+                    title: parent.title,
+                    images: parent.images ? [...parent.images] : undefined,
+                    attachments: parent.attachments ? [...parent.attachments] : undefined,
+                    todos: parent.todos ? parent.todos.map((t) => ({ ...t })) : undefined,
+                    folderId,
+                    updatedAt: now,
+                };
+
+                const page2: CanvasData = {
+                    id: page2Id,
+                    name: 'Page 2',
+                    nodes: [],
+                    edges: [],
+                    folderId,
+                    updatedAt: now,
+                };
+
+                set((state) => ({
+                    canvases: {
+                        ...state.canvases,
+                        [parentId]: {
+                            ...parent,
+                            mergedCanvasIds: [page1Id, page2Id],
+                            nodes: [],
+                            edges: [],
+                            writingContent: '',
+                            title: undefined,
+                            images: undefined,
+                            attachments: undefined,
+                            todos: undefined,
+                            updatedAt: now,
+                        },
+                        [page1Id]: page1,
+                        [page2Id]: page2,
+                    },
+                    ...(state.currentCanvasId === parentId
+                        ? { nodes: [], edges: [] }
+                        : {}),
+                }));
+
+                return page2Id;
             },
 
             checkNotifications: () => {

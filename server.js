@@ -244,6 +244,19 @@ const aiLimiter = rateLimit({
     },
 });
 
+// ─── Guest AI rate limit — env: RATE_LIMIT_GUEST_AI_WINDOW_MS, RATE_LIMIT_GUEST_AI_MAX ─
+const GUEST_AI_WINDOW_MS = Number(process.env.RATE_LIMIT_GUEST_AI_WINDOW_MS || 24 * 60 * 60 * 1000);
+const GUEST_AI_MAX = Number(process.env.RATE_LIMIT_GUEST_AI_MAX || 5);
+const guestAiLimiter = rateLimit({
+    windowMs: GUEST_AI_WINDOW_MS,
+    max: GUEST_AI_MAX,
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: mkRedisStore('rl:sbx:guest'),
+    message: { error: 'Guest AI limit reached. Sign up to continue.' },
+    skipSuccessfulRequests: false,
+});
+
 // ─── Token Validator ──────────────────────────────────────────────────────
 async function requireAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -267,6 +280,22 @@ async function requireAuth(req, res, next) {
     // If CLERK_SECRET_KEY is not set (local dev), accept any non-empty Bearer token
 
     next();
+}
+
+// ─── Optional Auth — guests (no token) or Bearer for AI routes ─────────────
+function optionalAuth(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        req.isGuest = true;
+        return next();
+    }
+    requireAuth(req, res, next);
+}
+
+// ─── Apply guest limit for guests, normal AI limit for authenticated ─────────
+function guestOrAuthLimiter(req, res, next) {
+    if (req.isGuest) return guestAiLimiter(req, res, next);
+    return aiLimiter(req, res, next);
 }
 
 // ─── Input Sanitiser ──────────────────────────────────────────────────────
@@ -524,7 +553,7 @@ ${JSON.stringify(cleanContext, null, 2)}
 `;
 }
 
-app.post('/api/chat', requireAuth, aiLimiter, async (req, res) => {
+app.post('/api/chat', optionalAuth, guestOrAuthLimiter, async (req, res) => {
     try {
         const { messages, projectContext, stream: wantsStream } = req.body;
 
@@ -678,7 +707,7 @@ IDENTITY:
 - Conversational replies: 2–4 sentences max.
 `;
 
-app.post('/api/strab-general', requireAuth, aiLimiter, async (req, res) => {
+app.post('/api/strab-general', optionalAuth, guestOrAuthLimiter, async (req, res) => {
     try {
         const { messages, stream: wantsStream } = req.body;
 

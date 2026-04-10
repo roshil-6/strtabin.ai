@@ -8,6 +8,55 @@ export const LEGACY_STORAGE_KEY = 'startergy-box-storage';
 /** Backup of local projects before sign-up; restored when main storage is empty after auth */
 export const GUEST_DATA_BACKUP_KEY = 'strategy-box-guest-backup';
 
+/** When set, AuthGate allows app routes without Clerk sign-in (local-only explore mode) */
+export const GUEST_MODE_KEY = 'stratabin-guest-mode';
+
+export function enableGuestMode(): void {
+    try {
+        localStorage.setItem(GUEST_MODE_KEY, '1');
+        window.dispatchEvent(new Event('stratabin-guest-mode'));
+    } catch { /* ignore */ }
+}
+
+export function clearGuestMode(): void {
+    try {
+        localStorage.removeItem(GUEST_MODE_KEY);
+        window.dispatchEvent(new Event('stratabin-guest-mode'));
+    } catch { /* ignore */ }
+}
+
+export function isGuestModeEnabled(): boolean {
+    try {
+        return localStorage.getItem(GUEST_MODE_KEY) === '1';
+    } catch {
+        return false;
+    }
+}
+
+// Guest AI — limited prompts before sign-in (client + server rate limits)
+export const GUEST_AI_LIMIT = 5;
+export const GUEST_AI_COUNT_KEY = 'guest-ai-count';
+
+export function getGuestAiRemaining(): number {
+    const raw = localStorage.getItem(GUEST_AI_COUNT_KEY);
+    const used = raw ? parseInt(raw, 10) : 0;
+    return Math.max(0, GUEST_AI_LIMIT - used);
+}
+
+export function consumeGuestAiMessage(): boolean {
+    const raw = localStorage.getItem(GUEST_AI_COUNT_KEY);
+    const used = raw ? parseInt(raw, 10) : 0;
+    if (used >= GUEST_AI_LIMIT) return false;
+    localStorage.setItem(GUEST_AI_COUNT_KEY, String(used + 1));
+    return true;
+}
+
+export function refundGuestAiMessage(): void {
+    const raw = localStorage.getItem(GUEST_AI_COUNT_KEY);
+    const used = raw ? parseInt(raw, 10) : 0;
+    if (used > 0) localStorage.setItem(GUEST_AI_COUNT_KEY, String(used - 1));
+}
+
 // Pro AI limit — prompts per day (resets at midnight UTC) for signed-in users
 export const PRO_AI_DAILY_LIMIT = 12;
 const PRO_AI_DAILY_KEY_PREFIX = 'pro-ai-daily-';

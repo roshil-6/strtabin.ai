@@ -5,10 +5,15 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { workspaceService } from '../services/workspaceService';
+import { clearGuestMode } from '../constants';
 
 export default function UserSyncOnLoad() {
   const { isSignedIn, getToken } = useAuth();
   const synced = useRef(false);
+
+  useEffect(() => {
+    if (isSignedIn) clearGuestMode();
+  }, [isSignedIn]);
 
   useEffect(() => {
     if (!isSignedIn || synced.current) return;

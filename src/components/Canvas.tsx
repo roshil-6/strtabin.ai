@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
     ReactFlow,
     Background,
-    Controls,
     BackgroundVariant,
     type Node,
     type Edge,
@@ -27,23 +26,26 @@ import { IdeaNode, QuestionNode, DecisionNode } from './nodes/ThinkingNodes';
 import SmartEdge from './edges/SmartEdge';
 import CommandDock from './CommandDock';
 // import TimelineMode from './TimelineMode'; // Unused
-import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen, ZoomIn, ZoomOut, Move, GitBranch, Split, Type, Lightbulb, HelpCircle, Trash2, Settings2 } from 'lucide-react';
+import { Bot, FileText, Plus, Layers, Maximize, CheckSquare, Calendar, Layout, FolderOpen, ZoomIn, ZoomOut, Move, GitBranch, Split, Type, Lightbulb, HelpCircle, Trash2, Settings2, Columns } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Sidebar from './Sidebar';
 import WritingSection from './WritingSection';
 import { useTheme } from '../context/ThemeContext';
 
 
+type CanvasPageView = 'write' | 'flow' | 'split';
+
 function CanvasContent() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { getToken } = useAuth();
     const workspaceId = (location.state as { workspaceId?: number })?.workspaceId;
     const {
         nodes, edges, onNodesChange, onEdgesChange, onConnect,
         addNode, addEdge, setCurrentCanvas, canvases, folders,
-        addSubCanvasToMerged, syncSubProjectNodes, ensureCanvasExists, loadSharedCanvas
+        addCanvasPage, updateCanvasName, syncSubProjectNodes, ensureCanvasExists, loadSharedCanvas
     } = useStore(useShallow((state: RFState) => ({
         nodes: state.nodes,
         edges: state.edges,
@@ -55,7 +57,8 @@ function CanvasContent() {
         setCurrentCanvas: state.setCurrentCanvas,
         canvases: state.canvases,
         folders: state.folders,
-        addSubCanvasToMerged: state.addSubCanvasToMerged,
+        addCanvasPage: state.addCanvasPage,
+        updateCanvasName: state.updateCanvasName,
         syncSubProjectNodes: state.syncSubProjectNodes,
         ensureCanvasExists: state.ensureCanvasExists,
         loadSharedCanvas: state.loadSharedCanvas,
@@ -166,7 +169,22 @@ function CanvasContent() {
 
     const currentCanvas = canvases[activeCanvasId];
     const isMerged = !!currentCanvas?.mergedCanvasIds;
+    /** Extra flow/writing pages: only for local strategy canvases (not shared links or team workspace projects). */
+    const canUseMultiPage =
+        !activeCanvasId.startsWith('shared_') && !/^proj_\d+$/.test(activeCanvasId);
+    const showMultiPageEntry = canUseMultiPage && !isMerged;
+    const hasTopBar = isMerged || showMultiPageEntry;
     const [activeSubCanvasId, setActiveSubCanvasId] = useState<string | null>(null);
+
+    const [renamingPageId, setRenamingPageId] = useState<string | null>(null);
+    const [renameDraft, setRenameDraft] = useState('');
+    const skipRenameBlurRef = useRef(false);
+
+    const handleAddCanvasPage = useCallback(() => {
+        const newId = addCanvasPage(activeCanvasId);
+        setActiveSubCanvasId(newId);
+        toast.success('New page added — use the tabs above to switch pages');
+    }, [addCanvasPage, activeCanvasId]);
 
     useEffect(() => {
         if (isMerged && id) {
@@ -467,9 +485,6 @@ function CanvasContent() {
         [addNode, screenToFlowPosition]
     );
 
-
-
-    const [mobileTab, setMobileTab] = useState<'write' | 'map'>('write');
     const [folderMapPanelOpen, setFolderMapPanelOpen] = useState(false);
     const folderMapPanelRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -491,6 +506,41 @@ function CanvasContent() {
         window.addEventListener('resize', handler, { passive: true });
         return () => window.removeEventListener('resize', handler);
     }, []);
+
+    /** Writing | Flow | Split — same project, switchable panes (?view=write|flow|split) */
+    const pageView = useMemo((): CanvasPageView => {
+        const v = searchParams.get('view');
+        if (v === 'write' || v === 'flow' || v === 'split') {
+            if (isMobile && v === 'split') return 'flow';
+            return v;
+        }
+        return isMobile ? 'write' : 'flow';
+    }, [searchParams, isMobile]);
+
+    useEffect(() => {
+        if (isMobile && searchParams.get('view') === 'split') {
+            setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.set('view', 'flow');
+                return next;
+            }, { replace: true });
+        }
+    }, [isMobile, searchParams, setSearchParams]);
+
+    const setPageView = useCallback(
+        (v: CanvasPageView) => {
+            if (isMobile && v === 'split') return;
+            setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.set('view', v);
+                return next;
+            }, { replace: true });
+        },
+        [isMobile, setSearchParams],
+    );
+
+    const showWriting = pageView === 'write' || pageView === 'split';
+    const showFlow = pageView === 'flow' || pageView === 'split';
 
     const isSharedOrProj = id?.startsWith('shared_') || id?.match(/^proj_\d+$/);
     if (isSharedOrProj && (sharedLoading || sharedError)) {
@@ -529,13 +579,13 @@ function CanvasContent() {
         <div className="w-screen h-screen theme-page relative overflow-hidden flex flex-col md:flex-row">
 
             {/* Desktop Sidebar */}
-            <div className={`hidden md:block h-full ${isMerged ? 'pt-12' : ''}`}>
+            <div className={`hidden md:block h-full ${hasTopBar ? 'pt-12' : ''}`}>
                 <Sidebar canvasId={id || 'default'} />
             </div>
 
             {/* Content: mobile height = viewport minus fixed nav (62px + home-indicator safe area). min-h-0 = flex children can shrink. */}
             <div
-                className={`flex-1 flex min-h-0 w-full ${isMerged ? 'pt-12 md:pt-14' : ''}`}
+                className={`flex-1 flex flex-col min-h-0 w-full ${hasTopBar ? 'pt-12 md:pt-14' : ''}`}
                 style={
                     isMobile
                         ? { height: 'calc(100% - 62px - env(safe-area-inset-bottom, 0px))' }
@@ -562,13 +612,19 @@ function CanvasContent() {
 
                         <div className="w-px h-5 md:h-6 bg-white/5 mx-1 md:mx-2 shrink-0" />
 
-                        {currentCanvas.mergedCanvasIds.map((subId: string) => {
+                        {currentCanvas.mergedCanvasIds.map((subId: string, pageIndex: number) => {
                             const subCanvas = canvases[subId];
                             const isActive = activeSubCanvasId === subId;
+                            const displayName = subCanvas?.name?.trim() || `Page ${pageIndex + 1}`;
+                            const isRenaming = renamingPageId === subId;
                             return (
                                 <button
                                     key={subId}
-                                    onClick={() => setActiveSubCanvasId(subId)}
+                                    type="button"
+                                    onClick={() => {
+                                        if (renamingPageId === subId) return;
+                                        setActiveSubCanvasId(subId);
+                                    }}
                                     className={`
                                         flex items-center gap-1.5 md:gap-2.5 px-2.5 md:px-4 h-8 md:h-10 rounded-xl transition-all border shrink-0
                                         ${isActive
@@ -578,18 +634,62 @@ function CanvasContent() {
                                     `}
                                 >
                                     <FileText size={13} />
-                                    <span className="text-[11px] md:text-sm font-bold truncate max-w-[100px] md:max-w-[150px]">{subCanvas?.name || 'Sub Project'}</span>
-                                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
+                                    {isRenaming ? (
+                                        <input
+                                            autoFocus
+                                            value={renameDraft}
+                                            onChange={(e) => setRenameDraft(e.target.value)}
+                                            onPointerDown={(e) => e.stopPropagation()}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onBlur={() => {
+                                                if (skipRenameBlurRef.current) {
+                                                    skipRenameBlurRef.current = false;
+                                                    return;
+                                                }
+                                                const next = renameDraft.trim() || `Page ${pageIndex + 1}`;
+                                                updateCanvasName(subId, next);
+                                                setRenamingPageId(null);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    (e.target as HTMLInputElement).blur();
+                                                }
+                                                if (e.key === 'Escape') {
+                                                    skipRenameBlurRef.current = true;
+                                                    setRenamingPageId(null);
+                                                }
+                                            }}
+                                            className="w-[min(7rem,28vw)] md:w-36 bg-black/40 border border-white/20 rounded-lg px-2 py-1 text-[11px] md:text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                            aria-label="Page name"
+                                        />
+                                    ) : (
+                                        <span
+                                            className="text-[11px] md:text-sm font-bold truncate max-w-[100px] md:max-w-[150px] text-left"
+                                            title="Double-click to rename"
+                                            onDoubleClick={(e) => {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                setActiveSubCanvasId(subId);
+                                                setRenamingPageId(subId);
+                                                setRenameDraft(displayName);
+                                            }}
+                                        >
+                                            {displayName}
+                                        </span>
+                                    )}
+                                    {isActive && !isRenaming && <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
                                 </button>
                             );
                         })}
                         <button
+                            type="button"
                             onClick={() => {
-                                const newId = addSubCanvasToMerged(activeCanvasId);
+                                const newId = addCanvasPage(activeCanvasId);
                                 setActiveSubCanvasId(newId);
+                                toast.success('New page added');
                             }}
                             className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white/[0.03] border border-dashed border-white/15 text-white/40 hover:bg-white/10 hover:border-white/40 hover:text-white active:scale-95 transition-all ml-1 shrink-0"
-                            title="Add New Sequence"
+                            title="Add page"
                         >
                             <Plus size={16} />
                         </button>
@@ -600,18 +700,73 @@ function CanvasContent() {
                     </div>
                 )}
 
-                {/* Writing Section (Mobile: Toggleable, Desktop: 45%) — isolated from flow zoom/scroll */}
+                {/* Single-project: visible way to add tabbed pages (merged bar used to only appear after dashboard merge) */}
+                {showMultiPageEntry && (
+                    <div className="canvas-top-bar absolute top-0 left-0 right-0 h-12 md:h-14 bg-[#060606]/95 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-3 md:px-4 gap-2 z-[60] shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+                        <button
+                            type="button"
+                            onClick={handleAddCanvasPage}
+                            className="flex items-center gap-2 px-3 md:px-4 h-8 md:h-10 rounded-xl bg-white/[0.06] border border-white/15 text-white/90 hover:bg-white/10 hover:border-white/30 active:scale-[0.98] transition-all shrink-0"
+                            title="Add another flow and writing page to this project"
+                        >
+                            <Plus size={16} className="text-primary" />
+                            <span className="text-[11px] md:text-sm font-black uppercase tracking-wider">New page</span>
+                        </button>
+                        <span className="text-[10px] md:text-[11px] text-white/35 font-medium hidden sm:inline truncate">
+                            Your work becomes page 1; opens a second page to continue
+                        </span>
+                    </div>
+                )}
+
+                {/* Desktop: switch Writing / Flow / Split — same project, separate focus */}
+                {!isMobile && (
+                    <div className="shrink-0 z-[55] flex items-center gap-1.5 px-3 md:px-4 py-2 border-b border-white/[0.06] bg-[var(--bg-page)]/95 backdrop-blur-md">
+                        {([
+                            { key: 'write' as const, label: 'Writing', icon: FileText },
+                            { key: 'flow' as const, label: 'Flow', icon: Layers },
+                            { key: 'split' as const, label: 'Split', icon: Columns },
+                        ]).map(({ key, label, icon: Icon }) => {
+                            const active = pageView === key;
+                            return (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => setPageView(key)}
+                                    className={`
+                                        flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all
+                                        ${active
+                                            ? 'bg-primary/15 text-primary border border-primary/30 shadow-[0_0_16px_rgba(249,115,22,0.12)]'
+                                            : 'text-white/40 border border-transparent hover:bg-white/[0.06] hover:text-white/70'}
+                                    `}
+                                    aria-pressed={active}
+                                    aria-label={`Show ${label} view`}
+                                >
+                                    <Icon size={15} strokeWidth={2.2} />
+                                    {label}
+                                </button>
+                            );
+                        })}
+                        <span className="ml-auto hidden lg:inline text-[10px] text-white/25 font-medium tracking-wide">
+                            One project — switch pages without leaving
+                        </span>
+                    </div>
+                )}
+
+                <div className="flex-1 flex flex-row min-h-0 w-full min-w-0">
+                {/* Writing Section — isolated from flow zoom/scroll */}
                 <div
                     className={`
-                        ${mobileTab === 'write' ? 'flex' : 'hidden'} 
-                        md:flex w-full md:w-[45%] md:min-w-[380px] min-h-0 h-full relative z-10 bg-transparent
+                        ${showWriting ? 'flex' : 'hidden'}
+                        ${pageView === 'write' ? 'w-full flex-1 min-w-0' : ''}
+                        ${pageView === 'split' ? 'w-full md:w-[45%] md:min-w-[380px]' : ''}
+                        min-h-0 h-full relative z-10 bg-transparent
                         md:border-r md:border-white/[0.06] md:pr-px
                     `}
                     style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}
                     onWheel={(e) => e.stopPropagation()}
                 >
                     <WritingSection
-                        canvasId={id || 'default'}
+                        canvasId={activeSubCanvasId || id || 'default'}
                         onBranch={() => {
                             if (nodes.length === 0) {
                                 const flowPos = screenToFlowPosition({ x: window.innerWidth * 0.725, y: window.innerHeight / 2 });
@@ -622,16 +777,16 @@ function CanvasContent() {
                                     data: { label: '' }
                                 });
                             }
-                            setMobileTab('map');
+                            setPageView('flow');
                         }}
                     />
                 </div>
 
-                {/* Visual Canvas (Mobile: Toggleable, Desktop: Flex-1) — fully isolated zoom/pan */}
+                {/* Visual Canvas — fully isolated zoom/pan */}
                 <div
                     className={`
-                        ${mobileTab === 'map' ? 'flex' : 'hidden'} 
-                        md:flex flex-1 min-h-0 min-w-0 h-full relative flex-col
+                        ${showFlow ? 'flex' : 'hidden'}
+                        flex-1 min-h-0 min-w-0 h-full relative flex-col
                     `}
                     style={{ overscrollBehavior: 'contain' }}
                     onWheel={(e) => e.stopPropagation()}
@@ -640,75 +795,71 @@ function CanvasContent() {
                         className="flex flex-col flex-1 min-h-0 w-full h-full relative"
                         style={{ touchAction: 'none', overscrollBehavior: 'none' }}
                     >
-                        {/* Flow Top Bar — compact on mobile */}
-                        <div className={`canvas-top-bar absolute ${isMerged ? 'top-[4.5rem]' : 'top-1.5 md:top-4'} left-1.5 right-1.5 md:left-4 md:right-4 h-10 md:h-14 bg-white/[0.04] backdrop-blur-xl rounded-2xl border border-white/[0.08] flex items-center px-2 md:px-4 z-40 justify-between transition-all`}>
-                            <div className="flex items-center gap-2 md:gap-2.5">
-                                <div className="relative">
-                                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
-                                    <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-30" />
+                        {/* Flow actions — floating controls (no full-width bar) */}
+                        <div
+                            className={`absolute ${hasTopBar ? 'top-[4.5rem]' : 'top-1.5 md:top-4'} right-1.5 md:right-4 z-40 flex flex-wrap items-center justify-end gap-1 md:gap-1.5 max-w-[min(100%,calc(100vw-0.75rem))]`}
+                        >
+                            <button
+                                type="button"
+                                onClick={handleClearFlow}
+                                className="flex items-center gap-1 px-2 md:px-2.5 py-1.5 md:py-2 rounded-xl bg-[var(--bg-page)]/90 backdrop-blur-md text-white/60 border border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.25)] hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/25 active:scale-95 transition-all"
+                                aria-label="Clear entire flow"
+                                title="Clear flow"
+                            >
+                                <Trash2 size={14} />
+                                <span className="text-[10px] font-bold hidden sm:inline">Clear</span>
+                            </button>
+                            {canvases[activeCanvasId]?.folderId && (
+                                <div className="relative flex items-center gap-0.5" ref={folderMapPanelRef}>
+                                    <button
+                                        type="button"
+                                        onClick={handleAutoMapFolder}
+                                        className="flex items-center gap-1 px-2 md:px-2.5 py-1.5 md:py-2 rounded-xl bg-[var(--bg-page)]/90 backdrop-blur-md text-white/60 border border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.25)] hover:bg-white/10 hover:text-white active:scale-95 transition-all"
+                                        aria-label="Auto-map folder projects"
+                                        title="Map folder projects onto this canvas"
+                                    >
+                                        <FolderOpen size={14} />
+                                        <span className="text-[10px] font-bold hidden sm:inline">Folder</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFolderMapPanelOpen((o) => !o)}
+                                        className={`flex items-center justify-center p-1.5 md:px-2 md:py-2 rounded-xl border shadow-[0_4px_20px_rgba(0,0,0,0.25)] transition-all active:scale-95 ${
+                                            folderMapPanelOpen
+                                                ? 'bg-primary/20 border-primary/35 text-primary'
+                                                : 'bg-[var(--bg-page)]/90 backdrop-blur-md text-white/55 border-white/[0.08] hover:bg-white/10 hover:text-white'
+                                        }`}
+                                        aria-expanded={folderMapPanelOpen}
+                                        aria-label="Folder map layout options"
+                                        title="Folder map layout"
+                                    >
+                                        <Settings2 size={14} />
+                                    </button>
+                                    {folderMapPanelOpen && (
+                                        <div
+                                            className="absolute right-0 top-[calc(100%+6px)] w-[min(calc(100vw-1.5rem),20rem)] p-4 rounded-2xl border border-white/[0.08] bg-[#0a0a0a]/98 backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.65)] z-[100] max-h-[min(70vh,28rem)] overflow-y-auto text-left"
+                                            data-theme="dark"
+                                        >
+                                            <p className="text-xs font-black text-white/90 uppercase tracking-wider mb-3">Folder map</p>
+                                            <FolderMapSettingsPanel folderId={canvases[activeCanvasId]!.folderId!} />
+                                        </div>
+                                    )}
                                 </div>
-                                <span className="text-[10px] md:text-[11px] font-black tracking-widest text-white/35 uppercase">Flow</span>
-                            </div>
-
-                            <div className="flex items-center gap-1 md:gap-2">
-                                <button
-                                    onClick={handleClearFlow}
-                                    className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 active:scale-95 transition-all"
-                                    aria-label="Clear entire flow"
-                                    title="Clear flow"
-                                >
-                                    <Trash2 size={13} />
-                                    <span className="text-[10px] font-bold hidden sm:inline">Clear Flow</span>
-                                </button>
-                                {canvases[activeCanvasId]?.folderId && (
-                                    <div className="relative flex items-center gap-0.5" ref={folderMapPanelRef}>
-                                        <button
-                                            onClick={handleAutoMapFolder}
-                                            className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-white/10 hover:text-white active:scale-95 transition-all"
-                                            aria-label="Auto-map folder projects"
-                                        >
-                                            <FolderOpen size={13} />
-                                            <span className="text-[10px] font-bold hidden sm:inline">Map Folder</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFolderMapPanelOpen((o) => !o)}
-                                            className={`flex items-center justify-center p-1.5 md:px-2 md:py-1.5 rounded-lg md:rounded-xl border transition-all active:scale-95 ${
-                                                folderMapPanelOpen
-                                                    ? 'bg-primary/20 border-primary/35 text-primary'
-                                                    : 'bg-white/[0.04] text-white/45 border-white/[0.06] hover:bg-white/10 hover:text-white'
-                                            }`}
-                                            aria-expanded={folderMapPanelOpen}
-                                            aria-label="Folder map options"
-                                            title="Map layout for this folder"
-                                        >
-                                            <Settings2 size={14} />
-                                        </button>
-                                        {folderMapPanelOpen && (
-                                            <div
-                                                className="absolute right-0 top-[calc(100%+6px)] w-[min(calc(100vw-1.5rem),20rem)] p-4 rounded-2xl border border-white/[0.08] bg-[#0a0a0a]/98 backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.65)] z-[100] max-h-[min(70vh,28rem)] overflow-y-auto text-left"
-                                                data-theme="dark"
-                                            >
-                                                <p className="text-xs font-black text-white/90 uppercase tracking-wider mb-3">Folder map</p>
-                                                <FolderMapSettingsPanel folderId={canvases[activeCanvasId]!.folderId!} />
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                <button
-                                    onClick={() => navigate(`/strab/${id || 'default'}`)}
-                                    className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 active:scale-95 transition-all"
-                                    title="Project STRAB — chat & reports for this project"
-                                    aria-label="Open Project STRAB"
-                                >
-                                    <Bot size={13} />
-                                    <span className="text-[10px] md:text-[11px] font-bold">AI</span>
-                                </button>
-                            </div>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => navigate(`/strab/${id || 'default'}`)}
+                                className="flex items-center gap-1 px-2 md:px-2.5 py-1.5 md:py-2 rounded-xl bg-orange-500/12 text-orange-400 border border-orange-500/25 shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:bg-orange-500/20 active:scale-95 transition-all"
+                                title="Project STRAB — chat & reports"
+                                aria-label="Open Project STRAB"
+                            >
+                                <Bot size={14} />
+                                <span className="text-[10px] md:text-[11px] font-bold">AI</span>
+                            </button>
                         </div>
 
                         <div className="flex-1 min-h-0 w-full relative">
-                        {(!isMobile || mobileTab === 'map') && <ReactFlow
+                        {(!isMobile || showFlow) && <ReactFlow
                             nodes={enhancedNodes}
                             edges={edges}
                             onNodesChange={onNodesChange}
@@ -747,21 +898,11 @@ function CanvasContent() {
                                 variant={BackgroundVariant.Dots}
                                 size={1.2}
                             />
-
-                            {/* Desktop-only: built-in controls */}
-                            <div className="hidden md:block">
-                                <Controls style={{
-                                    backgroundColor: '#151515',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    fill: '#9aa0a6',
-                                    marginBottom: '60px',
-                                }} />
-                            </div>
                         </ReactFlow>}
                         </div>
 
                         {/* Mobile: toolbar in normal flow (not absolute) so spacing stays consistent above bottom nav */}
-                        {isMobile && mobileTab === 'map' && (
+                        {isMobile && showFlow && (
                             <div className="shrink-0 z-[100] w-full px-2 pt-3 pb-1 space-y-2.5 border-t border-white/[0.06] bg-[#060606]/92 backdrop-blur-xl md:hidden">
                                 <p className="text-center text-[9px] font-black uppercase tracking-[0.18em] text-white/50">
                                     Add to flow
@@ -844,13 +985,14 @@ function CanvasContent() {
                         <CommandDock onAddNode={handleAddNode} />
                     </div>
                 </div>
+                </div>
 
                 {/* Mobile Bottom Navigation */}
                 <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#060606]/[0.97] backdrop-blur-2xl border-t border-white/[0.04]" aria-label="Canvas navigation">
                     <div className="flex items-stretch h-[62px] px-1">
                         {[
-                            { label: 'Write', icon: FileText, action: () => setMobileTab('write'),            active: mobileTab === 'write' },
-                            { label: 'Flow',  icon: Layers,   action: () => setMobileTab('map'),              active: mobileTab === 'map'   },
+                            { label: 'Write', icon: FileText, action: () => setPageView('write'), active: pageView === 'write' },
+                            { label: 'Flow',  icon: Layers,   action: () => setPageView('flow'),  active: pageView === 'flow' },
                             { label: 'Tasks', icon: CheckSquare, action: () => navigate(`/todo/${id || 'default'}`),     active: false },
                             { label: 'Cal',   icon: Calendar, action: () => navigate(`/calendar/${id || 'default'}`),   active: false },
                             { label: 'AI',    icon: Bot,      action: () => navigate(`/strab/${id || 'default'}`),      active: false, highlight: true },

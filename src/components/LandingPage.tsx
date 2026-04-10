@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { Check, Zap, ArrowRight, Bot, X, Compass, Target, Rocket, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, ChevronDown, Gift, Smartphone } from 'lucide-react';
 
+import { enableGuestMode } from '../constants';
 import HexagonBackground from './HexagonBackground';
 import ThemeToggle from './ThemeToggle';
 
@@ -111,13 +112,25 @@ export default function LandingPage() {
                                 <ArrowRight size={14} />
                             </button>
                         ) : (
-                            <button
-                                onClick={() => navigate('/auth')}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
-                            >
-                                Sign in
-                                <ArrowRight size={14} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        enableGuestMode();
+                                        navigate('/dashboard');
+                                    }}
+                                    className="text-xs md:text-sm font-bold text-white/45 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5 transition-all"
+                                >
+                                    Try without account
+                                </button>
+                                <button
+                                    onClick={() => navigate('/auth')}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-white transition-all text-sm"
+                                >
+                                    Sign in
+                                    <ArrowRight size={14} />
+                                </button>
+                            </div>
                         )}
                     </nav>
                 </div>
@@ -189,14 +202,26 @@ export default function LandingPage() {
                             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                     ) : (
-                        <button
-                            onClick={() => navigate('/auth')}
-                            className="group relative flex items-center gap-3 px-7 md:px-8 py-3.5 md:py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_4px_30px_rgba(255,119,86,0.3)] active:scale-95 mx-auto text-sm md:text-base"
-                        >
-                            <Zap size={18} fill="currentColor" />
-                            Get Started
-                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-md mx-auto">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    enableGuestMode();
+                                    navigate('/dashboard');
+                                }}
+                                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-white/15 text-white/80 font-bold text-sm hover:bg-white/5 transition-all"
+                            >
+                                Open app without sign-in
+                            </button>
+                            <button
+                                onClick={() => navigate('/auth')}
+                                className="group relative flex items-center justify-center gap-3 px-7 md:px-8 py-3.5 md:py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_4px_30px_rgba(255,119,86,0.3)] active:scale-95 w-full sm:w-auto text-sm md:text-base"
+                            >
+                                <Zap size={18} fill="currentColor" />
+                                Sign in
+                                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
                     )}
                     </div>
                 </div>
