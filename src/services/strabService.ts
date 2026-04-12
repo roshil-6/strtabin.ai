@@ -1,5 +1,3 @@
-import { API_BASE_URL } from '../constants';
-
 /** Throttle streaming updates to reduce lag on slow devices (max ~20 updates/sec) */
 function throttleStreamCallback(cb: (text: string) => void, intervalMs = 50): (text: string, isFinal?: boolean) => void {
     let pending: string | null = null;
@@ -31,31 +29,16 @@ function throttleStreamCallback(cb: (text: string) => void, intervalMs = 50): (t
     };
 }
 
-/** Retry on 503 (cold start) — up to 3 attempts with backoff */
-async function fetchWithRetry(
-    url: string,
-    opts: RequestInit,
-    signal?: AbortSignal,
-): Promise<Response> {
-    const delays = [0, 8000, 18000]; // 0ms, 8s, 18s
-    for (let i = 0; i < delays.length; i++) {
-        if (delays[i] > 0) await new Promise(r => setTimeout(r, delays[i]));
-        const res = await fetch(url, { ...opts, signal });
-        if (res.status !== 503 || i === delays.length - 1) return res;
-    }
-    return fetch(url, { ...opts, signal });
-}
-
 export interface ChatMessage {
     role: 'user' | 'assistant';
     content: string;
 }
 
 export const sendGeneralStrabMessage = async (
-    messages: ChatMessage[],
+    _messages: ChatMessage[],
     onChunk: (accumulated: string) => void,
-    authToken?: string,
-    signal?: AbortSignal,
+    _authToken?: string,
+    _signal?: AbortSignal,
 ): Promise<string> => {
     const maintenanceMessage = '🔧 AI is under maintenance\n\nWe are working on integrating a more powerful AI system for an upcoming major project. Please check back later!';
     // Simulate streaming callback to show message
@@ -95,9 +78,9 @@ export interface ProjectContext {
 }
 
 export const sendStrabMessage = async (
-    messages: ChatMessage[],
-    projectContext: ProjectContext,
-    authToken?: string
+    _messages: ChatMessage[],
+    _projectContext: ProjectContext,
+    _authToken?: string
 ): Promise<string> => {
     const maintenanceMessage = '🔧 AI is under maintenance\n\nWe are working on integrating a more powerful AI system for an upcoming major project. Please check back later!';
     throw new Error(maintenanceMessage);
@@ -107,11 +90,11 @@ export const sendStrabMessage = async (
  * Streaming variant — UNDER MAINTENANCE
  */
 export const sendStrabMessageStreaming = async (
-    messages: ChatMessage[],
-    projectContext: ProjectContext,
+    _messages: ChatMessage[],
+    _projectContext: ProjectContext,
     onChunk: (accumulated: string) => void,
-    authToken?: string,
-    signal?: AbortSignal,
+    _authToken?: string,
+    _signal?: AbortSignal,
 ): Promise<string> => {
     const maintenanceMessage = '🔧 AI is under maintenance\n\nWe are working on integrating a more powerful AI system for an upcoming major project. Please check back later!';
     const throttled = throttleStreamCallback(onChunk);
