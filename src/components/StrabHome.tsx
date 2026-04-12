@@ -420,6 +420,16 @@ export default function StrabHome() {
             {/* Main */}
             <div className="flex-1 overflow-hidden flex flex-col">
 
+                {/* Maintenance Banner */}
+                <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-4 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                        <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                        <span className="text-sm font-bold text-amber-300">AI is under maintenance</span>
+                        <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                    </div>
+                    <p className="text-xs text-amber-200/70">We are working on integrating a more powerful AI system for an upcoming major project. Check back soon!</p>
+                </div>
+
                 {isEmpty ? (
                     /* ── Welcome screen ── */
                     <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-4 py-10">
