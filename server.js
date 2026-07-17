@@ -11,6 +11,8 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
+import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { createClerkClient } from '@clerk/backend';
 import { registerWorkspaceRoutes } from './routes/workspaces.js';
 import { registerChatRoutes } from './routes/chat.js';
@@ -25,15 +27,19 @@ dotenv.config();
 
 // ─── Startup Validation ────────────────────────────────────────────────────
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const CLERK_SECRET_KEY  = process.env.CLERK_SECRET_KEY;
 const PORT = process.env.PORT || 3001;
 
-if (!ANTHROPIC_API_KEY) {
-    console.error('⛔ CRITICAL: ANTHROPIC_API_KEY is not set. AI features will fail.');
+if (!ANTHROPIC_API_KEY && !OPENAI_API_KEY) {
+    console.error('⛔ CRITICAL: Neither ANTHROPIC_API_KEY nor OPENAI_API_KEY is set. AI features will fail.');
 }
 if (!CLERK_SECRET_KEY) {
     console.warn('⚠️  WARNING: CLERK_SECRET_KEY is not set. Token verification is disabled.');
 }
+
+const anthropic = ANTHROPIC_API_KEY ? new Anthropic({ apiKey: ANTHROPIC_API_KEY }) : null;
+const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
 // ─── Clerk Client (for token verification) ────────────────────────────────
 const clerk = CLERK_SECRET_KEY
     ? createClerkClient({ secretKey: CLERK_SECRET_KEY })
@@ -553,19 +559,70 @@ ${JSON.stringify(cleanContext, null, 2)}
 `;
 }
 
+async function handleAIStream(req, res, systemPrompt, sanitizedMessages) {
+    const provider = req.body.provider === 'openai' ? 'openai' : 'anthropic';
+    
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    try {
+        if (provider === 'openai' && openai) {
+            const stream = await openai.chat.completions.create({
+                model: 'gpt-4o-mini',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    ...sanitizedMessages
+                ],
+                stream: true,
+            });
+            for await (const chunk of stream) {
+                const text = chunk.choices[0]?.delta?.content || '';
+                if (text) {
+                    res.write(`data: ${JSON.stringify({ text })}\n\n`);
+                }
+            }
+        } else if (anthropic) {
+            const stream = await anthropic.messages.create({
+                model: 'claude-3-5-sonnet-latest',
+                max_tokens: 2000,
+                system: systemPrompt,
+                messages: sanitizedMessages,
+                stream: true,
+            });
+            for await (const chunk of stream) {
+                if (chunk.type === 'content_block_delta' && chunk.delta.text) {
+                    res.write(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`);
+                }
+            }
+        } else {
+            res.write(`data: ${JSON.stringify({ error: 'No AI provider configured.' })}\n\n`);
+        }
+        res.write('data: [DONE]\n\n');
+        res.end();
+    } catch (err) {
+        console.error('AI Stream Error:', err);
+        res.write(`data: ${JSON.stringify({ error: 'AI processing failed' })}\n\n`);
+        res.end();
+    }
+}
+
 app.post('/api/chat', optionalAuth, guestOrAuthLimiter, async (req, res) => {
-    // AI operations are under maintenance for a bigger project initiative
-    return res.status(503).json({ 
-        error: 'AI operations are currently under maintenance. We are working on integrating a more powerful AI system for an upcoming major project. Please check back later!' 
-    });
+    const context = sanitiseContext(req.body.context);
+    const messages = sanitiseMessages(req.body.messages);
+    if (!messages || messages.length === 0) return res.status(400).json({ error: 'No messages provided.' });
+    
+    const systemPrompt = buildSystemPrompt(context);
+    await handleAIStream(req, res, systemPrompt, messages);
 });
 
-// ─── STRAB General AI — UNDER MAINTENANCE ─────────────────────────────────
+// ─── STRAB General AI ─────────────────────────────────────────────────────
 app.post('/api/strab-general', optionalAuth, guestOrAuthLimiter, async (req, res) => {
-    // AI operations are under maintenance for a bigger project initiative
-    return res.status(503).json({ 
-        error: 'AI operations are currently under maintenance. We are working on integrating a more powerful AI system for an upcoming major project. Please check back later!' 
-    });
+    const messages = sanitiseMessages(req.body.messages);
+    if (!messages || messages.length === 0) return res.status(400).json({ error: 'No messages provided.' });
+    
+    const systemPrompt = `You are STRAB, the core intelligence layer for Stratabin. You assist the user with general strategy questions. Be direct and concise.`;
+    await handleAIStream(req, res, systemPrompt, messages);
 });
 
 // ─── Static uploads (chat photos/files) ─────────────────────────────────────
