@@ -417,7 +417,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
             {/* Content Area — Redesigned for a "safe, close" journal feel */}
             <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 py-6 md:px-8 md:py-12 custom-scrollbar pb-24">
-                <div className="mx-auto max-w-2xl pb-20 bg-[#141414] shadow-[0_8px_40px_rgba(0,0,0,0.4)] border border-white/[0.03] rounded-[28px] md:rounded-[32px] px-5 py-8 md:px-12 md:py-14 relative group transition-all duration-500">
+                <div className="mx-auto w-full max-w-5xl pb-20 bg-[#141414] shadow-[0_8px_40px_rgba(0,0,0,0.4)] border border-white/[0.03] rounded-[28px] md:rounded-[32px] px-5 py-8 md:px-12 md:py-14 relative group transition-all duration-500">
                     {/* Subtle noise texture or soft glow at the top */}
                     <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-white/[0.02] to-transparent rounded-t-[32px] pointer-events-none" />
                     

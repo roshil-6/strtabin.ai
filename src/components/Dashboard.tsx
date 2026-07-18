@@ -962,26 +962,14 @@ export default function Dashboard() {
                                     <Plus size={16} strokeWidth={3} />
                                     Strategy
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={handleCreateCode}
-                                    className="hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 text-black font-black text-xs uppercase tracking-widest hover:bg-blue-400 active:scale-95 transition-all shrink-0 shadow-[0_4px_16px_rgba(59,130,246,0.35)]"
-                                >
-                                    <Code2 size={16} strokeWidth={3} />
-                                    Code
-                                </button>
+
                                 <button
                                     onClick={handleCreate}
                                     className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-black font-black active:scale-95 transition-all shrink-0 shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
                                 >
                                     <Plus size={18} strokeWidth={3} />
                                 </button>
-                                <button
-                                    onClick={handleCreateCode}
-                                    className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500 text-black font-black active:scale-95 transition-all shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
-                                >
-                                    <Code2 size={18} strokeWidth={3} />
-                                </button>
+
                             </div>
                         </div>
                     </header>
@@ -1409,9 +1397,6 @@ export default function Dashboard() {
                                             <div className="flex items-center gap-3">
                                                 <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black text-white/50 hover:text-white transition-all">
                                                     <Plus size={14} strokeWidth={3} /> New Strategy
-                                                </button>
-                                                <button onClick={handleCreateCode} className="flex items-center gap-2 px-5 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-xs font-black text-blue-400 hover:text-blue-300 transition-all">
-                                                    <Code2 size={14} strokeWidth={3} /> New Code Project
                                                 </button>
                                             </div>
                                         </div>
