@@ -138,6 +138,7 @@ export type DailyExecutionLog = {
 
 export type CanvasData = {
     id: string;
+    projectType?: 'strategy' | 'code';
     name: string;
     nodes: Node[];
     edges: Edge[];
@@ -247,7 +248,7 @@ export type RFState = {
     // Canvas Management
     canvases: Record<string, CanvasData>;
     currentCanvasId: string | null;
-    createCanvas: (initialName?: string, folderId?: string | null) => string;
+    createCanvas: (initialName?: string, folderId?: string | null, projectType?: 'strategy' | 'code') => string;
     populateCanvas: (canvasId: string, nodes: Node[], edges: Edge[]) => void;
     deleteCanvas: (id: string) => void;
     duplicateCanvas: (id: string, targetFolderId: string | null) => void;
@@ -392,12 +393,13 @@ const useStore = create<RFState>()(
                 });
             },
 
-            createCanvas: (initialName?: string, targetFolderId?: string | null) => {
+            createCanvas: (initialName?: string, targetFolderId?: string | null, projectType?: 'strategy' | 'code') => {
                 const id = generateId();
                 const folderId = targetFolderId !== undefined ? targetFolderId : get().activeFolderId;
                 const now = Date.now();
                 const newCanvas: CanvasData = {
                     id,
+                    projectType: projectType || 'strategy',
                     name: initialName || '',
                     nodes: [],
                     edges: [],

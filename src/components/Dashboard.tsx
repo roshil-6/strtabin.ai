@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronRight, Rocket, BookOpen } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronRight, Rocket, BookOpen, Code2 } from 'lucide-react';
 
 const DASHBOARD_GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
@@ -100,6 +100,11 @@ export default function Dashboard() {
     const handleCreate = () => {
         const id = createCanvas();
         navigate(`/strategy/${id}`);
+    };
+
+    const handleCreateCode = () => {
+        const id = createCanvas(undefined, undefined, 'code');
+        navigate(`/code/${id}`);
     };
 
     const handleSetCredentials = async (e: React.FormEvent) => {
@@ -319,17 +324,20 @@ export default function Dashboard() {
         { id: 'strab', label: 'Project STRAB', title: 'STRAB for this project — chat, Reports tab, and follow-up support', icon: Bot, color: 'text-orange-500' },
     ];
 
-    const getTargetRoute = (id: string) => {
+    const getTargetRoute = (project: CanvasData) => {
+        if (project.projectType === 'code') {
+            return `/code/${project.id}`;
+        }
         switch (activeTab) {
-            case 'strategy': return `/strategy/${id}`;
-            case 'todo': return `/todo/${id}`;
-            case 'timeline': return `/timeline/${id}`;
-            case 'calendar': return `/calendar/${id}`;
-            case 'planner': return `/calendar/${id}?mode=week`;
-            case 'reports': return `/strab/${id}?tab=reports`;
-            case 'monitor': return `/calendar/${id}`;
-            case 'strab': return `/strab/${id}`;
-            default: return `/strategy/${id}`;
+            case 'strategy': return `/strategy/${project.id}`;
+            case 'todo': return `/todo/${project.id}`;
+            case 'timeline': return `/timeline/${project.id}`;
+            case 'calendar': return `/calendar/${project.id}`;
+            case 'planner': return `/calendar/${project.id}?mode=week`;
+            case 'reports': return `/strab/${project.id}?tab=reports`;
+            case 'monitor': return `/calendar/${project.id}`;
+            case 'strab': return `/strab/${project.id}`;
+            default: return `/strategy/${project.id}`;
         }
     };
 
@@ -454,7 +462,7 @@ export default function Dashboard() {
         return (
             <div
                 key={p.id}
-                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
+                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p))}
                 className={`relative flex items-center gap-3.5 p-4 rounded-2xl active:scale-[0.97] transition-all duration-200 cursor-pointer overflow-hidden ${
                     isSelected ? 'ring-2 ring-primary/40' : ''
                 } ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}`}
@@ -945,20 +953,36 @@ export default function Dashboard() {
                                     {activeFolder ? 'Folder' : 'Writing & strategy'}
                                 </p>
                             </div>
-                            <button
-                                type="button"
-                                onClick={handleCreate}
-                                className="hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-black font-black text-xs uppercase tracking-widest hover:bg-orange-400 active:scale-95 transition-all shrink-0 shadow-[0_4px_16px_rgba(249,115,22,0.35)]"
-                            >
-                                <Plus size={16} strokeWidth={3} />
-                                New project
-                            </button>
-                            <button
-                                onClick={handleCreate}
-                                className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-black font-black active:scale-95 transition-all shrink-0 shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
-                            >
-                                <Plus size={18} strokeWidth={3} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleCreate}
+                                    className="hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-black font-black text-xs uppercase tracking-widest hover:bg-orange-400 active:scale-95 transition-all shrink-0 shadow-[0_4px_16px_rgba(249,115,22,0.35)]"
+                                >
+                                    <Plus size={16} strokeWidth={3} />
+                                    Strategy
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCreateCode}
+                                    className="hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 text-black font-black text-xs uppercase tracking-widest hover:bg-blue-400 active:scale-95 transition-all shrink-0 shadow-[0_4px_16px_rgba(59,130,246,0.35)]"
+                                >
+                                    <Code2 size={16} strokeWidth={3} />
+                                    Code
+                                </button>
+                                <button
+                                    onClick={handleCreate}
+                                    className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-black font-black active:scale-95 transition-all shrink-0 shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
+                                >
+                                    <Plus size={18} strokeWidth={3} />
+                                </button>
+                                <button
+                                    onClick={handleCreateCode}
+                                    className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500 text-black font-black active:scale-95 transition-all shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
+                                >
+                                    <Code2 size={18} strokeWidth={3} />
+                                </button>
+                            </div>
                         </div>
                     </header>
 
@@ -1382,9 +1406,14 @@ export default function Dashboard() {
                                                 <h3 className="text-base font-black text-white/50 mb-1">This workspace is empty</h3>
                                                 <p className="text-xs text-white/20 max-w-xs">Create a new project or move one here from General.</p>
                                             </div>
-                                            <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black text-white/50 hover:text-white transition-all">
-                                                <Plus size={14} strokeWidth={3} /> New Project
-                                            </button>
+                                            <div className="flex items-center gap-3">
+                                                <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black text-white/50 hover:text-white transition-all">
+                                                    <Plus size={14} strokeWidth={3} /> New Strategy
+                                                </button>
+                                                <button onClick={handleCreateCode} className="flex items-center gap-2 px-5 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-xs font-black text-blue-400 hover:text-blue-300 transition-all">
+                                                    <Code2 size={14} strokeWidth={3} /> New Code Project
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                     </>
@@ -1473,7 +1502,7 @@ export default function Dashboard() {
         return (
             <div
                 key={p.id}
-                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
+                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p))}
                 className={`dashboard-project-card group relative rounded-2xl md:rounded-[1.25rem] border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
                     ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20 shadow-[0_8px_40px_rgba(218,119,86,0.14)]' : 'border-[var(--border)]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
@@ -1686,7 +1715,7 @@ export default function Dashboard() {
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(getTargetRoute(p.id));
+                                        navigate(getTargetRoute(p));
                                     }}
                                     className="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide border border-teal-500/40 text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 transition-colors"
                                 >
@@ -1741,7 +1770,7 @@ export default function Dashboard() {
         return (
             <div
                 key={p.id}
-                onClick={(e) => (selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id)))}
+                onClick={(e) => (selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p)))}
                 className={`dashboard-hero-card group relative rounded-2xl md:rounded-3xl border transition-all duration-300 cursor-pointer overflow-visible flex flex-col md:flex-row md:items-stretch gap-5 md:gap-0 md:min-h-[168px]
                     ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20' : 'border-[var(--border)]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
@@ -1939,7 +1968,7 @@ export default function Dashboard() {
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(getTargetRoute(p.id));
+                                        navigate(getTargetRoute(p));
                                     }}
                                     className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wide text-teal-950 bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-300 hover:to-cyan-300 transition-all shadow-[0_4px_20px_rgba(45,212,191,0.25)]"
                                 >

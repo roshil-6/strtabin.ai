@@ -168,6 +168,14 @@ function CanvasContent() {
     const activeCanvasId = id || 'default';
 
     const currentCanvas = canvases[activeCanvasId];
+    
+    // Redirect to Code view if this is a code project
+    useEffect(() => {
+        if (currentCanvas?.projectType === 'code') {
+            navigate(`/code/${activeCanvasId}`, { replace: true, state: location.state });
+        }
+    }, [currentCanvas?.projectType, activeCanvasId, navigate, location.state]);
+
     const isMerged = !!currentCanvas?.mergedCanvasIds;
     /** Extra flow/writing pages: only for local strategy canvases (not shared links or team workspace projects). */
     const canUseMultiPage =

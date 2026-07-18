@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useStore } from '../store/useStore';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import useStore from '../store/useStore';
 import { ChevronLeft, FileCode, Plus, Trash2, Download, Code2, Save } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 
 export default function CodeSection() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const store = useStore();
     const canvas = id ? store.canvases[id] : null;
 
@@ -88,7 +89,14 @@ export default function CodeSection() {
             <div className="w-64 border-r border-white/10 flex flex-col bg-[#0e0e0e]">
                 <div className="p-4 border-b border-white/10 flex items-center justify-between">
                     <button 
-                        onClick={() => navigate(`/strategy/${id}`)}
+                        onClick={() => {
+                            const state = location.state as { workspaceId?: number } | null;
+                            if (state?.workspaceId) {
+                                navigate(`/workspace/${state.workspaceId}`);
+                            } else {
+                                navigate('/dashboard');
+                            }
+                        }}
                         className="text-white/60 hover:text-white transition-colors flex items-center gap-2"
                     >
                         <ChevronLeft size={18} />
