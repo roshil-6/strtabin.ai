@@ -437,7 +437,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
             {/* Content Area */}
             <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-8 md:px-12 md:py-16 custom-scrollbar">
-                <div className="w-full pb-32 relative group">
+                <div className="w-full max-w-5xl mx-auto pb-32 relative group">
                     
                     {(() => {
                         const isEmpty = !content.trim() && !title.trim();
