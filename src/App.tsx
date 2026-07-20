@@ -7,6 +7,7 @@ import TodoSection from './components/TodoSection';
 import StrabView from './components/StrabView';
 import StrabHome from './components/StrabHome';
 import CalendarView from './components/CalendarView';
+import CodeSection from './components/CodeSection';
 import LandingPage from './components/LandingPage';
 import AuthPage from './components/AuthPage';
 import FeaturesPage from './components/FeaturesPage';
@@ -26,9 +27,10 @@ function App() {
   const isProjectRoute = pathname !== '/' && pathname !== '/sso-callback';
   const isStrategyRoute = pathname.startsWith('/strategy') || pathname.startsWith('/canvas');
   const isStrabRoute = pathname.startsWith('/strab');
+  const isCodeRoute = pathname.startsWith('/code');
   const isDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/folder-workflow');
   const isReportsRoute = pathname === '/reports';
-  const showGrid = isProjectRoute && (isStrategyRoute || isStrabRoute || isDashboardRoute || isReportsRoute);
+  const showGrid = isProjectRoute && (isStrategyRoute || isStrabRoute || isCodeRoute || isDashboardRoute || isReportsRoute);
 
   return (
     <div className="min-h-screen w-full theme-page relative">
@@ -50,6 +52,7 @@ function App() {
       <Route path="/reports" element={<AuthGate><ReportsSelectPage /></AuthGate>} />
       <Route path="/strab" element={<AuthGate><StrabHome /></AuthGate>} />
       <Route path="/strab/:id" element={<AuthGate><StrabView /></AuthGate>} />
+      <Route path="/code/:id" element={<AuthGate><CodeSection /></AuthGate>} />
       <Route path="/workspace/:id" element={<AuthGate><WorkspacePage /></AuthGate>} />
       <Route path="/join/:id" element={<AuthGate><JoinWorkspacePage /></AuthGate>} />
       <Route path="/feed" element={<Navigate to="/community" replace />} />

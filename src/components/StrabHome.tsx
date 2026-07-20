@@ -206,6 +206,7 @@ export default function StrabHome() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [provider, setProvider] = useState<'openai' | 'anthropic'>('openai');
     const [proAiRemaining, setProAiRemaining] = useState(() => (user?.id ? getProAiRemaining(user.id) : 12));
     const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
     const abortRef = useRef<AbortController | null>(null);
@@ -292,6 +293,7 @@ export default function StrabHome() {
                 },
                 token ?? undefined,
                 controller.signal,
+                provider
             );
 
             // After streaming — parse action block
@@ -365,7 +367,7 @@ export default function StrabHome() {
         <div className="flex flex-col h-screen theme-page text-white overflow-hidden">
 
             {/* Header */}
-            <div className="h-14 border-b border-white/[0.04] flex items-center px-3 md:px-6 theme-panel backdrop-blur-2xl z-20 flex-shrink-0 gap-2">
+            <div className="h-14 border-b border-white/[0.04] flex items-center px-3 md:px-6 backdrop-blur-2xl z-20 flex-shrink-0 gap-2" style={{ background: 'rgba(8,8,8,0.92)' }}>
                 <button
                     onClick={() => navigate('/dashboard')}
                     className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] active:scale-95 transition-all shrink-0"
@@ -404,6 +406,20 @@ export default function StrabHome() {
                         </div>
                         <p className="text-[10px] text-white/25 leading-none mt-0.5 hidden sm:block">Strategy hub — new canvases from scratch</p>
                     </div>
+                    <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04] mr-2">
+                        <button
+                            onClick={() => setProvider('openai')}
+                            className={`px-2 py-1 rounded-lg text-[10px] md:text-[11px] font-bold transition-all ${provider === 'openai' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white/60'}`}
+                        >
+                            GPT
+                        </button>
+                        <button
+                            onClick={() => setProvider('anthropic')}
+                            className={`px-2 py-1 rounded-lg text-[10px] md:text-[11px] font-bold transition-all ${provider === 'anthropic' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white/60'}`}
+                        >
+                            Claude
+                        </button>
+                    </div>
                 </div>
 
                 {messages.length > 0 && (
@@ -420,55 +436,57 @@ export default function StrabHome() {
             {/* Main */}
             <div className="flex-1 overflow-hidden flex flex-col">
 
-                {/* Maintenance Banner */}
-                <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-4 text-center">
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                        <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                        <span className="text-sm font-bold text-amber-300">AI is under maintenance</span>
-                        <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                    </div>
-                    <p className="text-xs text-amber-200/70">We are working on integrating a more powerful AI system for an upcoming major project. Check back soon!</p>
-                </div>
+
 
                 {isEmpty ? (
                     /* ── Welcome screen ── */
-                    <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-4 py-10">
+                    <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-5 py-8 pb-24 relative">
+                        {/* Ambient glow */}
+                        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(249,115,22,0.06) 0%, transparent 70%)' }} />
                         {/* Logo mark */}
-                        <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(249,115,22,0.12)]">
-                            <Network size={28} className="text-primary" />
+                        <div className="relative mb-8 float-animation">
+                          <div className="w-20 h-20 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center glow-primary">
+                            <Network size={34} className="text-primary" />
+                          </div>
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-[#080808] pulse-ring" />
                         </div>
-                        <h1 className="text-2xl md:text-3xl font-black text-white mb-2 text-center">
-                            What are we building?
+                        <h1 className="text-3xl md:text-4xl font-black text-white mb-3 text-center tracking-tight display-font">
+                          What are we building?
                         </h1>
-                        <p className="text-white/35 text-sm md:text-base text-center max-w-md mb-4 leading-relaxed">
-                            Describe a project, strategy, or workflow — STRAB will create the entire canvas with ideas, connections, and a writing outline automatically.
+                        <p className="text-white/40 text-sm md:text-base text-center max-w-md mb-3 leading-relaxed">
+                          Describe a project, strategy, or workflow — STRAB will create the entire canvas with ideas, connections, and a writing outline automatically.
                         </p>
-                        <div className="w-full max-w-lg mb-10 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-left">
-                            <p className="text-[11px] md:text-xs text-white/50 leading-relaxed">
-                                <span className="font-bold text-primary/90">Already have a project?</span>{' '}
-                                Open it from the <span className="text-white/70 font-semibold">Dashboard</span>, then use{' '}
-                                <span className="text-white/70 font-semibold">Project STRAB</span> on that card —{' '}
-                                <span className="text-white/40">chat, Reports &amp; follow-up</span> for{' '}
-                                <em>that</em> workspace. <span className="text-white/35">This hub is only for brand-new strategy canvases.</span>
-                            </p>
+                        <div className="flex items-center gap-2 mb-10">
+                          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                            provider === 'openai' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-white/[0.04] border-white/10 text-white/30'
+                          }`} onClick={() => setProvider('openai')}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            GPT-4o
+                          </div>
+                          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                            provider === 'anthropic' ? 'bg-violet-500/15 border-violet-500/30 text-violet-300' : 'bg-white/[0.04] border-white/10 text-white/30'
+                          }`} onClick={() => setProvider('anthropic')}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            Claude
+                          </div>
                         </div>
 
                         {/* Example prompt grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 w-full max-w-2xl mb-10">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 w-full max-w-2xl mb-8">
                             {EXAMPLES.map(({ icon: Icon, label, prompt, accent }) => (
                                 <button
                                     key={label}
                                     onClick={() => sendMessage(prompt)}
-                                    className="group flex items-start gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] active:scale-[0.98] transition-all text-left"
+                                    className="group flex items-start gap-3 p-4 rounded-2xl premium-card active:scale-[0.97] text-left"
                                 >
                                     <div
-                                        className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-all group-hover:scale-110"
-                                        style={{ background: `${accent}15`, border: `1px solid ${accent}30` }}
+                                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-all group-hover:scale-110"
+                                        style={{ background: `${accent}18`, border: `1px solid ${accent}35` }}
                                     >
-                                        <Icon size={14} style={{ color: accent }} />
+                                        <Icon size={15} style={{ color: accent }} />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-white/70 group-hover:text-white transition-colors">{label}</div>
+                                        <div className="text-[11px] font-bold text-white/75 group-hover:text-white transition-colors leading-snug">{label}</div>
                                         <div className="text-[11px] text-white/30 mt-0.5 leading-relaxed line-clamp-2">{prompt}</div>
                                     </div>
                                 </button>
@@ -476,10 +494,10 @@ export default function StrabHome() {
                         </div>
 
                         {/* Capability pills */}
-                        <div className="flex flex-wrap gap-2 justify-center">
+                        <div className="hidden sm:flex flex-wrap gap-2 justify-center">
                             {['Creates canvases', 'Adds ideas', 'Builds connections', 'Writes outlines', 'Sets up tasks'].map(pill => (
-                                <span key={pill} className="px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-[11px] text-white/30 font-medium flex items-center gap-1.5">
-                                    <Zap size={10} className="text-primary/60" />
+                                <span key={pill} className="px-3 py-1.5 rounded-full glass-panel text-[11px] text-white/35 font-medium flex items-center gap-1.5">
+                                    <Zap size={10} className="text-primary/70" />
                                     {pill}
                                 </span>
                             ))}
@@ -487,7 +505,7 @@ export default function StrabHome() {
                     </div>
                 ) : (
                     /* ── Chat thread ── */
-                    <div className="flex-1 overflow-y-auto px-3 md:px-0 py-6 space-y-6 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto px-4 md:px-0 py-5 pb-24 space-y-5 custom-scrollbar">
                         <div className="max-w-3xl mx-auto w-full space-y-6">
                             {messages.map((msg, idx) => (
                                 <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -581,16 +599,16 @@ export default function StrabHome() {
                 )}
 
                 {/* Input area */}
-                <div className={`px-3 md:px-6 py-3 theme-panel flex-shrink-0 ${isEmpty ? '' : 'border-t border-white/[0.04]'}`}>
+                <div className={`px-3 md:px-6 py-3 flex-shrink-0 ${isEmpty ? '' : 'border-t border-white/[0.04]'}`} style={{ background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
                     <div className="max-w-3xl mx-auto">
-                        <div className="relative flex items-end gap-2 bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3 focus-within:border-primary/25 focus-within:bg-white/[0.05] transition-all shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+                        <div className="relative flex items-end gap-2 glass-panel rounded-2xl px-4 py-3 focus-within:border-primary/30 transition-all shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
                             <textarea
                                 ref={inputRef}
                                 value={input}
                                 onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px'; }}
                                 onKeyDown={handleKeyDown}
                                 placeholder={isEmpty ? 'Describe what you want to build…' : 'Ask anything or create a new canvas…'}
-                                className="flex-1 bg-transparent text-sm text-white outline-none resize-none placeholder-white/20 leading-relaxed min-h-[24px] max-h-[140px] py-0.5"
+                                className="flex-1 bg-transparent text-[15px] text-white outline-none resize-none placeholder-white/20 leading-relaxed min-h-[28px] max-h-[120px] py-1"
                                 rows={1}
                                 aria-label="Message STRAB"
                             />

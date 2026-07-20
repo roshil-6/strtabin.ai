@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Calendar, CheckSquare, Home, Clock, Bot } from 'lucide-react';
+import { Layout, Calendar, CheckSquare, Home, Clock, Bot, Code2 } from 'lucide-react';
 
 interface MobileNavProps {
     canvasId: string;
@@ -13,67 +13,96 @@ export default function MobileNav({ canvasId }: MobileNavProps) {
     const homePath = workspaceId ? `/workspace/${workspaceId}` : '/dashboard';
 
     const items = [
-        { label: workspaceId ? 'Workspace' : 'Home', icon: Home, path: homePath, action: () => navigate(homePath), exact: true },
+        { label: workspaceId ? 'Home' : 'Home', icon: Home, path: homePath, action: () => navigate(homePath), exact: true },
         { label: 'Canvas',   icon: Layout,       path: `/strategy/${canvasId}`,  action: () => navigate(`/strategy/${canvasId}`, { state: location.state })              },
         { label: 'Tasks',    icon: CheckSquare,  path: `/todo/${canvasId}`,      action: () => navigate(`/todo/${canvasId}`, { state: location.state })                  },
         { label: 'Calendar', icon: Calendar,     path: `/calendar/${canvasId}`,  action: () => navigate(`/calendar/${canvasId}`, { state: location.state })              },
         { label: 'Timeline', icon: Clock,        path: `/timeline/${canvasId}`,  action: () => navigate(`/timeline/${canvasId}`, { state: location.state })              },
-        { label: 'STRAB',    icon: Bot,          path: `/strab/${canvasId}`,     action: () => navigate(`/strab/${canvasId}`, { state: location.state }), title: 'Project STRAB — chat & reports' },
+        { label: 'Code',     icon: Code2,        path: `/code/${canvasId}`,      action: () => navigate(`/code/${canvasId}`, { state: location.state })                  },
+        { label: 'AI',       icon: Bot,          path: `/strab/${canvasId}`,     action: () => navigate(`/strab/${canvasId}`, { state: location.state }), isAI: true, title: 'Project STRAB — chat & reports' },
     ];
 
     return (
         <nav
-            className="md:hidden fixed bottom-0 left-0 right-0 z-50 theme-panel backdrop-blur-2xl border-t border-white/[0.04]"
+            className="md:hidden fixed bottom-0 left-0 right-0 z-50"
+            style={{
+                background: 'rgba(10,10,10,0.96)',
+                backdropFilter: 'blur(32px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+                borderTop: '1px solid rgba(255,255,255,0.05)',
+                boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 -1px 0 rgba(255,255,255,0.04) inset',
+            }}
             aria-label="Mobile project navigation"
         >
-            <div className="flex items-stretch h-[62px] px-1">
-                {items.map(({ label, icon: Icon, path, action, exact, title }) => {
+            <div className="flex items-stretch h-[60px] px-1">
+                {items.map(({ label, icon: Icon, path, action, exact, isAI, title }) => {
                     const active = exact
                         ? location.pathname === path
                         : location.pathname.startsWith(path.split('?')[0]);
-                    const isAI = label === 'STRAB';
                     return (
                         <button
                             key={label}
                             type="button"
                             onClick={action}
                             title={title}
-                            className="flex-1 flex flex-col items-center justify-center gap-1 min-w-0 relative active:scale-90 transition-all duration-200"
+                            className="flex-1 flex flex-col items-center justify-center gap-[3px] min-w-0 relative active:scale-90 transition-transform duration-150"
                             aria-label={title || label}
                             aria-current={active ? 'page' : undefined}
                         >
-                            <div className={`absolute top-0 left-1/2 -translate-x-1/2 rounded-b-full transition-all duration-300 ${
-                                active ? 'w-8 h-[2.5px] bg-primary shadow-[0_0_8px_rgba(255,95,31,0.4)]' : 'w-0 h-0'
-                            }`} />
-
-                            <div className={`rounded-xl p-1.5 transition-all duration-200 ${
-                                active
-                                    ? isAI ? 'bg-primary/12' : 'bg-white/[0.08]'
-                                    : ''
-                            }`}>
-                                <Icon
-                                    size={19}
-                                    className={`transition-colors duration-200 ${
-                                        active
-                                            ? isAI ? 'text-primary' : 'text-white'
-                                            : 'text-white/25'
-                                    }`}
-                                    strokeWidth={active ? 2.4 : 1.5}
+                            {/* Active pill background */}
+                            {active && (
+                                <div
+                                    className="absolute inset-x-1.5 inset-y-1 rounded-2xl"
+                                    style={{
+                                        background: isAI
+                                            ? 'rgba(249,115,22,0.12)'
+                                            : 'rgba(255,255,255,0.06)',
+                                        border: isAI
+                                            ? '1px solid rgba(249,115,22,0.25)'
+                                            : '1px solid rgba(255,255,255,0.06)',
+                                    }}
                                 />
+                            )}
+
+                            {/* Icon */}
+                            <div className="relative z-10">
+                                <Icon
+                                    size={20}
+                                    style={{
+                                        color: active
+                                            ? (isAI ? '#f97316' : '#ffffff')
+                                            : 'rgba(255,255,255,0.25)',
+                                        transition: 'color 0.2s',
+                                    }}
+                                    strokeWidth={active ? 2.2 : 1.6}
+                                />
+                                {/* AI live dot */}
+                                {isAI && (
+                                    <div
+                                        className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400"
+                                        style={{ boxShadow: '0 0 6px rgba(52,211,153,0.8)' }}
+                                    />
+                                )}
                             </div>
 
-                            <span className={`text-[9px] font-bold tracking-wider leading-none truncate w-full text-center px-0.5 transition-colors duration-200 ${
-                                active
-                                    ? isAI ? 'text-primary' : 'text-white/90'
-                                    : 'text-white/20'
-                            }`}>
+                            {/* Label */}
+                            <span
+                                className="relative z-10 text-[8.5px] font-black tracking-wider leading-none"
+                                style={{
+                                    color: active
+                                        ? (isAI ? '#f97316' : 'rgba(255,255,255,0.9)')
+                                        : 'rgba(255,255,255,0.2)',
+                                    transition: 'color 0.2s',
+                                }}
+                            >
                                 {label}
                             </span>
                         </button>
                     );
                 })}
             </div>
-            <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} className="theme-panel" />
+            {/* Safe area spacer */}
+            <div style={{ height: 'env(safe-area-inset-bottom, 0px)', background: 'rgba(10,10,10,0.96)' }} />
         </nav>
     );
 }

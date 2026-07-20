@@ -351,9 +351,9 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const projectName = canvas?.name || canvas?.title || 'Untitled';
 
     return (
-        <div className="h-full w-full bg-transparent flex flex-col relative">
+        <div className="h-full w-full flex flex-col relative" style={{ background: '#0f0f0f' }}>
             {/* Toolbar — NotebookLM-style: minimal, content-first */}
-            <div className="h-10 md:h-12 flex items-center px-3 md:px-5 gap-2 bg-transparent sticky top-0 z-20">
+            <div className="h-10 md:h-12 flex items-center px-3 md:px-5 gap-2 sticky top-0 z-20 backdrop-blur-sm" style={{ background: 'rgba(20,20,20,0.85)' }}>
                 <div className="flex items-center gap-2 mr-auto min-w-0">
                     <FileText size={14} className="text-[var(--text-muted)] shrink-0" />
                     <span className="text-sm font-medium text-[var(--text-secondary)] truncate max-w-[140px] md:max-w-[220px]" title={projectName}>{projectName}</span>
@@ -415,21 +415,24 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                 </div>
             </div>
 
-            {/* Content Area — NotebookLM: generous reading width */}
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-5 py-6 md:px-10 md:py-8 custom-scrollbar">
-                <div className="mx-auto max-w-3xl pb-12">
+            {/* Content Area — Redesigned for a "safe, close" journal feel */}
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 py-6 md:px-8 md:py-12 custom-scrollbar pb-24">
+                <div className="mx-auto max-w-2xl pb-20 bg-[#141414] shadow-[0_8px_40px_rgba(0,0,0,0.4)] border border-white/[0.03] rounded-[28px] md:rounded-[32px] px-5 py-8 md:px-12 md:py-14 relative group transition-all duration-500">
+                    {/* Subtle noise texture or soft glow at the top */}
+                    <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-white/[0.02] to-transparent rounded-t-[32px] pointer-events-none" />
+                    
                     {(() => {
                         const isEmpty = !content.trim() && !title.trim();
                         return (
                             <div className="relative transition-all duration-300">
-                                <div className="relative">
+                                <div className="relative z-10">
                                     {/* Title — document-first, NotebookLM style */}
                                     <input
                                         type="text"
                                         value={title}
                                         onChange={handleTitleChange}
                                         placeholder={isEmpty ? "Name your strategy..." : "Untitled"}
-                                        className="w-full bg-transparent outline-none ring-0 border-0 focus:ring-0 focus:border-0 text-3xl md:text-4xl font-semibold text-[var(--text)] placeholder-[var(--text-muted)] leading-tight mb-8"
+                                        className="w-full bg-transparent outline-none ring-0 border-0 focus:ring-0 focus:border-0 text-2xl md:text-[2.5rem] font-bold text-white/90 placeholder-white/20 leading-tight mb-6"
                                     />
 
                                     {/* Writing Planner — collapsible, minimal */}
@@ -580,7 +583,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         onCompositionEnd={() => { isComposingRef.current = false; }}
                         onChange={handleContentChange}
                         placeholder="Start simple, write everything here..."
-                        className="w-full bg-transparent text-base md:text-lg text-[var(--text)] leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none font-sans min-h-[200px] placeholder-[var(--text-muted)]"
+                        className="w-full bg-transparent text-[16px] md:text-[17px] text-white/80 leading-[1.9] outline-none ring-0 border-0 focus:ring-0 resize-none font-sans min-h-[240px] placeholder-white/20"
                         spellCheck={false}
                     />
 
@@ -621,7 +624,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         onCompositionEnd={() => { isComposingRef.current = false; }}
                                         onChange={(e) => handleSplitContentChange('A', e.target.value)}
                                         placeholder="Write in column A..."
-                                        className="w-full bg-transparent text-base text-[var(--text)] leading-relaxed outline-none resize-none placeholder-[var(--text-muted)] font-sans min-h-[220px]"
+                                        className="w-full bg-transparent text-[15px] text-white/80 leading-loose outline-none resize-none placeholder-white/20 font-sans min-h-[220px]"
                                         spellCheck={false}
                                     />
                                 </div>
@@ -643,7 +646,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         onCompositionEnd={() => { isComposingRef.current = false; }}
                                         onChange={(e) => handleSplitContentChange('B', e.target.value)}
                                         placeholder="Write in column B..."
-                                        className="w-full bg-transparent text-base text-[var(--text)] leading-relaxed outline-none resize-none placeholder-[var(--text-muted)] font-sans min-h-[220px]"
+                                        className="w-full bg-transparent text-[15px] text-white/80 leading-loose outline-none resize-none placeholder-white/20 font-sans min-h-[220px]"
                                         spellCheck={false}
                                     />
                                 </div>

@@ -145,6 +145,7 @@ export type CanvasData = {
     title?: string; // Document title
     images?: string[]; // List of image URLs
     attachments?: Array<{ id: string; name: string; url: string }>; // List of documents (PDF, Doc, etc)
+    codeFiles?: Array<{ id: string; name: string; content: string; language: string; updatedAt: number }>;
     timelineContent?: string; // Manual timeline text
     todos?: Array<{ id: string; text: string; completed: boolean }>; // Project specific to-dos
     comments?: Comment[]; // Inline comments
@@ -259,6 +260,10 @@ export type RFState = {
     deleteCanvasImage: (id: string, index: number) => void;
     addCanvasDoc: (id: string, doc: { name: string; url: string }) => void;
     deleteCanvasDoc: (id: string, docId: string) => void;
+    addCodeFile: (canvasId: string, name: string, language: string) => string;
+    updateCodeFile: (canvasId: string, fileId: string, content: string) => void;
+    deleteCodeFile: (canvasId: string, fileId: string) => void;
+    renameCodeFile: (canvasId: string, fileId: string, name: string, language: string) => void;
     ensureCanvasExists: (id: string) => void;
     loadSharedCanvas: (id: string, data: {
         name?: string;
@@ -702,6 +707,70 @@ const useStore = create<RFState>()(
                                 updatedAt: Date.now()
                             },
                         },
+                    };
+                });
+            },
+
+            addCodeFile: (canvasId: string, name: string, language: string) => {
+                const newId = `code-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas) return state;
+                    const newFile = { id: newId, name, content: '', language, updatedAt: Date.now() };
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: { ...canvas, codeFiles: [...(canvas.codeFiles || []), newFile] }
+                        }
+                    };
+                });
+                return newId;
+            },
+
+            updateCodeFile: (canvasId: string, fileId: string, content: string) => {
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas || !canvas.codeFiles) return state;
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: {
+                                ...canvas,
+                                codeFiles: canvas.codeFiles.map(f => f.id === fileId ? { ...f, content, updatedAt: Date.now() } : f)
+                            }
+                        }
+                    };
+                });
+            },
+
+            deleteCodeFile: (canvasId: string, fileId: string) => {
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas || !canvas.codeFiles) return state;
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: {
+                                ...canvas,
+                                codeFiles: canvas.codeFiles.filter(f => f.id !== fileId)
+                            }
+                        }
+                    };
+                });
+            },
+
+            renameCodeFile: (canvasId: string, fileId: string, name: string, language: string) => {
+                set((state) => {
+                    const canvas = state.canvases[canvasId];
+                    if (!canvas || !canvas.codeFiles) return state;
+                    return {
+                        canvases: {
+                            ...state.canvases,
+                            [canvasId]: {
+                                ...canvas,
+                                codeFiles: canvas.codeFiles.map(f => f.id === fileId ? { ...f, name, language, updatedAt: Date.now() } : f)
+                            }
+                        }
                     };
                 });
             },
