@@ -179,6 +179,7 @@ export default function StrabView() {
 
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingPhrase, setLoadingPhrase] = useState('Analysing your project…');
     const tabParam = searchParams.get('tab');
     const [activeTab, setActiveTab] = useState<'chat' | 'reports'>(tabParam === 'reports' ? 'reports' : 'chat');
     const [provider, setProvider] = useState<'openai' | 'anthropic'>('openai');
@@ -190,6 +191,27 @@ export default function StrabView() {
         if (searchParams.get('tab') === 'reports') setActiveTab('reports');
         else if (searchParams.get('tab') === 'chat') setActiveTab('chat');
     }, [searchParams]);
+
+    // Rotate status phrases while AI is generating
+    useEffect(() => {
+        if (!isLoading) return;
+        const phrases = [
+            'Analysing your project…',
+            'Reading your canvas…',
+            'Preparing a response…',
+            'Mapping connections…',
+            'Stabilising ideas…',
+            'Checking your tasks…',
+            'Reviewing your strategy…',
+        ];
+        let i = 0;
+        setLoadingPhrase(phrases[0]);
+        const interval = setInterval(() => {
+            i = (i + 1) % phrases.length;
+            setLoadingPhrase(phrases[i]);
+        }, 1400);
+        return () => clearInterval(interval);
+    }, [isLoading]);
 
     useEffect(() => {
         if (isGuest) setGuestAiRemaining(getGuestAiRemaining());
@@ -785,7 +807,7 @@ export default function StrabView() {
                                                         <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                                         <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                                     </div>
-                                                    <span className="text-white/60">Thinking through your project…</span>
+                                                    <span className="text-white/55 transition-all duration-500">{loadingPhrase}</span>
                                                 </div>
                                             ) : (
                                                 <div className="whitespace-pre-wrap">

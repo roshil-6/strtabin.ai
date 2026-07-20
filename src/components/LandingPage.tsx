@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
-import { Check, Zap, ArrowRight, Bot, X, Compass, Target, Rocket, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, ChevronDown, Gift, Smartphone } from 'lucide-react';
+import { Check, Zap, ArrowRight, Bot, X, Compass, Target, Rocket, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, ChevronDown, Gift, Smartphone, Network, FileText, CheckSquare, ArrowDown, Lightbulb, Star, Code2 } from 'lucide-react';
 
 import { enableGuestMode } from '../constants';
 import HexagonBackground from './HexagonBackground';
@@ -448,9 +448,9 @@ export default function LandingPage() {
                 </div>
             </footer>
 
-            {/* How to Use Overlay */}
+            {/* How it Works Full-Screen Overlay — Rich, visual, detailed */}
             {showHowTo && (
-                <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl overflow-y-auto animate-in fade-in zoom-in duration-500">
+                <div className="fixed inset-0 z-[100] bg-[#060606] overflow-y-auto animate-in fade-in duration-400">
                     <button
                         onClick={() => setShowHowTo(false)}
                         className="fixed top-6 right-6 md:top-8 md:right-8 z-[110] w-10 h-10 md:w-12 md:h-12 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary hover:text-black transition-all group active:scale-95"
@@ -458,89 +458,330 @@ export default function LandingPage() {
                         <X size={20} className="group-hover:rotate-90 transition-transform" />
                     </button>
 
-                    <div className="max-w-6xl mx-auto px-4 md:px-6 py-20 md:py-24">
-                        <div className="mb-24 md:mb-40">
-                            <div className="flex items-center gap-3 md:gap-4 mb-10 md:mb-12">
-                                <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
-                                    <Target size={28} />
+                    <div className="max-w-6xl mx-auto px-4 md:px-8 py-20 md:py-28 space-y-32">
+
+                        {/* ── SECTION 1: Why Stratabin ── */}
+                        <section>
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center text-primary">
+                                    <Lightbulb size={20} />
                                 </div>
-                                <div>
-                                    <h2 className="text-3xl md:text-5xl font-black tracking-tighter">Why Stratabin?</h2>
-                                    <p className="text-primary font-bold uppercase tracking-[0.15em] text-[10px] md:text-xs">The Problem We Resolve</p>
-                                </div>
+                                <span className="text-primary font-black uppercase tracking-[0.2em] text-xs">The Problem</span>
                             </div>
+                            <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-6 leading-[1.05]">
+                                Your best ideas live<br />
+                                <span className="text-white/25">scattered across a dozen</span><br />
+                                apps that never talk.
+                            </h2>
+                            <p className="text-white/40 text-base md:text-lg max-w-2xl leading-relaxed mb-14">
+                                A Notion doc here, a Miro board there, a task list somewhere else — and an AI that knows nothing about any of it. Stratabin was built to end that fragmentation. One workspace. One AI that reads everything.
+                            </p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                                 {[
-                                    { title: "Mental Clarity", desc: "Scattered thoughts lead to wasted potential. Stratabin provides the visual canvas to offload your brain and see connections you've been missing.", icon: Compass },
-                                    { title: "Structured Execution", desc: "Ideas are cheap; execution is everything. We turn abstract strategies into technical roadmaps and actionable task lists automatically.", icon: Target },
-                                    { title: "Accelerated Growth", desc: "Built for speed. STRAB AI lets you map complex topics in minutes that used to take hours of manual research and planning.", icon: Rocket },
-                                ].map((item, i) => (
-                                    <div key={i} className="p-7 md:p-10 bg-white/[0.02] border border-white/[0.04] rounded-3xl hover:border-primary/20 transition-all group">
-                                        <item.icon size={32} className="text-primary mb-6 group-hover:scale-110 transition-transform" />
-                                        <h3 className="text-xl md:text-2xl font-black mb-3">{item.title}</h3>
-                                        <p className="text-white/35 leading-relaxed text-sm">{item.desc}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="mb-24 md:mb-40">
-                            <div className="text-center mb-16 md:mb-24">
-                                <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-4">The Methodology</h2>
-                                <div className="w-24 md:w-32 h-1.5 bg-primary mx-auto rounded-full shadow-[0_4px_20px_rgba(218,119,86,0.4)]" />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-                                {[
-                                    { step: "01", title: "Capture & Flow", description: "Map out your initial thoughts using our fluid canvas. Create nodes, link ideas, and visualize the big picture without friction.", icon: Zap },
-                                    { step: "02", title: "Organize Intelligence", description: "STRAB AI automatically categorizes and structures your data. Merge related canvases or group them into dedicated workspaces.", icon: Bot },
-                                    { step: "03", title: "Execute with Clarity", description: "Convert strategies into actionable task lists and timelines. Sync across all devices and track progress in real-time.", icon: Check },
-                                ].map((item, idx) => (
-                                    <div key={idx} className="relative group">
-                                        <div className="absolute -top-8 -left-4 text-8xl md:text-9xl font-black text-white/[0.02] pointer-events-none group-hover:text-primary/[0.06] transition-colors">{item.step}</div>
-                                        <div className="p-7 md:p-10 pb-12 bg-white/[0.02] border border-white/[0.04] rounded-3xl hover:border-primary/20 transition-all relative z-10 h-full flex flex-col">
-                                            <div className="w-12 h-12 md:w-16 md:h-16 bg-white/[0.04] rounded-2xl flex items-center justify-center text-primary mb-8 group-hover:bg-primary group-hover:text-black transition-all">
-                                                <item.icon size={28} />
-                                            </div>
-                                            <h3 className="text-xl md:text-2xl font-black mb-4">{item.title}</h3>
-                                            <p className="text-white/35 leading-relaxed text-sm md:text-lg">{item.description}</p>
+                                    { icon: Compass, title: 'Mental Clarity', color: '#f97316', desc: 'See every idea on one visual canvas. Drag, connect, and reshape your thinking until it clicks.' },
+                                    { icon: Target, title: 'Structured Execution', color: '#a855f7', desc: 'Turn ideas into tasks, timelines, and writing — all linked to the same project, no copy-paste.' },
+                                    { icon: Rocket, title: 'AI That Gets It', color: '#3b82f6', desc: 'STRAB AI reads your canvas, writing, tasks, and goals — not just what you type in the chat box.' },
+                                ].map(({ icon: Icon, title, color, desc }) => (
+                                    <div key={title} className="p-7 rounded-3xl border border-white/[0.05] bg-white/[0.02] hover:border-white/10 transition-all group">
+                                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110" style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
+                                            <Icon size={22} style={{ color }} />
                                         </div>
+                                        <h3 className="text-xl font-black mb-3">{title}</h3>
+                                        <p className="text-white/40 text-sm leading-relaxed">{desc}</p>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </section>
 
-                        <div className="p-7 md:p-20 bg-primary/[0.03] border border-primary/15 rounded-3xl relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-20 opacity-[0.03]">
-                                <Compass size={400} />
+                        {/* ── SECTION 2: Animated Visual Flow ── */}
+                        <section>
+                            <div className="text-center mb-16">
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black uppercase tracking-widest mb-6">
+                                    <Zap size={12} fill="currentColor" /> The Stratabin Loop
+                                </div>
+                                <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-4">From raw thought to shipped result</h2>
+                                <p className="text-white/35 text-sm md:text-base max-w-xl mx-auto">Every part of Stratabin is connected. Ideas flow into writing, writing connects to flows, flows feed the AI, the AI drives action.</p>
                             </div>
-                            <div className="relative z-10">
-                                <div className="mb-10 md:mb-16">
-                                    <h2 className="text-3xl md:text-4xl font-black mb-3">Complete Feature Directory</h2>
-                                    <p className="text-white/30 uppercase tracking-widest text-[10px] md:text-xs font-bold">Every Tool at Your Fingertips</p>
+
+                            {/* Visual loop diagram */}
+                            <div className="relative">
+                                {/* Desktop: horizontal loop */}
+                                <div className="hidden md:flex items-start justify-between gap-2 relative">
+                                    {/* Connecting line */}
+                                    <div className="absolute top-10 left-[10%] right-[10%] h-px bg-gradient-to-r from-primary/20 via-primary/60 to-primary/20" />
+                                    {[
+                                        { icon: Lightbulb, label: 'Raw Ideas', desc: 'Brain dump everything. No structure needed yet.', color: '#f97316' },
+                                        { icon: FileText, label: 'Writing', desc: 'Flesh out ideas in the long-form editor. Split views, branches.', color: '#a855f7' },
+                                        { icon: Network, label: 'Flow Canvas', desc: 'Drag ideas as nodes. Connect them. See the structure emerge.', color: '#3b82f6' },
+                                        { icon: Bot, label: 'STRAB AI', desc: 'AI reads the full context: nodes, writing, tasks, goals.', color: '#10b981' },
+                                        { icon: CheckSquare, label: 'Execution', desc: 'Tasks, calendar, timeline — all linked to your strategy.', color: '#f59e0b' },
+                                    ].map(({ icon: Icon, label, desc, color }, i) => (
+                                        <div key={label} className="flex-1 flex flex-col items-center text-center relative">
+                                            <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-4 z-10 relative shadow-lg border" style={{ background: `${color}15`, borderColor: `${color}30` }}>
+                                                <Icon size={30} style={{ color }} />
+                                            </div>
+                                            {i < 4 && (
+                                                <div className="absolute top-10 -right-3 z-20">
+                                                    <ArrowRight size={16} className="text-primary/50" />
+                                                </div>
+                                            )}
+                                            <div className="font-black text-sm mb-1">{label}</div>
+                                            <div className="text-white/35 text-xs leading-relaxed px-2">{desc}</div>
+                                        </div>
+                                    ))}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                {/* Mobile: vertical flow */}
+                                <div className="md:hidden flex flex-col items-center gap-0">
                                     {[
-                                        { name: "Team Workspaces", desc: "Invite members, share public projects, and build strategies together." },
-                                        { name: "Project Merging", desc: "Combine strategy canvases into a unified intelligence view." },
-                                        { name: "Folder Workspaces", desc: "Unlimited folders to segment professional and personal work." },
-                                        { name: "STRAB Intelligence", desc: "Context-aware AI insights on your strategy flows." },
-                                        { name: "PWA Mobile App", desc: "Install on iOS or Android for native-like performance." },
-                                        { name: "Interactive Canvas", desc: "High-performance drag-and-drop mapping canvas." },
-                                        { name: "Writing Mode", desc: "Distraction-free editor for deep strategic writing." },
-                                        { name: "Timeline Mapping", desc: "Plan milestones and deadlines in a visual timeline." },
-                                        { name: "Task Ecosystem", desc: "Integrated to-do lists tied to strategy projects." },
-                                    ].map((feat, i) => (
-                                        <div key={i} className="p-5 md:p-7 bg-black/20 border border-white/[0.04] rounded-2xl hover:bg-black/30 transition-all">
-                                            <h3 className="text-primary font-black text-xs uppercase tracking-[0.15em] mb-2">{feat.name}</h3>
-                                            <p className="text-white/30 text-xs md:text-sm leading-relaxed">{feat.desc}</p>
+                                        { icon: Lightbulb, label: 'Raw Ideas', desc: 'Brain dump everything. No structure needed yet.', color: '#f97316' },
+                                        { icon: FileText, label: 'Writing', desc: 'Flesh out ideas in the long-form editor.', color: '#a855f7' },
+                                        { icon: Network, label: 'Flow Canvas', desc: 'Connect ideas as nodes. See the structure emerge.', color: '#3b82f6' },
+                                        { icon: Bot, label: 'STRAB AI', desc: 'AI reads the full context to give real insights.', color: '#10b981' },
+                                        { icon: CheckSquare, label: 'Execution', desc: 'Tasks, calendar, timeline — all linked together.', color: '#f59e0b' },
+                                    ].map(({ icon: Icon, label, desc, color }, i, arr) => (
+                                        <div key={label} className="flex flex-col items-center w-full">
+                                            <div className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl border border-white/[0.04] bg-white/[0.02]">
+                                                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
+                                                    <Icon size={22} style={{ color }} />
+                                                </div>
+                                                <div>
+                                                    <div className="font-black text-sm">{label}</div>
+                                                    <div className="text-white/35 text-xs mt-0.5">{desc}</div>
+                                                </div>
+                                            </div>
+                                            {i < arr.length - 1 && (
+                                                <div className="w-px h-6 bg-white/10 my-1" />
+                                            )}
                                         </div>
                                     ))}
                                 </div>
                             </div>
-                        </div>
+                        </section>
+
+                        {/* ── SECTION 3: Mock Project Example ── */}
+                        <section>
+                            <div className="text-center mb-12">
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-widest mb-6">
+                                    <Star size={12} /> Live Example
+                                </div>
+                                <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-4">See what a real project looks like</h2>
+                                <p className="text-white/35 text-sm md:text-base max-w-xl mx-auto">Here's how a "Launch a Mobile App" project actually looks inside Stratabin.</p>
+                            </div>
+
+                            <div className="rounded-3xl border border-white/[0.06] overflow-hidden bg-[#0d0d0d] shadow-[0_32px_80px_rgba(0,0,0,0.6)]">
+                                {/* Mock window bar */}
+                                <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.05] bg-[#111]">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
+                                    <span className="ml-3 text-[11px] text-white/25 font-medium">Launch Mobile App — Stratabin</span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/[0.04]">
+                                    {/* Mock Canvas */}
+                                    <div className="p-5 md:p-6">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <Network size={14} className="text-primary" />
+                                            <span className="text-xs font-black text-white/50 uppercase tracking-widest">Flow Canvas</span>
+                                        </div>
+                                        <div className="relative h-48 rounded-xl bg-[#0a0a0a] border border-white/[0.04] overflow-hidden p-3">
+                                            {/* Mock nodes */}
+                                            {[
+                                                { x: 10, y: 8, label: 'Market Research', color: '#f97316' },
+                                                { x: 50, y: 5, label: 'MVP Scope', color: '#a855f7' },
+                                                { x: 10, y: 55, label: 'UI Design', color: '#3b82f6' },
+                                                { x: 50, y: 55, label: 'Dev Sprint', color: '#10b981' },
+                                                { x: 30, y: 78, label: 'App Store Launch', color: '#f59e0b' },
+                                            ].map(({ x, y, label, color }) => (
+                                                <div key={label} className="absolute px-2 py-1 rounded-lg text-[9px] font-bold border shadow-md" style={{ left: `${x}%`, top: `${y}%`, background: `${color}15`, borderColor: `${color}40`, color }}>
+                                                    {label}
+                                                </div>
+                                            ))}
+                                            {/* Mock connections */}
+                                            <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
+                                                <line x1="30%" y1="20%" x2="60%" y2="18%" stroke="rgba(249,115,22,0.25)" strokeWidth="1" strokeDasharray="3 2" />
+                                                <line x1="30%" y1="20%" x2="20%" y2="65%" stroke="rgba(249,115,22,0.2)" strokeWidth="1" strokeDasharray="3 2" />
+                                                <line x1="60%" y1="18%" x2="65%" y2="65%" stroke="rgba(168,85,247,0.25)" strokeWidth="1" strokeDasharray="3 2" />
+                                                <line x1="20%" y1="75%" x2="45%" y2="88%" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="3 2" />
+                                                <line x1="65%" y1="75%" x2="55%" y2="88%" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="3 2" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    {/* Mock Writing */}
+                                    <div className="p-5 md:p-6">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <PenTool size={14} className="text-purple-400" />
+                                            <span className="text-xs font-black text-white/50 uppercase tracking-widest">Writing</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="text-base font-black text-white/80">Launch Mobile App</div>
+                                            <div className="w-8 h-0.5 bg-primary/40 rounded-full" />
+                                            <div className="text-[11px] text-white/40 leading-relaxed">
+                                                <span className="text-white/60 font-bold">Goal:</span> Reach 1,000 downloads in first 30 days.<br /><br />
+                                                <span className="text-white/60 font-bold">Phase 1 — Research</span><br />
+                                                Validate problem with 20 interviews. Define ICP clearly before building anything...<br /><br />
+                                                <span className="text-white/60 font-bold">Phase 2 — MVP</span><br />
+                                                Core loop only: onboard → key action → result. Ship in 6 weeks...
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Mock STRAB AI */}
+                                    <div className="p-5 md:p-6">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <Bot size={14} className="text-emerald-400" />
+                                            <span className="text-xs font-black text-white/50 uppercase tracking-widest">STRAB AI Analysis</span>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] text-[11px] text-white/50 leading-relaxed">
+                                                You have 5 canvas nodes but only 3 connections. <span className="text-white/70">UI Design and Dev Sprint are disconnected</span> — this gap in your flow suggests a missing handoff step.
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/15 text-[11px] text-white/50 leading-relaxed">
+                                                <span className="text-emerald-400 font-bold">Your 3 top actions:</span><br />
+                                                1. Connect UI Design → Dev Sprint<br />
+                                                2. Define success metrics for App Store Launch<br />
+                                                3. Set a go/no-go date for MVP
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* ── SECTION 4: Step-by-Step How It Works ── */}
+                        <section>
+                            <div className="text-center mb-16">
+                                <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-4">How to use Stratabin</h2>
+                                <p className="text-white/35 text-sm">Three modes. One workspace. No app-switching.</p>
+                            </div>
+
+                            <div className="space-y-5">
+                                {[
+                                    {
+                                        step: '01',
+                                        icon: FileText,
+                                        color: '#a855f7',
+                                        title: 'Start writing — no setup required',
+                                        desc: 'Open a new project and just write. The writing editor is distraction-free: no formatting buttons in your face, no toolbar clutter. Use the split view to compare two angles. Use the branch feature to visually break an idea into sub-ideas directly from the text.',
+                                        tags: ['Split view', 'Branch mode', 'Writing Planner', 'Attachments'],
+                                    },
+                                    {
+                                        step: '02',
+                                        icon: Network,
+                                        color: '#f97316',
+                                        title: 'Build a flow — or let STRAB build it',
+                                        desc: 'Switch to the Flow tab and drag ideas as nodes onto the canvas. Connect them with edges to show logic, dependencies, or sequence. Or: ask STRAB AI to build the entire canvas for you — it will create nodes, connections, writing, and tasks in one shot based on your project description.',
+                                        tags: ['Drag & drop canvas', 'Node types: idea / question / decision', 'AI canvas generation', 'Merge canvases'],
+                                    },
+                                    {
+                                        step: '03',
+                                        icon: Bot,
+                                        color: '#10b981',
+                                        title: 'Ask STRAB — it reads everything',
+                                        desc: 'STRAB AI isn\'t a generic chatbot. It reads your actual canvas nodes, connections, writing content, task list, timeline milestones, goals, and daily execution logs. Ask it to analyse your strategy, find gaps, write a full report, or update your project directly.',
+                                        tags: ['Project-aware analysis', 'Gap detection', 'Report generation', 'Canvas manipulation'],
+                                    },
+                                    {
+                                        step: '04',
+                                        icon: CheckSquare,
+                                        color: '#f59e0b',
+                                        title: 'Execute — tasks, calendar, timeline',
+                                        desc: 'Every project has integrated tasks (to-dos), a calendar for deadline tracking, and a visual timeline for milestone planning. All linked to the same canvas. No copy-pasting between apps. STRAB AI can see your tasks and will flag when execution momentum stalls.',
+                                        tags: ['Integrated tasks', 'Calendar events', 'Timeline milestones', 'Daily execution logs'],
+                                    },
+                                ].map(({ step, icon: Icon, color, title, desc, tags }) => (
+                                    <div key={step} className="flex gap-5 md:gap-8 p-6 md:p-8 rounded-3xl border border-white/[0.05] bg-white/[0.015] hover:border-white/[0.08] transition-all group">
+                                        <div className="shrink-0">
+                                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all group-hover:scale-105" style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
+                                                <Icon size={24} style={{ color }} />
+                                            </div>
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="text-xs font-black text-white/20 uppercase tracking-widest">Step {step}</span>
+                                            </div>
+                                            <h3 className="text-xl md:text-2xl font-black mb-3 leading-tight">{title}</h3>
+                                            <p className="text-white/40 text-sm md:text-base leading-relaxed mb-4">{desc}</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {tags.map(tag => (
+                                                    <span key={tag} className="px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] text-[11px] text-white/35 font-medium">{tag}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* ── SECTION 5: Why It's Special ── */}
+                        <section>
+                            <div className="text-center mb-14">
+                                <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-4">Why Stratabin is different</h2>
+                                <p className="text-white/35 text-sm max-w-xl mx-auto">Not a Notion clone. Not a Miro clone. Not a task manager. Something new.</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {[
+                                    {
+                                        title: 'The AI reads your project, not just your message',
+                                        desc: 'Most AI tools only know what you type in the chat box. STRAB reads your entire project — all nodes, every connection, your writing, tasks, goals, and how long since you last worked on it. The advice is always specific to what\'s actually in your project.',
+                                        icon: Bot,
+                                        color: '#10b981',
+                                        badge: 'AI Intelligence',
+                                    },
+                                    {
+                                        title: 'Strategy and execution in the same place',
+                                        desc: 'Notion is for writing. Miro is for mapping. Trello is for tasks. You need all three — so you waste hours keeping them in sync. Stratabin puts the writing editor, canvas, tasks, calendar, and timeline in one project so nothing gets lost between tools.',
+                                        icon: Layers,
+                                        color: '#f97316',
+                                        badge: 'Unified Workspace',
+                                    },
+                                    {
+                                        title: 'Built for how ideas actually happen',
+                                        desc: 'Real ideas are messy. They start as a half-thought, branch into multiple directions, contradict themselves, and only become clear when mapped out visually. Stratabin is designed for that messy process — not the clean, finished version of it.',
+                                        icon: GitBranch,
+                                        color: '#a855f7',
+                                        badge: 'Designed for Thinking',
+                                    },
+                                    {
+                                        title: 'Built by a solo creator, for creators and students',
+                                        desc: 'Stratabin wasn\'t built by a VC-funded team optimising for enterprise contracts. It was built by one developer who was tired of switching between 6 apps to plan a single project. It\'s fast, opinionated, and designed to actually get used — not just signed up for.',
+                                        icon: Star,
+                                        color: '#f59e0b',
+                                        badge: 'Built with purpose',
+                                    },
+                                ].map(({ title, desc, icon: Icon, color, badge }) => (
+                                    <div key={title} className="p-7 md:p-8 rounded-3xl border border-white/[0.05] bg-white/[0.015] hover:border-white/10 transition-all group">
+                                        <div className="flex items-center gap-3 mb-5">
+                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
+                                                <Icon size={18} style={{ color }} />
+                                            </div>
+                                            <span className="text-xs font-black uppercase tracking-widest" style={{ color }}>{badge}</span>
+                                        </div>
+                                        <h3 className="text-lg md:text-xl font-black mb-3 leading-snug">{title}</h3>
+                                        <p className="text-white/40 text-sm leading-relaxed">{desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* ── CTA ── */}
+                        <section className="text-center pb-10">
+                            <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">Ready to unscatter your ideas?</h2>
+                            <p className="text-white/35 text-sm mb-8">Free. No credit card. Works on phone and desktop.</p>
+                            <button
+                                onClick={() => { setShowHowTo(false); navigate('/auth'); }}
+                                className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_8px_40px_rgba(249,115,22,0.3)] active:scale-95 text-base"
+                            >
+                                <Zap size={20} fill="currentColor" />
+                                Get started free
+                                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </section>
+
                     </div>
                 </div>
             )}
