@@ -832,3 +832,5 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         </div>
     );
 }
+
+
