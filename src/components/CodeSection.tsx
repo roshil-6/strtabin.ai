@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useStore } from '../store/useStore';
-import { ChevronLeft, FileCode, Plus, Trash2, Download, Code2, Save } from 'lucide-react';
+import useStore from '../store/useStore';
+import { ChevronLeft, FileCode, Plus, Trash2, Download, Code2 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 
 export default function CodeSection() {
@@ -32,7 +32,7 @@ export default function CodeSection() {
         }
     }, [codeFiles, activeFileId]);
 
-    const activeFile = codeFiles.find(f => f.id === activeFileId);
+    const activeFile = codeFiles.find((f: any) => f.id === activeFileId);
 
     const handleCreateFile = (e: React.FormEvent) => {
         e.preventDefault();
@@ -125,7 +125,7 @@ export default function CodeSection() {
                         </form>
                     )}
                     
-                    {codeFiles.map(file => (
+                    {codeFiles.map((file: any) => (
                         <div 
                             key={file.id}
                             onClick={() => setActiveFileId(file.id)}
