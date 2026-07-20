@@ -179,8 +179,10 @@ export default function StrabView() {
 
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingPhrase, setLoadingPhrase] = useState('Analysing your project…');
     const tabParam = searchParams.get('tab');
     const [activeTab, setActiveTab] = useState<'chat' | 'reports'>(tabParam === 'reports' ? 'reports' : 'chat');
+    const [provider, setProvider] = useState<'openai' | 'anthropic'>('openai');
     const [proAiRemaining, setProAiRemaining] = useState(() => (user?.id ? getProAiRemaining(user.id) : PRO_AI_DAILY_LIMIT));
     const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -189,6 +191,27 @@ export default function StrabView() {
         if (searchParams.get('tab') === 'reports') setActiveTab('reports');
         else if (searchParams.get('tab') === 'chat') setActiveTab('chat');
     }, [searchParams]);
+
+    // Rotate status phrases while AI is generating
+    useEffect(() => {
+        if (!isLoading) return;
+        const phrases = [
+            'Analysing your project…',
+            'Reading your canvas…',
+            'Preparing a response…',
+            'Mapping connections…',
+            'Stabilising ideas…',
+            'Checking your tasks…',
+            'Reviewing your strategy…',
+        ];
+        let i = 0;
+        setLoadingPhrase(phrases[0]);
+        const interval = setInterval(() => {
+            i = (i + 1) % phrases.length;
+            setLoadingPhrase(phrases[i]);
+        }, 1400);
+        return () => clearInterval(interval);
+    }, [isLoading]);
 
     useEffect(() => {
         if (isGuest) setGuestAiRemaining(getGuestAiRemaining());
@@ -386,6 +409,8 @@ export default function StrabView() {
                                 updateLastChatMessage(id!, strabVisibleAssistantText(text, 'streaming'));
                             },
                             token ?? undefined,
+                            undefined,
+                            provider
                         );
                         const createProjectInWorkspace = workspaceId && token
                             ? async (name: string, nodes: Node[], edges: Edge[], writing: string, _todos: string[]) => {
@@ -482,15 +507,17 @@ export default function StrabView() {
             const token = await getToken();
             const messagesForApi = [...chatHistory, userMsg];
             let fullText = '';
-            await sendStrabMessageStreaming(
-                messagesForApi,
-                projectContext,
-                (text) => {
-                    fullText = text;
-                    updateLastChatMessage(id!, strabVisibleAssistantText(text, 'streaming'));
-                },
-                token ?? undefined,
-            );
+                        await sendStrabMessageStreaming(
+                            messagesForApi,
+                            projectContext,
+                            (text) => {
+                                fullText = text;
+                                updateLastChatMessage(id!, strabVisibleAssistantText(text, 'streaming'));
+                            },
+                            token ?? undefined,
+                            undefined,
+                            provider
+                        );
             const createProjectInWorkspace = workspaceId && token
                 ? async (name: string, nodes: Node[], edges: Edge[], writing: string, _todos: string[]) => {
                     try {
@@ -629,7 +656,7 @@ export default function StrabView() {
         return (
         <div className="flex flex-col h-screen theme-page text-white overflow-hidden relative">
             {/* Header */}
-            <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-2 md:px-6 theme-panel backdrop-blur-2xl z-10 flex-shrink-0 gap-1.5 md:gap-2">
+            <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-2 md:px-6 backdrop-blur-2xl z-10 flex-shrink-0 gap-1.5 md:gap-2" style={{ background: 'rgba(8,8,8,0.92)' }}>
                     <button
                         onClick={() => {
                             if (window.history.length > 1) navigate(-1);
@@ -675,6 +702,20 @@ export default function StrabView() {
                             {proAiRemaining > 0 ? `${proAiRemaining}/12 today` : 'Limit reached'}
                         </span>
                     )}
+                    <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04] mr-2">
+                        <button
+                            onClick={() => setProvider('openai')}
+                            className={`px-2 py-1 rounded-lg text-[10px] md:text-[11px] font-bold transition-all ${provider === 'openai' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white/60'}`}
+                        >
+                            GPT
+                        </button>
+                        <button
+                            onClick={() => setProvider('anthropic')}
+                            className={`px-2 py-1 rounded-lg text-[10px] md:text-[11px] font-bold transition-all ${provider === 'anthropic' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white/60'}`}
+                        >
+                            Claude
+                        </button>
+                    </div>
                     <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04]">
                         <button
                             onClick={() => setActiveTab('chat')}
@@ -699,15 +740,6 @@ export default function StrabView() {
                 </div>
             </div>
 
-            {/* Maintenance Banner */}
-            <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 text-center">
-                <div className="flex items-center justify-center gap-2 mb-1">
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                    <span className="text-sm font-bold text-amber-300">AI is under maintenance</span>
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                </div>
-                <p className="text-xs text-amber-200/70">We are working on integrating a more powerful AI system for an upcoming major project. Check back soon!</p>
-            </div>
 
             {/* Main Content */}
             <div className="flex-1 overflow-hidden relative flex">
@@ -749,7 +781,7 @@ export default function StrabView() {
                                         <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-white/[0.06]' : 'bg-[#111] border border-white/[0.04] text-white/70'}`}>
                                             {msg.role === 'user' ? <div className="w-1.5 h-1.5 bg-white rounded-full" /> : <Network size={13} />}
                                         </div>
-                                        <div className={`p-3 md:p-4 rounded-2xl max-w-[85%] md:max-w-[80%] text-[13px] md:text-sm leading-relaxed ${msg.role === 'user' ? 'bg-white/[0.04] border border-white/[0.04] text-white/90' : 'text-white/75'}`}>
+                                        <div className={`p-3 md:p-4 rounded-2xl max-w-[85%] md:max-w-[80%] text-[13px] md:text-sm leading-relaxed ${msg.role === 'user' ? 'glass-panel text-white/90 glow-primary-sm' : 'text-white/80'}`}>
                                             {isInteractive && parsedJson ? (
                                                 <div className="space-y-4">
                                                     <div className="font-medium text-white text-base">
@@ -775,7 +807,7 @@ export default function StrabView() {
                                                         <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                                         <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                                     </div>
-                                                    <span className="text-white/60">Thinking through your project…</span>
+                                                    <span className="text-white/55 transition-all duration-500">{loadingPhrase}</span>
                                                 </div>
                                             ) : (
                                                 <div className="whitespace-pre-wrap">

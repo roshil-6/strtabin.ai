@@ -35,16 +35,51 @@ export interface ChatMessage {
 }
 
 export const sendGeneralStrabMessage = async (
-    _messages: ChatMessage[],
+    messages: ChatMessage[],
     onChunk: (accumulated: string) => void,
-    _authToken?: string,
-    _signal?: AbortSignal,
+    authToken?: string,
+    signal?: AbortSignal,
+    provider: 'openai' | 'anthropic' = 'anthropic'
 ): Promise<string> => {
-    const maintenanceMessage = '🔧 AI is under maintenance\n\nWe are working on integrating a more powerful AI system for an upcoming major project. Please check back later!';
-    // Simulate streaming callback to show message
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const res = await fetch(`${API_URL}/api/strab-general`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify({ messages, provider }),
+        signal
+    });
+
+    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+    if (!res.body) throw new Error('No response body');
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let accumulated = '';
     const throttled = throttleStreamCallback(onChunk);
-    throttled(maintenanceMessage, true);
-    throw new Error('AI operations are currently under maintenance.');
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6);
+                if (dataStr === '[DONE]') break;
+                try {
+                    const data = JSON.parse(dataStr);
+                    if (data.error) throw new Error(data.error);
+                    if (data.text) accumulated += data.text;
+                    throttled(accumulated);
+                } catch { /* ignore partial JSON */ }
+            }
+        }
+    }
+    throttled(accumulated, true);
+    return accumulated;
 };
 
 /**
@@ -78,26 +113,64 @@ export interface ProjectContext {
 }
 
 export const sendStrabMessage = async (
-    _messages: ChatMessage[],
-    _projectContext: ProjectContext,
-    _authToken?: string
+    messages: ChatMessage[],
+    projectContext: ProjectContext,
+    authToken?: string,
+    provider: 'openai' | 'anthropic' = 'anthropic'
 ): Promise<string> => {
-    const maintenanceMessage = '🔧 AI is under maintenance\n\nWe are working on integrating a more powerful AI system for an upcoming major project. Please check back later!';
-    throw new Error(maintenanceMessage);
+    let acc = '';
+    await sendStrabMessageStreaming(messages, projectContext, t => { acc = t; }, authToken, undefined, provider);
+    return acc;
 };
 
 /**
- * Streaming variant — UNDER MAINTENANCE
+ * Streaming variant
  */
 export const sendStrabMessageStreaming = async (
-    _messages: ChatMessage[],
-    _projectContext: ProjectContext,
+    messages: ChatMessage[],
+    projectContext: ProjectContext,
     onChunk: (accumulated: string) => void,
-    _authToken?: string,
-    _signal?: AbortSignal,
+    authToken?: string,
+    signal?: AbortSignal,
+    provider: 'openai' | 'anthropic' = 'anthropic'
 ): Promise<string> => {
-    const maintenanceMessage = '🔧 AI is under maintenance\n\nWe are working on integrating a more powerful AI system for an upcoming major project. Please check back later!';
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const res = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify({ messages, context: projectContext, provider }),
+        signal
+    });
+
+    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+    if (!res.body) throw new Error('No response body');
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let accumulated = '';
     const throttled = throttleStreamCallback(onChunk);
-    throttled(maintenanceMessage, true);
-    throw new Error('AI operations are currently under maintenance.');
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6);
+                if (dataStr === '[DONE]') break;
+                try {
+                    const data = JSON.parse(dataStr);
+                    if (data.error) throw new Error(data.error);
+                    if (data.text) accumulated += data.text;
+                    throttled(accumulated);
+                } catch { /* ignore partial JSON */ }
+            }
+        }
+    }
+    throttled(accumulated, true);
+    return accumulated;
 };

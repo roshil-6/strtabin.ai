@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot, Network, BookOpen } from 'lucide-react';
+import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot, Network, BookOpen, Code2 } from 'lucide-react';
 
 const GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
@@ -49,6 +49,15 @@ const NAV_ITEMS = [
         accent: '#fb923c',
         activeBg: 'rgba(251,146,60,0.12)',
         activeBorder: 'rgba(251,146,60,0.3)',
+    },
+    {
+        label: 'Code',
+        icon: Code2,
+        path: (id: string) => `/code/${id}`,
+        match: (p: string, _s: string) => p.includes('/code'),
+        accent: '#3b82f6',
+        activeBg: 'rgba(59,130,246,0.12)',
+        activeBorder: 'rgba(59,130,246,0.3)',
     },
 ];
 

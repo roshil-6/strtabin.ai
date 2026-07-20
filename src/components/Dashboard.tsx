@@ -102,6 +102,8 @@ export default function Dashboard() {
         navigate(`/strategy/${id}`);
     };
 
+
+
     const handleSetCredentials = async (e: React.FormEvent) => {
         e.preventDefault();
         const token = await getToken();
@@ -319,17 +321,20 @@ export default function Dashboard() {
         { id: 'strab', label: 'Project STRAB', title: 'STRAB for this project — chat, Reports tab, and follow-up support', icon: Bot, color: 'text-orange-500' },
     ];
 
-    const getTargetRoute = (id: string) => {
+    const getTargetRoute = (project: CanvasData) => {
+        if (project.projectType === 'code') {
+            return `/code/${project.id}`;
+        }
         switch (activeTab) {
-            case 'strategy': return `/strategy/${id}`;
-            case 'todo': return `/todo/${id}`;
-            case 'timeline': return `/timeline/${id}`;
-            case 'calendar': return `/calendar/${id}`;
-            case 'planner': return `/calendar/${id}?mode=week`;
-            case 'reports': return `/strab/${id}?tab=reports`;
-            case 'monitor': return `/calendar/${id}`;
-            case 'strab': return `/strab/${id}`;
-            default: return `/strategy/${id}`;
+            case 'strategy': return `/strategy/${project.id}`;
+            case 'todo': return `/todo/${project.id}`;
+            case 'timeline': return `/timeline/${project.id}`;
+            case 'calendar': return `/calendar/${project.id}`;
+            case 'planner': return `/calendar/${project.id}?mode=week`;
+            case 'reports': return `/strab/${project.id}?tab=reports`;
+            case 'monitor': return `/calendar/${project.id}`;
+            case 'strab': return `/strab/${project.id}`;
+            default: return `/strategy/${project.id}`;
         }
     };
 
@@ -454,30 +459,39 @@ export default function Dashboard() {
         return (
             <div
                 key={p.id}
-                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
-                className={`dashboard-project-card flex items-center gap-4 p-4 rounded-2xl md:rounded-3xl active:scale-[0.98] transition-all duration-300 cursor-pointer border
-                    ${isSelected ? 'dashboard-card--selected border-primary ring-2 ring-primary/30 shadow-[0_8px_32px_rgba(218,119,86,0.12)]' : 'border-[var(--border)] hover:border-[color-mix(in_srgb,#da7756_22%,var(--border))]'}
-                    ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}
-                `}
+                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p))}
+                className={`relative flex items-center gap-3.5 p-4 rounded-2xl active:scale-[0.97] transition-all duration-200 cursor-pointer overflow-hidden ${
+                    isSelected ? 'ring-2 ring-primary/40' : ''
+                } ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}`}
+                style={{
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
+                    border: isSelected ? '1px solid rgba(249,115,22,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.04) inset',
+                }}
             >
-                <div className="pro-icon-well h-12 w-12 shrink-0">
-                    {isMerged ? <GitMerge size={22} strokeWidth={1.75} className="text-[var(--text-muted)]" /> : <Icon size={22} strokeWidth={1.75} className="text-[var(--text-muted)]" />}
+                <div className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
+                    {isMerged ? <GitMerge size={22} strokeWidth={1.75} className="text-primary" /> : <Icon size={22} strokeWidth={1.75} className="text-primary" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-white text-base truncate">{displayName}</h3>
+                    <h3 className="font-bold text-white/90 text-[15px] truncate leading-tight">{displayName}</h3>
                     {projectQuickActionsRow(p)}
-                    <div className="flex items-center gap-2 mt-0.5 text-xs text-white/50">
+                    <div className="flex items-center gap-2 mt-1 text-[11px] text-white/35 font-medium">
                         {todoCount > 0 && <span>{completionRate}% done</span>}
                         {nodeCount > 0 && <span>• {nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>}
                     </div>
                 </div>
+                {!selectionMode && todoCount > 0 && completionRate > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <div className="h-full transition-all" style={{ width: `${completionRate}%`, background: completionRate === 100 ? '#10b981' : '#f97316' }} />
+                    </div>
+                )}
                 {selectionMode ? (isSelected ? <CheckCircle2 size={22} className="text-primary shrink-0" /> : <div className="w-6 h-6 rounded-full border-2 border-white/20 shrink-0" />) : <ChevronRight size={20} className="text-white/30 shrink-0" />}
             </div>
         );
     }
 
     return (
-        <div className="flex h-screen min-h-0 font-sans overflow-hidden relative bg-transparent">
+        <div className="flex h-screen min-h-0 font-sans overflow-hidden relative" style={{ background: '#080808' }}>
             {/* Join Workspace Modal */}
             {showJoinWorkspaceModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -598,10 +612,10 @@ export default function Dashboard() {
             )}
 
             {/* Folder Sidebar */}
-            <aside className={`
-                fixed inset-y-0 left-0 z-50 flex h-full max-h-screen w-72 min-h-0 shrink-0 flex-col border-r border-[var(--border)] theme-panel backdrop-blur-2xl transition-transform duration-300 md:relative md:translate-x-0
-                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-            `}>
+            <aside 
+                className={`fixed inset-y-0 left-0 z-50 flex h-full max-h-screen w-[280px] min-h-0 shrink-0 flex-col transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                style={{ background: 'rgba(10,10,10,0.97)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', borderRight: '1px solid rgba(255,255,255,0.05)' }}
+            >
                 <div className="shrink-0 border-b border-[var(--border)] p-3 md:px-6 md:pt-5 md:pb-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 md:gap-3">
@@ -884,8 +898,8 @@ export default function Dashboard() {
                 </div>
             </aside>
 
-            {/* Main Content Area — transparent so grid shows through */}
-            <main className="min-h-0 flex-1 overflow-y-auto custom-scrollbar bg-transparent">
+            {/* Main Content Area */}
+            <main className="min-h-0 flex-1 overflow-y-auto custom-scrollbar relative" style={{ background: '#080808', backgroundImage: 'radial-gradient(ellipse 80% 50% at 20% -10%, rgba(249,115,22,0.04) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 85% 110%, rgba(139,92,246,0.03) 0%, transparent 60%)' }}>
                 <div className="max-w-7xl mx-auto px-2 pt-2 pb-[max(6rem,env(safe-area-inset-bottom,0px)+4rem)] md:px-10 md:pt-10 md:pb-10">
                     {/* Invitations banner */}
                     {invitations.length > 0 && (
@@ -924,49 +938,55 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
-                                className="md:hidden p-1.5 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text)] active:scale-95 transition-all shrink-0"
+                                className="md:hidden p-1.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-white/40 hover:text-white active:scale-95 transition-all shrink-0"
                             >
                                 <Menu size={16} />
                             </button>
                             <div className="flex-1 min-w-0">
-                                <h2 className="text-xl md:text-3xl font-black text-[var(--text)] leading-tight truncate">
+                                <h2 className="text-xl md:text-3xl font-black text-white leading-tight truncate tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', letterSpacing: '-0.02em' }}>
                                     {activeFolder ? activeFolder.name : 'Projects'}
                                 </h2>
-                                <p className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider hidden sm:block mt-0.5">
+                                <p className="text-[10px] text-white/30 uppercase font-bold tracking-wider hidden sm:block mt-0.5">
                                     {activeFolder ? 'Folder' : 'Writing & strategy'}
                                 </p>
                             </div>
-                            <button
-                                type="button"
-                                onClick={handleCreate}
-                                className="hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--text)] text-[var(--bg-page)] font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shrink-0"
-                            >
-                                <Plus size={16} strokeWidth={3} />
-                                New project
-                            </button>
-                            <button
-                                onClick={handleCreate}
-                                className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--border)] bg-[var(--text)] text-[var(--bg-page)] font-black active:scale-95 transition-all shrink-0"
-                            >
-                                <Plus size={18} strokeWidth={3} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleCreate}
+                                    className="hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-black font-black text-xs uppercase tracking-widest hover:bg-orange-400 active:scale-95 transition-all shrink-0 shadow-[0_4px_16px_rgba(249,115,22,0.35)]"
+                                >
+                                    <Plus size={16} strokeWidth={3} />
+                                    Strategy
+                                </button>
+
+                                <button
+                                    onClick={handleCreate}
+                                    className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-black font-black active:scale-95 transition-all shrink-0 shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
+                                >
+                                    <Plus size={18} strokeWidth={3} />
+                                </button>
+
+                            </div>
                         </div>
                     </header>
 
                     {/* Navigation Tabs — more space between */}
-                    <div className="flex items-center gap-2 md:gap-8 mb-4 md:mb-6 border-b border-[var(--border)] pb-4 overflow-x-auto custom-scrollbar-hide">
+                    <div className="flex items-center gap-2 md:gap-8 mb-4 md:mb-6 border-b border-white/[0.05] pb-4 overflow-x-auto custom-scrollbar-hide">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
                                 type="button"
                                 title={'title' in tab && tab.title ? tab.title : undefined}
                                 onClick={() => { setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab' | 'reports' | 'monitor'); setTabKey(k => k + 1); }}
-                                className={`group flex items-center gap-2 md:gap-3 py-3 px-3 md:px-0 md:pb-4 relative transition-all min-w-[48px] md:min-w-max justify-center md:justify-start shrink-0 ${activeTab === tab.id ? 'text-[var(--text)] font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                                className={`group flex items-center gap-2 md:gap-3 py-3 px-3 md:px-0 md:pb-4 relative transition-all min-w-[48px] md:min-w-max justify-center md:justify-start shrink-0 ${
+                                    activeTab === tab.id ? 'text-white font-bold' : 'text-white/30 hover:text-white/65'
+                                }`}
                             >
                                 <tab.icon size={16} className="shrink-0 md:w-[14px] md:h-[14px]" />
                                 <span className="text-[9px] md:text-xs font-black uppercase tracking-wider hidden sm:inline truncate">{tab.label}</span>
                                 {activeTab === tab.id && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--text)] rounded-full opacity-90" />
+                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" style={{ background: '#f97316', boxShadow: '0 0 8px rgba(249,115,22,0.7)' }} />
                                 )}
                             </button>
                         ))}
@@ -1371,9 +1391,11 @@ export default function Dashboard() {
                                                 <h3 className="text-base font-black text-white/50 mb-1">This workspace is empty</h3>
                                                 <p className="text-xs text-white/20 max-w-xs">Create a new project or move one here from General.</p>
                                             </div>
-                                            <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black text-white/50 hover:text-white transition-all">
-                                                <Plus size={14} strokeWidth={3} /> New Project
-                                            </button>
+                                            <div className="flex items-center gap-3">
+                                                <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black text-white/50 hover:text-white transition-all">
+                                                    <Plus size={14} strokeWidth={3} /> New Strategy
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                     </>
@@ -1462,7 +1484,7 @@ export default function Dashboard() {
         return (
             <div
                 key={p.id}
-                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id))}
+                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p))}
                 className={`dashboard-project-card group relative rounded-2xl md:rounded-[1.25rem] border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
                     ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20 shadow-[0_8px_40px_rgba(218,119,86,0.14)]' : 'border-[var(--border)]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
@@ -1470,12 +1492,12 @@ export default function Dashboard() {
             >
                 {/* Accent bar + progress */}
                 <div className="shrink-0 rounded-t-2xl md:rounded-t-3xl overflow-hidden">
-                    <div className="h-[3px] w-full bg-[var(--border)]" />
+                    <div className="h-[2px] w-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
                     {todoCount > 0 && (
-                        <div className="h-1 w-full bg-zinc-800/90">
+                        <div className="h-[2px] w-full" style={{ background: 'rgba(255,255,255,0.04)' }}>
                             <div
-                                className="h-full bg-[var(--border-strong)] transition-all duration-500"
-                                style={{ width: `${completionRate}%` }}
+                                className="h-full transition-all duration-700"
+                                style={{ width: `${completionRate}%`, background: completionRate === 100 ? '#10b981' : '#f97316', boxShadow: completionRate > 0 ? '0 0 8px rgba(249,115,22,0.5)' : 'none' }}
                             />
                         </div>
                     )}
@@ -1582,15 +1604,15 @@ export default function Dashboard() {
 
                     {/* Stats row — hide on mobile, show on md+ */}
                     <div className="hidden md:flex items-center gap-3 mb-3 flex-wrap">
-                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-white/40">
                             <Clock size={11} className="text-primary/90" />
                             {timeAgo(p.updatedAt)}
                         </span>
-                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-white/40">
                             <Target size={11} className="text-primary/90" />
                             {todoCount > 0 ? `${completionRate}%` : '0 tasks'}
                         </span>
-                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-300">
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-white/40">
                             <PenTool size={11} className="text-primary/90" />
                             {wc}w
                         </span>
@@ -1598,21 +1620,21 @@ export default function Dashboard() {
 
                     {/* Tasks + Structure — desktop: visible; mobile: compact row */}
                     <div className="grid grid-cols-2 md:grid-cols-2 gap-2 mb-3">
-                        <div className="project-card-stat-box rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2 md:py-2.5">
+                        <div className="project-card-stat-box rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 md:py-2.5">
                             <div className="flex items-center justify-between mb-1 md:mb-1.5">
                                 <span className="text-[10px] uppercase tracking-[0.12em] font-black text-primary">Tasks</span>
-                                <span className="text-[11px] font-bold text-zinc-200">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
+                                <span className="text-[11px] font-bold text-white/70">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
                             </div>
-                            <div className="h-1.5 rounded-full bg-zinc-700/80 overflow-hidden">
-                                <div className="h-full rounded-full bg-[var(--border-strong)] transition-all duration-300" style={{ width: `${completionRate}%` }} />
+                            <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${completionRate}%`, background: completionRate === 100 ? '#10b981' : '#f97316' }} />
                             </div>
                         </div>
-                        <div className="project-card-stat-box rounded-xl border border-white/[0.12] bg-zinc-900/60 px-3 py-2 md:py-2.5">
+                        <div className="project-card-stat-box rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 md:py-2.5">
                             <div className="flex items-center justify-between mb-1 md:mb-1.5">
                                 <span className="text-[10px] uppercase tracking-[0.12em] font-black text-primary">Structure</span>
-                                <span className="text-[11px] font-bold text-zinc-200">{nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>
+                                <span className="text-[11px] font-bold text-white/70">{nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>
                             </div>
-                            <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400">
+                            <div className="flex items-center justify-between text-[11px] font-semibold text-white/30">
                                 <span className="inline-flex items-center gap-1 truncate"><ListTodo size={10} className="text-primary/80 shrink-0" />{todoCount} tasks</span>
                                 <span className="inline-flex items-center gap-1 shrink-0"><FileText size={10} className="text-primary/80" />{wc}w</span>
                             </div>
@@ -1620,9 +1642,9 @@ export default function Dashboard() {
                     </div>
 
                     {/* Project brief — desktop + mobile */}
-                    <div className="project-card-stat-box rounded-xl border border-white/[0.1] bg-zinc-900/50 px-3 py-2 md:py-2.5 mb-4 min-h-[60px] md:min-h-[70px]">
+                    <div className="project-card-stat-box rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2 md:py-2.5 mb-4 min-h-[60px] md:min-h-[70px]">
                         <p className="text-[10px] uppercase tracking-[0.12em] font-black text-primary mb-1 md:mb-1.5">Project brief</p>
-                        <p className="text-[12px] leading-relaxed text-zinc-300 line-clamp-3">
+                        <p className="text-[12px] leading-relaxed text-white/35 line-clamp-3">
                             {previewText || 'Add your core idea, goals, and execution notes to turn this into a full strategy card.'}
                         </p>
                     </div>
@@ -1675,7 +1697,7 @@ export default function Dashboard() {
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(getTargetRoute(p.id));
+                                        navigate(getTargetRoute(p));
                                     }}
                                     className="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide border border-teal-500/40 text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 transition-colors"
                                 >
@@ -1730,7 +1752,7 @@ export default function Dashboard() {
         return (
             <div
                 key={p.id}
-                onClick={(e) => (selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p.id)))}
+                onClick={(e) => (selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p)))}
                 className={`dashboard-hero-card group relative rounded-2xl md:rounded-3xl border transition-all duration-300 cursor-pointer overflow-visible flex flex-col md:flex-row md:items-stretch gap-5 md:gap-0 md:min-h-[168px]
                     ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20' : 'border-[var(--border)]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
@@ -1928,7 +1950,7 @@ export default function Dashboard() {
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(getTargetRoute(p.id));
+                                        navigate(getTargetRoute(p));
                                     }}
                                     className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wide text-teal-950 bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-300 hover:to-cyan-300 transition-all shadow-[0_4px_20px_rgba(45,212,191,0.25)]"
                                 >

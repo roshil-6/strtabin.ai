@@ -63,6 +63,17 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     // Document Preview state
     const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string } | null>(null);
 
+    // Font size state
+    const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('strab_editor_font_size') || '16', 10));
+
+    const updateFontSize = (delta: number) => {
+        setFontSize(prev => {
+            const next = Math.max(12, Math.min(32, prev + delta));
+            localStorage.setItem('strab_editor_font_size', next.toString());
+            return next;
+        });
+    };
+
     const openPreview = (doc: { url: string; name: string }) => {
         if (doc.url.startsWith('data:')) {
             try {
@@ -351,9 +362,9 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const projectName = canvas?.name || canvas?.title || 'Untitled';
 
     return (
-        <div className="h-full w-full bg-transparent flex flex-col relative">
+        <div className="h-full w-full flex flex-col relative" style={{ background: '#0f0f0f' }}>
             {/* Toolbar — NotebookLM-style: minimal, content-first */}
-            <div className="h-10 md:h-12 flex items-center px-3 md:px-5 gap-2 bg-transparent sticky top-0 z-20">
+            <div className="h-10 md:h-12 flex items-center px-3 md:px-5 gap-2 sticky top-0 z-20 backdrop-blur-sm" style={{ background: 'rgba(20,20,20,0.85)' }}>
                 <div className="flex items-center gap-2 mr-auto min-w-0">
                     <FileText size={14} className="text-[var(--text-muted)] shrink-0" />
                     <span className="text-sm font-medium text-[var(--text-secondary)] truncate max-w-[140px] md:max-w-[220px]" title={projectName}>{projectName}</span>
@@ -412,24 +423,34 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         <GitBranch size={14} />
                         <span className="hidden sm:inline">Branch</span>
                     </button>
+
+                    <div className="w-px h-4 bg-[var(--border)] mx-1" />
+
+                    <button onClick={() => updateFontSize(-1)} className="px-2 py-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-all font-bold text-[10px]" title="Decrease font size">
+                        A-
+                    </button>
+                    <button onClick={() => updateFontSize(1)} className="px-2 py-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-all font-bold text-xs" title="Increase font size">
+                        A+
+                    </button>
                 </div>
             </div>
 
-            {/* Content Area — NotebookLM: generous reading width */}
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-5 py-6 md:px-10 md:py-8 custom-scrollbar">
-                <div className="mx-auto max-w-3xl pb-12">
+            {/* Content Area */}
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-8 md:px-12 md:py-16 custom-scrollbar">
+                <div className="w-full max-w-5xl mx-auto pb-32 relative group">
+                    
                     {(() => {
                         const isEmpty = !content.trim() && !title.trim();
                         return (
                             <div className="relative transition-all duration-300">
-                                <div className="relative">
+                                <div className="relative z-10">
                                     {/* Title — document-first, NotebookLM style */}
                                     <input
                                         type="text"
                                         value={title}
                                         onChange={handleTitleChange}
                                         placeholder={isEmpty ? "Name your strategy..." : "Untitled"}
-                                        className="w-full bg-transparent outline-none ring-0 border-0 focus:ring-0 focus:border-0 text-3xl md:text-4xl font-semibold text-[var(--text)] placeholder-[var(--text-muted)] leading-tight mb-8"
+                                        className="w-full bg-transparent outline-none ring-0 border-0 focus:ring-0 focus:border-0 text-2xl md:text-[2.5rem] font-bold text-white/90 placeholder-white/20 leading-tight mb-6"
                                     />
 
                                     {/* Writing Planner — collapsible, minimal */}
@@ -580,7 +601,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         onCompositionEnd={() => { isComposingRef.current = false; }}
                         onChange={handleContentChange}
                         placeholder="Start simple, write everything here..."
-                        className="w-full bg-transparent text-base md:text-lg text-[var(--text)] leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none font-sans min-h-[200px] placeholder-[var(--text-muted)]"
+                        className="w-full bg-transparent text-white/80 leading-[1.9] outline-none ring-0 border-0 focus:ring-0 resize-none font-sans min-h-[240px] placeholder-white/20 transition-all duration-200"
+                        style={{ fontSize: `${fontSize}px` }}
                         spellCheck={false}
                     />
 
@@ -617,11 +639,12 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     <textarea
                                         ref={textareaARef}
                                         value={contentA}
+                                        onChange={(e) => handleSplitContentChange('A', e.target.value)}
                                         onCompositionStart={() => { isComposingRef.current = true; }}
                                         onCompositionEnd={() => { isComposingRef.current = false; }}
-                                        onChange={(e) => handleSplitContentChange('A', e.target.value)}
-                                        placeholder="Write in column A..."
-                                        className="w-full bg-transparent text-base text-[var(--text)] leading-relaxed outline-none resize-none placeholder-[var(--text-muted)] font-sans min-h-[220px]"
+                                        placeholder="Write part A here..."
+                                        className="w-full bg-transparent text-white/80 leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none min-h-[120px] transition-all duration-200"
+                                        style={{ fontSize: `${fontSize}px` }}
                                         spellCheck={false}
                                     />
                                 </div>
@@ -639,11 +662,12 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     <textarea
                                         ref={textareaBRef}
                                         value={contentB}
+                                        onChange={(e) => handleSplitContentChange('B', e.target.value)}
                                         onCompositionStart={() => { isComposingRef.current = true; }}
                                         onCompositionEnd={() => { isComposingRef.current = false; }}
-                                        onChange={(e) => handleSplitContentChange('B', e.target.value)}
-                                        placeholder="Write in column B..."
-                                        className="w-full bg-transparent text-base text-[var(--text)] leading-relaxed outline-none resize-none placeholder-[var(--text-muted)] font-sans min-h-[220px]"
+                                        placeholder="Write part B here..."
+                                        className="w-full bg-transparent text-white/80 leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none min-h-[120px] transition-all duration-200"
+                                        style={{ fontSize: `${fontSize}px` }}
                                         spellCheck={false}
                                     />
                                 </div>
@@ -808,3 +832,5 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         </div>
     );
 }
+
+
