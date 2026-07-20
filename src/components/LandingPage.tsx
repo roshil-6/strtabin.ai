@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
-import { Check, Zap, ArrowRight, Bot, X, Compass, Target, Rocket, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, ChevronDown, Gift, Smartphone, Network, FileText, CheckSquare, ArrowDown, Lightbulb, Star, Code2 } from 'lucide-react';
+import { Check, Zap, ArrowRight, Bot, X, Compass, Target, Rocket, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, ChevronDown, Gift, Smartphone, Network, FileText, CheckSquare, Lightbulb, Star } from 'lucide-react';
 
 import { enableGuestMode } from '../constants';
 import HexagonBackground from './HexagonBackground';

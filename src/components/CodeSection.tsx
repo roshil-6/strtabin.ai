@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { ChevronLeft, FileCode, Plus, Trash2, Download, Code2, Save } from 'lucide-react';
+import { ChevronLeft, FileCode, Plus, Trash2, Download, Code2 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 
 export default function CodeSection() {
