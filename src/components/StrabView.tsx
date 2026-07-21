@@ -332,42 +332,42 @@ export default function StrabView() {
             const wordCount = c?.writingContent?.trim().split(/\s+/).filter(Boolean).length || 0;
 
             const parts: string[] = [
-                `I am **STRAB** for **this project** — chat, **Reports**, and follow-up on **${name}**.`,
+                `I am STRAB. Let's build ${name}.`
             ];
 
             if (nodeCount === 0) {
                 parts.push(
-                    'Your canvas is empty — describe what you\'re building, or ask me to **generate a full strategy on the canvas** (e.g. product launch, GTM roadmap). I can add ideas, connections, writing, and tasks for you.',
+                    '\n\nYour canvas is empty.\nDescribe what you are trying to build, and I will generate a full strategy on the canvas. I can map out ideas, connect nodes, write reports, and set up your initial tasks.'
                 );
             } else {
                 const stage = nodeCount < 4 ? 'early planning' : nodeCount < 10 ? 'active development' : 'detailed execution';
-                parts.push(`You're in **${stage}** with ${nodeCount} ideas${edgeCount > 0 ? ` and ${edgeCount} connections` : ' but no connections yet'}.`);
+                parts.push(`\n\nYou're in ${stage} with ${nodeCount} ideas${edgeCount > 0 ? ` and ${edgeCount} connections` : ' but no connections yet'}.`);
 
                 if (edgeCount === 0 && nodeCount > 1) {
-                    parts.push('Your ideas aren\'t linked — connect them to reveal your strategy flow.');
+                    parts.push('\nYour ideas aren\'t linked — connect them to reveal your strategy flow.');
                 }
             }
 
             if (todoCount > 0) {
                 const rate = Math.round((completedCount / todoCount) * 100);
-                parts.push(`Tasks: **${completedCount}/${todoCount}** done (${rate}%).`);
+                parts.push(`\nTasks: ${completedCount}/${todoCount} done (${rate}%).`);
             }
 
             if (wordCount > 50) {
-                parts.push(`Writing section has ${wordCount.toLocaleString()} words.`);
+                parts.push(`\nWriting section has ${wordCount.toLocaleString()} words.`);
             } else if (nodeCount > 3 && wordCount === 0) {
-                parts.push('No writing yet — your strategy map exists but hasn\'t been written up.');
+                parts.push('\nNo writing yet — your strategy map exists but hasn\'t been written up.');
             }
 
             if (!workspaceId) {
                 parts.push(
-                    'Need a **separate new project** or a **fresh strategy from scratch**? Use **STRAB** in the **Dashboard header** (**New strategy** hub) or **Create new project → AI generated**. **Project STRAB** (this screen) only works on **this** project.',
+                    '\n\nNote: This chat only works on this specific project. To start a fresh strategy, click "Create new project" from the Dashboard.'
                 );
             }
 
-            parts.push('Ask me anything about this project.');
+            parts.push('\n\nAsk me anything about this project.');
 
-            addChatMessage(id, { role: 'assistant', content: parts.join(' ') });
+            addChatMessage(id, { role: 'assistant', content: parts.join('') });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, workspaceId]);
