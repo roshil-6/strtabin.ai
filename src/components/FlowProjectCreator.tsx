@@ -96,6 +96,8 @@ export default function FlowProjectCreator() {
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [isCreating, setIsCreating] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const stepRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
     const step = STEPS[currentStep];
     const isLast = currentStep === STEPS.length - 1;
@@ -103,7 +105,24 @@ export default function FlowProjectCreator() {
     const completedSteps = STEPS.filter((s) => (answers[s.id] || '').trim().length > 0).length;
 
     useEffect(() => {
-        textareaRef.current?.focus();
+        // Focus textarea on desktop, but might want to avoid auto-focus on mobile to prevent keyboard popping up immediately
+        if (window.innerWidth > 768) {
+            textareaRef.current?.focus();
+        }
+        
+        // Auto-scroll the active step into view so mobile users don't have to manually swipe
+        const activeNode = stepRefs.current[currentStep];
+        const container = scrollContainerRef.current;
+        if (activeNode && container) {
+            const nodeLeft = activeNode.offsetLeft;
+            const nodeWidth = activeNode.offsetWidth;
+            const containerWidth = container.offsetWidth;
+            
+            container.scrollTo({
+                left: nodeLeft - containerWidth / 2 + nodeWidth / 2,
+                behavior: 'smooth'
+            });
+        }
     }, [currentStep]);
 
     const goNext = () => {
@@ -196,10 +215,14 @@ export default function FlowProjectCreator() {
                 </div>
             </div>
 
-            <div className="flex-1 w-full max-w-5xl mx-auto px-4 md:px-8 py-10 flex flex-col gap-10">
+            <div className="flex-1 w-full max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col gap-6 md:gap-10">
                 {/* ── Flow Step Nodes ── */}
-                <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-                    <div className="flex items-center min-w-max mx-auto justify-center">
+                <div 
+                    ref={scrollContainerRef}
+                    className="w-full overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide"
+                    style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
+                >
+                    <div className="flex items-center min-w-max mx-auto justify-start md:justify-center px-4 md:px-0">
                         {STEPS.map((s, idx) => {
                             const Icon = s.icon;
                             const isDone = (answers[s.id] || '').trim().length > 0;
@@ -208,8 +231,9 @@ export default function FlowProjectCreator() {
                             return (
                                 <div key={s.id} className="flex items-center">
                                     <button
+                                        ref={(el) => (stepRefs.current[idx] = el)}
                                         onClick={() => setCurrentStep(idx)}
-                                        className="group relative flex flex-col items-center gap-2 w-[110px] md:w-[130px] p-3 md:p-4 rounded-2xl border transition-all duration-200 active:scale-95"
+                                        className="group relative flex flex-col items-center gap-2 w-[95px] md:w-[130px] p-3 md:p-4 rounded-2xl border transition-all duration-200 active:scale-95"
                                         style={{
                                             background: isActive
                                                 ? `${s.glow}`
@@ -242,7 +266,7 @@ export default function FlowProjectCreator() {
                                                 <Icon size={16} style={{ color: isActive ? s.color : 'rgba(255,255,255,0.4)' }} />
                                             )}
                                         </div>
-                                        <div className="text-[11px] font-bold text-center" style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.5)' }}>
+                                        <div className="text-[10px] md:text-[11px] font-bold text-center leading-tight md:leading-normal" style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.5)' }}>
                                             {s.label}
                                         </div>
 
@@ -257,7 +281,7 @@ export default function FlowProjectCreator() {
 
                                     {/* Connector */}
                                     {idx < STEPS.length - 1 && (
-                                        <div className="flex items-center w-8 md:w-12 shrink-0">
+                                        <div className="flex items-center w-6 md:w-12 shrink-0">
                                             <div className="flex-1 h-[1px]" style={{ background: 'rgba(255,255,255,0.08)' }} />
                                             <ChevronRight size={12} className="text-white/20 shrink-0" />
                                         </div>
@@ -301,7 +325,7 @@ export default function FlowProjectCreator() {
                         onKeyDown={handleKeyDown}
                         placeholder={step.placeholder}
                         rows={4}
-                        className="w-full rounded-2xl resize-none text-white/90 text-base leading-relaxed placeholder:text-white/20 outline-none focus:ring-0 border transition-all"
+                        className="w-full rounded-2xl resize-none text-white/90 text-sm md:text-base leading-relaxed placeholder:text-white/20 outline-none focus:ring-0 border transition-all"
                         style={{
                             background: 'rgba(255,255,255,0.03)',
                             borderColor: currentAnswer.trim() ? step.border : 'rgba(255,255,255,0.07)',
@@ -343,7 +367,7 @@ export default function FlowProjectCreator() {
                             <button
                                 onClick={handleCreateProject}
                                 disabled={isCreating}
-                                className="ml-auto flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="ml-auto flex items-center justify-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 rounded-xl font-black text-[12px] md:text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed flex-1 md:flex-none"
                                 style={{
                                     background: isCreating
                                         ? 'rgba(249,115,22,0.5)'
@@ -360,7 +384,8 @@ export default function FlowProjectCreator() {
                                 ) : (
                                     <>
                                         <Bot size={16} />
-                                        Create Project &amp; Start AI Chat
+                                        <span className="hidden md:inline">Create Project &amp; Start AI Chat</span>
+                                        <span className="md:hidden">Create &amp; Start Chat</span>
                                         <ArrowRight size={16} />
                                     </>
                                 )}

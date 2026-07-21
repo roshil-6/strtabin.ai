@@ -28,21 +28,21 @@ const FlowNode = ({
         <div className="flex items-center">
             <div 
                 onClick={onClick}
-                className={`group relative flex flex-col items-center gap-3 w-[140px] p-4 rounded-2xl border transition-all cursor-pointer active:scale-95
+                className={`group relative flex flex-col items-center gap-2 md:gap-3 w-[95px] md:w-[140px] p-2 md:p-4 rounded-2xl border transition-all cursor-pointer active:scale-95
                     ${isActive ? `${theme.border} ${theme.bg} ${theme.glow}` : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04]'}
                 `}
             >
                 <div className={`text-[10px] font-black uppercase tracking-widest ${isActive ? theme.text : 'text-white/30'}`}>
                     {step}
                 </div>
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border transition-all
                     ${isActive ? `${theme.iconBg} ${theme.border}` : 'bg-white/5 border-white/10 group-hover:bg-white/10'}
                 `}>
-                    <Icon size={22} className={isActive ? theme.text : 'text-white/50 group-hover:text-white/80'} />
+                    <Icon size={20} className={isActive ? theme.text : 'text-white/50 group-hover:text-white/80'} />
                 </div>
                 <div className="text-center">
-                    <div className={`text-sm font-bold mb-1 ${isActive ? 'text-white' : 'text-white/80'}`}>{label}</div>
-                    <div className="text-[10px] text-white/40 leading-tight px-1">{description}</div>
+                    <div className={`text-xs md:text-sm font-bold mb-0.5 md:mb-1 ${isActive ? 'text-white' : 'text-white/80'}`}>{label}</div>
+                    <div className="text-[9px] md:text-[10px] text-white/40 leading-tight px-1 hidden md:block">{description}</div>
                 </div>
 
                 {/* Glowing active indicator */}
@@ -53,8 +53,8 @@ const FlowNode = ({
 
             {/* Connecting Line */}
             {!isLast && (
-                <div className="w-12 h-[2px] bg-white/10 relative">
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/20" />
+                <div className="w-6 md:w-12 h-[2px] bg-white/10 relative">
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white/20" />
                 </div>
             )}
         </div>
@@ -119,7 +119,7 @@ export default function ProjectOverview() {
                         </div>
                     </div>
 
-                    <div className="w-full overflow-x-auto pb-6 -mx-6 px-6 md:mx-0 md:px-0">
+                    <div className="w-full overflow-x-auto pb-6 -mx-6 px-6 md:mx-0 md:px-0 scrollbar-hide" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
                         <div className="flex items-center min-w-max">
                             {flowSteps.map((step, idx) => (
                                 <FlowNode 

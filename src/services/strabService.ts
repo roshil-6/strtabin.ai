@@ -193,7 +193,7 @@ const FLOW_BUILDER_TRIGGER = 'I just created a new project.';
  */
 export function selectProvider(
     userMessage: string,
-    chatLength = 1
+    _chatLength = 1
 ): 'openai' | 'anthropic' {
     // Only use Claude for the Flow Builder kick-off message
     if (userMessage.trimStart().startsWith(FLOW_BUILDER_TRIGGER)) return 'anthropic';
