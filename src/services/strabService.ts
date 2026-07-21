@@ -4,19 +4,13 @@ function throttleStreamCallback(cb: (text: string) => void, intervalMs = 50): (t
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let lastCall = 0;
     const flush = (text: string) => {
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-        }
+        if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
         pending = null;
         lastCall = Date.now();
         cb(text);
     };
     return (text: string, isFinal?: boolean) => {
-        if (isFinal) {
-            flush(text);
-            return;
-        }
+        if (isFinal) { flush(text); return; }
         const now = Date.now();
         if (now - lastCall >= intervalMs) {
             flush(text);
@@ -102,14 +96,10 @@ export function strabVisibleAssistantText(raw: string, mode: 'streaming' | 'fina
 
 export interface ProjectContext {
     name: string;
-    nodes?: number;
-    edges?: number;
-    todos?: Array<{ id: string; text: string; completed: boolean }>;
-    lastUpdated?: string;
-    nodeLabels?: (string | undefined)[];
-    writingContent?: string;
-    /** When true, STRAB should populate the canvas via [ACTIONS] if the user asks to build a strategy */
     canvasIsBlank?: boolean;
+    workspaceId?: number;
+    // Allow any additional context fields the caller may include
+    [key: string]: unknown;
 }
 
 export const sendStrabMessage = async (
@@ -123,9 +113,7 @@ export const sendStrabMessage = async (
     return acc;
 };
 
-/**
- * Streaming variant
- */
+/** Streaming variant */
 export const sendStrabMessageStreaming = async (
     messages: ChatMessage[],
     projectContext: ProjectContext,
@@ -174,3 +162,42 @@ export const sendStrabMessageStreaming = async (
     throttled(accumulated, true);
     return accumulated;
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STRAB SMART ROUTING  (GPT-4 first — Claude only when truly unavoidable)
+//
+// Claude (Anthropic) fires ONLY for:
+//   • The very first message from the Flow Builder wizard (bootstraps the canvas
+//     with nodes, connections, and tasks from the user's full project brief).
+//
+// GPT-4 (OpenAI) handles EVERYTHING else:
+//   • All regular chat, Q&A, clarifications, status checks
+//   • Reports, analyses, writing, task suggestions
+//   • Follow-up questions after the initial project setup
+//
+// Rationale: Claude credits are expensive. GPT-4 is fast and capable for 95%
+// of STRAB interactions. Reserve Claude's deeper reasoning for the one moment
+// where it genuinely matters — bootstrapping a brand-new project canvas.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The exact trigger phrase sent by FlowProjectCreator.tsx */
+const FLOW_BUILDER_TRIGGER = 'I just created a new project.';
+
+/**
+ * selectProvider — picks the AI engine for each STRAB message.
+ *
+ * @param userMessage  The user's raw message string.
+ * @param chatLength   Total messages in the conversation so far (before this one).
+ * @returns 'anthropic' (Claude) only for the Flow Builder initial brief;
+ *          'openai' (GPT-4) for everything else.
+ */
+export function selectProvider(
+    userMessage: string,
+    _chatLength = 1
+): 'openai' | 'anthropic' {
+    // Only use Claude for the Flow Builder kick-off message
+    if (userMessage.trimStart().startsWith(FLOW_BUILDER_TRIGGER)) return 'anthropic';
+
+    // GPT-4 for everything else — fast, cheap, and capable
+    return 'openai';
+}

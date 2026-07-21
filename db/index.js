@@ -84,6 +84,10 @@ export async function initDb() {
                 db.exec('ALTER TABLE projects ADD COLUMN assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL');
                 console.log('📦 Migration: added assigned_to to projects');
             }
+            if (!cols.some((c) => c.name === 'type')) {
+                db.exec("ALTER TABLE projects ADD COLUMN type TEXT NOT NULL DEFAULT 'strategy'");
+                console.log('📦 Migration: added type to projects');
+            }
         } catch { /* ignore */ }
 
         try {

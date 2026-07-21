@@ -71,6 +71,7 @@ function isAllowedOrigin(origin) {
     if (allowedOrigins.includes(origin)) return true;
     try {
         const host = new URL(origin).hostname;
+        if (host === 'localhost' || host === '127.0.0.1') return true;
         return host === 'stratabin.com' || host.endsWith('.stratabin.com') || host.endsWith('.vercel.app') || host.endsWith('.onrender.com');
     } catch { return false; }
 }
@@ -388,7 +389,7 @@ function sanitiseContext(ctx) {
 
 // ─── System Prompt ────────────────────────────────────────────────────────
 const SYSTEM_PROMPT_BASE = `
-You are STRAB, an embedded AI intelligence layer for Stratabin — a strategy workspace app. You are scoped entirely to the active project the user is working on. You have deep access to the project's data: ideas on the canvas and their connections, tasks, writing, timeline, and metadata.
+You are STRAB, an embedded AI intelligence layer for Stratabin — an all-in-one strategy workspace, flow builder, and code execution platform. You are scoped entirely to the active project the user is working on. You have deep access to the project's data: ideas on the canvas, active code files in the built-in IDE, tasks, writing, timeline, and metadata.
 
 Your single objective: help the user achieve their project goal faster and with more clarity.
 
@@ -623,7 +624,7 @@ app.post('/api/strab-general', optionalAuth, guestOrAuthLimiter, async (req, res
     const messages = sanitiseMessages(req.body.messages);
     if (!messages || messages.length === 0) return res.status(400).json({ error: 'No messages provided.' });
     
-    const systemPrompt = `You are STRAB, the core intelligence layer of Stratabin — an AI workspace and strategy planning app. The user is on the strategy hub, either starting a new project or exploring ideas before committing them to a canvas.
+    const systemPrompt = `You are STRAB, the core intelligence layer of Stratabin — an all-in-one AI workspace, strategy planner, and execution platform. The user is on the strategy hub, either starting a new project or exploring ideas before committing them to a canvas.
 
 Your role: help the user think clearly, structure their idea into a compelling strategy, and guide them toward creating a Stratabin project. Be sharp, direct, and genuinely helpful.
 
@@ -632,13 +633,58 @@ RULES:
 - Keep replies concise: 2-4 sentences for conversational messages, bullet points for structured analysis.
 - Do NOT start any response with "Great question!", "Of course!", "Certainly!", or any filler opener.
 - When the user describes a project idea, help them identify: the core goal, key phases, likely blockers, and first concrete action.
-- If the user asks what Stratabin can do: explain it is a strategy workspace combining a visual idea canvas, long-form writing editor, task management, calendar, and AI that reads the full project context to provide insights.
+- If the user asks what Stratabin is or what it can do: explicitly explain that it is an all-in-one workspace combining a visual flow builder for setting up projects, an interactive strategy canvas, an integrated code editor for software execution, distraction-free writing, task management, and STRAB AI that reads the full context to provide strategic insights.
 - Be a strategic thinking partner — sharp, proactive, and grounded in what the user actually says.`;
     await handleAIStream(req, res, systemPrompt, messages);
 });
 
 // ─── Static uploads (chat photos/files) ─────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ─── Code Execution Proxy (Local) ──────────────────────────────────────────
+app.post('/api/execute', async (req, res) => {
+    try {
+        const { language, files } = req.body;
+        if (!language || !files || !files.length) {
+            return res.status(400).json({ error: 'Missing language or files for execution.' });
+        }
+
+        const { exec } = await import('child_process');
+        const fs = await import('fs/promises');
+        const os = await import('os');
+        const crypto = await import('crypto');
+
+        const file = files[0];
+        const content = file.content;
+        const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'strab-exec-'));
+        const fileName = file.name || (language === 'python' ? 'main.py' : language === 'javascript' ? 'main.js' : 'main.txt');
+        const filePath = path.join(tmpDir, fileName);
+        await fs.writeFile(filePath, content);
+
+        let cmd = '';
+        if (language === 'python' || language === 'py') cmd = `python "${filePath}"`;
+        else if (language === 'javascript' || language === 'node' || language === 'js') cmd = `node "${filePath}"`;
+        else if (language === 'typescript' || language === 'ts') cmd = `npx tsx "${filePath}"`;
+        else {
+            await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+            return res.status(400).json({ error: `Unsupported language: ${language}` });
+        }
+
+        exec(cmd, { timeout: 10000 }, async (error, stdout, stderr) => {
+            await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+            res.json({
+                run: {
+                    stdout: stdout || "",
+                    stderr: stderr || "",
+                    code: error ? (error.code || 1) : 0
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Execution Error:', error);
+        return res.status(500).json({ error: 'Failed to execute code locally.' });
+    }
+});
 
 // ─── Social + Team Workspace System (Phase 2) ───────────────────────────────
 registerWorkspaceRoutes(app, clerk);

@@ -21,6 +21,9 @@ import AuthGate from './components/AuthGate';
 import UserSyncOnLoad from './components/UserSyncOnLoad';
 import ProjectBackground from './components/ProjectBackground';
 import NotFoundPage from './components/NotFoundPage';
+import GlobalModals from './components/GlobalModals';
+import ProjectOverview from './components/ProjectOverview';
+import FlowProjectCreator from './components/FlowProjectCreator';
 
 function App() {
   const { pathname } = useLocation();
@@ -34,6 +37,7 @@ function App() {
 
   return (
     <div className="min-h-screen w-full theme-page relative">
+    <GlobalModals />
     <UserSyncOnLoad />
     {showGrid && <ProjectBackground />}
     <Routes>
@@ -42,6 +46,8 @@ function App() {
       <Route path="/features" element={<FeaturesPage />} />
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
       <Route path="/dashboard" element={<AuthGate><Dashboard /></AuthGate>} />
+      <Route path="/project/:id" element={<AuthGate><ProjectOverview /></AuthGate>} />
+      <Route path="/flow-creator" element={<AuthGate><FlowProjectCreator /></AuthGate>} />
       <Route path="/folder-workflow/:folderId" element={<AuthGate><FolderWorkflow /></AuthGate>} />
       <Route path="/strategy/:id" element={<AuthGate><Canvas /></AuthGate>} />
       <Route path="/canvas/:id" element={<AuthGate><Canvas /></AuthGate>} />

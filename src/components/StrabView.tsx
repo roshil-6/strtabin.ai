@@ -3,7 +3,8 @@ import { useParams, useNavigate, useSearchParams, useLocation } from 'react-rout
 import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
-import { sendStrabMessageStreaming, strabVisibleAssistantText, type ChatMessage } from '../services/strabService';
+import useModalStore from '../store/useModalStore';
+import { sendStrabMessageStreaming, strabVisibleAssistantText, selectProvider, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
 import { workspaceService } from '../services/workspaceService';
 import {
@@ -182,7 +183,7 @@ export default function StrabView() {
     const [loadingPhrase, setLoadingPhrase] = useState('Analysing your project…');
     const tabParam = searchParams.get('tab');
     const [activeTab, setActiveTab] = useState<'chat' | 'reports'>(tabParam === 'reports' ? 'reports' : 'chat');
-    const [provider, setProvider] = useState<'openai' | 'anthropic'>('openai');
+
     const [proAiRemaining, setProAiRemaining] = useState(() => (user?.id ? getProAiRemaining(user.id) : PRO_AI_DAILY_LIMIT));
     const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -371,7 +372,8 @@ export default function StrabView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, workspaceId]);
 
-    // Auto-prompt logic for Selection Follow-up
+
+
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('autoPrompt') === 'true' && !isLoading && chatHistory.length > 0) {
@@ -410,7 +412,7 @@ export default function StrabView() {
                             },
                             token ?? undefined,
                             undefined,
-                            provider
+                            selectProvider(chatHistory[chatHistory.length - 1]?.content ?? '', chatHistory.length)
                         );
                         const createProjectInWorkspace = workspaceId && token
                             ? async (name: string, nodes: Node[], edges: Edge[], writing: string, _todos: string[]) => {
@@ -494,6 +496,9 @@ export default function StrabView() {
         addChatMessage(id!, { role: 'assistant', content: '' });
         setIsLoading(true);
 
+        // Auto-select provider: Claude for heavy/complex tasks, GPT-4 for quick replies
+        const chosenProvider = selectProvider(message, chatHistory.length);
+
         if (isGuest) {
             consumeGuestAiMessage();
             setGuestAiRemaining(getGuestAiRemaining());
@@ -516,7 +521,7 @@ export default function StrabView() {
                             },
                             token ?? undefined,
                             undefined,
-                            provider
+                            chosenProvider
                         );
             const createProjectInWorkspace = workspaceId && token
                 ? async (name: string, nodes: Node[], edges: Edge[], writing: string, _todos: string[]) => {
@@ -596,6 +601,22 @@ export default function StrabView() {
             `Be direct, specific, and reference actual data from the project. No filler.`
         );
     }, [sendMessage, resolvedName]);
+
+    // Auto-send message from Flow Project Creator (must come after sendMessage is declared)
+    const autoMessageFiredRef = useRef(false);
+    useEffect(() => {
+        const state = location.state as { autoMessage?: string } | null;
+        if (!state?.autoMessage || autoMessageFiredRef.current || !id) return;
+        const timer = setTimeout(() => {
+            if (!autoMessageFiredRef.current) {
+                autoMessageFiredRef.current = true;
+                sendMessage(state.autoMessage!);
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }, 800);
+        return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     // Compute real report metrics
     const totalTasks = canvas?.todos?.length || 0;
@@ -702,19 +723,10 @@ export default function StrabView() {
                             {proAiRemaining > 0 ? `${proAiRemaining}/12 today` : 'Limit reached'}
                         </span>
                     )}
-                    <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04] mr-2">
-                        <button
-                            onClick={() => setProvider('openai')}
-                            className={`px-2 py-1 rounded-lg text-[10px] md:text-[11px] font-bold transition-all ${provider === 'openai' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white/60'}`}
-                        >
-                            GPT
-                        </button>
-                        <button
-                            onClick={() => setProvider('anthropic')}
-                            className={`px-2 py-1 rounded-lg text-[10px] md:text-[11px] font-bold transition-all ${provider === 'anthropic' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white/60'}`}
-                        >
-                            Claude
-                        </button>
+                    {/* STRAB branding badge — replaces the old provider toggle */}
+                    <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-white/30 text-[10px] font-bold mr-2 shrink-0">
+                        <Sparkles size={10} className="text-primary/60" />
+                        GPT-4 &amp; Claude
                     </div>
                     <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04]">
                         <button
@@ -998,8 +1010,8 @@ export default function StrabView() {
                                         <Target size={12} /> Outcome Goals
                                     </div>
                                     <button
-                                        onClick={() => {
-                                            const label = window.prompt('Goal (e.g. Launch product, 100 users)');
+                                        onClick={async () => {
+                                            const label = await useModalStore.getState().prompt('Goal (e.g. Launch product, 100 users)');
                                             if (label?.trim()) addCanvasGoal(id!, { label: label.trim(), targetMetric: label.trim() });
                                         }}
                                         className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all"

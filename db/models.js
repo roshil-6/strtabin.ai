@@ -251,12 +251,12 @@ export async function joinWorkspaceById(workspaceId, userId) {
 }
 
 // ─── Projects ──────────────────────────────────────────────────────────────
-export async function createProject({ workspaceId, title, description, status = 'idea', canvasId, assignedTo }) {
+export async function createProject({ workspaceId, type = 'strategy', title, description, status = 'idea', canvasId, assignedTo }) {
     const result = await qRun(
         `
-        INSERT INTO projects (workspace_id, title, description, status, canvas_id, assigned_to) VALUES (?, ?, ?, ?, ?, ?) RETURNING id
+        INSERT INTO projects (workspace_id, type, title, description, status, canvas_id, assigned_to) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id
     `,
-        [workspaceId, title, description || null, status, canvasId || null, assignedTo || null]
+        [workspaceId, type, title, description || null, status, canvasId || null, assignedTo || null]
     );
     return result.lastInsertRowid;
 }
