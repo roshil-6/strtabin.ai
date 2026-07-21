@@ -1688,7 +1688,7 @@ export default function Dashboard() {
                     {/* Footer — dual CTAs (mock-style) */}
                     <div className="mt-auto pt-3 border-t border-white/[0.06] flex flex-col gap-3">
                         {!selectionMode && (
-                            <div className="hidden md:flex items-center gap-2">
+                            <div className="flex items-stretch gap-2">
                                 <button
                                     type="button"
                                     onClick={(e) => {
@@ -1712,17 +1712,15 @@ export default function Dashboard() {
                             </div>
                         )}
                         <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] text-zinc-500 font-medium hidden md:inline truncate">
+                            <span className="text-[10px] text-zinc-500 font-medium truncate">
                                 {p.folderId ? (folders[p.folderId]?.name || 'Workspace project') : 'General project'}
                             </span>
-                            <span className="flex md:hidden items-center gap-1 text-[10px] font-black uppercase tracking-wider text-teal-400">
-                                {selectionMode ? (isSelected ? 'Tap to deselect' : 'Tap to select') : 'Open'}
-                                <ArrowRight size={11} />
-                            </span>
-                            <span className="hidden md:flex items-center gap-1 text-[10px] font-black uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all text-teal-400/80">
-                                Card click → workspace
-                                <ArrowRight size={11} />
-                            </span>
+                            {selectionMode && (
+                                <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-teal-400">
+                                    {isSelected ? 'Tap to deselect' : 'Tap to select'}
+                                    <ArrowRight size={11} />
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
