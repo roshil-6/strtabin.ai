@@ -71,6 +71,7 @@ function isAllowedOrigin(origin) {
     if (allowedOrigins.includes(origin)) return true;
     try {
         const host = new URL(origin).hostname;
+        if (host === 'localhost' || host === '127.0.0.1') return true;
         return host === 'stratabin.com' || host.endsWith('.stratabin.com') || host.endsWith('.vercel.app') || host.endsWith('.onrender.com');
     } catch { return false; }
 }
@@ -639,6 +640,51 @@ RULES:
 
 // ─── Static uploads (chat photos/files) ─────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ─── Code Execution Proxy (Local) ──────────────────────────────────────────
+app.post('/api/execute', async (req, res) => {
+    try {
+        const { language, files } = req.body;
+        if (!language || !files || !files.length) {
+            return res.status(400).json({ error: 'Missing language or files for execution.' });
+        }
+
+        const { exec } = await import('child_process');
+        const fs = await import('fs/promises');
+        const os = await import('os');
+        const crypto = await import('crypto');
+
+        const file = files[0];
+        const content = file.content;
+        const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'strab-exec-'));
+        const fileName = file.name || (language === 'python' ? 'main.py' : language === 'javascript' ? 'main.js' : 'main.txt');
+        const filePath = path.join(tmpDir, fileName);
+        await fs.writeFile(filePath, content);
+
+        let cmd = '';
+        if (language === 'python' || language === 'py') cmd = `python "${filePath}"`;
+        else if (language === 'javascript' || language === 'node' || language === 'js') cmd = `node "${filePath}"`;
+        else if (language === 'typescript' || language === 'ts') cmd = `npx tsx "${filePath}"`;
+        else {
+            await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+            return res.status(400).json({ error: `Unsupported language: ${language}` });
+        }
+
+        exec(cmd, { timeout: 10000 }, async (error, stdout, stderr) => {
+            await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+            res.json({
+                run: {
+                    stdout: stdout || "",
+                    stderr: stderr || "",
+                    code: error ? (error.code || 1) : 0
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Execution Error:', error);
+        return res.status(500).json({ error: 'Failed to execute code locally.' });
+    }
+});
 
 // ─── Social + Team Workspace System (Phase 2) ───────────────────────────────
 registerWorkspaceRoutes(app, clerk);

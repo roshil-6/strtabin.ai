@@ -12,6 +12,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import useStore, { type RFState } from '../store/useStore';
+import useModalStore from '../store/useModalStore';
 import { resolveFolderMapSettings } from '../lib/folderMapSettings';
 import { canvasHasUserFacingName } from '../lib/canvasProjectFilter';
 import FolderMapSettingsPanel from './FolderMapSettingsPanel';
@@ -319,13 +320,13 @@ function CanvasContent() {
         addEdge(newEdge);
     }, [nodes, addNode, addEdge]);
 
-    // Clear entire flow — remove all nodes and edges
-    const handleClearFlow = useCallback(() => {
-        if (nodes.length === 0 && edges.length === 0) {
+    const handleClearFlow = useCallback(async () => {
+        if (nodes.length === 0) {
             toast('Flow is already empty');
             return;
         }
-        if (!window.confirm('Clear the entire flow? All ideas and connections will be removed.')) return;
+        const confirmed = await useModalStore.getState().confirm('Clear the entire flow? All ideas and connections will be removed.');
+        if (!confirmed) return;
         onEdgesChange(edges.map(e => ({ type: 'remove' as const, id: e.id })));
         onNodesChange(nodes.map(n => ({ type: 'remove' as const, id: n.id })));
         toast.success('Flow cleared');

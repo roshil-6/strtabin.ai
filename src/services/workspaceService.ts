@@ -37,6 +37,7 @@ export type Workspace = {
 export type Project = {
   id: number;
   workspace_id: number;
+  type: 'strategy' | 'code' | 'notes';
   title: string;
   description: string | null;
   status: ProjectStatus;
@@ -216,7 +217,7 @@ export const workspaceService = {
 
   async createProject(
     workspaceId: number,
-    data: { title: string; description?: string; status?: ProjectStatus; canvasId?: string; assignedTo?: number | null },
+    data: { type?: string; title: string; description?: string; status?: ProjectStatus; canvasId?: string; assignedTo?: number | null },
     token: string | null
   ) {
     return fetchWithAuth(

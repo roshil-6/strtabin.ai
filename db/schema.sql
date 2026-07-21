@@ -91,6 +91,7 @@ CREATE INDEX IF NOT EXISTS idx_invitations_invitee_user ON invitations(invitee_u
 CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    type TEXT NOT NULL DEFAULT 'strategy' CHECK (type IN ('strategy', 'code', 'notes')),
     title TEXT NOT NULL,
     description TEXT,
     status TEXT NOT NULL DEFAULT 'idea' CHECK (status IN ('idea', 'planning', 'executing', 'completed')),

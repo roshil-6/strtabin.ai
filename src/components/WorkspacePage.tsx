@@ -35,6 +35,8 @@ import {
   RefreshCw,
   Building2,
   ClipboardList,
+  Code2,
+  FileText
 } from 'lucide-react';
 
 /** Theme-aware fields — native selects & inputs stay readable in light/dark */
@@ -75,6 +77,7 @@ export default function WorkspacePage() {
   const [inviteUsername, setInviteUsername] = useState('');
   const [newProjectTitle, setNewProjectTitle] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [newProjectType, setNewProjectType] = useState<'strategy' | 'code' | 'notes'>('strategy');
   const [newProjectAssignTo, setNewProjectAssignTo] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [editingProject, setEditingProject] = useState<number | null>(null);
@@ -201,7 +204,7 @@ export default function WorkspacePage() {
       const token = await getToken();
       const res = await workspaceService.createProject(
         workspaceId,
-        { title: newProjectTitle.trim(), description: newProjectDesc.trim() || undefined, assignedTo: newProjectAssignTo ?? undefined },
+        { type: newProjectType, title: newProjectTitle.trim(), description: newProjectDesc.trim() || undefined, assignedTo: newProjectAssignTo ?? undefined },
         token
       );
       let project = res?.project ?? res;
@@ -221,6 +224,7 @@ export default function WorkspacePage() {
       setShowNewProject(false);
       setNewProjectTitle('');
       setNewProjectDesc('');
+      setNewProjectType('strategy');
       setNewProjectAssignTo(null);
       if (isTeam) setActiveTab('projects');
     } catch (err) {
@@ -258,7 +262,13 @@ export default function WorkspacePage() {
   const handleOpenProject = async (project: Project) => {
     const state = { workspaceId: isNaN(workspaceId) ? undefined : workspaceId, projectTitle: project.title };
     if (project.canvas_id) {
-      navigate(`/strategy/${project.canvas_id}`, { state });
+      if (project.type === 'code') {
+        navigate(`/code/${project.canvas_id}`, { state });
+      } else if (project.type === 'notes') {
+        navigate(`/notes/${project.canvas_id}`, { state });
+      } else {
+        navigate(`/strategy/${project.canvas_id}`, { state });
+      }
       return;
     }
     if (isTeam) {
@@ -266,11 +276,17 @@ export default function WorkspacePage() {
       try {
         const token = await getToken();
         await workspaceService.updateProject(project.id, { canvasId }, token);
-        setProjects((p) => p.map((pr) => (pr.id === project.id ? { ...pr, canvas_id: canvasId } : pr)));
-      } catch {
-        /* proceed to open anyway */
+        if (project.type === 'code') {
+          navigate(`/code/${canvasId}`, { state });
+        } else if (project.type === 'notes') {
+          navigate(`/notes/${canvasId}`, { state });
+        } else {
+          navigate(`/strategy/${canvasId}`, { state });
+        }
+      } catch (err) {
+        console.error('Failed to init team canvas:', err);
+        toast.error('Failed to open project');
       }
-      navigate(`/strategy/${canvasId}`, { state });
       return;
     }
     navigate(`/dashboard`);
@@ -813,7 +829,7 @@ export default function WorkspacePage() {
                       </div>
                     ) : (
                       (isTeam ? filteredProjects : projects).map((project) => {
-                        const Icon = STATUS_ICONS[project.status];
+                        const Icon = project.type === 'code' ? Code2 : project.type === 'notes' ? FileText : STATUS_ICONS[project.status];
                         return (
                           <div
                             key={project.id}
@@ -1434,11 +1450,16 @@ export default function WorkspacePage() {
             )}
             <h3 className={`text-lg font-black text-white mb-4 ${projects.length === 0 ? 'text-center' : ''}`}>New project</h3>
             <form onSubmit={handleCreateProject} className="space-y-3">
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setNewProjectType('strategy')} className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${newProjectType === 'strategy' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 text-white/50 border-white/10 hover:border-white/20'}`}>Strategy</button>
+                <button type="button" onClick={() => setNewProjectType('code')} className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${newProjectType === 'code' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 text-white/50 border-white/10 hover:border-white/20'}`}>Code</button>
+                <button type="button" onClick={() => setNewProjectType('notes')} className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${newProjectType === 'notes' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 text-white/50 border-white/10 hover:border-white/20'}`}>Notes</button>
+              </div>
               <input
                 type="text"
                 value={newProjectTitle}
                 onChange={(e) => setNewProjectTitle(e.target.value)}
-                placeholder="Project title"
+                placeholder={`${newProjectType === 'code' ? 'Code project name' : newProjectType === 'notes' ? 'Notes title' : 'Strategy project title'}`}
                 className={`${wsField} px-4`}
                 required
               />

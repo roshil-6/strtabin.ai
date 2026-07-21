@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import useModalStore from '../store/useModalStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
@@ -239,9 +240,9 @@ export default function Dashboard() {
         setShowMoveMenu(null);
     };
 
-    const handleMoveToFreshFolder = (projectId: string) => {
+    const handleMoveToFreshFolder = async (projectId: string) => {
         setShowMoveMenu(null); // Close menu before prompt
-        const folderName = window.prompt('New folder name for this project:');
+        const folderName = await useModalStore.getState().prompt('New folder name for this project:');
         const trimmed = folderName?.trim();
         if (!trimmed) return;
         const freshFolderId = createFolder(trimmed);
@@ -249,9 +250,9 @@ export default function Dashboard() {
         toast.success(`Moved to new folder "${trimmed}"`);
     };
 
-    const handleDuplicateToFreshFolder = (projectId: string) => {
+    const handleDuplicateToFreshFolder = async (projectId: string) => {
         setShowDuplicateMenu(null); // Close menu before prompt so it doesn't block
-        const folderName = window.prompt('New folder name for duplicated project:');
+        const folderName = await useModalStore.getState().prompt('New folder name for duplicated project:');
         const trimmed = folderName?.trim();
         if (!trimmed) return;
         const freshFolderId = createFolder(trimmed);
@@ -321,22 +322,7 @@ export default function Dashboard() {
         { id: 'strab', label: 'Project STRAB', title: 'STRAB for this project — chat, Reports tab, and follow-up support', icon: Bot, color: 'text-orange-500' },
     ];
 
-    const getTargetRoute = (project: CanvasData) => {
-        if (project.projectType === 'code') {
-            return `/code/${project.id}`;
-        }
-        switch (activeTab) {
-            case 'strategy': return `/strategy/${project.id}`;
-            case 'todo': return `/todo/${project.id}`;
-            case 'timeline': return `/timeline/${project.id}`;
-            case 'calendar': return `/calendar/${project.id}`;
-            case 'planner': return `/calendar/${project.id}?mode=week`;
-            case 'reports': return `/strab/${project.id}?tab=reports`;
-            case 'monitor': return `/calendar/${project.id}`;
-            case 'strab': return `/strab/${project.id}`;
-            default: return `/strategy/${project.id}`;
-        }
-    };
+
 
     const getActiveIcon = () => {
         switch (activeTab) {
@@ -459,7 +445,7 @@ export default function Dashboard() {
         return (
             <div
                 key={p.id}
-                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p))}
+                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(`/project/${p.id}`)}
                 className={`relative flex items-center gap-3.5 p-4 rounded-2xl active:scale-[0.97] transition-all duration-200 cursor-pointer overflow-hidden ${
                     isSelected ? 'ring-2 ring-primary/40' : ''
                 } ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}`}
@@ -951,6 +937,16 @@ export default function Dashboard() {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
+                                {/* Flow Builder — AI-guided new project */}
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/flow-creator')}
+                                    className="hidden md:inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-violet-500/40 bg-violet-500/10 text-violet-300 font-black text-xs uppercase tracking-widest hover:bg-violet-500/20 active:scale-95 transition-all shrink-0"
+                                >
+                                    <Sparkles size={14} />
+                                    Flow Builder
+                                </button>
+
                                 <button
                                     type="button"
                                     onClick={handleCreate}
@@ -1484,7 +1480,7 @@ export default function Dashboard() {
         return (
             <div
                 key={p.id}
-                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p))}
+                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(`/project/${p.id}`)}
                 className={`dashboard-project-card group relative rounded-2xl md:rounded-[1.25rem] border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
                     ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20 shadow-[0_8px_40px_rgba(218,119,86,0.14)]' : 'border-[var(--border)]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
@@ -1697,11 +1693,11 @@ export default function Dashboard() {
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(getTargetRoute(p));
+                                        navigate(`/project/${p.id}`);
                                     }}
-                                    className="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide border border-teal-500/40 text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 transition-colors"
+                                    className="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide border border-primary/40 text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
                                 >
-                                    Continue
+                                    View All Details
                                 </button>
                                 <button
                                     type="button"
@@ -1711,7 +1707,7 @@ export default function Dashboard() {
                                     }}
                                     className="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide border border-white/10 text-white/80 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
                                 >
-                                    Open
+                                    Open Canvas
                                 </button>
                             </div>
                         )}
@@ -1752,7 +1748,7 @@ export default function Dashboard() {
         return (
             <div
                 key={p.id}
-                onClick={(e) => (selectionMode ? handleSelect(e, p.id) : navigate(getTargetRoute(p)))}
+                onClick={(e) => (selectionMode ? handleSelect(e, p.id) : navigate(`/project/${p.id}`))}
                 className={`dashboard-hero-card group relative rounded-2xl md:rounded-3xl border transition-all duration-300 cursor-pointer overflow-visible flex flex-col md:flex-row md:items-stretch gap-5 md:gap-0 md:min-h-[168px]
                     ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20' : 'border-[var(--border)]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
@@ -1950,11 +1946,11 @@ export default function Dashboard() {
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        navigate(getTargetRoute(p));
+                                        navigate(`/project/${p.id}`);
                                     }}
-                                    className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wide text-teal-950 bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-300 hover:to-cyan-300 transition-all shadow-[0_4px_20px_rgba(45,212,191,0.25)]"
+                                    className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wide text-black bg-gradient-to-r from-primary to-orange-400 hover:from-orange-400 hover:to-primary transition-all shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
                                 >
-                                    Continue
+                                    View All Details
                                 </button>
                                 <button
                                     type="button"
@@ -1964,7 +1960,7 @@ export default function Dashboard() {
                                     }}
                                     className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wide border border-white/15 text-white/85 bg-white/[0.04] hover:bg-white/[0.08] transition-all"
                                 >
-                                    Open
+                                    Open Canvas
                                 </button>
                             </>
                         )}

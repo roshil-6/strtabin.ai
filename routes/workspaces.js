@@ -457,14 +457,17 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 return res.status(403).json({ error: 'Access denied.' });
             }
 
-            const { title, description, status, canvasId, assignedTo } = req.body || {};
+            const { title, type, description, status, canvasId, assignedTo } = req.body || {};
             const titleStr = sanitizeStr(title, 200);
             if (!titleStr) return res.status(400).json({ error: 'Project title is required.' });
             let assignId = assignedTo != null && assignedTo !== '' ? parseInt(assignedTo, 10) : null;
             if (assignId && !(await getWorkspaceMembers(workspaceId)).some(m => m.id === assignId)) assignId = null;
 
+            const projectType = type === 'code' || type === 'notes' ? type : 'strategy';
+
             const projectId = await createProject({
                 workspaceId,
+                type: projectType,
                 title: titleStr,
                 description: sanitizeStr(description, 2000),
                 status: validateProjectStatus(status),

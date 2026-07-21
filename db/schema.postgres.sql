@@ -83,6 +83,7 @@ CREATE INDEX IF NOT EXISTS idx_invitations_invitee_user ON invitations(invitee_u
 CREATE TABLE IF NOT EXISTS projects (
     id BIGSERIAL PRIMARY KEY,
     workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    type TEXT NOT NULL DEFAULT 'strategy' CHECK (type IN ('strategy', 'code', 'notes')),
     title TEXT NOT NULL,
     description TEXT,
     status TEXT NOT NULL DEFAULT 'idea' CHECK (status IN ('idea', 'planning', 'executing', 'completed')),
@@ -197,3 +198,5 @@ CREATE TABLE IF NOT EXISTS shared_canvases (
 
 CREATE INDEX IF NOT EXISTS idx_shared_canvases_share_id ON shared_canvases(share_id);
 
+A L T E R   T A B L E   p r o j e c t s   A D D   C O L U M N   I F   N O T   E X I S T S   t y p e   T E X T   N O T   N U L L   D E F A U L T   ' s t r a t e g y ' ;  
+ 
