@@ -5,7 +5,7 @@ import useModalStore from '../store/useModalStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronRight, Rocket, BookOpen } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, Rocket, BookOpen } from 'lucide-react';
 
 const DASHBOARD_GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
@@ -446,7 +446,7 @@ export default function Dashboard() {
             <div
                 key={p.id}
                 onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(`/project/${p.id}`)}
-                className={`relative flex items-center gap-3.5 p-4 rounded-2xl active:scale-[0.97] transition-all duration-200 cursor-pointer overflow-hidden ${
+                className={`relative flex flex-col gap-3 p-4 rounded-2xl active:scale-[0.97] transition-all duration-200 cursor-pointer overflow-hidden ${
                     isSelected ? 'ring-2 ring-primary/40' : ''
                 } ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}`}
                 style={{
@@ -455,23 +455,55 @@ export default function Dashboard() {
                     boxShadow: '0 2px 12px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.04) inset',
                 }}
             >
-                <div className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
-                    {isMerged ? <GitMerge size={22} strokeWidth={1.75} className="text-primary" /> : <Icon size={22} strokeWidth={1.75} className="text-primary" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-white/90 text-[15px] truncate leading-tight">{displayName}</h3>
-                    {projectQuickActionsRow(p)}
-                    <div className="flex items-center gap-2 mt-1 text-[11px] text-white/35 font-medium">
-                        {todoCount > 0 && <span>{completionRate}% done</span>}
-                        {nodeCount > 0 && <span>• {nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>}
+                <div className="flex items-start gap-3.5">
+                    <div className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
+                        {isMerged ? <GitMerge size={22} strokeWidth={1.75} className="text-primary" /> : <Icon size={22} strokeWidth={1.75} className="text-primary" />}
                     </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-white/90 text-[15px] truncate leading-tight mb-1.5">{displayName}</h3>
+                        {projectQuickActionsRow(p)}
+                        <div className="flex items-center gap-2 mt-1.5 text-[11px] text-white/35 font-medium">
+                            {todoCount > 0 && <span>{completionRate}% done</span>}
+                            {nodeCount > 0 && <span>• {nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>}
+                        </div>
+                    </div>
+                    {selectionMode && (
+                        <div className="shrink-0 mt-1">
+                            {isSelected ? <CheckCircle2 size={22} className="text-primary" /> : <div className="w-6 h-6 rounded-full border-2 border-white/20" />}
+                        </div>
+                    )}
                 </div>
+
+                {!selectionMode && (
+                    <div className="flex items-stretch gap-2 pt-2 mt-1 border-t border-white/[0.04]">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/project/${p.id}`);
+                            }}
+                            className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide border border-primary/40 text-primary bg-primary/10 hover:bg-primary/20 transition-colors text-center"
+                        >
+                            View Details
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/strategy/${p.id}`);
+                            }}
+                            className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide border border-white/10 text-white/80 bg-white/[0.04] hover:bg-white/[0.08] transition-colors text-center"
+                        >
+                            Open Project
+                        </button>
+                    </div>
+                )}
+
                 {!selectionMode && todoCount > 0 && completionRate > 0 && (
                     <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: 'rgba(255,255,255,0.04)' }}>
                         <div className="h-full transition-all" style={{ width: `${completionRate}%`, background: completionRate === 100 ? '#10b981' : '#f97316' }} />
                     </div>
                 )}
-                {selectionMode ? (isSelected ? <CheckCircle2 size={22} className="text-primary shrink-0" /> : <div className="w-6 h-6 rounded-full border-2 border-white/20 shrink-0" />) : <ChevronRight size={20} className="text-white/30 shrink-0" />}
             </div>
         );
     }
