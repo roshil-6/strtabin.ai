@@ -10,7 +10,7 @@ import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Cl
 const DASHBOARD_GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
 import type { CanvasData } from '../store/useStore';
-import { API_BASE_URL } from '../constants';
+import { API_BASE_URL, clearGuestMode } from '../constants';
 import { useAuth } from '@clerk/clerk-react';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
 import { workspaceService, type Workspace } from '../services/workspaceService';
@@ -888,29 +888,44 @@ export default function Dashboard() {
                                 <img src={user.imageUrl} alt={user.fullName || 'User'} className="h-8 w-8 shrink-0 rounded-full border border-[var(--border)] object-cover" />
                             ) : (
                                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--input-bg)] text-[10px] font-bold text-[var(--text)]">
-                                    {user?.firstName?.[0] || 'U'}
+                                    {user?.firstName?.[0] || 'G'}
                                 </div>
                             )}
                             <div className="min-w-0 text-[11px]">
-                                <p className="mb-1 truncate font-bold leading-none text-[var(--text)]">{user?.fullName || user?.firstName || 'User'}</p>
-                                <p className="truncate tracking-wide text-[var(--text-dim)]">{user?.primaryEmailAddress?.emailAddress || 'Signed in'}</p>
+                                <p className="mb-1 truncate font-bold leading-none text-[var(--text)]">{user ? (user.fullName || user.firstName || 'User') : 'Guest User'}</p>
+                                <p className="truncate tracking-wide text-[var(--text-dim)]">{user ? (user.primaryEmailAddress?.emailAddress || 'Signed in') : 'Temporary Session'}</p>
                             </div>
                         </div>
                         <div className="flex shrink-0 items-center gap-0.5">
-                            <button
-                                onClick={() => setShowCredentialsModal(true)}
-                                className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
-                                title="Set username & password for easier login"
-                            >
-                                <User size={16} />
-                            </button>
-                            <button
-                                onClick={() => signOut({ redirectUrl: '/' })}
-                                className="rounded-lg p-2 text-[var(--text-dim)] transition-colors hover:bg-red-500/10 hover:text-red-500"
-                                title="Sign Out"
-                            >
-                                <LogOut size={16} />
-                            </button>
+                            {!user ? (
+                                <button
+                                    onClick={() => {
+                                        clearGuestMode();
+                                        navigate('/');
+                                    }}
+                                    className="rounded-lg p-2 text-[var(--text-dim)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                                    title="Exit Guest Mode"
+                                >
+                                    <LogOut size={16} />
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setShowCredentialsModal(true)}
+                                        className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                        title="Set username & password for easier login"
+                                    >
+                                        <User size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => signOut({ redirectUrl: '/' })}
+                                        className="rounded-lg p-2 text-[var(--text-dim)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                                        title="Sign Out"
+                                    >
+                                        <LogOut size={16} />
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
