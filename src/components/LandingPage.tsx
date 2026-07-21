@@ -224,6 +224,11 @@ export default function LandingPage() {
                         </div>
                     )}
                     </div>
+                    
+                    <div className="mt-8 text-white/30 text-[11px] md:text-xs font-medium px-4">
+                        <span className="inline-block md:hidden">💡 Use on PC for the best work experience</span>
+                        <span className="hidden md:inline-block">💡 Stratabin works best on a desktop or laptop</span>
+                    </div>
                 </div>
             </section>
 
