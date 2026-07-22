@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams, useLocation } from 'react-rout
 import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
+import MarkdownRenderer from './MarkdownRenderer';
 import useModalStore from '../store/useModalStore';
 import { sendStrabMessageStreaming, strabVisibleAssistantText, selectProvider, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
@@ -822,10 +823,10 @@ export default function StrabView() {
                                                     <span className="text-white/55 transition-all duration-500">{loadingPhrase}</span>
                                                 </div>
                                             ) : (
-                                                <div className="whitespace-pre-wrap">
-                                                    {assistantVisible.replace(/```json[\s\S]*?```/gi, '')}
+                                                <div className="relative">
+                                                    <MarkdownRenderer content={assistantVisible.replace(/```json[\s\S]*?```/gi, '')} />
                                                     {isLoading && idx === chatHistory.length - 1 && msg.role === 'assistant' && assistantVisible.length > 0 && (
-                                                        <span className="inline-block w-[2px] h-[1em] bg-primary/70 ml-0.5 align-middle animate-pulse" aria-hidden />
+                                                        <span className="inline-block w-[2px] h-[1em] bg-primary/70 ml-1 align-middle animate-pulse" aria-hidden />
                                                     )}
                                                 </div>
                                             )}

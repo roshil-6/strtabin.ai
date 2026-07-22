@@ -13,6 +13,7 @@ import {
 } from '../constants';
 import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
+import MarkdownRenderer from './MarkdownRenderer';
 import { sendGeneralStrabMessage, strabVisibleAssistantText, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
 import {
@@ -538,10 +539,14 @@ export default function StrabHome() {
                                                         : msg.content;
                                                 if (display) {
                                                     return (
-                                                        <div className="whitespace-pre-wrap">
-                                                            {display}
+                                                        <div className="relative">
+                                                            {msg.role === 'assistant' ? (
+                                                                <MarkdownRenderer content={display} />
+                                                            ) : (
+                                                                <div className="whitespace-pre-wrap">{display}</div>
+                                                            )}
                                                             {isLoading && idx === messages.length - 1 && msg.role === 'assistant' && display.length > 0 && (
-                                                                <span className="inline-block w-[2px] h-[1em] bg-primary/70 ml-0.5 align-middle animate-pulse" aria-hidden />
+                                                                <span className="inline-block w-[2px] h-[1em] bg-primary/70 ml-1 align-middle animate-pulse" aria-hidden />
                                                             )}
                                                         </div>
                                                     );
