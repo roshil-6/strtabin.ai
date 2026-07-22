@@ -6,6 +6,7 @@ import { ChevronLeft, FileCode, Plus, Trash2, Download, Code2, Play, Terminal, X
 import Editor from '@monaco-editor/react';
 import { API_BASE_URL } from '../constants';
 import { sendGeneralStrabMessage, type ChatMessage } from '../services/strabService';
+import MarkdownRenderer from './MarkdownRenderer';
 
 export default function CodeSection() {
     const { id } = useParams<{ id: string }>();
@@ -365,8 +366,12 @@ export default function CodeSection() {
                                         {msg.role === 'assistant' && <Bot size={10} />}
                                         {msg.role === 'user' ? 'You' : 'AI'}
                                     </div>
-                                    <div className={`p-3 rounded-xl max-w-[90%] text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'bg-indigo-500/20 text-indigo-50 border border-indigo-500/20' : 'bg-white/5 text-white/90 border border-white/10'}`}>
-                                        {idx === 0 && msg.role === 'user' ? (msg.content.split('Terminal Output:')[1] ? msg.content.split('\n\n').pop() : msg.content) : msg.content}
+                                    <div className={`p-3 rounded-xl max-w-[90%] text-sm leading-relaxed ${msg.role === 'user' ? 'bg-indigo-500/20 text-indigo-50 border border-indigo-500/20 whitespace-pre-wrap' : 'bg-white/5 text-white/90 border border-white/10'}`}>
+                                        {msg.role === 'user' ? (
+                                            idx === 0 ? (msg.content.split('Terminal Output:')[1] ? msg.content.split('\n\n').pop() : msg.content) : msg.content
+                                        ) : (
+                                            <MarkdownRenderer content={msg.content} />
+                                        )}
                                     </div>
                                 </div>
                             ))
