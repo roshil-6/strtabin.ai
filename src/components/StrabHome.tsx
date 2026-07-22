@@ -14,7 +14,7 @@ import {
 import useStore from '../store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import MarkdownRenderer from './MarkdownRenderer';
-import { sendGeneralStrabMessage, strabVisibleAssistantText, type ChatMessage } from '../services/strabService';
+import { sendGeneralStrabMessage, strabVisibleAssistantText, selectProvider, type ChatMessage } from '../services/strabService';
 import { serverWarmup } from '../services/serverWarmup';
 import {
     Send, Network, ArrowLeft, Trash2, ExternalLink, Zap, Sparkles,
@@ -207,7 +207,6 @@ export default function StrabHome() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [provider, setProvider] = useState<'openai' | 'anthropic'>('openai');
     const [proAiRemaining, setProAiRemaining] = useState(() => (user?.id ? getProAiRemaining(user.id) : 12));
     const [guestAiRemaining, setGuestAiRemaining] = useState(getGuestAiRemaining);
     const abortRef = useRef<AbortController | null>(null);
@@ -294,7 +293,7 @@ export default function StrabHome() {
                 },
                 token ?? undefined,
                 controller.signal,
-                provider
+                selectProvider(text, messages.length)
             );
 
             // After streaming — parse action block
@@ -407,19 +406,10 @@ export default function StrabHome() {
                         </div>
                         <p className="text-[10px] text-white/25 leading-none mt-0.5 hidden sm:block">Strategy hub — new canvases from scratch</p>
                     </div>
-                    <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04] mr-2">
-                        <button
-                            onClick={() => setProvider('openai')}
-                            className={`px-2 py-1 rounded-lg text-[10px] md:text-[11px] font-bold transition-all ${provider === 'openai' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white/60'}`}
-                        >
-                            GPT
-                        </button>
-                        <button
-                            onClick={() => setProvider('anthropic')}
-                            className={`px-2 py-1 rounded-lg text-[10px] md:text-[11px] font-bold transition-all ${provider === 'anthropic' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white/60'}`}
-                        >
-                            Claude
-                        </button>
+                    {/* STRAB branding badge — replaces the old provider toggle */}
+                    <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-white/30 text-[10px] font-bold mr-2 shrink-0">
+                        <Sparkles size={10} className="text-primary/60" />
+                        GPT-4 &amp; Claude
                     </div>
                 </div>
 
@@ -458,18 +448,10 @@ export default function StrabHome() {
                           Describe a project, strategy, or workflow — STRAB will create the entire canvas with ideas, connections, and a writing outline automatically.
                         </p>
                         <div className="flex items-center gap-2 mb-10">
-                          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                            provider === 'openai' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-white/[0.04] border-white/10 text-white/30'
-                          }`} onClick={() => setProvider('openai')}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            GPT-4o
-                          </div>
-                          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                            provider === 'anthropic' ? 'bg-violet-500/15 border-violet-500/30 text-violet-300' : 'bg-white/[0.04] border-white/10 text-white/30'
-                          }`} onClick={() => setProvider('anthropic')}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            Claude
-                          </div>
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-white/[0.04] border-white/10 text-white/30">
+                                <Sparkles size={12} className="text-primary/60" />
+                                GPT-4 &amp; Claude Working Together
+                            </div>
                         </div>
 
                         {/* Example prompt grid */}
