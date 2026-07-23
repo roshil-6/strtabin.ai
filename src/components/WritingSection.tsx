@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, Bot, GitBranch, Layout, X, FileText, Trash2, File, Loader2, CalendarDays, Pin, PinOff, ChevronDown } from 'lucide-react';
+import { Image as ImageIcon, Bot, GitBranch, Layout, X, FileText, Trash2, File, Loader2, CalendarDays, Pin, PinOff, ChevronDown, Keyboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import type { CalendarEvent } from '../store/useStore';
@@ -62,6 +62,16 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     // Document Preview state
     const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string } | null>(null);
+
+    // Mobile Edit Mode state
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [mobileEditMode, setMobileEditMode] = useState(false);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Font size state
     const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('strab_editor_font_size') || '16', 10));
@@ -604,6 +614,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         className="w-full bg-transparent text-white/80 leading-[1.9] outline-none ring-0 border-0 focus:ring-0 resize-none font-sans min-h-[240px] placeholder-white/20 transition-all duration-200"
                         style={{ fontSize: `${fontSize}px` }}
                         spellCheck={false}
+                        readOnly={isMobile && !mobileEditMode}
                     />
 
                     {/* Two-Column Split Section — NotebookLM-style collapsible */}
@@ -646,6 +657,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         className="w-full bg-transparent text-white/80 leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none min-h-[120px] transition-all duration-200"
                                         style={{ fontSize: `${fontSize}px` }}
                                         spellCheck={false}
+                                        readOnly={isMobile && !mobileEditMode}
                                     />
                                 </div>
 
@@ -669,6 +681,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         className="w-full bg-transparent text-white/80 leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none min-h-[120px] transition-all duration-200"
                                         style={{ fontSize: `${fontSize}px` }}
                                         spellCheck={false}
+                                        readOnly={isMobile && !mobileEditMode}
                                     />
                                 </div>
                             </div>
@@ -680,6 +693,29 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     })()}
                 </div>
             </div>
+
+            {/* Mobile Floating Action Button for Edit Mode */}
+            {isMobile && (
+                <button
+                    onClick={() => {
+                        const newMode = !mobileEditMode;
+                        setMobileEditMode(newMode);
+                        if (newMode) {
+                            setTimeout(() => {
+                                if (isSplitMode) {
+                                    textareaARef.current?.focus();
+                                } else {
+                                    textareaRef.current?.focus();
+                                }
+                            }, 50);
+                        }
+                    }}
+                    className={`md:hidden fixed bottom-[88px] right-4 z-40 p-3.5 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center ${mobileEditMode ? 'bg-primary text-black' : 'bg-[#1a1a1a] text-white border border-white/10'}`}
+                    aria-label="Toggle keyboard edit mode"
+                >
+                    <Keyboard size={22} className={mobileEditMode ? 'opacity-100' : 'opacity-70'} />
+                </button>
+            )}
 
             {/* Branch Creation Modal */}
                 {showBranchModal && (
