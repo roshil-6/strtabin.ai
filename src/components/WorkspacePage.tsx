@@ -393,7 +393,7 @@ export default function WorkspacePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)]">
+    <div className="min-h-[100dvh] bg-[var(--bg-page)]">
       <div className="max-w-6xl mx-auto p-3 md:p-6">
         <button
           onClick={() => navigate('/dashboard')}

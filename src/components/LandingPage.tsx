@@ -59,7 +59,7 @@ export default function LandingPage() {
     ];
 
     return (
-        <div className={`min-h-screen theme-page font-sans selection:bg-white/20 relative ${showHowTo ? 'overflow-hidden' : 'overflow-x-hidden'}`}>
+        <div className={`min-h-[100dvh] theme-page font-sans selection:bg-white/20 relative ${showHowTo ? 'overflow-hidden' : 'overflow-x-hidden'}`}>
             <HexagonBackground />
 
             {/* Header */}

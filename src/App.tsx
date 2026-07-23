@@ -36,7 +36,7 @@ function App() {
   const showGrid = isProjectRoute && (isStrategyRoute || isStrabRoute || isCodeRoute || isDashboardRoute || isReportsRoute);
 
   return (
-    <div className="min-h-screen w-full theme-page relative">
+    <div className="min-h-[100dvh] w-full theme-page relative">
     <GlobalModals />
     <UserSyncOnLoad />
     {showGrid && <ProjectBackground />}

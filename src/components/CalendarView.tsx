@@ -137,7 +137,7 @@ export default function CalendarView() {
     }, [selectedDateKey]);
 
     return (
-        <div className="w-screen h-screen theme-page text-white flex overflow-hidden">
+        <div className="w-full h-[100dvh] theme-page text-white flex overflow-hidden">
             {id ? <Sidebar canvasId={id} /> : (
                 <div className="hidden md:flex w-16 h-full theme-page border-r border-white/[0.04] flex-col items-center py-6 gap-6">
                     <button onClick={() => navigate('/dashboard')} className="p-3 rounded-xl bg-white/[0.04] text-white/40 hover:text-white active:scale-95 transition-all border border-white/[0.04]" aria-label="Go to dashboard">

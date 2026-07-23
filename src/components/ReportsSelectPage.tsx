@@ -15,7 +15,7 @@ export default function ReportsSelectPage() {
     );
 
     return (
-        <div className="min-h-screen theme-page text-white flex flex-col">
+        <div className="min-h-[100dvh] theme-page text-white flex flex-col">
             <header className="flex-shrink-0 border-b border-white/[0.06] px-4 md:px-8 py-4 md:py-6 flex items-center gap-4">
                 <button
                     onClick={() => navigate('/dashboard')}

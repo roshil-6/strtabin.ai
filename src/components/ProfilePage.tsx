@@ -210,7 +210,7 @@ export default function ProfilePage() {
   const completedCount = data?.projects?.filter((p) => p.status === 'completed').length ?? 0;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)]">
+    <div className="min-h-[100dvh] bg-[var(--bg-page)]">
       <div className="max-w-3xl mx-auto p-3 sm:p-6">
         <button
           onClick={() => navigate(-1)}

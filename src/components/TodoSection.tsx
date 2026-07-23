@@ -45,7 +45,7 @@ export default function TodoSection() {
     };
 
     return (
-        <div className="w-screen h-screen theme-page text-[var(--text)] flex flex-col">
+        <div className="w-full h-[100dvh] theme-page text-[var(--text)] flex flex-col">
             <ProjectHeader canvasId={id!} activeTab="tasks" />
 
             <div className="flex-1 flex flex-col overflow-hidden">

@@ -364,7 +364,7 @@ export default function StrabHome() {
     const isEmpty = messages.length === 0;
 
     return (
-        <div className="flex flex-col h-screen theme-page text-white overflow-hidden">
+        <div className="flex flex-col h-[100dvh] theme-page text-white overflow-hidden">
 
             {/* Header */}
             <div className="h-14 border-b border-white/[0.04] flex items-center px-3 md:px-6 backdrop-blur-2xl z-20 flex-shrink-0 gap-2" style={{ background: 'rgba(8,8,8,0.92)' }}>

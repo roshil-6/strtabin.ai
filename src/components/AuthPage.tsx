@@ -164,7 +164,7 @@ export default function AuthPage() {
 
     if (!isLoaded) {
         return (
-            <div className="min-h-screen theme-page font-sans flex items-center justify-center">
+            <div className="min-h-[100dvh] theme-page font-sans flex items-center justify-center">
                 <HexagonBackground />
                 <div className="relative z-10 flex flex-col items-center gap-4">
                     <div className="w-12 h-12 border-2 border-white/10 border-t-white rounded-full animate-spin" />
@@ -175,7 +175,7 @@ export default function AuthPage() {
     }
 
     return (
-        <div className="min-h-screen theme-page font-sans selection:bg-white/20 relative overflow-x-hidden">
+        <div className="min-h-[100dvh] theme-page font-sans selection:bg-white/20 relative overflow-x-hidden">
             <HexagonBackground />
             <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] theme-panel backdrop-blur-2xl">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
@@ -194,7 +194,7 @@ export default function AuthPage() {
                 </div>
             </header>
 
-            <main className="pt-32 md:pt-40 pb-16 px-4 md:px-6 flex flex-col items-center justify-center min-h-screen">
+            <main className="pt-32 md:pt-40 pb-16 px-4 md:px-6 flex flex-col items-center justify-center min-h-[100dvh]">
                 <div className="w-full max-w-md mx-auto">
                     <div className="text-center mb-8">
                         <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white mb-2">

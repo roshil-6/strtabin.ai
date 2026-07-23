@@ -7,6 +7,7 @@ import Editor from '@monaco-editor/react';
 import { API_BASE_URL } from '../constants';
 import { sendGeneralStrabMessage, type ChatMessage } from '../services/strabService';
 import MarkdownRenderer from './MarkdownRenderer';
+import MobileNav from './MobileNav';
 
 export default function CodeSection() {
     const { id } = useParams<{ id: string }>();
@@ -160,9 +161,9 @@ export default function CodeSection() {
     if (!canvas) return null;
 
     return (
-        <div className="flex h-screen w-full bg-[#080808] text-white">
+        <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-[#080808] text-white pb-[62px] md:pb-0">
             {/* Sidebar */}
-            <div className="w-64 border-r border-white/10 flex flex-col bg-[#0e0e0e]">
+            <div className="hidden md:flex w-64 border-r border-white/10 flex-col bg-[#0e0e0e] shrink-0">
                 <div className="p-4 border-b border-white/10 flex items-center justify-between">
                     <button 
                         onClick={() => {
@@ -405,6 +406,8 @@ export default function CodeSection() {
                     </div>
                 </div>
             )}
+            
+            {id && <MobileNav canvasId={id} />}
         </div>
     );
 }

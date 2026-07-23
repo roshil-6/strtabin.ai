@@ -23,7 +23,7 @@ export default function FeaturesPage() {
     ];
 
     return (
-        <div className="min-h-screen theme-page font-sans selection:bg-white/20 relative overflow-x-hidden">
+        <div className="min-h-[100dvh] theme-page font-sans selection:bg-white/20 relative overflow-x-hidden">
             <HexagonBackground />
 
             <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-panel)_88%,transparent)] backdrop-blur-xl backdrop-saturate-150">

@@ -185,7 +185,7 @@ export default function FlowProjectCreator() {
 
     return (
         <div
-            className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden"
+            className="min-h-[100dvh] flex flex-col items-center justify-start relative overflow-hidden"
             style={{
                 background: '#080808',
                 backgroundImage:

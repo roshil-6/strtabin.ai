@@ -555,7 +555,7 @@ function CanvasContent() {
     if (isSharedOrProj && (sharedLoading || sharedError)) {
         const backTo = workspaceId ? `/workspace/${workspaceId}` : '/dashboard';
         return (
-            <div className="w-screen h-screen theme-page flex items-center justify-center">
+            <div className="w-full h-[100dvh] theme-page flex items-center justify-center">
                 {sharedLoading ? (
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -585,7 +585,7 @@ function CanvasContent() {
     }
 
     return (
-        <div className="w-screen h-screen theme-page relative overflow-hidden flex flex-col md:flex-row">
+        <div className="w-full h-[100dvh] theme-page relative overflow-hidden flex flex-col md:flex-row">
 
             {/* Desktop Sidebar */}
             <div className={`hidden md:block h-full ${hasTopBar ? 'pt-12' : ''}`}>

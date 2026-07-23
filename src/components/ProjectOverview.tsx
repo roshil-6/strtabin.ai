@@ -91,7 +91,7 @@ export default function ProjectOverview() {
     ];
 
     return (
-        <div className="min-h-screen theme-page flex flex-col relative overflow-y-auto">
+        <div className="min-h-[100dvh] theme-page flex flex-col relative overflow-y-auto">
             {/* Top Navigation */}
             <div className="h-16 flex items-center px-6 border-b border-white/[0.04] shrink-0 sticky top-0 z-20 backdrop-blur-xl bg-[var(--bg-page)]/80">
                 <button 

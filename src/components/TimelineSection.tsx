@@ -245,7 +245,7 @@ export default function TimelineSection() {
     };
 
     if (!canvas) return (
-        <div className="flex items-center justify-center h-screen theme-page text-white/40 text-sm">
+        <div className="flex items-center justify-center h-[100dvh] theme-page text-white/40 text-sm">
             Project not found
         </div>
     );
@@ -256,7 +256,7 @@ export default function TimelineSection() {
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
     return (
-        <div className="timeline-section w-screen h-screen theme-page text-white flex overflow-hidden">
+        <div className="timeline-section w-full h-[100dvh] theme-page text-white flex overflow-hidden">
             <Sidebar canvasId={id} />
 
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

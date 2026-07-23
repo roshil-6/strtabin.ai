@@ -35,7 +35,7 @@ export default function FeedPage() {
   }, [getToken]);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)]">
+    <div className="min-h-[100dvh] bg-[var(--bg-page)]">
       <div className="max-w-2xl mx-auto p-6">
         <div className="flex items-center gap-3 mb-8">
           <button

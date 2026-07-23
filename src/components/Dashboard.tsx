@@ -509,7 +509,7 @@ export default function Dashboard() {
     }
 
     return (
-        <div className="flex h-screen min-h-0 font-sans overflow-hidden relative" style={{ background: '#080808' }}>
+        <div className="flex h-[100dvh] min-h-0 font-sans overflow-hidden relative" style={{ background: '#080808' }}>
             {/* Join Workspace Modal */}
             {showJoinWorkspaceModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -631,7 +631,7 @@ export default function Dashboard() {
 
             {/* Folder Sidebar */}
             <aside 
-                className={`fixed inset-y-0 left-0 z-50 flex h-full max-h-screen w-[280px] min-h-0 shrink-0 flex-col transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed inset-y-0 left-0 z-50 flex h-full max-h-[100dvh] w-[280px] min-h-0 shrink-0 flex-col transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 style={{ background: 'rgba(10,10,10,0.97)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', borderRight: '1px solid rgba(255,255,255,0.05)' }}
             >
                 <div className="shrink-0 border-b border-[var(--border)] p-3 md:px-6 md:pt-5 md:pb-4">

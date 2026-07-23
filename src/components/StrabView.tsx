@@ -667,7 +667,7 @@ export default function StrabView() {
     ];
 
     if (!canvas) return (
-        <div className="flex flex-col items-center justify-center h-screen theme-page text-white gap-4">
+        <div className="flex flex-col items-center justify-center h-[100dvh] theme-page text-white gap-4">
             <p className="text-white/50">Project not found.</p>
             <button onClick={() => navigate('/dashboard')} className="px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-all">
                 Back to Dashboard
@@ -676,7 +676,7 @@ export default function StrabView() {
     );
 
         return (
-        <div className="flex flex-col h-screen theme-page text-white overflow-hidden relative">
+        <div className="flex flex-col h-[100dvh] theme-page text-white overflow-hidden relative">
             {/* Header */}
             <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-2 md:px-6 backdrop-blur-2xl z-10 flex-shrink-0 gap-1.5 md:gap-2" style={{ background: 'rgba(8,8,8,0.92)' }}>
                     <button
