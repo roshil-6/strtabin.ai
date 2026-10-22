@@ -1,5 +1,5 @@
-const CACHE_NAME = 'stratabin-v6';
-const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/favicon.png'];
+const CACHE_NAME = 'stratabin-violet-brand-v2';
+const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/stratabin-icon.svg'];
 
 // Install: cache static assets
 self.addEventListener('install', (event) => {
@@ -47,8 +47,8 @@ self.addEventListener('push', (event) => {
     const data = event.data ? event.data.json() : { body: 'New reminder from Stratabin.' };
     self.registration.showNotification('Stratabin AI', {
         body: data.body,
-        icon: '/favicon.png',
-        badge: '/favicon.png',
+        icon: '/stratabin-icon.svg',
+        badge: '/stratabin-icon.svg',
     });
 });
 

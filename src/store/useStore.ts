@@ -1,3 +1,5 @@
+import type { WritingPage } from '../lib/writingPages';
+import { resolveExternalReports, type ExternalAiReport } from '../lib/projectAiPackage';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { generateId } from '../utils/uuid';
@@ -143,10 +145,12 @@ export type CanvasData = {
     nodes: Node[];
     edges: Edge[];
     writingContent?: string;
+        writingPages?: WritingPage[];
     title?: string; // Document title
     images?: string[]; // List of image URLs
     attachments?: Array<{ id: string; name: string; url: string }>; // List of documents (PDF, Doc, etc)
     codeFiles?: Array<{ id: string; name: string; content: string; language: string; updatedAt: number }>;
+    externalAiReports?: ExternalAiReport[];
     timelineContent?: string; // Manual timeline text
     todos?: Array<{ id: string; text: string; completed: boolean }>; // Project specific to-dos
     comments?: Comment[]; // Inline comments
@@ -256,6 +260,7 @@ export type RFState = {
     updateCanvasName: (id: string, name: string) => void;
     updateNodeData: (id: string, data: Record<string, unknown>) => void;
     updateCanvasWriting: (id: string, content: string) => void;
+    setWritingPages: (id: string, pages: WritingPage[]) => void;
     updateCanvasTitle: (id: string, title: string) => void;
     addCanvasImage: (id: string, imageUrl: string) => void;
     deleteCanvasImage: (id: string, index: number) => void;
@@ -271,7 +276,11 @@ export type RFState = {
         nodes: Node[];
         edges: Edge[];
         writingContent?: string;
+        writingPages?: WritingPage[];
         todos?: Array<{ id: string; text: string; completed: boolean }>;
+        codeFiles?: Array<{ id: string; name: string; content: string; language: string; updatedAt: number }>;
+        externalAiReports?: ExternalAiReport[];
+    timelineContent?: string;
     }) => void;
     updateCanvasTimeline: (id: string, content: string) => void;
     addCanvasTodo: (id: string, text: string) => void;
@@ -419,6 +428,11 @@ const useStore = create<RFState>()(
 
             deleteCanvas: (id) => {
                 set((state) => {
+                    for (const [date, events] of Object.entries(state.projectCalendarEvents[id] || {})) {
+                        for (const event of events) {
+                            NotificationManager.cancelNotification(event.task, event.time, date, `${id}:${event.id}`);
+                        }
+                    }
                     const now = Date.now();
                     const newCanvases = { ...state.canvases };
                     delete newCanvases[id];
@@ -499,6 +513,8 @@ const useStore = create<RFState>()(
                         projectCalendarEvents: newProjectCalendarEvents,
                         writingPinnedCalendarEventKeys: newPinnedKeys,
                         currentCanvasId: state.currentCanvasId === id ? null : state.currentCanvasId,
+                        nodes: state.currentCanvasId === id ? [] : state.nodes,
+                        edges: state.currentCanvasId === id ? [] : state.edges,
                     };
                 });
             },
@@ -620,6 +636,13 @@ const useStore = create<RFState>()(
                 });
             },
 
+            setWritingPages: (id, pages) => {
+                set(state => {
+                    const canvas = state.canvases[id];
+                    if (!canvas) return state;
+                    return { canvases: { ...state.canvases, [id]: { ...canvas, writingPages: pages, updatedAt: Date.now() } } };
+                });
+            },
             updateCanvasWriting: (id, content) => {
                 set((state) => ({
                     canvases: {
@@ -633,7 +656,7 @@ const useStore = create<RFState>()(
                 set((state) => ({
                     canvases: {
                         ...state.canvases,
-                        [id]: { ...state.canvases[id], title, updatedAt: Date.now() },
+                        [id]: { ...state.canvases[id], title, name: title, updatedAt: Date.now() },
                     },
                 }));
             },
@@ -802,7 +825,11 @@ const useStore = create<RFState>()(
                 nodes: Node[];
                 edges: Edge[];
                 writingContent?: string;
+        writingPages?: WritingPage[];
                 todos?: Array<{ id: string; text: string; completed: boolean }>;
+                codeFiles?: Array<{ id: string; name: string; content: string; language: string; updatedAt: number }>;
+                externalAiReports?: ExternalAiReport[];
+    timelineContent?: string;
             }) => {
                 const now = Date.now();
                 const nodes = Array.isArray(data.nodes) ? data.nodes : [];
@@ -825,14 +852,17 @@ const useStore = create<RFState>()(
                         nodes,
                         edges,
                         writingContent: data.writingContent ?? prev?.writingContent ?? '',
+                        writingPages: data.writingPages ?? prev?.writingPages ?? [],
                         todos,
                         updatedAt: now,
                         attachments: prev?.attachments ?? [],
                         images: prev?.images ?? [],
                         folderId: prev?.folderId,
                         mergedCanvasIds: prev?.mergedCanvasIds,
-                        timelineContent: prev?.timelineContent,
+                        externalAiReports: resolveExternalReports(data.externalAiReports, prev?.externalAiReports),
+                        timelineContent: data.timelineContent ?? prev?.timelineContent,
                         goals: prev?.goals,
+                        codeFiles: Array.isArray(data.codeFiles) ? data.codeFiles : (prev?.codeFiles ?? []),
                     };
                     return {
                         canvases: { ...state.canvases, [id]: newCanvas },
@@ -1187,11 +1217,7 @@ const useStore = create<RFState>()(
                     const newEvent = { id: generateId(), time, task, completed: false };
 
                     // Schedule reminder for ALL events (global and project)
-                    NotificationManager.requestPermission().then(granted => {
-                        if (granted) {
-                            NotificationManager.scheduleNotification(task, time, date);
-                        }
-                    });
+                    NotificationManager.scheduleNotification(task, time, date, `${canvasId || 'global'}:${newEvent.id}`);
 
                     if (canvasId) {
                         const projectEvents = state.projectCalendarEvents[canvasId] || {};
@@ -1224,9 +1250,9 @@ const useStore = create<RFState>()(
                             if (e.id !== eventId) return e;
                             const nowComplete = !e.completed;
                             // Cancel reminder when marking complete
-                            if (nowComplete) NotificationManager.cancelNotification(e.task, e.time, date);
+                            if (nowComplete) NotificationManager.cancelNotification(e.task, e.time, date, `${canvasId || 'global'}:${e.id}`);
                             // Re-schedule reminder when un-marking complete
-                            else NotificationManager.scheduleNotification(e.task, e.time, date);
+                            else NotificationManager.scheduleNotification(e.task, e.time, date, `${canvasId || 'global'}:${e.id}`);
                             return { ...e, completed: nowComplete };
                         });
                         return {
@@ -1240,8 +1266,8 @@ const useStore = create<RFState>()(
                         const newEvents = currentEvents.map(e => {
                             if (e.id !== eventId) return e;
                             const nowComplete = !e.completed;
-                            if (nowComplete) NotificationManager.cancelNotification(e.task, e.time, date);
-                            else NotificationManager.scheduleNotification(e.task, e.time, date);
+                            if (nowComplete) NotificationManager.cancelNotification(e.task, e.time, date, `${canvasId || 'global'}:${e.id}`);
+                            else NotificationManager.scheduleNotification(e.task, e.time, date, `${canvasId || 'global'}:${e.id}`);
                             return { ...e, completed: nowComplete };
                         });
                         return {
@@ -1259,7 +1285,7 @@ const useStore = create<RFState>()(
                         const projectEvents = state.projectCalendarEvents[canvasId] || {};
                         const currentEvents = projectEvents[date] || [];
                         const removing = currentEvents.find(e => e.id === eventId);
-                        if (removing) NotificationManager.cancelNotification(removing.task, removing.time, date);
+                        if (removing) NotificationManager.cancelNotification(removing.task, removing.time, date, `${canvasId || 'global'}:${removing.id}`);
                         const newEvents = currentEvents.filter((e) => e.id !== eventId);
                         const key = `${date}::${eventId}`;
                         const existingPins = state.writingPinnedCalendarEventKeys[canvasId] || [];
@@ -1276,7 +1302,7 @@ const useStore = create<RFState>()(
                     } else {
                         const currentEvents = state.calendarEvents[date] || [];
                         const removing = currentEvents.find(e => e.id === eventId);
-                        if (removing) NotificationManager.cancelNotification(removing.task, removing.time, date);
+                        if (removing) NotificationManager.cancelNotification(removing.task, removing.time, date, `${canvasId || 'global'}:${removing.id}`);
                         const newEvents = currentEvents.filter((e) => e.id !== eventId);
                         return {
                             calendarEvents: {
@@ -1524,26 +1550,25 @@ const useStore = create<RFState>()(
                 const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
                 // Collect all event maps: global + every project calendar
-                const allEventMaps = [
-                    state.calendarEvents,
-                    ...Object.values(state.projectCalendarEvents),
+                const allEventMaps: Array<[string, Record<string, CalendarEvent[]>]> = [
+                    ['global', state.calendarEvents],
+                    ...Object.entries(state.projectCalendarEvents),
                 ];
 
-                NotificationManager.requestPermission().then(granted => {
-                    if (!granted) return;
-                    allEventMaps.forEach(eventsByDate => {
+                if (!NotificationManager.enabled) return;
+                NotificationManager.cancelAllNotifications();
+                allEventMaps.forEach(([scope, eventsByDate]) => {
                         Object.entries(eventsByDate).forEach(([dateKey, events]) => {
                             // Only schedule for today and future dates
                             if (dateKey >= todayKey) {
                                 events.forEach(event => {
                                     if (!event.completed) {
-                                        NotificationManager.scheduleNotification(event.task, event.time, dateKey);
+                                        NotificationManager.scheduleNotification(event.task, event.time, dateKey, `${scope}:${event.id}`);
                                     }
                                 });
                             }
                         });
                     });
-                });
             },
 
             syncSubProjectNodes: (mergedId) => {
@@ -1798,3 +1823,4 @@ const useStore = create<RFState>()(
 );
 
 export default useStore;
+

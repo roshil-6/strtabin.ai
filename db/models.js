@@ -694,6 +694,42 @@ export async function getOrCreateDirectChat(userId1, userId2) {
     return chatId;
 }
 
+/** Create a named conversation from one workspace's current members. */
+export async function createWorkspaceGroupChat(workspaceId, creatorId, name, requestedIds) {
+    const fail = (message, status = 400) => { const error = new Error(message); error.status = status; throw error; };
+    if (!Number.isSafeInteger(workspaceId) || workspaceId < 1 || !(await hasWorkspaceAccess(creatorId, workspaceId))) fail('Workspace access denied.', 403);
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 100) fail('Use a group name between 1 and 100 characters.');
+    if (!Array.isArray(requestedIds) || requestedIds.length > 99 || requestedIds.some(id => !Number.isSafeInteger(id) || id < 1)) fail('Choose valid workspace members.');
+    const ids = [...new Set([creatorId, ...requestedIds])];
+    if (ids.length < 3) fail('Choose at least two teammates for a group.');
+    const members = new Set((await getWorkspaceMembers(workspaceId)).map(member => member.id));
+    if (ids.some(id => !members.has(id))) fail('Every participant must belong to the selected workspace.', 403);
+    const result = await qRun('INSERT INTO chats (type, name) VALUES (?, ?) RETURNING id', ['group', name.trim()]);
+    const chatId = result.lastInsertRowid;
+    try {
+        await qRun(`INSERT INTO chat_participants (chat_id, user_id) VALUES ${ids.map(() => '(?, ?)').join(',')}`, ids.flatMap(id => [chatId, id]));
+    } catch (error) { await qRun('DELETE FROM chats WHERE id = ?', [chatId]); throw error; }
+    return chatId;
+}
+
+/** Compare-and-swap append avoids overwriting simultaneous report submissions. */
+export async function appendProjectReport(projectId, report) {
+    const empty = JSON.stringify({ nodes: [], edges: [], externalAiReports: [] });
+    await qRun('INSERT INTO project_canvases (project_id, data) VALUES (?, ?) ON CONFLICT(project_id) DO NOTHING', [projectId, empty]);
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const row = await getProjectCanvas(projectId);
+        const data = JSON.parse(row.data);
+        const reports = Array.isArray(data.externalAiReports) ? data.externalAiReports : [];
+        if (reports.some(item => item.id === report.id)) return reports;
+        if (reports.length >= 30) { const error = new Error('This project already has 30 reports.'); error.status = 400; throw error; }
+        const next = JSON.stringify({ ...data, externalAiReports: [...reports, report] });
+        if (Buffer.byteLength(next, 'utf8') > 2 * 1024 * 1024) { const error = new Error('Project storage limit reached.'); error.status = 400; throw error; }
+        const result = await qRun(`UPDATE project_canvases SET data = ?, updated_at = ${nowSql()} WHERE project_id = ? AND data = ?`, [next, projectId, row.data]);
+        if (result.changes) return [...reports, report];
+    }
+    const error = new Error('The project changed while saving. Please try again.'); error.status = 409; throw error;
+}
+
 export async function getChatsForUser(userId) {
     return qAll(
         `
@@ -792,7 +828,7 @@ export async function getChatsListEnriched(userId) {
         .map((c) => {
             const participants = participantsMap.get(c.id) || [];
             const otherUser = participants.find((p) => p.id !== userId) || null;
-            if (otherUser && !shareSet.has(otherUser.id)) return null;
+            if (c.type === 'direct' && otherUser && !shareSet.has(otherUser.id)) return null;
             const chat = {
                 id: c.id,
                 type: c.type,
@@ -844,7 +880,7 @@ export async function getMessages(chatId, userId, beforeId = null, limit = 50) {
         sql += ' AND m.id < ?';
         params.push(beforeId);
     }
-    sql += ' ORDER BY m.created_at DESC LIMIT ?';
+    sql += ' ORDER BY m.id DESC LIMIT ?';
     params.push(limit);
 
     const rows = await qAll(sql, params);
@@ -854,6 +890,8 @@ export async function getMessages(chatId, userId, beforeId = null, limit = 50) {
 export async function createMessage(chatId, senderId, content, type = 'text', replyToId = null, metadata = null) {
     const isMember = await qGet('SELECT 1 FROM chat_participants WHERE chat_id = ? AND user_id = ?', [chatId, senderId]);
     if (!isMember) return null;
+
+    if (replyToId && (!Number.isSafeInteger(replyToId) || !(await qGet('SELECT 1 FROM messages WHERE id = ? AND chat_id = ?', [replyToId, chatId])))) return null;
 
     const metaObj = { ...(replyToId ? { replyToId } : {}), ...(metadata || {}) };
     const meta = Object.keys(metaObj).length > 0 ? JSON.stringify(metaObj) : null;
@@ -872,6 +910,12 @@ export async function getMessage(id) {
         'SELECT m.*, u.username as sender_username FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.id = ?',
         [id]
     );
+}
+
+export async function canReadChatFile(url, userId) {
+    return !!(await qGet(`SELECT 1 FROM messages m
+        JOIN chat_participants cp ON cp.chat_id = m.chat_id
+        WHERE cp.user_id = ? AND m.content = ? AND m.type IN ('image', 'file') LIMIT 1`, [userId, url]));
 }
 
 export async function markChatRead(chatId, userId) {

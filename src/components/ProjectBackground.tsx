@@ -1,4 +1,4 @@
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 
 /** Subtle grid/particles background for project section — not used on landing page */
 export default function ProjectBackground() {

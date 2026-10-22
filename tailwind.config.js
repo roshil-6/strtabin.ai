@@ -7,9 +7,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#1a1a1a', // Greyish Black
-        primary: '#DA7756',    // Claude-like Terracotta Orange
-        secondary: '#9aa0a6',  // Soft Gray
+        background: '#000000', // Pitch black
+        primary: '#b86cff',    // Rich violet
+        secondary: '#d1c9de',  // Soft Gray
         accent: '#00cc6a',
       },
       fontFamily: {

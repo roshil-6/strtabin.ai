@@ -1,3 +1,4 @@
+import type { WritingPage } from '../lib/writingPages';
 /**
  * Chat API client
  */
@@ -70,6 +71,10 @@ export const chatService = {
     return fetchWithAuth('/api/chats/direct', { method: 'POST', body: JSON.stringify({ userId }) }, token);
   },
 
+  createGroupChat(workspaceId: number, name: string, memberIds: number[], token: string | null) {
+    return fetchWithAuth('/api/chats/group', { method: 'POST', body: JSON.stringify({ workspaceId, name, memberIds }) }, token) as Promise<{ chat: Chat; chatId: number }>;
+  },
+
   getChat(chatId: number, token: string | null) {
     return fetchWithAuth(`/api/chats/${chatId}`, {}, token);
   },
@@ -125,7 +130,7 @@ export const chatService = {
     return fetchWithAuth(`/api/chats/${chatId}/read`, { method: 'POST' }, token);
   },
 
-  async shareCanvas(data: { name: string; nodes: unknown[]; edges: unknown[]; writingContent?: string }, token: string | null) {
+  async shareCanvas(data: { name: string; nodes: unknown[]; edges: unknown[]; writingContent?: string; writingPages?: WritingPage[] }, token: string | null) {
     const res = await fetchWithAuth('/api/canvas/share', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -147,6 +152,7 @@ export const chatService = {
       const msg = res!.status === 503 ? 'Server is waking up. Please try again in a moment.' : (data.error || 'Failed to load shared canvas');
       throw new Error(msg);
     }
-    return data as { shareId: string; name: string | null; nodes: unknown[]; edges: unknown[]; writingContent?: string };
+    return data as { shareId: string; name: string | null; nodes: unknown[]; edges: unknown[]; writingContent?: string; writingPages?: WritingPage[] };
   },
 };
+

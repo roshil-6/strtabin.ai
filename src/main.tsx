@@ -16,12 +16,17 @@ if (!PUBLISHABLE_KEY) {
 }
 
 // Register Service Worker for better background notification reliability
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && !import.meta.env.DEV) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {
       // Service worker registration failed silently
     });
   });
+}
+
+// Development pages must not stay behind an older offline app shell.
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  void navigator.serviceWorker.getRegistration('/').then(registration => registration?.unregister()).catch(() => {});
 }
 
 // Initial notification check after a short delay for hydration
@@ -48,8 +53,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
       return (
         <div className="min-h-[100dvh] bg-[#0b0b0b] text-white flex items-center justify-center p-6 font-sans">
           <div className="max-w-md w-full flex flex-col items-center text-center gap-6">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center overflow-hidden border border-white/10">
-              <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+            <div className="w-16 h-16 bg-transparent rounded-2xl flex items-center justify-center overflow-hidden border border-white/10">
+              <img src="/stratabin-icon.svg" alt="Stratabin" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tighter mb-2">Something went wrong</h1>
@@ -78,6 +83,14 @@ createRoot(document.getElementById('root')!).render(
       <ClerkProvider
         publishableKey={PUBLISHABLE_KEY}
         afterSignOutUrl="/"
+        signInUrl="/auth"
+        signUpUrl="/auth/sign-up"
+        signInFallbackRedirectUrl="/dashboard"
+        signUpFallbackRedirectUrl="/dashboard"
+        localization={{
+          signIn: { start: { title: 'Sign in to Stratabin' } },
+          signUp: { start: { title: 'Create your Stratabin account' } },
+        }}
         telemetry={false}
       >
         <ThemeProvider>
@@ -93,7 +106,7 @@ createRoot(document.getElementById('root')!).render(
                 borderRadius: '12px',
                 fontSize: '13px',
               },
-              success: { iconTheme: { primary: '#DA7756', secondary: '#000' } },
+              success: { iconTheme: { primary: '#b86cff', secondary: '#000' } },
               error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
             }}
           />

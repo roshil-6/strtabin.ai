@@ -139,7 +139,8 @@ export default function ProfilePage() {
       workspaceService
         .getProfile(username, token)
         .then((d) => {
-          const { streak: _omit, ...profileRest } = d as ProfileData & { streak?: number };
+          const profileRest = { ...d } as ProfileData & { streak?: number };
+          delete profileRest.streak;
           setData(profileRest);
           setBioDraft(d.profile?.bio || '');
         })

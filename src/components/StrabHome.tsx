@@ -293,7 +293,7 @@ export default function StrabHome() {
                 },
                 token ?? undefined,
                 controller.signal,
-                selectProvider(text, messages.length)
+                selectProvider(text)
             );
 
             // After streaming — parse action block

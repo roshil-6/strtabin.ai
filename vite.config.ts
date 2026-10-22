@@ -9,6 +9,9 @@ export default defineConfig({
     strictPort: false,
     // Use loopback by default (fewer firewall prompts). For phone/LAN: npm run dev -- --host
     host: 'localhost',
+    fs: {
+      deny: ['.env', '.env.*', '*.{crt,pem,key}', '**/.git/**', '**/data/**', '**/uploads/**'],
+    },
   },
   build: {
     rollupOptions: {

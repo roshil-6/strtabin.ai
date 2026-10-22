@@ -1,8 +1,15 @@
+import WritingDocument from './WritingDocument';
+import { writeWritingBlocks, writingPlainText } from '../lib/writingBranches';
+import WritingPageTree from './WritingPageTree';
+import { appendWritingBranch, pageAncestors, ROOT_PAGE } from '../lib/writingPages';
+import { generateId } from '../utils/uuid';
+import toast from 'react-hot-toast';
+import { localDateKey } from '../lib/localDate';
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
-import { Image as ImageIcon, Bot, GitBranch, Layout, X, FileText, Trash2, File, Loader2, CalendarDays, Pin, PinOff, ChevronDown, Keyboard } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, Loader2, CalendarDays, Pin, PinOff, ChevronDown, Keyboard } from 'lucide-react';
 import DOMPurify from 'dompurify';
+import './WritingSection.css';
 import type { CalendarEvent } from '../store/useStore';
 
 interface WritingSectionProps {
@@ -13,11 +20,44 @@ interface WritingSectionProps {
 const EMPTY_PROJECT_EVENTS: Record<string, CalendarEvent[]> = {};
 const EMPTY_PINNED_KEYS: string[] = [];
 
-export default function WritingSection({ canvasId }: WritingSectionProps) {
-    const navigate = useNavigate();
+export default function WritingSection(props: WritingSectionProps) {
+    return <WritingProject key={props.canvasId} {...props} />;
+}
+function WritingProject({ canvasId }: WritingSectionProps) {
     const canvas = useStore(state => state.canvases[canvasId]);
-    const updateCanvasWriting = useStore(state => state.updateCanvasWriting);
-    const updateCanvasTitle = useStore(state => state.updateCanvasTitle);
+    const [activeId, setActiveId] = useState(ROOT_PAGE);
+    const pages = canvas?.writingPages || [];
+    const selected = pages.some(page => page.id === activeId) ? activeId : ROOT_PAGE;
+    const create = (parentId: string, title = 'Untitled page', children: string[] = []) => {
+        try {
+            const result = appendWritingBranch(useStore.getState().canvases[canvasId]?.writingPages || [], parentId, title, children, generateId);
+            useStore.getState().setWritingPages(canvasId, result.pages);
+            setActiveId(result.id);
+        } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not add page.'); }
+    };
+    return <div className="writing-project">
+        <WritingPageTree pages={pages} activeId={selected} rootTitle={canvas?.name || canvas?.title || 'Main page'} select={setActiveId} add={parent => create(parent)} />
+        <div className="writing-page-editor">
+            <nav className="writing-breadcrumbs" aria-label="Page path"><button onClick={() => setActiveId(ROOT_PAGE)}>{canvas?.name || canvas?.title || 'Main page'}</button>{pageAncestors(pages, selected).map(page => <span key={page.id}><span aria-hidden="true">/</span><button aria-current={page.id === selected ? 'page' : undefined} onClick={() => setActiveId(page.id)}>{page.title || 'Untitled page'}</button></span>)}</nav>
+            <WritingEditor key={selected} canvasId={canvasId} pageId={selected} />
+        </div>
+    </div>;
+}
+
+function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: string }) {
+    const project = useStore(state => state.canvases[canvasId]);
+    const page = project?.writingPages?.find(item => item.id === pageId);
+    const canvas = page ? { ...project, name: page.title, title: page.title, writingContent: page.content } : project;
+    const updateCanvasWriting = (id: string, value: string) => {
+        const store = useStore.getState();
+        if (pageId === ROOT_PAGE) store.updateCanvasWriting(id, value);
+        else store.setWritingPages(id, (store.canvases[id]?.writingPages || []).map(item => item.id === pageId ? { ...item, content: value } : item));
+    };
+    const updateCanvasTitle = (id: string, value: string) => {
+        const store = useStore.getState();
+        if (pageId === ROOT_PAGE) store.updateCanvasTitle(id, value);
+        else store.setWritingPages(id, (store.canvases[id]?.writingPages || []).map(item => item.id === pageId ? { ...item, title: value } : item));
+    };
     const addCanvasImage = useStore(state => state.addCanvasImage);
     const deleteCanvasImage = useStore(state => state.deleteCanvasImage);
     const addCanvasDoc = useStore(state => state.addCanvasDoc);
@@ -27,7 +67,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const projectCalendarEvents = useStore(state => state.projectCalendarEvents[canvasId] ?? EMPTY_PROJECT_EVENTS);
     const writingPinnedKeys = useStore(state => state.writingPinnedCalendarEventKeys[canvasId] ?? EMPTY_PINNED_KEYS);
 
-    const [title, setTitle] = useState(canvas?.title || '');
+    const [title, setTitle] = useState(canvas?.name || canvas?.title || '');
     const [content, setContent] = useState('');
     const [isSplitMode, setIsSplitMode] = useState(false);
     const [contentA, setContentA] = useState('');
@@ -35,7 +75,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const [headingA, setHeadingA] = useState('Heading A');
     const [headingB, setHeadingB] = useState('Heading B');
     const [quickTask, setQuickTask] = useState('');
-    const [quickDate, setQuickDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [quickDate, setQuickDate] = useState(() => localDateKey());
     const [quickTime, setQuickTime] = useState('');
 
     const imageInputRef = useRef<HTMLInputElement>(null);
@@ -44,14 +84,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     const textareaARef = useRef<HTMLTextAreaElement>(null);
     const textareaBRef = useRef<HTMLTextAreaElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-    // Debounce refs — local state updates instantly, store persists after 600ms idle
-    const writeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isComposingRef = useRef(false);
-    const isEditingRef = useRef(false);
-    const lastEditAtRef = useRef(0);
-
 
     // Branch state
     const [plannerOpen, setPlannerOpen] = useState(false);
@@ -65,7 +97,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     // Mobile Edit Mode state
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [mobileEditMode, setMobileEditMode] = useState(false);
+    const [mobileEditMode, setMobileEditMode] = useState(true);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -74,12 +106,17 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
     }, []);
 
     // Font size state
-    const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('strab_editor_font_size') || '16', 10));
+    const [fontSize, setFontSize] = useState(() => {
+        try {
+            const stored = Number(localStorage.getItem('strab_editor_font_size') || 16);
+            return Number.isFinite(stored) ? Math.max(12, Math.min(32, stored)) : 16;
+        } catch { return 16; }
+    });
 
     const updateFontSize = (delta: number) => {
         setFontSize(prev => {
             const next = Math.max(12, Math.min(32, prev + delta));
-            localStorage.setItem('strab_editor_font_size', next.toString());
+            try { localStorage.setItem('strab_editor_font_size', next.toString()); } catch { /* Keep the current session usable. */ }
             return next;
         });
     };
@@ -142,22 +179,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         parseDocx();
     }, [previewDoc]);
 
-    useEffect(() => {
-        return () => {
-            if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
-            if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
-        };
-    }, []);
-
     // Sync with store
     useEffect(() => {
         if (!canvas) return;
-        setTitle(canvas.title || '');
-        // Never rehydrate from store while user is actively typing/composing.
-        // This prevents stale store echoes from overwriting recent input (spaces/IME).
-        if (isComposingRef.current || isEditingRef.current) return;
-        if (Date.now() - lastEditAtRef.current < 900) return;
-
+        setTitle(canvas.name || canvas.title || '');
         const storeContent = canvas.writingContent || "";
 
         if (storeContent.includes("<<<SPLIT_SECTION_START>>>")) {
@@ -199,20 +224,12 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             setContent(stripped);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [canvasId, canvas?.writingContent, canvas?.title]);
+    }, [canvasId, canvas?.writingContent, canvas?.title, canvas?.name]);
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newTitle = e.target.value;
-        isEditingRef.current = true;
-        lastEditAtRef.current = Date.now();
-        setTitle(newTitle);
-        if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
-        titleDebounceRef.current = setTimeout(() => {
-            updateCanvasTitle(canvasId, newTitle);
-            isEditingRef.current = false;
-        }, 600);
+        setTitle(e.target.value);
+        updateCanvasTitle(canvasId, e.target.value);
     };
-
     const buildStorageString = (
         main: string, ca: string, cb: string, ha: string, hb: string, splitActive: boolean
     ) => {
@@ -222,46 +239,21 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         return main;
     };
 
-    const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newContent = e.target.value;
-        isEditingRef.current = true;
-        lastEditAtRef.current = Date.now();
-        setContent(newContent); // instant UI update
-        if (isComposingRef.current) return;
-        if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
-        writeDebounceRef.current = setTimeout(() => {
-            updateCanvasWriting(canvasId, buildStorageString(newContent, contentA, contentB, headingA, headingB, isSplitMode));
-            isEditingRef.current = false;
-        }, 600);
+    // Persist every input, including IME composition, before a route or page can change.
+    const handleContentChange = (value: string) => {
+        setContent(value);
+        updateCanvasWriting(canvasId, buildStorageString(value, contentA, contentB, headingA, headingB, isSplitMode));
     };
 
-    const handleSplitContentChange = (side: 'A' | 'B', val: string) => {
-        const newCA = side === 'A' ? val : contentA;
-        const newCB = side === 'B' ? val : contentB;
-        isEditingRef.current = true;
-        lastEditAtRef.current = Date.now();
-        if (side === 'A') setContentA(val); else setContentB(val);
-        if (isComposingRef.current) return;
-        if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
-        writeDebounceRef.current = setTimeout(() => {
-            updateCanvasWriting(canvasId, buildStorageString(content, newCA, newCB, headingA, headingB, true));
-            isEditingRef.current = false;
-        }, 600);
+    const handleSplitContentChange = (side: 'A' | 'B', value: string) => {
+        if (side === 'A') setContentA(value); else setContentB(value);
+        updateCanvasWriting(canvasId, buildStorageString(content, side === 'A' ? value : contentA, side === 'B' ? value : contentB, headingA, headingB, true));
     };
 
-    const handleHeadingChange = (side: 'A' | 'B', val: string) => {
-        const newHA = side === 'A' ? val : headingA;
-        const newHB = side === 'B' ? val : headingB;
-        isEditingRef.current = true;
-        lastEditAtRef.current = Date.now();
-        if (side === 'A') setHeadingA(val); else setHeadingB(val);
-        if (writeDebounceRef.current) clearTimeout(writeDebounceRef.current);
-        writeDebounceRef.current = setTimeout(() => {
-            updateCanvasWriting(canvasId, buildStorageString(content, contentA, contentB, newHA, newHB, true));
-            isEditingRef.current = false;
-        }, 600);
+    const handleHeadingChange = (side: 'A' | 'B', value: string) => {
+        if (side === 'A') setHeadingA(value); else setHeadingB(value);
+        updateCanvasWriting(canvasId, buildStorageString(content, contentA, contentB, side === 'A' ? value : headingA, side === 'B' ? value : headingB, true));
     };
-
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -288,9 +280,13 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const insertSplitSeparator = () => {
         if (isSplitMode) {
-            // Remove split section — persist only main content, columns preserved in local state
+            // Fold both columns into the document so removing the layout never deletes text.
             setIsSplitMode(false);
-            updateCanvasWriting(canvasId, content);
+            const merged = [content, contentA ? `${headingA}\n${contentA}` : '', contentB ? `${headingB}\n${contentB}` : ''].filter(Boolean).join('\n\n');
+            setContent(merged);
+            setContentA('');
+            setContentB('');
+            updateCanvasWriting(canvasId, merged);
         } else {
             // Show two-column split section below main content
             setIsSplitMode(true);
@@ -300,23 +296,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
     const handleCreateBranch = () => {
         if (!branchTopic.trim()) return;
-        const separator = "--------------------------------------------------";
-        let treeBlock = `\n\n${separator}\nTOPIC: ${branchTopic.toUpperCase()}\n${separator}\n`;
-        const activeBranches = branchItems.slice(0, branchCount);
-        activeBranches.forEach((item, index) => {
-            const isLast = index === activeBranches.length - 1;
-            const prefix = isLast ? "└──" : "├──";
-            treeBlock += `${prefix} ${item || `Branch ${index + 1}`}\n`;
-        });
-        treeBlock += `\n`;
-
-        if (isSplitMode) {
-            handleSplitContentChange('A', contentA + treeBlock);
-        } else {
-            const newContent = content + treeBlock;
-            setContent(newContent);
-            updateCanvasWriting(canvasId, newContent);
-        }
+        handleContentChange(content + '\n' + writeWritingBlocks([{ nodes: [{ label: branchTopic.trim(), depth: 0 }, ...branchItems.slice(0, branchCount).map((label, index) => ({ label: label.trim() || `Branch ${index + 1}`, depth: 1 }))] }]) + '\n');
         setShowBranchModal(false);
         setBranchTopic('');
         setBranchItems(['', '', '', '', '', '']);
@@ -357,6 +337,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             el.style.height = Math.max(500, el.scrollHeight) + 'px';
         };
 
+        resize(textareaRef);
         if (isSplitMode) {
             resize(textareaARef);
             resize(textareaBRef);
@@ -368,13 +349,13 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         if (scrollEl) scrollEl.scrollTop = savedScrollTop;
     }, [content, contentA, contentB, isSplitMode]);
 
-    const wc = content.trim().split(/\s+/).filter(Boolean).length;
+    const wc = [writingPlainText(content), ...(isSplitMode ? [headingA, contentA, headingB, contentB] : [])].join(' ').trim().split(/\s+/).filter(Boolean).length;
     const projectName = canvas?.name || canvas?.title || 'Untitled';
 
     return (
-        <div className="h-full w-full flex flex-col relative" style={{ background: '#0f0f0f' }}>
+        <div className="writing-surface h-full w-full flex flex-col relative" style={{ background: 'var(--bg-page)' }}>
             {/* Toolbar — NotebookLM-style: minimal, content-first */}
-            <div className="h-10 md:h-12 flex items-center px-3 md:px-5 gap-2 sticky top-0 z-20 backdrop-blur-sm" style={{ background: 'rgba(20,20,20,0.85)' }}>
+            <div className="writing-toolbar min-h-12 flex flex-wrap items-center px-4 md:px-8 gap-2 z-20" style={{ background: 'var(--bg-page)', borderBottom: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-2 mr-auto min-w-0">
                     <FileText size={14} className="text-[var(--text-muted)] shrink-0" />
                     <span className="text-sm font-medium text-[var(--text-secondary)] truncate max-w-[140px] md:max-w-[220px]" title={projectName}>{projectName}</span>
@@ -403,14 +384,6 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         <File size={16} />
                     </button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="*" onChange={handleFileUpload} />
-
-                    <button
-                        onClick={() => navigate(`/strab/${canvasId}`)}
-                        className="p-2 rounded-lg text-[var(--text-muted)] hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center"
-                        title="Project STRAB — chat & reports"
-                    >
-                        <Bot size={16} />
-                    </button>
                 </div>
 
                 <div className="w-px h-4 bg-[var(--border)] mx-1" />
@@ -428,7 +401,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     <button
                         onClick={() => setShowBranchModal(true)}
                         className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${showBranchModal ? 'bg-primary/10 text-primary' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]'}`}
-                        title="Insert Branch"
+                        title="Insert writing hierarchy"
                     >
                         <GitBranch size={14} />
                         <span className="hidden sm:inline">Branch</span>
@@ -446,8 +419,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
             </div>
 
             {/* Content Area */}
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-8 md:px-12 md:py-16 custom-scrollbar">
-                <div className="w-full max-w-5xl mx-auto pb-32 relative group">
+            <div ref={scrollContainerRef} className="writing-scroll-area flex-1 overflow-y-auto custom-scrollbar">
+                <div className="writing-document w-full mb-24 relative group">
                     
                     {(() => {
                         const isEmpty = !content.trim() && !title.trim();
@@ -457,14 +430,14 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                     {/* Title — document-first, NotebookLM style */}
                                     <input
                                         type="text"
-                                        value={title}
+                                        aria-label="Document title" value={title}
                                         onChange={handleTitleChange}
-                                        placeholder={isEmpty ? "Name your strategy..." : "Untitled"}
-                                        className="w-full bg-transparent outline-none ring-0 border-0 focus:ring-0 focus:border-0 text-2xl md:text-[2.5rem] font-bold text-white/90 placeholder-white/20 leading-tight mb-6"
+                                        placeholder={isEmpty ? "Give your idea a title" : "Untitled"}
+                                        className="w-full bg-transparent outline-none ring-0 border-0 focus:ring-0 focus:border-0 text-2xl md:text-[2.5rem] font-bold text-[var(--text)] placeholder-[var(--text-dim)] leading-tight mb-6"
                                     />
 
                                     {/* Writing Planner — collapsible, minimal */}
-                    <div className="mb-8 rounded-xl border border-[var(--border)] overflow-hidden">
+                    <div className="writing-planner mb-9 border-y border-[var(--border)] overflow-hidden">
                         <button
                             onClick={() => setPlannerOpen(!plannerOpen)}
                             className="w-full flex items-center gap-2 px-4 py-3 hover:bg-[var(--input-bg)]/50 transition-colors text-left"
@@ -515,8 +488,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                             {pinnedEvents.map((event) => (
                                                 <div key={event.pinKey} className="flex items-center gap-2 p-2.5 rounded-lg bg-[var(--input-bg)]">
                                                     <span className="text-[11px] font-bold text-primary min-w-[64px]">{formatDisplayDate(event.date)}</span>
-                                                    <span className="text-[11px] text-white/35 min-w-[62px]">{event.time || 'All Day'}</span>
-                                                    <span className={`text-sm flex-1 ${event.completed ? 'text-white/35 line-through' : 'text-white/80'}`}>{event.task}</span>
+                                                    <span className="text-[11px] text-[var(--text-muted)] min-w-[62px]">{event.time || 'All Day'}</span>
+                                                    <span className={`text-sm flex-1 ${event.completed ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-secondary)]'}`}>{event.task}</span>
                                                     <button
                                                         onClick={() => toggleWritingPinnedCalendarEvent(canvasId, event.date, event.id)}
                                                         className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors"
@@ -532,18 +505,18 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
 
                                 {recentEvents.length > 0 && (
                                     <div>
-                                        <p className="text-[10px] font-black uppercase tracking-wider text-white/25 mb-2">Pin from project calendar</p>
+                                        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">Pin from project calendar</p>
                                         <div className="space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-1">
                                             {recentEvents.map((event) => {
                                                 const pinned = pinnedKeySet.has(event.pinKey);
                                                 return (
-                                                    <div key={event.pinKey} className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03]">
-                                                        <span className="text-[10px] text-white/30 min-w-[58px]">{formatDisplayDate(event.date)}</span>
-                                                        <span className="text-[10px] text-white/25 min-w-[58px]">{event.time || 'All Day'}</span>
-                                                        <span className={`text-xs flex-1 ${event.completed ? 'text-white/30 line-through' : 'text-white/65'}`}>{event.task}</span>
+                                                    <div key={event.pinKey} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--input-bg)]">
+                                                        <span className="text-[10px] text-[var(--text-muted)] min-w-[58px]">{formatDisplayDate(event.date)}</span>
+                                                        <span className="text-[10px] text-[var(--text-muted)] min-w-[58px]">{event.time || 'All Day'}</span>
+                                                        <span className={`text-xs flex-1 ${event.completed ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-muted)]'}`}>{event.task}</span>
                                                         <button
                                                             onClick={() => toggleWritingPinnedCalendarEvent(canvasId, event.date, event.id)}
-                                                            className={`p-1.5 rounded-md transition-colors ${pinned ? 'text-primary bg-primary/10' : 'text-white/30 hover:text-primary hover:bg-primary/10'}`}
+                                                            className={`p-1.5 rounded-md transition-colors ${pinned ? 'text-primary bg-primary/10' : 'text-[var(--text-muted)] hover:text-primary hover:bg-primary/10'}`}
                                                             title={pinned ? 'Unpin' : 'Pin to writing'}
                                                         >
                                                             <Pin size={13} />
@@ -563,10 +536,10 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         <div className="grid grid-cols-2 gap-4 mb-8">
                             {canvas.images.map((img, idx) => (
                                 <div key={idx} className="relative group">
-                                    <img src={img} alt="Attached" className="w-full rounded-xl border border-white/10" />
+                                    <img src={img} alt="Attached" className="w-full rounded-xl border border-[var(--border)]" />
                                     <button
                                         onClick={() => deleteCanvasImage(canvasId, idx)}
-                                        className="absolute top-2 right-2 p-2.5 bg-black/60 text-white/70 hover:text-red-400 rounded-xl opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all backdrop-blur-md border border-white/10"
+                                        className="absolute top-2 right-2 p-2.5 bg-black/60 text-[var(--text-muted)] hover:text-red-400 rounded-xl opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all backdrop-blur-md border border-[var(--border)]"
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -581,7 +554,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                             <h4 className="text-xs font-bold text-white/20 uppercase tracking-wider">Attachments</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {canvas.attachments.map((doc) => (
-                                    <div key={doc.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl group hover:bg-white/10 transition-colors">
+                                    <div key={doc.id} className="flex items-center justify-between p-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-xl group hover:bg-white/10 transition-colors">
                                         <button
                                             onClick={() => openPreview(doc)}
                                             className="flex items-center gap-3 flex-1 min-w-0 text-left"
@@ -589,7 +562,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                             <div className={`p-2 rounded-lg ${doc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}>
                                                 {doc.name.toLowerCase().endsWith('.pdf') ? <FileText size={20} /> : <File size={20} />}
                                             </div>
-                                            <span className="text-sm text-white/70 truncate group-hover:text-white transition-colors">{doc.name}</span>
+                                            <span className="text-sm text-[var(--text-muted)] truncate group-hover:text-[var(--text)] transition-colors">{doc.name}</span>
                                         </button>
                                         <button
                                             onClick={() => deleteCanvasDoc(canvasId, doc.id)}
@@ -604,18 +577,8 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     )}
 
                     {/* Main Writing Textarea — no outline */}
-                    <textarea
-                        ref={textareaRef}
-                        value={content}
-                        onCompositionStart={() => { isComposingRef.current = true; }}
-                        onCompositionEnd={() => { isComposingRef.current = false; }}
-                        onChange={handleContentChange}
-                        placeholder="Start simple, write everything here..."
-                        className="w-full bg-transparent text-white/80 leading-[1.9] outline-none ring-0 border-0 focus:ring-0 resize-none font-sans min-h-[240px] placeholder-white/20 transition-all duration-200"
-                        style={{ fontSize: `${fontSize}px` }}
-                        spellCheck={false}
-                        readOnly={isMobile && !mobileEditMode}
-                    />
+                    <WritingDocument value={content} onChange={handleContentChange} inputRef={textareaRef}
+                        fontSize={fontSize} readOnly={isMobile && !mobileEditMode} />
 
                     {/* Two-Column Split Section — NotebookLM-style collapsible */}
                     {isSplitMode && (
@@ -646,17 +609,15 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         placeholder="Column A heading"
                                         className="bg-transparent text-base font-black text-primary placeholder-primary/30 outline-none uppercase tracking-wider"
                                     />
-                                    <div className="h-px bg-white/5 w-8" />
+                                    <div className="h-px bg-[var(--input-bg)] w-8" />
                                     <textarea
-                                        ref={textareaARef}
+                                        ref={textareaARef} aria-label="Column A content"
                                         value={contentA}
                                         onChange={(e) => handleSplitContentChange('A', e.target.value)}
-                                        onCompositionStart={() => { isComposingRef.current = true; }}
-                                        onCompositionEnd={() => { isComposingRef.current = false; }}
                                         placeholder="Write part A here..."
-                                        className="w-full bg-transparent text-white/80 leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none min-h-[120px] transition-all duration-200"
+                                        className="w-full bg-transparent text-[var(--text-secondary)] leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none min-h-[120px] transition-all duration-200"
                                         style={{ fontSize: `${fontSize}px` }}
-                                        spellCheck={false}
+                                        spellCheck={true}
                                         readOnly={isMobile && !mobileEditMode}
                                     />
                                 </div>
@@ -670,17 +631,15 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                         placeholder="Column B heading"
                                         className="bg-transparent text-base font-black text-primary placeholder-primary/30 outline-none uppercase tracking-wider"
                                     />
-                                    <div className="h-px bg-white/5 w-8" />
+                                    <div className="h-px bg-[var(--input-bg)] w-8" />
                                     <textarea
-                                        ref={textareaBRef}
+                                        ref={textareaBRef} aria-label="Column B content"
                                         value={contentB}
                                         onChange={(e) => handleSplitContentChange('B', e.target.value)}
-                                        onCompositionStart={() => { isComposingRef.current = true; }}
-                                        onCompositionEnd={() => { isComposingRef.current = false; }}
                                         placeholder="Write part B here..."
-                                        className="w-full bg-transparent text-white/80 leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none min-h-[120px] transition-all duration-200"
+                                        className="w-full bg-transparent text-[var(--text-secondary)] leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none min-h-[120px] transition-all duration-200"
                                         style={{ fontSize: `${fontSize}px` }}
-                                        spellCheck={false}
+                                        spellCheck={true}
                                         readOnly={isMobile && !mobileEditMode}
                                     />
                                 </div>
@@ -710,7 +669,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                             }, 50);
                         }
                     }}
-                    className={`md:hidden fixed bottom-[88px] right-4 z-40 p-3.5 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center ${mobileEditMode ? 'bg-primary text-black' : 'bg-[#1a1a1a] text-white border border-white/10'}`}
+                    className={`md:hidden fixed bottom-5 left-4 z-40 p-3.5 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center ${mobileEditMode ? 'bg-primary text-black' : 'bg-[#1a1a1a] text-white border border-[var(--border)]'}`}
                     aria-label="Toggle keyboard edit mode"
                 >
                     <Keyboard size={22} className={mobileEditMode ? 'opacity-100' : 'opacity-70'} />
@@ -723,9 +682,9 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-[var(--text)] font-bold flex items-center gap-2">
                             <GitBranch size={16} className="text-primary" />
-                            Insert Branch
+                            Insert writing hierarchy
                         </h3>
-                        <button onClick={() => setShowBranchModal(false)} className="text-white/40 hover:text-white">
+                        <button onClick={() => setShowBranchModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text)]">
                             <X size={16} />
                         </button>
                     </div>
@@ -746,7 +705,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                         </div>
 
                         <div>
-                            <div className="flex justify-between text-xs uppercase font-bold text-white/40 mb-2">
+                            <div className="flex justify-between text-xs uppercase font-bold text-[var(--text-muted)] mb-2">
                                 <span>Branches</span>
                                 <span>{branchCount}</span>
                             </div>
@@ -782,7 +741,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                             disabled={!branchTopic.trim()}
                             className="w-full py-2 bg-primary text-black font-bold rounded hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Insert into Text
+                            Insert into writing
                         </button>
                     </div>
                 </div>
@@ -804,11 +763,11 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                 <a
                                     href={previewDoc.url}
                                     download={previewDoc.name}
-                                    className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors text-xs font-bold flex items-center gap-2"
+                                    className="p-2 bg-[var(--input-bg)] hover:bg-white/10 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] transition-colors text-xs font-bold flex items-center gap-2"
                                 >
                                     Download Original
                                 </a>
-                                <button onClick={closePreview} className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
+                                <button onClick={closePreview} className="p-2 bg-[var(--input-bg)] hover:bg-white/10 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
                                     <X size={20} />
                                 </button>
                             </div>
@@ -849,7 +808,7 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111] text-white p-6 text-center">
                                     <File size={64} className="text-white/20 mb-6" />
                                     <h2 className="text-xl font-black mb-2">No Native Preview Available</h2>
-                                    <p className="text-sm text-white/40 max-w-sm leading-relaxed mb-8">
+                                    <p className="text-sm text-[var(--text-muted)] max-w-sm leading-relaxed mb-8">
                                         Browsers cannot securely render older <b>.doc</b> or binary file formats visually without downloading them first. Please download the file to view it.
                                     </p>
                                     <a
@@ -868,5 +827,4 @@ export default function WritingSection({ canvasId }: WritingSectionProps) {
         </div>
     );
 }
-
 

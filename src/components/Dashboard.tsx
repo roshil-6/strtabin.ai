@@ -1,3 +1,7 @@
+import CompactProjectCard from './CompactProjectCard';
+import LavenderDotBackground from './LavenderDotBackground';
+import { localDateKey } from '../lib/localDate';
+import { BUILT_IN_AI_ENABLED } from '../lib/featureFlags';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
@@ -5,7 +9,7 @@ import useModalStore from '../store/useModalStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, Rocket, BookOpen } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, BookOpen } from 'lucide-react';
 
 const DASHBOARD_GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
@@ -69,9 +73,8 @@ export default function Dashboard() {
     const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>([]);
     const [myUsername, setMyUsername] = useState<string | null>(null);
     const [invitations, setInvitations] = useState<Array<{ id: number; workspace_id: number; workspace_name: string; inviter_username: string | null }>>([]);
-    const [workInsights, setWorkInsights] = useState<{ progress: { total: number; count: number } } | null>(null);
-    const todayKey = new Date().toISOString().slice(0, 10);
-    const [selectedLogDate, setSelectedLogDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+    const todayKey = localDateKey();
+    const [selectedLogDate, setSelectedLogDate] = useState<string>(() => localDateKey());
     useEffect(() => {
         document.title = 'Dashboard | Stratabin';
         const t = setTimeout(() => setIsFirstLoad(false), 400);
@@ -85,7 +88,6 @@ export default function Dashboard() {
                 workspaceService.getMe(token).then((d) => {
                     setMyUsername(d.user?.username || null);
                     setInvitations(d.invitations || []);
-                    setWorkInsights({ progress: d.progress ?? { total: 0, count: 0 } });
                 }).catch(() => {});
             }
         });
@@ -269,7 +271,7 @@ export default function Dashboard() {
         if (d < 604_800_000) return `${Math.floor(d / 86_400_000)}d ago`;
         return new Date(ts).toLocaleDateString('en', { month: 'short', day: 'numeric' });
     }
-    function wordCount(text?: string) {
+    function countWords(text?: string) {
         if (!text) return 0;
         return text.trim().split(/\s+/).filter(Boolean).length;
     }
@@ -286,7 +288,6 @@ export default function Dashboard() {
     const filteredCanvases = Object.values(canvases)
         .filter(p => (p.folderId || null) === activeFolderId)
         .filter(hasContent);
-    const dashboardDoneTodos = filteredCanvases.reduce((acc, p) => acc + (p.todos?.filter(t => t.completed).length ?? 0), 0);
 
     // Use filteredCanvases for categorization
     const pinnedProjects = filteredCanvases.filter(p => p.isPinned);
@@ -311,32 +312,20 @@ export default function Dashboard() {
         pinnedProjects.length > 0 || currentProjects.length > 0 ? sortedDisplayOther : sortedDisplayRegular;
 
     const tabs = [
-        { id: 'strategy', label: 'Writing & Flow', icon: FileText, color: 'text-primary' },
-        { id: 'todo', label: 'Task Lists', icon: ListTodo, color: 'text-orange-400' },
-        { id: 'timeline', label: 'Timelines', icon: Clock, color: 'text-orange-400' },
-        { id: 'calendar', label: 'Strategic Calendar', icon: Calendar, color: 'text-white' },
-        { id: 'planner', label: 'Project Weekly Planner', icon: CheckCircle2, color: 'text-orange-500' },
+        { id: 'strategy', label: 'Projects', icon: FileText, color: 'text-primary' },
+        { id: 'todo', label: 'Tasks', icon: ListTodo, color: 'text-orange-400' },
+        { id: 'timeline', label: 'Timeline', icon: Clock, color: 'text-orange-400' },
+        { id: 'calendar', label: 'Calendar', icon: Calendar, color: 'text-white' },
+        { id: 'planner', label: 'Weekly plan', icon: CheckCircle2, color: 'text-orange-500' },
         { id: 'reports', label: 'Reports', icon: BarChart2, color: 'text-emerald-500' },
         { id: 'monitor', label: 'Monitor your work', icon: Activity, color: 'text-cyan-500' },
         /** Opens /strab/:id — chat, reports & follow-up (not the main-hub strategy builder) */
-        { id: 'strab', label: 'Project STRAB', title: 'STRAB for this project — chat, Reports tab, and follow-up support', icon: Bot, color: 'text-orange-500' },
+        { id: 'strab', label: 'Project AI', title: 'Use your own ChatGPT, Claude, or Gemini account', icon: Bot, color: 'text-orange-500' },
     ];
 
 
 
-    const getActiveIcon = () => {
-        switch (activeTab) {
-            case 'strategy': return Layout;
-            case 'todo': return CheckSquare;
-            case 'timeline': return Clock;
-            case 'calendar': return Calendar;
-            case 'planner': return CheckCircle2;
-            case 'reports': return BarChart2;
-            case 'monitor': return Activity;
-            case 'strab': return Bot;
-            default: return Layout;
-        }
-    };
+
 
     /** Per-card: focus, priority, stuck (user flags); Done from tasks (read-only). */
     function projectQuickActionsRow(p: CanvasData) {
@@ -354,7 +343,7 @@ export default function Dashboard() {
                 <button
                     type="button"
                     onClick={(e) => handleToggleCurrent(e, p.id)}
-                    className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide border transition-colors ${
+                    className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide border transition-colors ${
                         p.isCurrent
                             ? 'border-amber-400/50 bg-amber-500/15 text-amber-200'
                             : 'border-white/[0.12] bg-white/[0.03] text-white/50 hover:text-white/85 hover:border-white/20'
@@ -367,7 +356,7 @@ export default function Dashboard() {
                 <button
                     type="button"
                     onClick={(e) => handleTogglePin(e, p.id)}
-                    className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide border transition-colors ${
+                    className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide border transition-colors ${
                         p.isPinned
                             ? 'border-rose-400/45 bg-rose-500/15 text-rose-200'
                             : 'border-white/[0.12] bg-white/[0.03] text-white/50 hover:text-white/85 hover:border-white/20'
@@ -380,7 +369,7 @@ export default function Dashboard() {
                 <button
                     type="button"
                     onClick={(e) => handleToggleStuck(e, p.id)}
-                    className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide border transition-colors ${
+                    className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide border transition-colors ${
                         p.isStuck
                             ? 'border-orange-400/55 bg-orange-500/20 text-orange-200'
                             : 'border-white/[0.12] bg-white/[0.03] text-white/50 hover:text-white/85 hover:border-white/20'
@@ -402,7 +391,7 @@ export default function Dashboard() {
         );
     }
 
-    function ProjectCardGrid({
+    function renderProjectCardGrid({
         items,
         variant = 'grid',
     }: {
@@ -429,93 +418,16 @@ export default function Dashboard() {
         );
     }
 
-    function renderMobileCard(p: CanvasData) {
-        const Icon = getActiveIcon();
-        const todoCount = p.todos?.length ?? 0;
-        const completedTodoCount = p.todos?.filter(t => t.completed).length ?? 0;
-        const completionRate = todoCount > 0 ? Math.round((completedTodoCount / todoCount) * 100) : 0;
-        const nodeCount = p.nodes?.length ?? 0;
-        const isMerged = !!p.mergedCanvasIds;
-        const isSelected = selectedIds.includes(p.id);
-        const displayName = (() => {
-            const n = (p.title || p.name || '').trim();
-            if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Untitled';
-            return n;
-        })();
-        return (
-            <div
-                key={p.id}
-                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(`/project/${p.id}`)}
-                className={`relative flex flex-col gap-3 p-4 rounded-2xl active:scale-[0.97] transition-all duration-200 cursor-pointer overflow-hidden ${
-                    isSelected ? 'ring-2 ring-primary/40' : ''
-                } ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-50' : ''}`}
-                style={{
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
-                    border: isSelected ? '1px solid rgba(249,115,22,0.4)' : '1px solid rgba(255,255,255,0.06)',
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.04) inset',
-                }}
-            >
-                <div className="flex items-start gap-3.5">
-                    <div className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
-                        {isMerged ? <GitMerge size={22} strokeWidth={1.75} className="text-primary" /> : <Icon size={22} strokeWidth={1.75} className="text-primary" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-white/90 text-[15px] truncate leading-tight mb-1.5">{displayName}</h3>
-                        {projectQuickActionsRow(p)}
-                        <div className="flex items-center gap-2 mt-1.5 text-[11px] text-white/35 font-medium">
-                            {todoCount > 0 && <span>{completionRate}% done</span>}
-                            {nodeCount > 0 && <span>• {nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>}
-                        </div>
-                    </div>
-                    {selectionMode && (
-                        <div className="shrink-0 mt-1">
-                            {isSelected ? <CheckCircle2 size={22} className="text-primary" /> : <div className="w-6 h-6 rounded-full border-2 border-white/20" />}
-                        </div>
-                    )}
-                </div>
-
-                {!selectionMode && (
-                    <div className="flex items-stretch gap-2 pt-2 mt-1 border-t border-white/[0.04]">
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/project/${p.id}`);
-                            }}
-                            className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide border border-primary/40 text-primary bg-primary/10 hover:bg-primary/20 transition-colors text-center"
-                        >
-                            View Details
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/strategy/${p.id}`);
-                            }}
-                            className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide border border-white/10 text-white/80 bg-white/[0.04] hover:bg-white/[0.08] transition-colors text-center"
-                        >
-                            Open Project
-                        </button>
-                    </div>
-                )}
-
-                {!selectionMode && todoCount > 0 && completionRate > 0 && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                        <div className="h-full transition-all" style={{ width: `${completionRate}%`, background: completionRate === 100 ? '#10b981' : '#f97316' }} />
-                    </div>
-                )}
-            </div>
-        );
-    }
+    function renderMobileCard(p: CanvasData) { return renderProjectCard(p); }
 
     return (
-        <div className="flex h-[100dvh] min-h-0 font-sans overflow-hidden relative" style={{ background: '#080808' }}>
+        <div className="dashboard-shell theme-page flex h-[100dvh] min-h-0 font-sans overflow-hidden relative" style={{ background: 'var(--bg-page)' }}>
             {/* Join Workspace Modal */}
             {showJoinWorkspaceModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-3xl p-6 shadow-2xl">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <Hash size={20} className="text-primary" />
                                 Join workspace
                             </h3>
@@ -576,7 +488,7 @@ export default function Dashboard() {
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-3xl p-6 shadow-2xl">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <User size={18} />
                                 Set username & password
                             </h3>
@@ -609,7 +521,7 @@ export default function Dashboard() {
                                 />
                             </div>
                             <div className="flex gap-2 mt-1">
-                                <button type="submit" disabled={credentialsLoading || !credentialsPassword} className="flex-1 py-2.5 bg-primary text-black text-sm font-black rounded-xl hover:bg-white transition-all disabled:opacity-50">
+                                <button type="submit" disabled={credentialsLoading || !credentialsPassword} className="flex-1 py-2.5 bg-primary text-black text-sm font-semibold rounded-xl hover:bg-white transition-all disabled:opacity-50">
                                     {credentialsLoading ? 'Saving...' : 'Save'}
                                 </button>
                                 <button type="button" onClick={() => setShowCredentialsModal(false)} className="px-4 py-2.5 text-white/50 hover:text-white text-sm font-bold">
@@ -630,18 +542,18 @@ export default function Dashboard() {
             )}
 
             {/* Folder Sidebar */}
-            <aside 
+            <aside
                 className={`fixed inset-y-0 left-0 z-50 flex h-full max-h-[100dvh] w-[280px] min-h-0 shrink-0 flex-col transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-                style={{ background: 'rgba(10,10,10,0.97)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', borderRight: '1px solid rgba(255,255,255,0.05)' }}
+                style={{ background: 'var(--bg-panel)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', borderRight: '1px solid rgba(255,255,255,0.05)' }}
             >
                 <div className="shrink-0 border-b border-[var(--border)] p-3 md:px-6 md:pt-5 md:pb-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 md:gap-3">
-                            <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg md:rounded-xl flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
-                                <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain" />
+                            <div className="w-8 h-8 md:w-10 md:h-10 bg-transparent rounded-lg md:rounded-xl flex items-center justify-center overflow-hidden  shrink-0">
+                                <img src="/stratabin-icon.svg" alt="Logo" className="w-full h-full object-contain" />
                             </div>
                             <div>
-                                <h1 className="text-lg md:text-3xl font-black tracking-tighter leading-none text-[var(--text)]">Stratabin<span className="text-[var(--text-muted)]">.</span></h1>
+                                <h1 className="text-lg md:text-3xl font-semibold tracking-tighter leading-none text-[var(--text)]">Stratabin<span className="text-primary">.</span></h1>
                                 <p className="text-[8px] md:text-[10px] text-[var(--text-dim)] uppercase tracking-[0.2em] mt-0.5 font-bold hidden md:block">Professional Workspace</p>
                             </div>
                         </div>
@@ -653,7 +565,7 @@ export default function Dashboard() {
 
                 <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto custom-scrollbar px-3 py-2 md:px-6 md:py-3">
                     <div className="space-y-1">
-                        <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)] mb-4 px-3">Workspaces</h2>
+                        <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)] mb-4 px-3">Workspaces</h2>
 
                         <button
                             onClick={() => { setActiveFolder(null); setIsSidebarOpen(false); }}
@@ -668,7 +580,7 @@ export default function Dashboard() {
 
                         <div className="pt-6 pb-2">
                             <div className="flex items-center justify-between px-3 mb-4">
-                                <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)]">Custom Folders</h2>
+                                <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)]">Custom Folders</h2>
                                 <button
                                     onClick={() => setShowFolderModal(true)}
                                     className="p-1 hover:bg-[var(--input-bg)] rounded-lg text-[var(--text-dim)] hover:text-[var(--text)] transition-all"
@@ -721,7 +633,7 @@ export default function Dashboard() {
 
                         <div className="pt-6 pb-2">
                             <div className="flex items-center justify-between px-3 mb-4">
-                                <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)]">Team Workspaces</h2>
+                                <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)]">Team Workspaces</h2>
                                 <div className="flex gap-1">
                                     <button
                                         onClick={() => setShowJoinWorkspaceModal(true)}
@@ -757,16 +669,17 @@ export default function Dashboard() {
                         </div>
 
                         <div className="pt-6 pb-2">
-                            <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)] mb-4 px-3">Tools</h2>
+                            <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)] mb-4 px-3">Tools</h2>
                             <div className="space-y-1">
-                                <button
+                                <button type="button" onClick={() => { navigate('/ai'); setIsSidebarOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"><Bot size={18} /><span className="font-bold text-sm text-left">AI workspace</span></button>
+                                {BUILT_IN_AI_ENABLED && <button
                                     type="button"
                                     onClick={() => { navigate('/strab'); setIsSidebarOpen(false); }}
                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                                 >
                                     <Bot size={18} className="text-[var(--text-dim)] shrink-0" />
-                                    <span className="font-bold text-sm text-left">STRAB hub</span>
-                                </button>
+                                    <span className="font-bold text-sm text-left">Built-in STRAB</span>
+                                </button>}
                                 <button
                                     type="button"
                                     onClick={() => { navigate('/reports'); setIsSidebarOpen(false); }}
@@ -782,14 +695,6 @@ export default function Dashboard() {
                                 >
                                     <Activity size={18} className="text-[var(--text-dim)] shrink-0" />
                                     <span className="font-bold text-sm text-left">Monitor</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { navigate(`/folder-workflow/${activeFolderId || 'general'}`); setIsSidebarOpen(false); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
-                                >
-                                    <Network size={18} className="text-[var(--text-dim)] shrink-0" />
-                                    <span className="font-bold text-sm text-left">Map</span>
                                 </button>
                                 <button
                                     type="button"
@@ -826,24 +731,6 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="pt-4 pb-2 border-t border-[var(--border)]">
-                            <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)] mb-3 px-3">Overview</h2>
-                            <div className="space-y-2 px-1">
-                                <div className="flex items-center justify-between px-3 py-2 rounded-xl note-box text-xs">
-                                    <span className="text-[var(--text-muted)] font-bold">Progress</span>
-                                    <span className="font-black text-[var(--text)] tabular-nums">{workInsights?.progress?.total ?? 0} pts</span>
-                                </div>
-                                <div className="flex items-center justify-between px-3 py-2 rounded-xl note-box text-xs">
-                                    <span className="text-[var(--text-muted)] font-bold">Projects</span>
-                                    <span className="font-black text-[var(--text)] tabular-nums">{filteredCanvases.length}</span>
-                                </div>
-                                <div className="flex items-center justify-between px-3 py-2 rounded-xl note-box text-xs">
-                                    <span className="text-[var(--text-muted)] font-bold">Tasks done</span>
-                                    <span className="font-black text-[var(--text)] tabular-nums">{dashboardDoneTodos}</span>
-                                </div>
-                            </div>
-                        </div>
-
                         <div className="pt-4 space-y-1">
                             <button
                                 onClick={() => { navigate(`/profile/${myUsername || user?.username || user?.firstName || 'me'}`); setIsSidebarOpen(false); }}
@@ -873,7 +760,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="pt-4 mt-4 border-t border-[var(--border)]">
-                            <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-[var(--text-muted)] mb-3 px-3">Theme</h2>
+                            <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)] mb-3 px-3">Theme</h2>
                             <div className="px-3 flex justify-start">
                                 <ThemeToggle compact />
                             </div>
@@ -932,8 +819,8 @@ export default function Dashboard() {
             </aside>
 
             {/* Main Content Area */}
-            <main className="min-h-0 flex-1 overflow-y-auto custom-scrollbar relative" style={{ background: '#080808', backgroundImage: 'radial-gradient(ellipse 80% 50% at 20% -10%, rgba(249,115,22,0.04) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 85% 110%, rgba(139,92,246,0.03) 0%, transparent 60%)' }}>
-                <div className="max-w-7xl mx-auto px-2 pt-2 pb-[max(6rem,env(safe-area-inset-bottom,0px)+4rem)] md:px-10 md:pt-10 md:pb-10">
+            <main className="dashboard-main min-h-0 flex-1 overflow-y-auto custom-scrollbar relative" style={{ background: 'var(--bg-page)', backgroundImage: 'none' }}><LavenderDotBackground />
+                <div className="max-w-7xl mx-auto px-5 pt-5 pb-[max(6rem,env(safe-area-inset-bottom,0px)+4rem)] md:px-10 md:pt-10 md:pb-10">
                     {/* Invitations banner */}
                     {invitations.length > 0 && (
                         <div className="mb-4 p-4 note-box rounded-xl flex flex-wrap items-center justify-between gap-3">
@@ -967,7 +854,7 @@ export default function Dashboard() {
                     )}
 
                     {/* Header — breathing room, clearer hierarchy */}
-                    <header className="mb-5 md:mb-7">
+                    <header className="dashboard-header mb-5 md:mb-7">
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
@@ -976,36 +863,27 @@ export default function Dashboard() {
                                 <Menu size={16} />
                             </button>
                             <div className="flex-1 min-w-0">
-                                <h2 className="text-xl md:text-3xl font-black text-white leading-tight truncate tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', letterSpacing: '-0.02em' }}>
+                                <h2 className="text-xl md:text-3xl font-semibold text-white leading-tight truncate tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', letterSpacing: '-0.02em' }}>
                                     {activeFolder ? activeFolder.name : 'Projects'}
                                 </h2>
                                 <p className="text-[10px] text-white/30 uppercase font-bold tracking-wider hidden sm:block mt-0.5">
-                                    {activeFolder ? 'Folder' : 'Writing & strategy'}
+                                    {activeFolder ? 'Folder' : 'Your ideas, plans, and next steps'}
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
-                                {/* Flow Builder — AI-guided new project */}
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/flow-creator')}
-                                    className="hidden md:inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-violet-500/40 bg-violet-500/10 text-violet-300 font-black text-xs uppercase tracking-widest hover:bg-violet-500/20 active:scale-95 transition-all shrink-0"
-                                >
-                                    <Sparkles size={14} />
-                                    Flow Builder
-                                </button>
 
                                 <button
                                     type="button"
                                     onClick={handleCreate}
-                                    className="hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-black font-black text-xs uppercase tracking-widest hover:bg-orange-400 active:scale-95 transition-all shrink-0 shadow-[0_4px_16px_rgba(249,115,22,0.35)]"
+                                    className="hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-black font-semibold text-xs uppercase tracking-widest hover:bg-violet-400 active:scale-95 transition-all shrink-0 shadow-[0_4px_16px_rgba(169,154,233,0.35)]"
                                 >
                                     <Plus size={16} strokeWidth={3} />
-                                    Strategy
+                                    New project
                                 </button>
 
                                 <button
                                     onClick={handleCreate}
-                                    className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-black font-black active:scale-95 transition-all shrink-0 shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
+                                    className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-black font-semibold active:scale-95 transition-all shrink-0 shadow-[0_4px_12px_rgba(169,154,233,0.3)]"
                                 >
                                     <Plus size={18} strokeWidth={3} />
                                 </button>
@@ -1015,21 +893,24 @@ export default function Dashboard() {
                     </header>
 
                     {/* Navigation Tabs — more space between */}
-                    <div className="flex items-center gap-2 md:gap-8 mb-4 md:mb-6 border-b border-white/[0.05] pb-4 overflow-x-auto custom-scrollbar-hide">
+                    <div className="dashboard-tabs flex items-center gap-2 md:gap-4 mb-4 md:mb-6 border-b border-white/[0.05] pb-4 overflow-x-auto custom-scrollbar-hide">
+                        <button onClick={() => navigate('/timetable')} className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-[var(--text-muted)] hover:text-primary hover:bg-primary/10"><Clock size={18}/><span className="font-bold text-sm">Timetable</span></button>
                         {tabs.map(tab => (
-                            <button
+                            
+                                <button
                                 key={tab.id}
                                 type="button"
+                                aria-pressed={activeTab === tab.id}
                                 title={'title' in tab && tab.title ? tab.title : undefined}
-                                onClick={() => { setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab' | 'reports' | 'monitor'); setTabKey(k => k + 1); }}
+                                onClick={() => { if (tab.id === 'strab') { navigate('/ai'); return; } setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab' | 'reports' | 'monitor'); setTabKey(k => k + 1); }}
                                 className={`group flex items-center gap-2 md:gap-3 py-3 px-3 md:px-0 md:pb-4 relative transition-all min-w-[48px] md:min-w-max justify-center md:justify-start shrink-0 ${
-                                    activeTab === tab.id ? 'text-white font-bold' : 'text-white/30 hover:text-white/65'
+                                    activeTab === tab.id ? 'dashboard-tab-active text-white font-bold' : 'text-white/30 hover:text-white/65'
                                 }`}
                             >
                                 <tab.icon size={16} className="shrink-0 md:w-[14px] md:h-[14px]" />
-                                <span className="text-[9px] md:text-xs font-black uppercase tracking-wider hidden sm:inline truncate">{tab.label}</span>
+                                <span className="text-xs font-medium truncate">{tab.label}</span>
                                 {activeTab === tab.id && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" style={{ background: '#f97316', boxShadow: '0 0 8px rgba(249,115,22,0.7)' }} />
+                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" style={{ background: 'var(--primary)', boxShadow: '0 0 8px rgba(169,154,233,0.7)' }} />
                                 )}
                             </button>
                         ))}
@@ -1040,7 +921,7 @@ export default function Dashboard() {
                         <div key={tabKey} className="tab-fade-in pb-20 space-y-4 md:space-y-8">
                             <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
-                                    <h2 className="text-2xl font-black text-white">Calendar Hub</h2>
+                                    <h2 className="text-2xl font-semibold text-white">Calendar Hub</h2>
                                     <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-bold">Select views</p>
                                 </div>
                             </div>
@@ -1060,7 +941,7 @@ export default function Dashboard() {
                                         <div className="w-14 h-14 rounded-2xl bg-white/[0.06] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-white/[0.08] transition-all duration-300 shadow-inner">
                                             <Calendar size={26} className="text-white/90 group-hover:text-white" />
                                         </div>
-                                        <h3 className="text-xl font-black text-white mb-2 tracking-tight">Strategic Calendar</h3>
+                                        <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Strategic Calendar</h3>
                                         <p className="text-sm text-white/45 leading-relaxed font-medium">
                                             Global month-view roadmap and long-term planning across all scopes.
                                         </p>
@@ -1081,7 +962,7 @@ export default function Dashboard() {
                                         <div className="w-14 h-14 rounded-2xl bg-white/[0.06] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-white/[0.08] transition-all duration-300 shadow-inner">
                                             <CheckCircle2 size={26} className="text-white/90 group-hover:text-white" />
                                         </div>
-                                        <h3 className="text-xl font-black text-white mb-2 tracking-tight">General Weekly Planner</h3>
+                                        <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">General Weekly Planner</h3>
                                         <p className="text-sm text-white/45 leading-relaxed font-medium">
                                             7-day focused tactical execution and day-by-day task lists.
                                         </p>
@@ -1093,7 +974,7 @@ export default function Dashboard() {
                         <div key={tabKey} className="tab-fade-in pb-20 space-y-4 md:space-y-8">
                             <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
-                                    <h2 className="text-2xl font-black text-white">Reports</h2>
+                                    <h2 className="text-2xl font-semibold text-white">Reports</h2>
                                     <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-bold">AI analysis & project insights</p>
                                 </div>
                             </div>
@@ -1112,7 +993,7 @@ export default function Dashboard() {
                                         <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                                             <BarChart2 size={26} className="text-emerald-400 group-hover:text-emerald-300" />
                                         </div>
-                                        <h3 className="text-xl font-black text-white mb-2 tracking-tight">STRAB AI Reports</h3>
+                                        <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">STRAB AI Reports</h3>
                                         <p className="text-sm text-white/45 leading-relaxed font-medium">
                                             Generate comprehensive analysis, gap identification, and actionable recommendations for any project.
                                         </p>
@@ -1125,16 +1006,16 @@ export default function Dashboard() {
 
                             <div className="hidden md:flex items-center gap-3 mb-4 px-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Projects</h2>
+                                <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">Projects</h2>
                                 <div className="flex-1 h-px bg-white/5 ml-2" />
                             </div>
-                            <ProjectCardGrid items={filteredCanvases} />
+                            {renderProjectCardGrid({ items: filteredCanvases })}
                         </div>
                     ) : activeTab === 'monitor' ? (
                         <div key={tabKey} className="tab-fade-in pb-20 space-y-4 md:space-y-8 monitor-section">
                             <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 px-1 mb-4">
                                 <div>
-                                    <h2 className="text-2xl font-black text-[var(--text)]">Monitor your work</h2>
+                                    <h2 className="text-2xl font-semibold text-[var(--text)]">Monitor your work</h2>
                                     <p className="text-xs text-[var(--text-muted)] mt-1 uppercase tracking-widest font-bold">Track progress & execution</p>
                                 </div>
                             </div>
@@ -1154,7 +1035,7 @@ export default function Dashboard() {
                                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                                             <div className="flex items-center gap-2">
                                                 <Zap size={20} className="text-primary" />
-                                                <h3 className="text-lg font-black text-[var(--text)]">What did I execute?</h3>
+                                                <h3 className="text-lg font-semibold text-[var(--text)]">What did I execute?</h3>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <button
@@ -1194,7 +1075,7 @@ export default function Dashboard() {
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4">
                                             <div>
-                                                <label className="text-[9px] font-black uppercase tracking-wider text-[var(--text-muted)] block mb-1.5">Executed</label>
+                                                <label className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)] block mb-1.5">Executed</label>
                                                 <input
                                                     type="text"
                                                     value={globalLog.executed ?? ''}
@@ -1204,7 +1085,7 @@ export default function Dashboard() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[9px] font-black uppercase tracking-wider text-amber-600 block mb-1.5">What&apos;s blocking me?</label>
+                                                <label className="text-[9px] font-semibold uppercase tracking-wider text-amber-600 block mb-1.5">What&apos;s blocking me?</label>
                                                 <input
                                                     type="text"
                                                     value={globalLog.blocking ?? ''}
@@ -1214,7 +1095,7 @@ export default function Dashboard() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[9px] font-black uppercase tracking-wider text-emerald-600 block mb-1.5">Top action for tomorrow</label>
+                                                <label className="text-[9px] font-semibold uppercase tracking-wider text-emerald-600 block mb-1.5">Top action for tomorrow</label>
                                                 <input
                                                     type="text"
                                                     value={globalLog.tomorrowAction ?? ''}
@@ -1256,7 +1137,7 @@ export default function Dashboard() {
                                         <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all duration-300">
                                             <Activity size={26} className="text-cyan-500" />
                                         </div>
-                                        <h3 className="text-xl font-black text-[var(--text)] mb-2 tracking-tight">Strategic Calendar</h3>
+                                        <h3 className="text-xl font-semibold text-[var(--text)] mb-2 tracking-tight">Strategic Calendar</h3>
                                         <p className="text-sm text-[var(--text-muted)] leading-relaxed font-medium">
                                             Month-view progress, daily check-ins, and execution tracking across projects.
                                         </p>
@@ -1273,7 +1154,7 @@ export default function Dashboard() {
                                         <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all duration-300">
                                             <CheckCircle2 size={26} className="text-cyan-500" />
                                         </div>
-                                        <h3 className="text-xl font-black text-[var(--text)] mb-2 tracking-tight">Weekly Planner</h3>
+                                        <h3 className="text-xl font-semibold text-[var(--text)] mb-2 tracking-tight">Weekly Planner</h3>
                                         <p className="text-sm text-[var(--text-muted)] leading-relaxed font-medium">
                                             Day-by-day task lists and tactical execution for the current week.
                                         </p>
@@ -1283,16 +1164,16 @@ export default function Dashboard() {
 
                             <div className="hidden md:flex items-center gap-3 mb-4 px-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-                                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)]">Projects</h2>
+                                <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--text-muted)]">Projects</h2>
                                 <div className="flex-1 h-px bg-[var(--border)] ml-2" />
                             </div>
-                            <ProjectCardGrid items={filteredCanvases} />
+                            {renderProjectCardGrid({ items: filteredCanvases })}
                         </div>
                     ) : (
                         <div key={tabKey} className="space-y-4 md:space-y-14 tab-fade-in">
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
-                                    <div className="dashboard-option-card bg-gradient-to-br from-[#1a1a1a] to-[#141414] border border-orange-500/30 rounded-3xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(249,115,22,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
+                                    <div className="dashboard-option-card bg-gradient-to-br from-[#1a1a1a] to-[#141414] border border-orange-500/30 rounded-3xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(169,154,233,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
                                         <div className="flex flex-col">
                                             <span className="text-white font-bold text-sm">Select 2 Projects</span>
                                             <span className="text-white/40 text-xs">{selectedIds.length}/2 selected</span>
@@ -1300,7 +1181,7 @@ export default function Dashboard() {
                                         <button
                                             disabled={selectedIds.length < 2}
                                             onClick={handleMerge}
-                                            className="px-5 py-2.5 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-400 disabled:opacity-30 disabled:grayscale transition-all flex items-center gap-2 text-sm"
+                                            className="px-5 py-2.5 bg-orange-500 text-white font-bold rounded-xl hover:bg-violet-400 disabled:opacity-30 disabled:grayscale transition-all flex items-center gap-2 text-sm"
                                         >
                                             <GitMerge size={16} />
                                             Merge
@@ -1320,10 +1201,10 @@ export default function Dashboard() {
                                 <section>
                                     <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]" />
-                                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Pinned projects</h2>
+                                        <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">Pinned projects</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={sortedDisplayPinned} variant="pinned-hero" />
+                                    {renderProjectCardGrid({ items: sortedDisplayPinned, variant: "pinned-hero" })}
                                 </section>
                             )}
 
@@ -1332,10 +1213,10 @@ export default function Dashboard() {
                                 <section>
                                     <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Current focus</h2>
+                                        <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">Current focus</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={sortedDisplayCurrent} />
+                                    {renderProjectCardGrid({ items: sortedDisplayCurrent })}
                                 </section>
                             )}
 
@@ -1344,10 +1225,10 @@ export default function Dashboard() {
                                 <section>
                                     <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                         <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Merged</h2>
+                                        <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">Merged</h2>
                                         <div className="flex-1 h-px bg-white/5 ml-2" />
                                     </div>
-                                    <ProjectCardGrid items={sortedDisplayMerged} />
+                                    {renderProjectCardGrid({ items: sortedDisplayMerged })}
                                 </section>
                             )}
 
@@ -1355,13 +1236,13 @@ export default function Dashboard() {
                             <section>
                                 <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
+                                    <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">
                                         {pinnedProjects.length > 0 || currentProjects.length > 0 || mergedProjects.length > 0 ? 'All projects' : 'Start your project'}
                                     </h2>
                                     <div className="flex-1 h-px bg-white/5 ml-2" />
                                 </div>
                                 {mainGridProjects.length > 0 ? (
-                                    <ProjectCardGrid items={mainGridProjects} />
+                                    renderProjectCardGrid({ items: mainGridProjects })
                                 ) : (
                                     <>
                                     {isFirstLoad && Object.keys(canvases).length === 0 && (
@@ -1377,15 +1258,15 @@ export default function Dashboard() {
                                             <div className="py-16 md:py-20 flex flex-col items-center text-center gap-10">
                                                 <div className="flex flex-col items-center gap-4">
                                                     <div className="relative">
-                                                        <div className="w-20 h-20 bg-white rounded-[1.5rem] flex items-center justify-center overflow-hidden shadow-2xl border-2 border-white/10">
-                                                            <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                                                        <div className="w-20 h-20 bg-transparent rounded-[1.5rem] flex items-center justify-center overflow-hidden shadow-2xl ">
+                                                            <img src="/stratabin-icon.svg" alt="Stratabin" className="w-full h-full object-contain" />
                                                         </div>
                                                         <div className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
                                                             <Sparkles size={12} className="text-black" />
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <h3 className="text-2xl md:text-3xl font-black text-white mb-2">
+                                                        <h3 className="text-2xl md:text-3xl font-semibold text-white mb-2">
                                                             Welcome{user?.firstName ? `, ${user.firstName}` : ''}
                                                         </h3>
                                                         <p className="text-sm text-white/35 max-w-sm leading-relaxed">
@@ -1405,9 +1286,9 @@ export default function Dashboard() {
                                                                 <div className="w-10 h-10 rounded-2xl bg-primary/15 flex items-center justify-center group-hover:bg-primary group-hover:text-black group-hover:scale-105 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                                                                     <item.icon size={18} className="text-primary group-hover:text-black transition-colors" />
                                                                 </div>
-                                                                <span className="text-[10px] font-black text-white/20 tracking-widest">{item.step}</span>
+                                                                <span className="text-[10px] font-semibold text-white/20 tracking-widest">{item.step}</span>
                                                             </div>
-                                                            <p className="text-xs font-black text-white/70 mb-1">{item.title}</p>
+                                                            <p className="text-xs font-semibold text-white/70 mb-1">{item.title}</p>
                                                             <p className="text-[11px] text-white/30 leading-relaxed">{item.desc}</p>
                                                         </div>
                                                     ))}
@@ -1415,7 +1296,7 @@ export default function Dashboard() {
 
                                                 <button
                                                     onClick={handleCreate}
-                                                    className="group flex items-center gap-3 px-8 py-4 bg-white text-black font-black rounded-2xl hover:bg-primary hover:text-white transition-all shadow-[0_4px_30px_rgba(255,255,255,0.08)] active:scale-95 text-sm"
+                                                    className="group flex items-center gap-3 px-8 py-4 bg-white text-black font-semibold rounded-2xl hover:bg-primary hover:text-white transition-all shadow-[0_4px_30px_rgba(255,255,255,0.08)] active:scale-95 text-sm"
                                                 >
                                                     <Plus size={18} strokeWidth={3} />
                                                     Create First Strategy
@@ -1426,17 +1307,17 @@ export default function Dashboard() {
                                     )}
 
                                     {!isFirstLoad && regularProjects.length === 0 && mergedProjects.length === 0 && Object.keys(canvases).length > 0 && (
-                                        <div className="col-span-full py-20 border border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center gap-4 animate-in fade-in duration-300">
+                                        <div className="dashboard-empty col-span-full py-20 flex flex-col items-center justify-center text-center gap-4 animate-in fade-in duration-300">
                                             <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
                                                 <Folder size={24} className="text-white/20" />
                                             </div>
                                             <div>
-                                                <h3 className="text-base font-black text-white/50 mb-1">This workspace is empty</h3>
+                                                <h3 className="text-base font-semibold text-white/50 mb-1">This workspace is empty</h3>
                                                 <p className="text-xs text-white/20 max-w-xs">Create a new project or move one here from General.</p>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black text-white/50 hover:text-white transition-all">
-                                                    <Plus size={14} strokeWidth={3} /> New Strategy
+                                                <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-white/50 hover:text-white transition-all">
+                                                    <Plus size={14} strokeWidth={3} /> New project
                                                 </button>
                                             </div>
                                         </div>
@@ -1449,21 +1330,6 @@ export default function Dashboard() {
                 </div>
             </main>
 
-            {activeTab === 'strategy' && !selectionMode && (
-                <button
-                    type="button"
-                    onClick={handleCreate}
-                    className="md:hidden fixed z-30 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--text)] text-[var(--bg-page)] shadow-[0_8px_32px_rgba(0,0,0,0.35)] active:scale-95 transition-transform"
-                    style={{
-                        bottom: 'max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem))',
-                        right: 'max(1rem, env(safe-area-inset-right, 0px))',
-                    }}
-                    aria-label="Create new project"
-                >
-                    <Plus size={26} strokeWidth={2.5} />
-                </button>
-            )}
-
             {/* Create Folder Modal */}
             {showFolderModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
@@ -1473,7 +1339,7 @@ export default function Dashboard() {
                                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
                                     <FolderPlus size={20} className="text-white" />
                                 </div>
-                                <h3 className="text-xl font-black">Create Workspace</h3>
+                                <h3 className="text-xl font-semibold">Create Workspace</h3>
                             </div>
                             <button onClick={() => setShowFolderModal(false)} className="p-2 hover:bg-white/5 rounded-full text-white/20 hover:text-white transition-colors">
                                 <X size={20} />
@@ -1482,7 +1348,7 @@ export default function Dashboard() {
 
                         <div className="space-y-6">
                             <div>
-                                <label className="block text-[10px] uppercase font-black tracking-widest text-white/40 mb-3">Workspace Name</label>
+                                <label className="block text-[10px] uppercase font-semibold tracking-widest text-white/40 mb-3">Workspace Name</label>
                                 <input
                                     autoFocus
                                     type="text"
@@ -1491,7 +1357,7 @@ export default function Dashboard() {
                                     placeholder="Enter folder name..."
                                     maxLength={100}
                                     aria-label="Folder name"
-                                    className="w-full bg-[#080808] border border-white/5 rounded-2xl p-5 text-base text-white focus:border-primary/50 outline-none transition-all placeholder-white/10"
+                                    className="w-full bg-[var(--bg-page)] border border-white/5 rounded-2xl p-5 text-base text-white focus:border-primary/50 outline-none transition-all placeholder-white/10"
                                     onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
                                 />
                             </div>
@@ -1499,7 +1365,7 @@ export default function Dashboard() {
                             <button
                                 onClick={handleCreateFolder}
                                 disabled={!newFolderName.trim()}
-                                className="w-full py-5 bg-primary text-black font-black uppercase text-xs tracking-[0.2em] rounded-2xl hover:bg-white transition-all shadow-xl disabled:opacity-20 flex items-center justify-center gap-3"
+                                className="w-full py-5 bg-primary text-black font-semibold uppercase text-xs tracking-[0.2em] rounded-2xl hover:bg-white transition-all shadow-xl disabled:opacity-20 flex items-center justify-center gap-3"
                             >
                                 <CheckCircle2 size={18} />
                                 Create Workspace
@@ -1512,65 +1378,43 @@ export default function Dashboard() {
     );
 
     function renderProjectCard(p: CanvasData) {
-        const Icon = getActiveIcon();
         const isSelected = selectedIds.includes(p.id);
         const isMerged = !!p.mergedCanvasIds;
-        const nodeCount = p.nodes?.length ?? 0;
+        const wordCount = (p.writingContent || '').trim().split(/\s+/).filter(Boolean).length;
         const todoCount = p.todos?.length ?? 0;
         const completedTodoCount = p.todos?.filter(todo => todo.completed).length ?? 0;
         const completionRate = todoCount > 0 ? Math.round((completedTodoCount / todoCount) * 100) : 0;
-        const wc = wordCount(p.writingContent);
+        const wc = countWords(p.writingContent);
         const previewText = (p.writingContent || '').replace(/\s+/g, ' ').trim();
-        const hasContent = nodeCount > 0 || todoCount > 0 || wc > 0;
+        const hasContent = wordCount > 0 || todoCount > 0 || wc > 0 || (p.nodes?.length ?? 0) > 0 || Boolean(p.codeFiles?.some(file => file.content.trim())) || Boolean(p.timelineContent?.trim());
         const nextTodoLine = p.todos?.find((t) => !t.completed)?.text?.trim();
 
         return (
-            <div
+            <CompactProjectCard
                 key={p.id}
-                onClick={(e) => selectionMode ? handleSelect(e, p.id) : navigate(`/project/${p.id}`)}
-                className={`dashboard-project-card group relative rounded-2xl md:rounded-[1.25rem] border transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-visible flex flex-col
+                name={(p.title || p.name || '').trim() || 'Untitled'}
+                status={p.isStuck ? 'Blocked' : todoCount > 0 && completedTodoCount === todoCount ? 'Complete' : p.isCurrent || hasContent ? 'In progress' : 'Not started'}
+                lockedOpen={renamingId === p.id || showMoveMenu === p.id || showDuplicateMenu === p.id}
+                selectionMode={selectionMode}
+                selected={isSelected}
+                onSelect={event => handleSelect(event, p.id)}
+                className={`dashboard-project-card group relative rounded-2xl md:rounded-[1.25rem] border transition-all duration-300   overflow-visible flex flex-col
                     ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20 shadow-[0_8px_40px_rgba(218,119,86,0.14)]' : 'border-[var(--border)]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
             >
-                {/* Accent bar + progress */}
-                <div className="shrink-0 rounded-t-2xl md:rounded-t-3xl overflow-hidden">
-                    <div className="h-[2px] w-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
-                    {todoCount > 0 && (
-                        <div className="h-[2px] w-full" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                            <div
-                                className="h-full transition-all duration-700"
-                                style={{ width: `${completionRate}%`, background: completionRate === 100 ? '#10b981' : '#f97316', boxShadow: completionRate > 0 ? '0 0 8px rgba(249,115,22,0.5)' : 'none' }}
-                            />
-                        </div>
-                    )}
-                </div>
-
-                <div className="p-4 md:p-5 flex flex-col flex-1">
-                    {/* Selection Overlay */}
-                    {selectionMode && (
-                        <div className="absolute top-5 right-4 z-10">
-                            {isSelected ? (
-                                <div className="text-white rounded-full p-1 shadow-lg bg-primary">
-                                    <CheckCircle2 size={20} />
-                                </div>
-                            ) : (
-                                <div className="w-7 h-7 rounded-full border-2 border-white/10 group-hover:border-white/30 transition-colors" />
-                            )}
-                        </div>
-                    )}
-
+                <div className="compact-card-content flex flex-col">
                     {/* Card Actions */}
                     {!selectionMode && (
-                        <div className="absolute top-5 right-3 flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all z-10">
+                        <div className="compact-card-tools">
                             <div className="relative">
                                 <button onClick={(e) => { e.stopPropagation(); setShowDuplicateMenu(showDuplicateMenu === p.id ? null : p.id); setShowMoveMenu(null); }}
                                     className={`p-1.5 rounded-lg transition-colors ${showDuplicateMenu === p.id ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title="Duplicate">
                                     <Copy size={14} />
                                 </button>
                                 {showDuplicateMenu === p.id && (
-                                    <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] max-h-[min(280px,60vh)] overflow-y-auto bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100] animate-in slide-in-from-top-2 duration-200">
-                                        <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-primary border-b border-white/[0.04] mb-1 sticky top-0 bg-[#111]/95 backdrop-blur-xl">Duplicate to...</p>
+                                    <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] max-h-[min(280px,60vh)] overflow-y-auto bg-[var(--bg-panel)] backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100] animate-in slide-in-from-top-2 duration-200">
+                                        <p className="px-4 py-2 text-[10px] uppercase font-semibold tracking-widest text-primary border-b border-white/[0.04] mb-1 sticky top-0 bg-[var(--bg-panel)] backdrop-blur-xl">Duplicate to...</p>
                                         <button onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, null); setShowDuplicateMenu(null); toast.success('Duplicated to General Projects'); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-white/60 hover:text-white"><Layout size={14} /> General Projects</button>
                                         <button onClick={(e) => { e.stopPropagation(); handleDuplicateToFreshFolder(p.id); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-primary"><FolderPlus size={14} /> New Fresh Folder...</button>
                                         {Object.values(folders).map(f => (<button key={f.id} onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, f.id); setShowDuplicateMenu(null); toast.success(`Duplicated to ${f.name}`); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-white/60 hover:text-white"><Folder size={14} /> {f.name}</button>))}
@@ -1583,8 +1427,8 @@ export default function Dashboard() {
                                     <Folders size={14} />
                                 </button>
                                 {showMoveMenu === p.id && (
-                                    <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] max-h-[min(280px,60vh)] overflow-y-auto bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100] animate-in slide-in-from-top-2 duration-200">
-                                        <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-white/30 border-b border-white/[0.04] mb-1 sticky top-0 bg-[#111]/95 backdrop-blur-xl">Move to...</p>
+                                    <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] max-h-[min(280px,60vh)] overflow-y-auto bg-[var(--bg-panel)] backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100] animate-in slide-in-from-top-2 duration-200">
+                                        <p className="px-4 py-2 text-[10px] uppercase font-semibold tracking-widest text-white/30 border-b border-white/[0.04] mb-1 sticky top-0 bg-[var(--bg-panel)] backdrop-blur-xl">Move to...</p>
                                         <button onClick={(e) => { e.stopPropagation(); handleMoveToFolder(p.id, null); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 ${p.folderId === null ? 'text-primary' : 'text-white/60'}`}><Layout size={14} /> General Projects</button>
                                         <button onClick={(e) => { e.stopPropagation(); handleMoveToFreshFolder(p.id); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-primary"><FolderPlus size={14} /> New Fresh Folder...</button>
                                         {Object.values(folders).map(f => (<button key={f.id} onClick={(e) => { e.stopPropagation(); handleMoveToFolder(p.id, f.id); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 ${p.folderId === f.id ? 'text-primary' : 'text-white/60'}`}><Folder size={14} /> {f.name}</button>))}
@@ -1599,21 +1443,6 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    {/* Icon + status chips (mock-style) */}
-                    <div className="flex items-start justify-between mb-2 md:mb-3">
-                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center shrink-0 bg-teal-500/10 border border-teal-400/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                            {isMerged ? <GitMerge size={16} className="text-teal-300 md:w-5 md:h-5" /> : <Icon size={16} className="text-teal-300 md:w-5 md:h-5" />}
-                        </div>
-                        <div className="flex items-center gap-1 flex-wrap justify-end">
-                            {isMerged && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0 md:hidden" />}
-                            {isMerged && (
-                                <span className="hidden md:inline px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/25 text-[9px] font-black uppercase text-violet-300">
-                                    Merged
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
                     {/* Title */}
                     {renamingId === p.id ? (
                         <input autoFocus type="text" value={renameValue}
@@ -1624,17 +1453,7 @@ export default function Dashboard() {
                             className="text-base md:text-lg font-bold text-white mb-3 w-full bg-transparent border-b border-orange-500/40 outline-none pb-0.5 placeholder-white/20"
                             placeholder="Project name..." aria-label="Rename project"
                         />
-                    ) : (
-                        <h3 className="text-sm md:text-base font-bold text-white mb-2 md:mb-3 truncate leading-snug"
-                            onDoubleClick={e => handleStartRename(e, p.id, p.name || p.title || '')}
-                            title="Double-click to rename">
-                            {(() => {
-                                const n = (p.title || p.name || '').trim();
-                                if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Untitled';
-                                return n;
-                            })()}
-                        </h3>
-                    )}
+                    ) : null}
 
                     {projectQuickActionsRow(p)}
 
@@ -1665,17 +1484,17 @@ export default function Dashboard() {
                     <div className="grid grid-cols-2 md:grid-cols-2 gap-2 mb-3">
                         <div className="project-card-stat-box rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 md:py-2.5">
                             <div className="flex items-center justify-between mb-1 md:mb-1.5">
-                                <span className="text-[10px] uppercase tracking-[0.12em] font-black text-primary">Tasks</span>
+                                <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-primary">Tasks</span>
                                 <span className="text-[11px] font-bold text-white/70">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
                             </div>
                             <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${completionRate}%`, background: completionRate === 100 ? '#10b981' : '#f97316' }} />
+                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${completionRate}%`, background: completionRate === 100 ? '#10b981' : 'var(--primary)' }} />
                             </div>
                         </div>
                         <div className="project-card-stat-box rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 md:py-2.5">
                             <div className="flex items-center justify-between mb-1 md:mb-1.5">
-                                <span className="text-[10px] uppercase tracking-[0.12em] font-black text-primary">Structure</span>
-                                <span className="text-[11px] font-bold text-white/70">{nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>
+                                <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-primary">Writing</span>
+                                <span className="text-[11px] font-bold text-white/70">{wordCount} word{wordCount !== 1 ? 's' : ''}</span>
                             </div>
                             <div className="flex items-center justify-between text-[11px] font-semibold text-white/30">
                                 <span className="inline-flex items-center gap-1 truncate"><ListTodo size={10} className="text-primary/80 shrink-0" />{todoCount} tasks</span>
@@ -1686,7 +1505,7 @@ export default function Dashboard() {
 
                     {/* Project brief — desktop + mobile */}
                     <div className="project-card-stat-box rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2 md:py-2.5 mb-4 min-h-[60px] md:min-h-[70px]">
-                        <p className="text-[10px] uppercase tracking-[0.12em] font-black text-primary mb-1 md:mb-1.5">Project brief</p>
+                        <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-primary mb-1 md:mb-1.5">Project brief</p>
                         <p className="text-[12px] leading-relaxed text-white/35 line-clamp-3">
                             {previewText || 'Add your core idea, goals, and execution notes to turn this into a full strategy card.'}
                         </p>
@@ -1695,7 +1514,7 @@ export default function Dashboard() {
                     {/* Mobile: compact stat (shown only when Tasks/Structure would be too tall) — now redundant, kept as fallback */}
                     <div className="hidden items-center gap-2 mb-2 text-[10px] text-zinc-400 font-medium">
                         {todoCount > 0 && <span>{completionRate}% done</span>}
-                        {nodeCount > 0 && <span>• {nodeCount} idea{nodeCount !== 1 ? 's' : ''}</span>}
+                        {wordCount > 0 && <span>• {wordCount} word{wordCount !== 1 ? 's' : ''}</span>}
                         {wc > 0 && <span>• {wc}w</span>}
                     </div>
 
@@ -1706,10 +1525,10 @@ export default function Dashboard() {
                     )}
 
                     <div className="hidden md:flex items-center gap-3 mb-4 flex-wrap">
-                        {nodeCount > 0 && (
+                        {wordCount > 0 && (
                             <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary/70" />
-                                {nodeCount} idea{nodeCount !== 1 ? 's' : ''}
+                                {wordCount} word{wordCount !== 1 ? 's' : ''}
                             </span>
                         )}
                         {todoCount > 0 && (
@@ -1742,7 +1561,7 @@ export default function Dashboard() {
                                         e.stopPropagation();
                                         navigate(`/project/${p.id}`);
                                     }}
-                                    className="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide border border-primary/40 text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+                                    className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold uppercase tracking-wide border border-primary/40 text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
                                 >
                                     View All Details
                                 </button>
@@ -1752,7 +1571,7 @@ export default function Dashboard() {
                                         e.stopPropagation();
                                         navigate(`/strategy/${p.id}`);
                                     }}
-                                    className="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wide border border-white/10 text-white/80 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+                                    className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold uppercase tracking-wide border border-white/10 text-white/80 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
                                 >
                                     Open Project
                                 </button>
@@ -1763,7 +1582,7 @@ export default function Dashboard() {
                                 {p.folderId ? (folders[p.folderId]?.name || 'Workspace project') : 'General project'}
                             </span>
                             {selectionMode && (
-                                <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-teal-400">
+                                <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-teal-400">
                                     {isSelected ? 'Tap to deselect' : 'Tap to select'}
                                     <ArrowRight size={11} />
                                 </span>
@@ -1771,248 +1590,10 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </CompactProjectCard>
         );
     }
 
-    function renderPinnedHeroCard(p: CanvasData) {
-        const isSelected = selectedIds.includes(p.id);
-        const isMerged = !!p.mergedCanvasIds;
-        const nodeCount = p.nodes?.length ?? 0;
-        const todoCount = p.todos?.length ?? 0;
-        const completedTodoCount = p.todos?.filter((todo) => todo.completed).length ?? 0;
-        const completionRate = todoCount > 0 ? Math.round((completedTodoCount / todoCount) * 100) : 0;
-        const nextTodoLine = p.todos?.find((t) => !t.completed)?.text?.trim();
-        const previewText = (p.writingContent || '').replace(/\s+/g, ' ').trim();
-        const displayName = (() => {
-            const n = (p.title || p.name || '').trim();
-            if (!n || /^untitled(\s+project)?$/i.test(n)) return 'Untitled';
-            return n;
-        })();
-
-        return (
-            <div
-                key={p.id}
-                onClick={(e) => (selectionMode ? handleSelect(e, p.id) : navigate(`/project/${p.id}`))}
-                className={`dashboard-hero-card group relative rounded-2xl md:rounded-3xl border transition-all duration-300 cursor-pointer overflow-visible flex flex-col md:flex-row md:items-stretch gap-5 md:gap-0 md:min-h-[168px]
-                    ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20' : 'border-[var(--border)]'}
-                    ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
-                `}
-            >
-                <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-3xl bg-[var(--border)]" />
-
-                {!selectionMode && (
-                    <div className="absolute top-4 right-4 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowDuplicateMenu(showDuplicateMenu === p.id ? null : p.id);
-                                setShowMoveMenu(null);
-                            }}
-                            className={`p-1.5 rounded-lg transition-colors ${showDuplicateMenu === p.id ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
-                            title="Duplicate"
-                        >
-                            <Copy size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowMoveMenu(showMoveMenu === p.id ? null : p.id);
-                                setShowDuplicateMenu(null);
-                            }}
-                            className={`p-1.5 rounded-lg transition-colors ${showMoveMenu === p.id ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
-                            title="Move"
-                        >
-                            <Folders size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => handleToggleCurrent(e, p.id)}
-                            className={`p-1.5 rounded-lg transition-colors ${p.isCurrent ? 'text-amber-400 bg-amber-500/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
-                            title={p.isCurrent ? 'Remove focus' : 'Current focus'}
-                        >
-                            <Zap size={14} fill={p.isCurrent ? 'currentColor' : 'none'} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => handleTogglePin(e, p.id)}
-                            className={`p-1.5 rounded-lg transition-colors ${p.isPinned ? 'text-teal-400 bg-teal-500/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
-                            title={p.isPinned ? 'Unpin' : 'Pin'}
-                        >
-                            <Star size={14} fill={p.isPinned ? 'currentColor' : 'none'} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => handleToggleStuck(e, p.id)}
-                            className={`p-1.5 rounded-lg transition-colors ${p.isStuck ? 'text-orange-400 bg-orange-500/15' : 'text-white/25 hover:text-white hover:bg-white/8'}`}
-                            title={p.isStuck ? 'Clear stuck' : 'Mark stuck'}
-                        >
-                            <Flame size={14} />
-                        </button>
-                    </div>
-                )}
-                {showDuplicateMenu === p.id && (
-                    <div
-                        className="absolute top-12 right-4 w-52 max-h-[min(280px,60vh)] overflow-y-auto bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100]"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-primary border-b border-white/[0.04] mb-1">Duplicate to...</p>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                duplicateCanvas(p.id, null);
-                                setShowDuplicateMenu(null);
-                                toast.success('Duplicated to General Projects');
-                            }}
-                            className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 text-white/60"
-                        >
-                            <Layout size={14} /> General Projects
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleDuplicateToFreshFolder(p.id);
-                            }}
-                            className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 text-primary"
-                        >
-                            <FolderPlus size={14} /> New Fresh Folder...
-                        </button>
-                        {Object.values(folders).map((f) => (
-                            <button
-                                key={f.id}
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    duplicateCanvas(p.id, f.id);
-                                    setShowDuplicateMenu(null);
-                                    toast.success(`Duplicated to ${f.name}`);
-                                }}
-                                className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 text-white/60"
-                            >
-                                <Folder size={14} /> {f.name}
-                            </button>
-                        ))}
-                    </div>
-                )}
-                {showMoveMenu === p.id && (
-                    <div
-                        className="absolute top-12 right-4 w-52 max-h-[min(280px,60vh)] overflow-y-auto bg-[#111]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100]"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <p className="px-4 py-2 text-[10px] uppercase font-black tracking-widest text-white/30 border-b border-white/[0.04] mb-1">Move to...</p>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleMoveToFolder(p.id, null);
-                            }}
-                            className={`w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 ${p.folderId === null ? 'text-primary' : 'text-white/60'}`}
-                        >
-                            <Layout size={14} /> General Projects
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleMoveToFreshFolder(p.id);
-                            }}
-                            className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 text-primary"
-                        >
-                            <FolderPlus size={14} /> New Fresh Folder...
-                        </button>
-                        {Object.values(folders).map((f) => (
-                            <button
-                                key={f.id}
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleMoveToFolder(p.id, f.id);
-                                }}
-                                className={`w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-white/5 flex items-center gap-3 ${p.folderId === f.id ? 'text-primary' : 'text-white/60'}`}
-                            >
-                                <Folder size={14} /> {f.name}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
-                <div className="p-5 md:p-7 flex flex-col md:flex-row md:items-center gap-5 md:gap-8 flex-1 min-w-0 pt-6">
-                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-teal-500/20 to-violet-500/15 border border-teal-400/20 flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                        {isMerged ? <GitMerge size={28} className="text-teal-300" /> : <Rocket size={28} className="text-teal-300" />}
-                    </div>
-
-                    <div className="flex-1 min-w-0 flex flex-col gap-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-lg md:text-xl font-black text-white tracking-tight truncate max-w-full">{displayName}</h3>
-                        </div>
-                        {projectQuickActionsRow(p)}
-
-                        <div className="space-y-1.5">
-                            <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
-                                <div
-                                    className="h-full rounded-full bg-[var(--border-strong)] transition-all duration-500"
-                                    style={{ width: `${todoCount > 0 ? completionRate : nodeCount > 0 ? 35 : 8}%` }}
-                                />
-                            </div>
-                            <p className="text-[12px] text-zinc-400 line-clamp-1">
-                                <span className="text-teal-400/90 font-semibold">Focus: </span>
-                                {nextTodoLine || previewText.slice(0, 100) || 'Define the next concrete step'}
-                            </p>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-zinc-500">
-                            <span className="inline-flex items-center gap-1.5 text-zinc-400">
-                                <CheckSquare size={12} className="text-teal-400/80" />
-                                {todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '0 tasks'}
-                            </span>
-                            <span className="inline-flex items-center gap-1.5">
-                                <Network size={12} className="text-violet-400/70" />
-                                {nodeCount} idea{nodeCount !== 1 ? 's' : ''}
-                            </span>
-                            <span className="inline-flex items-center gap-1.5">
-                                <Clock size={12} className="text-orange-400/70" />
-                                {timeAgo(p.updatedAt)}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="flex md:flex-col gap-2 shrink-0 md:justify-center md:border-l md:border-white/[0.06] md:pl-8">
-                        {selectionMode ? (
-                            <div className="flex items-center justify-center w-full py-3">
-                                {isSelected ? <CheckCircle2 size={28} className="text-primary" /> : <div className="w-8 h-8 rounded-full border-2 border-white/20" />}
-                            </div>
-                        ) : (
-                            <>
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/project/${p.id}`);
-                                    }}
-                                    className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wide text-black bg-gradient-to-r from-primary to-orange-400 hover:from-orange-400 hover:to-primary transition-all shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
-                                >
-                                    View All Details
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/strategy/${p.id}`);
-                                    }}
-                                    className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wide border border-white/15 text-white/85 bg-white/[0.04] hover:bg-white/[0.08] transition-all"
-                                >
-                                    Open Project
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    function renderPinnedHeroCard(p: CanvasData) { return renderProjectCard(p); }
 
 }

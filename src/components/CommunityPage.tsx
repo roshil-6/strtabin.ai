@@ -1,3 +1,4 @@
+import ChatAttachment from './ChatAttachment';
 /**
  * Community Hub — LinkedIn-style feed for projects & work, People network, and Chats
  * Focus: Projects & work (not personal content). Connect, share insights, message anyone.
@@ -22,7 +23,6 @@ import {
   Users,
   ExternalLink,
   UserPlus,
-  X,
   Network,
   Link2,
   Highlighter,
@@ -35,6 +35,14 @@ import {
   BarChart2,
   Lock,
 } from 'lucide-react';
+import { mergeChatMessages } from '../lib/mergeChatMessages';
+import TeamDialog from './TeamDialog';
+import TeamWorkspace, { type TeamView } from './TeamWorkspace';
+import GroupChatDialog from './GroupChatDialog';
+import ChatCapsuleDialog from './ChatCapsuleDialog';
+import LavenderDotBackground from './LavenderDotBackground';
+import './CommunityPage.css';
+import { Pill as Capsule, FolderKanban, ListChecks, FileText, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import useStore from '../store/useStore';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
@@ -72,8 +80,8 @@ function formatRelativeTime(dateStr: string) {
 export default function CommunityPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { getToken } = useAuth();
-  const [tab, setTab] = useState<'feed' | 'people' | 'chat'>('feed');
+  const { getToken, isSignedIn, userId } = useAuth();
+  const [tab, setTab] = useState<TeamView | 'feed' | 'people' | 'chat'>('teams');
   const [chatableUsers, setChatableUsers] = useState<ChatUser[]>([]);
   const [loadingChatable, setLoadingChatable] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,8 +92,13 @@ export default function CommunityPage() {
   const [workspaces, setWorkspaces] = useState<Array<{ id: number; name: string; type: string; role?: string }>>([]);
   const [invitingWs, setInvitingWs] = useState<number | null>(null);
   const [feed, setFeed] = useState<FeedItem | null>(null);
+  const [showGroup, setShowGroup] = useState(false);
+  const [showCapsule, setShowCapsule] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
+  const [chatFilter, setChatFilter] = useState<'all' | 'direct' | 'group'>('all');
+  const [hasOlder, setHasOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -119,10 +132,10 @@ export default function CommunityPage() {
   activeChatRef.current = activeChat;
 
   useEffect(() => {
+    workspaceService.getFeed().then(setFeed).catch(() => setFeed({ workspaces: [], activities: [], projects: [] }));
     const token = getToken();
     token.then((t) => {
       if (t) {
-        workspaceService.getFeed().then(setFeed).catch(() => setFeed({ workspaces: [], activities: [], projects: [] }));
         workspaceService.getMe(t).then((d) => {
           setCurrentUserId(d?.user?.id ?? null);
           const wsProjects = (d?.projects || []).map((p: { id: number; title: string; workspace_id: number; workspace_name?: string; canvas_id?: string | null }) => ({
@@ -134,7 +147,7 @@ export default function CommunityPage() {
             isCanvas: false,
           }));
           setMyProjects(wsProjects);
-        });
+        }).catch(() => {});
         chatService.getChats(t).then((d) => {
           const chatsList = d.chats || [];
           setChats(chatsList);
@@ -148,15 +161,17 @@ export default function CommunityPage() {
           }
         }).catch(() => setChats([])).finally(() => setLoadingChats(false));
         chatService.getChatableUsers(t).then((d) => setChatableUsers(d.users || [])).catch(() => setChatableUsers([])).finally(() => setLoadingChatable(false));
-      }
-    });
-  }, [getToken]);
+      } else { setLoadingChats(false); setLoadingChatable(false); }
+    }).catch(() => { setLoadingChats(false); setLoadingChatable(false); });
+  }, [getToken, location.pathname, location.state]);
 
   useEffect(() => {
     let s: Socket | null = null;
+    let cancelled = false;
     getToken().then((token) => {
-      if (token) {
+      if (token && !cancelled) {
         s = io(SOCKET_URL, { auth: { token }, path: '/socket.io' });
+        s.on('chat:created', ({ chat }: { chat: Chat }) => { setChats(previous => previous.some(item => item.id === chat.id) ? previous : [chat, ...previous]); });
         s.on('chat:message', ({ chatId, message }: { chatId: number; message: Message }) => {
           setMessages((prev) => {
             if (activeChatRef.current?.id !== chatId) return prev;
@@ -184,48 +199,36 @@ export default function CommunityPage() {
         });
         socketRef.current = s;
       }
-    });
+    }).catch(() => {});
     return () => {
+      cancelled = true;
       s?.disconnect();
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       if (typingEmitRef.current) clearTimeout(typingEmitRef.current);
     };
   }, [getToken]);
 
+  const activeChatId = activeChat?.id;
   useEffect(() => {
-    if (activeChat) {
-      setLoadingMessages(true);
-      const cached = readMirroredMessages(activeChat.id);
-      if (cached?.length) setMessages(cached);
-      getToken().then((token) => {
-        if (token) {
-          chatService
-            .getMessages(activeChat.id, token)
-            .then((d) => {
-              const list = d.messages || [];
-              setMessages(list);
-              mirrorChatMessages(activeChat.id, list);
-            })
-            .catch(() => {})
-            .finally(() => setLoadingMessages(false));
-          chatService.markRead(activeChat.id, token);
-          socketRef.current?.emit('chat:join', { chatId: activeChat.id });
-        } else {
-          setLoadingMessages(false);
-        }
-      });
-      scrollToBottom();
-    } else {
-      setMessages([]);
-    }
-    return () => {
-      if (activeChat) socketRef.current?.emit('chat:leave', { chatId: activeChat.id });
-    };
-  }, [activeChat?.id, getToken]);
+    let cancelled = false;
+    if (!activeChatId) return;
+    setLoadingMessages(true);
+    setMessages(readMirroredMessages(activeChatId) || []);
+    getToken().then(async token => {
+      if (cancelled || !token) return;
+      socketRef.current?.emit('chat:join', { chatId: activeChatId });
+      void chatService.markRead(activeChatId, token).catch(() => {});
+      const data = await chatService.getMessages(activeChatId, token);
+      if (!cancelled) {
+        setMessages(previous => mergeChatMessages(data.messages || [], previous));
+        setHasOlder((data.messages || []).length === 50);
+        mirrorChatMessages(activeChatId, data.messages || []);
+      }
+    }).catch(() => {}).finally(() => { if (!cancelled) setLoadingMessages(false); });
+    return () => { cancelled = true; socketRef.current?.emit('chat:leave', { chatId: activeChatId }); };
+  }, [activeChatId, getToken]);
 
-  useEffect(() => {
-    if (activeChat?.id && messages.length > 0) mirrorChatMessages(activeChat.id, messages);
-  }, [activeChat?.id, messages]);
+
 
   useEffect(() => { scrollToBottom(); }, [messages]);
 
@@ -240,7 +243,7 @@ export default function CommunityPage() {
   }, [projectDropdownOpen]);
 
   const chatableIds = new Set(chatableUsers.map((u) => u.id));
-  const chatPartnerIds = new Set(chats.map((c) => c.otherUser?.id).filter(Boolean));
+  const chatPartnerIds = new Set(chats.filter(chat => chat.type === 'direct').map((c) => c.otherUser?.id).filter(Boolean));
 
   const handleSearchPeople = async () => {
     if (peopleQuery.trim().length < 2) return;
@@ -366,25 +369,26 @@ export default function CommunityPage() {
       const token = await getToken();
       let finalOpts = { ...opts, ...projectOpts };
       if ((finalOpts as { _isCanvas?: boolean })._isCanvas) {
-        const { _isCanvas, ...rest } = finalOpts as { _isCanvas?: boolean };
+        const rest = { ...finalOpts } as typeof finalOpts & { _isCanvas?: boolean };
+        delete rest._isCanvas;
         const c = canvases[(rest as { canvasId?: string }).canvasId || ''];
         if (c) {
           const { shareId } = await chatService.shareCanvas(
-            { name: c.name, nodes: c.nodes || [], edges: c.edges || [], writingContent: c.writingContent },
+            { name: c.name, nodes: c.nodes || [], edges: c.edges || [], writingContent: c.writingContent, writingPages: c.writingPages },
             token
           );
-          finalOpts = { ...rest, shareId, canvasName: (rest as { canvasName?: string }).canvasName };
+          finalOpts = { ...rest, shareId, canvasName: (rest as { canvasName?: string }).canvasName || c.name };
         } else {
           finalOpts = rest;
         }
       }
       const { message } = await chatService.sendMessage(activeChat.id, content, token, finalOpts);
-      setMessages((prev) => (prev.some((m) => String(m.id) === String(message?.id)) ? prev : [...prev, message]));
+      if (activeChatRef.current?.id === activeChat.id) setMessages((prev) => (prev.some((m) => String(m.id) === String(message?.id)) ? prev : [...prev, message]));
       if (attachProject) { setAttachProject(null); setShowAttach(false); }
       scrollToBottom();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to send');
-      setMessageInput(text);
+      if (activeChatRef.current?.id === activeChat.id) setMessageInput(text);
     } finally {
       setSending(false);
     }
@@ -401,7 +405,7 @@ export default function CommunityPage() {
         activeChat.id, url, token,
         { type: isImage ? 'image' : 'file', fileUrl: url, fileName: filename }
       );
-      setMessages((prev) => (prev.some((m) => String(m.id) === String(message?.id)) ? prev : [...prev, message]));
+      if (activeChatRef.current?.id === activeChat.id) setMessages((prev) => (prev.some((m) => String(m.id) === String(message?.id)) ? prev : [...prev, message]));
       scrollToBottom();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Upload failed');
@@ -410,7 +414,14 @@ export default function CommunityPage() {
     }
   };
 
-  const chatName = (c: Chat) => c.otherUser?.username || c.otherUser?.email || c.name || 'Unknown';
+  const chatName = (c: Chat) => c.type === 'group' ? c.name || 'Team group' : c.otherUser?.username || c.otherUser?.email || c.name || 'Teammate';
+
+  const visibleChats = chats.filter(chat => (chatFilter === 'all' || chat.type === chatFilter) && `${chatName(chat)} ${chat.last_message || ''}`.toLowerCase().includes(searchQuery.toLowerCase()));
+  const loadOlder = async () => {
+    if (!activeChat || loadingOlder || !messages.length) return;
+    const chatId = activeChat.id; setLoadingOlder(true);
+    try { const token = await getToken(); if (!token) throw new Error('Sign in again.'); const data = await chatService.getMessages(chatId, token, messages[0].id); if (activeChatRef.current?.id === chatId) { setMessages(previous => mergeChatMessages(data.messages || [], previous)); setHasOlder((data.messages || []).length === 50); } } catch(error) { toast.error(error instanceof Error ? error.message : 'Could not load earlier messages.'); } finally { setLoadingOlder(false); }
+  };
 
   const uniqueMessages = useMemo(
     () => messages.filter((m, i, arr) => arr.findIndex((x) => String(x.id) === String(m.id)) === i),
@@ -472,66 +483,14 @@ export default function CommunityPage() {
     return posts.slice(0, 50);
   }, [feed]);
 
+  useEffect(() => { document.title = 'Community | Stratabin'; }, []);
+
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[var(--bg-page)]">
-      {/* Header */}
-      <header className="sticky top-0 z-20 bg-[var(--bg-page)]/95 backdrop-blur-xl border-b border-[var(--border)]">
-        <div className="max-w-5xl mx-auto px-3 py-2 md:px-4 md:py-3">
-          <div className="flex items-center justify-between gap-2 md:gap-4">
-            <div className="flex items-center gap-2 md:gap-3 min-w-0">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-1.5 md:p-2 -ml-1 md:-ml-2 rounded-lg md:rounded-xl text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-all shrink-0"
-                title="Back"
-              >
-                <ArrowLeft size={18} className="md:w-5 md:h-5" />
-              </button>
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl note-box flex items-center justify-center shrink-0">
-                  <Network size={18} className="text-[var(--text-muted)] md:w-[22px] md:h-[22px]" />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="font-black text-sm md:text-base text-[var(--text)] truncate">Community</h1>
-                  <p className="text-[10px] text-[var(--text-muted)] truncate hidden md:block">Projects, people & insights</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-1 mt-2 md:mt-3 p-1 rounded-lg md:rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)]">
-            <button
-              onClick={() => setTab('feed')}
-              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all border border-transparent ${
-                tab === 'feed' ? 'note-box text-[var(--text)] border-[var(--border)] shadow-none' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
-              }`}
-            >
-              <Sparkles size={16} className="md:w-[18px] md:h-[18px]" />
-              <span className="hidden sm:inline">Feed</span>
-            </button>
-            <button
-              onClick={() => setTab('people')}
-              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all border border-transparent ${
-                tab === 'people' ? 'note-box text-[var(--text)] border-[var(--border)] shadow-none' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
-              }`}
-            >
-              <Users size={16} className="md:w-[18px] md:h-[18px]" />
-              <span className="hidden sm:inline">People</span>
-            </button>
-            <button
-              onClick={() => setTab('chat')}
-              className={`flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all border border-transparent ${
-                tab === 'chat' ? 'note-box text-[var(--text)] border-[var(--border)] shadow-none' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card)]'
-              }`}
-            >
-              <MessageCircle size={16} className="md:w-[18px] md:h-[18px]" />
-              <span className="hidden sm:inline">Chats</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <div className="community-hub theme-page flex min-h-[100dvh] flex-col bg-[var(--bg-page)]">
+      <LavenderDotBackground />
+      <header className="community-header"><div className="community-header-top"><div><button className="community-back" aria-label="Back to projects" onClick={() => navigate('/dashboard')}><ArrowLeft size={19} /></button><span className="community-brand-icon"><Network size={23} /></span><div><span className="team-eyebrow">STRATABIN / COMMUNITY</span><h1>Better work, together.</h1></div></div><div className="team-actions">{isSignedIn && <button onClick={() => { setTab('chat'); setShowGroup(true); }}><Plus size={16} />New group</button>}<span className="community-live-label"><span />Team workspace</span></div></div><nav className="community-tabs" aria-label="Community sections">{([{id:'teams',label:'Teams',icon:Users},{id:'projects',label:'Projects',icon:FolderKanban},{id:'duties',label:'Duties',icon:ListChecks},{id:'reports',label:'Reports',icon:FileText},{id:'people',label:'People',icon:UserPlus},{id:'chat',label:'Chats',icon:MessageCircle},{id:'feed',label:'Insights',icon:Sparkles}] as const).map(item => <button key={item.id} aria-current={tab === item.id ? 'page' : undefined} onClick={() => setTab(item.id)}><item.icon size={17}/>{item.label}{item.id==='chat'&&chats.some(chat=>chat.unread)&&<span className="community-unread">{chats.reduce((sum,chat)=>sum+(chat.unread||0),0)}</span>}</button>)}</nav></header>
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {tab === 'people' ? (
+        {(['teams','projects','duties','reports'] as string[]).includes(tab) ? <TeamWorkspace key={userId || "guest"} view={tab as TeamView} openChat={user => { void handleStartChat(user); }} openGroup={() => setShowGroup(true)} /> : !isSignedIn && (tab === 'chat' || tab === 'people') ? <section className="community-signin"><Users size={34}/><h2>Connect with your team.</h2><p>Sign in to find teammates, start personal or group chats, and share project capsules.</p><button className="team-primary" onClick={() => navigate('/auth')}>Sign in to collaborate<ExternalLink size={16}/></button></section> : tab === 'people' ? (
           <div className="flex-1 overflow-y-auto p-3 md:p-6">
             <div className="max-w-2xl mx-auto">
               <h2 className="hidden md:flex text-lg font-black text-[var(--text)] mb-2 items-center gap-2">
@@ -853,6 +812,7 @@ export default function CommunityPage() {
             <div
               className={`flex min-h-0 w-full flex-col border-[var(--border)] bg-[var(--chat-panel)] md:w-[min(100%,360px)] md:shrink-0 md:border-r ${activeChat ? 'hidden md:flex' : ''}`}
             >
+              <div className="community-chat-filters" aria-label="Filter conversations">{(['all','direct','group'] as const).map(filter => <button key={filter} aria-pressed={chatFilter === filter} onClick={() => setChatFilter(filter)}>{filter === 'all' ? 'All chats' : filter === 'direct' ? 'Personal' : 'Groups'}</button>)}</div>
               {loadingChats && loadingChatable ? (
                 <div className="flex flex-1 items-center justify-center py-12">
                   <Loader2 size={24} className="animate-spin text-[var(--text-muted)]" />
@@ -866,16 +826,17 @@ export default function CommunityPage() {
                         type="search"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search"
+                        aria-label="Search conversations"
+                        placeholder="Search conversations"
                         enterKeyHint="search"
                         className="w-full rounded-full border border-[var(--border)] bg-[var(--chat-input-bg)] py-2.5 pl-10 pr-3 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--border-strong)]"
                       />
                     </div>
                   </div>
-                  {chats.length > 0 && (
+                  {visibleChats.length > 0 && (
                     <div>
                       <p className="px-4 pb-1 pt-3 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Chats</p>
-                      {chats.map((c) => (
+                      {visibleChats.map((c) => (
                         <button
                           key={c.id}
                           type="button"
@@ -968,6 +929,7 @@ export default function CommunityPage() {
                   </div>
 
                   <div className="stratabin-chat-thread min-h-0 flex-1 overflow-y-auto px-2 py-3 md:px-4">
+                    {hasOlder && !loadingMessages && <div className="community-earlier"><button disabled={loadingOlder} onClick={() => void loadOlder()}>{loadingOlder ? 'Loading…' : 'Load earlier messages'}</button></div>}
                     {loadingMessages ? (
                       <div className="flex justify-center py-12">
                         <Loader2 size={24} className="animate-spin text-[var(--text-muted)]" />
@@ -982,8 +944,6 @@ export default function CommunityPage() {
                         const hasProject = meta.projectId || meta.projectTitle;
                         const isImage = m.type === 'image';
                         const isFile = m.type === 'file';
-                        const imgUrl = isImage && m.content ? `${API_BASE_URL}${m.content.startsWith('/') ? '' : '/'}${m.content}` : null;
-                        const fileUrl = isFile && m.content ? `${API_BASE_URL}${m.content.startsWith('/') ? '' : '/'}${m.content}` : null;
                         const chip = isMe ? 'bg-white/15 hover:bg-white/25' : 'bg-black/10 hover:bg-black/15 dark:bg-black/25 dark:hover:bg-black/35';
                         return (
                           <div key={m.id} className={`mb-1 flex ${isMe ? 'justify-end' : 'justify-start'}`}>
@@ -1024,17 +984,7 @@ export default function CommunityPage() {
                                   )}
                                 </div>
                               )}
-                              {imgUrl && (
-                                <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="mb-1.5 block">
-                                  <img src={imgUrl} alt="Shared" className="max-h-64 max-w-full rounded-md object-contain" />
-                                </a>
-                              )}
-                              {fileUrl && (
-                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className={`mb-1.5 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm ${chip}`}>
-                                  <Paperclip size={14} strokeWidth={2} />
-                                  {meta.fileName || 'File'}
-                                </a>
-                              )}
+                              {(isImage || isFile) && <ChatAttachment url={m.content} name={meta.fileName || (isImage ? 'Shared image' : 'File')} />}
                               {!isImage && <p className="whitespace-pre-wrap break-words text-[14.5px] leading-snug">{m.content}</p>}
                               <div className="mt-0.5 flex items-center justify-end gap-1">
                                 <span className="text-[11px] tabular-nums opacity-70">{formatTime(m.created_at)}</span>
@@ -1118,6 +1068,7 @@ export default function CommunityPage() {
                     )}
                     <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, true); e.target.value = ''; }} />
                     <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ''; }} />
+                    <div className="community-composer-tools"><button type="button" disabled={uploading || sending} onClick={() => setShowCapsule(true)}><Capsule size={16}/>Attach project capsule</button><span>Share the context behind the work</span></div>
                     <div className="flex items-end gap-1.5 px-2 py-2 md:gap-2 md:px-3">
                       <button
                         type="button"
@@ -1155,7 +1106,8 @@ export default function CommunityPage() {
                             typingEmitRef.current = setTimeout(() => { socketRef.current?.emit('chat:typing', { chatId: activeChat.id }); typingEmitRef.current = undefined; }, 300);
                           }
                         }}
-                        placeholder="Message"
+                        aria-label="Message your conversation"
+                        placeholder="Message your team…"
                         enterKeyHint="send"
                         className="min-h-[44px] flex-1 rounded-full border-0 bg-[var(--chat-input-bg)] px-4 py-2.5 text-[15px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--border-strong)]"
                         onFocus={() => activeChat && socketRef.current?.emit('chat:typing', { chatId: activeChat.id })}
@@ -1183,16 +1135,11 @@ export default function CommunityPage() {
         )}
       </div>
 
+      {showGroup && <GroupChatDialog close={() => setShowGroup(false)} created={chat => { setChats(previous => [chat, ...previous.filter(item=>item.id!==chat.id)]); setActiveChat(chat); setShowGroup(false); setTab('chat'); }} />}
+      {showCapsule && activeChat && <ChatCapsuleDialog chat={activeChat} choices={allShareable} close={() => setShowCapsule(false)} sent={message => { setMessages(previous => previous.some(item=>item.id===message.id)?previous:[...previous,message]); setShowCapsule(false); scrollToBottom(); }} />}
       {/* Invite modal */}
       {inviteUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setInviteUser(null)}>
-          <div className="bg-[var(--bg-panel)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[var(--text)]">Connect via workspace</h3>
-              <button onClick={() => setInviteUser(null)} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]">
-                <X size={20} />
-              </button>
-            </div>
+        <TeamDialog title="Connect via workspace" close={() => setInviteUser(null)} busy={invitingWs !== null}><div className="team-form">
             <p className="text-sm text-[var(--text-muted)] mb-4">
               Invite <span className="font-bold text-[var(--text)]">{inviteUser.username || inviteUser.email || 'this user'}</span> to a team workspace to connect.
             </p>
@@ -1218,9 +1165,9 @@ export default function CommunityPage() {
                 ))
               )}
             </div>
-          </div>
-        </div>
+          </div></TeamDialog>
       )}
     </div>
   );
 }
+

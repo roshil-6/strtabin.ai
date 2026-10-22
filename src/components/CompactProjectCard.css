@@ -1,0 +1,14 @@
+.compact-project-card{align-self:start;min-width:0;max-width:380px;width:100%;border-radius:16px!important;cursor:default!important;transition:border-color .18s,box-shadow .18s!important}
+.compact-project-summary{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:90px;width:100%;padding:20px 22px;text-align:left;border-radius:16px;color:var(--text)}
+.compact-project-summary:focus-visible{outline:2px solid var(--primary);outline-offset:4px}
+.compact-project-identity{min-width:0;display:flex;flex-direction:column;gap:10px}.compact-project-identity>strong{font-size:16px;font-weight:500;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.compact-project-status{display:flex;align-items:center;gap:7px;font-size:11px;line-height:1.4;color:var(--text-muted)}
+.compact-project-status i{width:5px;height:5px;border-radius:50%;background:var(--primary)}.compact-project-status i[data-status="Blocked"]{background:#f49c74}.compact-project-status i[data-status="Complete"]{background:#73c99a}.compact-project-status i[data-status="Not started"]{background:var(--text-muted)}
+.compact-project-chevron{flex-shrink:0;color:var(--primary);transition:transform .2s}.compact-project-card[data-expanded=true] .compact-project-chevron{transform:rotate(180deg)}
+.compact-project-details{border-top:1px solid var(--border-strong);animation:compact-card-reveal .18s ease-out}.compact-project-details[hidden]{display:none}
+.compact-project-card .compact-card-tools{position:relative;display:flex;justify-content:flex-end;gap:3px;flex-wrap:wrap;margin-bottom:18px;opacity:1;z-index:10}
+.compact-card-tools>button,.compact-card-tools>div>button{min-width:32px;min-height:36px;display:inline-flex;align-items:center;justify-content:center}
+.compact-project-card .compact-card-content{padding:18px 22px 20px}.compact-project-card .compact-card-content .project-card-stat-box{min-height:0!important}.compact-project-card .compact-card-content button:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+@keyframes compact-card-reveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:767px){.compact-project-card{max-width:none}.compact-project-summary{min-height:82px;padding:17px 18px}.compact-project-card .compact-card-content{padding:16px 18px}}
+@media(prefers-reduced-motion:reduce){.compact-project-details{animation:none}.compact-project-chevron{transition:none}}

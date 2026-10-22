@@ -1,37 +1,25 @@
 {
-    "name": "Stratabin — AI Workspace & Strategy Planner for Ideas",
-    "short_name": "Stratabin",
-    "description": "AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI.",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#050505",
-    "theme_color": "#f97316",
-    "orientation": "portrait-primary",
-    "icons": [
-        {
-            "src": "/favicon.png",
-            "sizes": "192x192",
-            "type": "image/png",
-            "purpose": "any"
-        },
-        {
-            "src": "/favicon.png",
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "any"
-        },
-        {
-            "src": "/favicon.png",
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "maskable"
-        }
-    ],
-    "categories": [
-        "productivity",
-        "business",
-        "utilities"
-    ],
-    "lang": "en",
-    "screenshots": []
+  "name": "Stratabin — AI Workspace & Strategy Planner for Ideas",
+  "short_name": "Stratabin",
+  "description": "AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#b86cff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/stratabin-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": [
+    "productivity",
+    "business",
+    "utilities"
+  ],
+  "lang": "en",
+  "screenshots": []
 }

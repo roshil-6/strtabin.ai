@@ -2,6 +2,7 @@
  * Database initialization: PostgreSQL (DATABASE_URL) or SQLite (DATABASE_PATH / local file).
  */
 
+import 'dotenv/config';
 import Database from 'better-sqlite3';
 import { readFileSync, mkdirSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
