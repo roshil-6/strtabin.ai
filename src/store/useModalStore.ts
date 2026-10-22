@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 
 interface ConfirmOptions {
+    id: number;
     message: string;
     resolve: (value: boolean) => void;
 }
 
 interface PromptOptions {
+    id: number;
     message: string;
     defaultValue?: string;
     resolve: (value: string | null) => void;
@@ -20,17 +22,19 @@ interface ModalStore {
     resolvePrompt: (value: string | null) => void;
 }
 
+let nextModalId = 0;
+
 const useModalStore = create<ModalStore>((set) => ({
     confirmConfig: null,
     promptConfig: null,
     confirm: (message) => {
         return new Promise((resolve) => {
-            set({ confirmConfig: { message, resolve } });
+            set(state => { state.confirmConfig?.resolve(false); state.promptConfig?.resolve(null); return { confirmConfig: { id: ++nextModalId, message, resolve }, promptConfig: null }; });
         });
     },
     prompt: (message, defaultValue = '') => {
         return new Promise((resolve) => {
-            set({ promptConfig: { message, defaultValue, resolve } });
+            set(state => { state.promptConfig?.resolve(null); state.confirmConfig?.resolve(false); return { promptConfig: { id: ++nextModalId, message, defaultValue, resolve }, confirmConfig: null }; });
         });
     },
     resolveConfirm: (value) => {

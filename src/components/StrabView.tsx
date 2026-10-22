@@ -1,8 +1,10 @@
+import { localDateKey } from '../lib/localDate';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
+
 import MarkdownRenderer from './MarkdownRenderer';
 import useModalStore from '../store/useModalStore';
 import { sendStrabMessageStreaming, strabVisibleAssistantText, selectProvider, type ChatMessage } from '../services/strabService';
@@ -19,7 +21,6 @@ import {
     GUEST_AI_LIMIT,
 } from '../constants';
 import { Network, Send, Sparkles, ArrowLeft, Trash2, Target, Plus } from 'lucide-react';
-import MobileNav from './MobileNav';
 import type { Node, Edge } from '@xyflow/react';
 
 // ── Action executor for current canvas (update flow, create project in team workspace) ──
@@ -164,6 +165,7 @@ export default function StrabView() {
     const { user } = useUser();
     const { getToken, isSignedIn, isLoaded: authLoaded } = useAuth();
     const isGuest = authLoaded && !isSignedIn;
+
     const canvas = useStore(state => state.canvases[id || '']);
     const dailyExecutionLogs = useStore(state => state.dailyExecutionLogs);
     const addCanvasGoal = useStore(state => state.addCanvasGoal);
@@ -179,9 +181,10 @@ export default function StrabView() {
     const chatHistoryMap = useStore(state => state.chatHistory);
     const chatHistory = useMemo(() => chatHistoryMap[id || ''] || [], [chatHistoryMap, id]);
 
-    const [input, setInput] = useState('');
+    const [input, setInput] = useState(() => searchParams.get('prompt') || '');
     const [isLoading, setIsLoading] = useState(false);
     const [loadingPhrase, setLoadingPhrase] = useState('Analysing your project…');
+    useEffect(() => { const prompt = searchParams.get('prompt'); if (prompt) setInput(prompt); }, [searchParams]);
     const tabParam = searchParams.get('tab');
     const [activeTab, setActiveTab] = useState<'chat' | 'reports'>(tabParam === 'reports' ? 'reports' : 'chat');
 
@@ -249,26 +252,37 @@ export default function StrabView() {
             .map(n => (n.data?.label as string)?.trim())
             .filter(Boolean);
 
-        // Truncate writing to stay within token limits (~3000 chars)
-        const writing = canvas?.writingContent
-            ? canvas.writingContent.replace(/<<<SPLIT_SECTION_START>>>[\s\S]*<<<SPLIT_SECTION_END>>>/g, '[split-section]').substring(0, 3000) +
-              (canvas.writingContent.length > 3000 ? '\n...[content truncated]' : '')
+        // Truncate writing while preserving split mode contents (~6000 chars)
+        const rawWriting = canvas?.writingContent || '';
+        const formattedWriting = rawWriting
+            .replace(/<<<SPLIT_SECTION_START>>>/g, '\n\n--- Split View Section B ---\n')
+            .replace(/<<<SPLIT_SECTION_END>>>/g, '\n--- End Split View ---\n');
+        const writing = formattedWriting.trim()
+            ? formattedWriting.substring(0, 6000) + (formattedWriting.length > 6000 ? '\n...[content truncated]' : '')
             : null;
 
-        const writingWordCount = canvas?.writingContent
-            ? canvas.writingContent.trim().split(/\s+/).filter(Boolean).length
+        const writingWordCount = rawWriting
+            ? rawWriting.trim().split(/\s+/).filter(Boolean).length
             : 0;
 
         const completedTodos = todos.filter(t => t.completed);
         const pendingTodos = todos.filter(t => !t.completed);
 
+        const codeFiles = (canvas?.codeFiles || []).map(f => ({
+            name: f.name || 'untitled',
+            language: f.language || 'text',
+            content: (f.content || '').slice(0, 3000),
+        })).slice(0, 15);
+
         const daysSinceUpdate = Math.floor(
             (Date.now() - (canvas?.updatedAt || Date.now())) / (1000 * 60 * 60 * 24)
         );
 
-        const todayKey = new Date().toISOString().slice(0, 10);
+        const todayKey = localDateKey();
         const todayLogKey = id ? `${todayKey}_${id}` : todayKey;
         const todayLog = dailyExecutionLogs?.[todayLogKey];
+
+        const hasAnyContent = nodes.length > 0 || todos.length > 0 || Boolean(writing) || codeFiles.length > 0 || Boolean(canvas?.timelineContent?.trim());
 
         return {
             name: resolvedName,
@@ -289,6 +303,8 @@ export default function StrabView() {
             writingWordCount,
             writingTitle: canvas?.title || null,
             timeline: canvas?.timelineContent?.trim() || null,
+            timelineContent: canvas?.timelineContent?.trim() || null,
+            codeFiles,
             hasAttachments: (canvas?.attachments?.length || 0) > 0,
             attachmentCount: canvas?.attachments?.length || 0,
             hasImages: (canvas?.images?.length || 0) > 0,
@@ -304,8 +320,8 @@ export default function StrabView() {
                 unit: g.unit,
             })) || [],
             workspaceId: workspaceId ?? undefined,
-            /** True when there are no ideas on canvas — server uses this to require [ACTIONS] for “build strategy” requests */
-            canvasIsBlank: nodes.length === 0,
+            /** True when there is no content anywhere in the project */
+            canvasIsBlank: !hasAnyContent,
         };
     }, [resolvedName, canvas, id, dailyExecutionLogs, workspaceId]);
 
@@ -331,15 +347,18 @@ export default function StrabView() {
             const todoCount = c?.todos?.length || 0;
             const completedCount = c?.todos?.filter(t => t.completed).length || 0;
             const wordCount = c?.writingContent?.trim().split(/\s+/).filter(Boolean).length || 0;
+            const hasAnyContent = nodeCount > 0 || todoCount > 0 || wordCount > 0 || (c?.codeFiles?.length || 0) > 0 || Boolean(c?.timelineContent?.trim());
 
             const parts: string[] = [
                 `I am STRAB. Let's build ${name}.`
             ];
 
-            if (nodeCount === 0) {
+            if (!hasAnyContent) {
                 parts.push(
                     '\n\nYour canvas is empty.\nDescribe what you are trying to build, and I will generate a full strategy on the canvas. I can map out ideas, connect nodes, write reports, and set up your initial tasks.'
                 );
+            } else if (nodeCount === 0) {
+                parts.push('\n\nYou have content in writing, code, or tasks, but no visual nodes on the canvas yet.');
             } else {
                 const stage = nodeCount < 4 ? 'early planning' : nodeCount < 10 ? 'active development' : 'detailed execution';
                 parts.push(`\n\nYou're in ${stage} with ${nodeCount} ideas${edgeCount > 0 ? ` and ${edgeCount} connections` : ' but no connections yet'}.`);
@@ -413,10 +432,10 @@ export default function StrabView() {
                             },
                             token ?? undefined,
                             undefined,
-                            selectProvider(chatHistory[chatHistory.length - 1]?.content ?? '', chatHistory.length)
+                            selectProvider(chatHistory[chatHistory.length - 1]?.content ?? '')
                         );
                         const createProjectInWorkspace = workspaceId && token
-                            ? async (name: string, nodes: Node[], edges: Edge[], writing: string, _todos: string[]) => {
+                            ? async (name: string, nodes: Node[], edges: Edge[], writing: string) => {
                                 try {
                                     const res = await workspaceService.createProject(workspaceId, { title: name }, token);
                                     const project = res?.project ?? res;
@@ -498,7 +517,7 @@ export default function StrabView() {
         setIsLoading(true);
 
         // Auto-select provider: Claude for heavy/complex tasks, GPT-4 for quick replies
-        const chosenProvider = selectProvider(message, chatHistory.length);
+        const chosenProvider = selectProvider(message);
 
         if (isGuest) {
             consumeGuestAiMessage();
@@ -525,7 +544,7 @@ export default function StrabView() {
                             chosenProvider
                         );
             const createProjectInWorkspace = workspaceId && token
-                ? async (name: string, nodes: Node[], edges: Edge[], writing: string, _todos: string[]) => {
+                ? async (name: string, nodes: Node[], edges: Edge[], writing: string) => {
                     try {
                         const res = await workspaceService.createProject(workspaceId, { title: name }, token);
                         const project = res?.project ?? res;
@@ -667,7 +686,7 @@ export default function StrabView() {
     ];
 
     if (!canvas) return (
-        <div className="flex flex-col items-center justify-center h-screen theme-page text-white gap-4">
+        <div className="flex flex-col items-center justify-center h-[100dvh] theme-page text-white gap-4">
             <p className="text-white/50">Project not found.</p>
             <button onClick={() => navigate('/dashboard')} className="px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-all">
                 Back to Dashboard
@@ -676,9 +695,9 @@ export default function StrabView() {
     );
 
         return (
-        <div className="flex flex-col h-screen theme-page text-white overflow-hidden relative">
+        <div className="flex flex-col h-[100dvh] theme-page text-white overflow-hidden relative">
             {/* Header */}
-            <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-2 md:px-6 backdrop-blur-2xl z-10 flex-shrink-0 gap-1.5 md:gap-2" style={{ background: 'rgba(8,8,8,0.92)' }}>
+            <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-2 md:px-6 backdrop-blur-2xl z-10 flex-shrink-0 gap-1.5 md:gap-2" style={{ background: 'var(--bg-page)' }}>
                     <button
                         onClick={() => {
                             if (window.history.length > 1) navigate(-1);
@@ -724,11 +743,6 @@ export default function StrabView() {
                             {proAiRemaining > 0 ? `${proAiRemaining}/12 today` : 'Limit reached'}
                         </span>
                     )}
-                    {/* STRAB branding badge — replaces the old provider toggle */}
-                    <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-white/30 text-[10px] font-bold mr-2 shrink-0">
-                        <Sparkles size={10} className="text-primary/60" />
-                        GPT-4 &amp; Claude
-                    </div>
                     <div className="flex bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.04]">
                         <button
                             onClick={() => setActiveTab('chat')}
@@ -940,12 +954,12 @@ export default function StrabView() {
                             {/* Metric grid */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <div className="bg-[#151515] border border-white/5 p-4 rounded-2xl">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Stage</div>
+                                    <div className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">Stage</div>
                                     <div className="text-lg font-bold text-white">{projectStage}</div>
                                     <div className="text-[11px] text-white/30 mt-1">{canvas.nodes.length} ideas · {canvas.edges.length} connections</div>
                                 </div>
                                 <div className="bg-[#151515] border border-white/5 p-4 rounded-2xl">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Task Progress</div>
+                                    <div className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">Task Progress</div>
                                     <div className="text-lg font-bold text-white">{completionPercent}%</div>
                                     <div className="text-[11px] text-white/30 mt-1">{completedTasks}/{totalTasks} completed</div>
                                     <div className="w-full h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
@@ -953,12 +967,12 @@ export default function StrabView() {
                                     </div>
                                 </div>
                                 <div className="bg-[#151515] border border-white/5 p-4 rounded-2xl">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Writing</div>
+                                    <div className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">Writing</div>
                                     <div className="text-lg font-bold text-white">{writingWordCount.toLocaleString()}</div>
                                     <div className="text-[11px] text-white/30 mt-1">words written</div>
                                 </div>
                                 <div className="bg-[#151515] border border-white/5 p-4 rounded-2xl">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Last Updated</div>
+                                    <div className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">Last Updated</div>
                                     <div className="text-lg font-bold text-white">{daysSinceUpdate === 0 ? 'Today' : `${daysSinceUpdate}d ago`}</div>
                                     <div className="text-[11px] text-white/30 mt-1">{new Date(canvas.updatedAt).toLocaleDateString()}</div>
                                 </div>
@@ -966,7 +980,7 @@ export default function StrabView() {
 
                             {/* Status checklist */}
                             <div className="bg-[#151515] border border-white/5 p-5 rounded-2xl">
-                                <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-4">Project Coverage</div>
+                                <div className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-4">Project Coverage</div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                     {[
                                         { label: 'Ideas', ok: canvas.nodes.length > 0, value: `${canvas.nodes.length} ideas` },
@@ -990,7 +1004,7 @@ export default function StrabView() {
                             {/* Pending tasks list */}
                             {incompleteCount > 0 && (
                                 <div className="bg-[#151515] border border-white/5 p-5 rounded-2xl">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-4">
+                                    <div className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-4">
                                         Open Tasks <span className="text-orange-400 ml-1">{incompleteCount}</span>
                                     </div>
                                     <div className="space-y-2">
@@ -1007,7 +1021,7 @@ export default function StrabView() {
                             {/* Outcome Goals — track real results */}
                             <div className="bg-[#151515] border border-white/5 p-5 rounded-2xl">
                                 <div className="flex items-center justify-between mb-4">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-white/30 flex items-center gap-2">
+                                    <div className="text-[10px] font-semibold uppercase tracking-widest text-white/30 flex items-center gap-2">
                                         <Target size={12} /> Outcome Goals
                                     </div>
                                     <button
@@ -1069,7 +1083,7 @@ export default function StrabView() {
 
                             {/* Execution & Accountability prompts */}
                             <div className="bg-[#151515] border border-white/5 p-5 rounded-2xl">
-                                <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Execution & Accountability</div>
+                                <div className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-3">Execution & Accountability</div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                     {[...DAILY_EXECUTION_PROMPTS, ...ACCOUNTABILITY_PROMPTS].map(({ label }) => (
                                         <button
@@ -1086,7 +1100,7 @@ export default function StrabView() {
                             {/* AI Report button */}
                             <button
                                 onClick={handleGenerateReport}
-                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500/10 to-orange-500/5 border border-orange-500/20 text-orange-400 font-black text-sm uppercase tracking-widest hover:from-orange-500/20 hover:to-orange-500/10 transition-all flex items-center justify-center gap-3"
+                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500/10 to-orange-500/5 border border-orange-500/20 text-orange-400 font-semibold text-sm uppercase tracking-widest hover:from-orange-500/20 hover:to-orange-500/10 transition-all flex items-center justify-center gap-3"
                             >
                                 <Sparkles size={16} />
                                 Generate Full AI Report
@@ -1095,7 +1109,7 @@ export default function StrabView() {
                             {/* Empty canvas — AI can populate flow */}
                             {canvas.nodes.length === 0 && (
                                 <div className="bg-primary/[0.06] border border-primary/20 p-5 rounded-2xl">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-primary/80 mb-3">Start from blank</div>
+                                    <div className="text-[10px] font-semibold uppercase tracking-widest text-primary/80 mb-3">Start from blank</div>
                                     <p className="text-[11px] text-white/45 mb-3">Project STRAB can still expand <strong className="text-white/55">this</strong> canvas (ideas, links, writing, tasks). For an all-new strategy workspace, use <strong className="text-white/55">Dashboard → STRAB (New strategy)</strong>.</p>
                                     <div className="grid grid-cols-1 gap-2">
                                         {EMPTY_CANVAS_BUILD_PROMPTS.map(({ label, icon }) => (
@@ -1114,7 +1128,7 @@ export default function StrabView() {
 
                             {/* Quick insight prompts */}
                             <div>
-                                <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Quick Insights</div>
+                                <div className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-3">Quick Insights</div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                     {QUICK_INSIGHTS.map(({ label, icon }) => (
                                         <button
@@ -1134,7 +1148,7 @@ export default function StrabView() {
                 )}
 
             </div>
-            {id && <MobileNav canvasId={id} />}
+
         </div>
     );
 }

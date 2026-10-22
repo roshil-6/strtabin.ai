@@ -44,7 +44,7 @@ export default function JoinWorkspacePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center p-6">
+    <div className="min-h-[100dvh] bg-[var(--bg-page)] flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-[var(--bg-panel)] border border-white/10 rounded-2xl p-8 shadow-2xl">
         <button
           onClick={() => navigate('/dashboard')}

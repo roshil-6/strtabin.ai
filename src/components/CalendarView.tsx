@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar, Trash2, Bot, Clock, CheckCircle2, Circle, Layout, Bell, BellOff, ArrowLeft, Sparkles, Target, CalendarDays, ListChecks, Sun, Sunset, Moon, Zap } from 'lucide-react';
-import Sidebar from './Sidebar';
-import MobileNav from './MobileNav';
 import useStore from '../store/useStore';
+
 import { NotificationManager } from '../services/NotificationManager';
 
 const TIME_PRESETS = [
@@ -15,6 +14,7 @@ const TIME_PRESETS = [
 
 export default function CalendarView() {
     const { id } = useParams<{ id: string }>();
+
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { calendarEvents, projectCalendarEvents, addCalendarEvent, removeCalendarEvent, toggleCalendarEvent, dailyExecutionLogs, setDailyExecutionLog } = useStore();
@@ -24,16 +24,21 @@ export default function CalendarView() {
     const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
     const [newEventTitle, setNewEventTitle] = useState('');
     const [newEventTime, setNewEventTime] = useState('');
-    const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
-        'Notification' in window ? Notification.permission : 'denied'
-    );
+    const [reminderMode, setReminderMode] = useState(NotificationManager.mode);
+    const [enablingReminders, setEnablingReminders] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const timeInputRef = useRef<HTMLInputElement>(null);
 
     const handleEnableReminders = async () => {
-        const granted = await NotificationManager.requestPermission();
-        setNotifPermission(granted ? 'granted' : 'denied');
+        setEnablingReminders(true);
+        try { const mode = await NotificationManager.enableReminders(); useStore.getState().checkNotifications(); setReminderMode(mode); }
+        finally { setEnablingReminders(false); }
     };
+    useEffect(() => {
+        const refresh = () => { setReminderMode(NotificationManager.mode); if (NotificationManager.enabled) useStore.getState().checkNotifications(); };
+        window.addEventListener('focus', refresh);
+        return () => window.removeEventListener('focus', refresh);
+    }, []);
 
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'];
@@ -65,7 +70,7 @@ export default function CalendarView() {
         new Date().getFullYear(), new Date().getMonth(), new Date().getDate()
     );
 
-    const monthStats = useMemo(() => {
+    const monthStats = (() => {
         let total = 0, completed = 0;
         for (let d = 1; d <= daysInMonth; d++) {
             const evts = activeCalendarEvents[formatKey(year, month, d)] || [];
@@ -73,7 +78,7 @@ export default function CalendarView() {
             completed += evts.filter(e => e.completed).length;
         }
         return { total, completed, pending: total - completed };
-    }, [activeCalendarEvents, year, month, daysInMonth]);
+    })();
 
     const previousMonth = () => {
         if (viewMode === 'month') {
@@ -137,8 +142,8 @@ export default function CalendarView() {
     }, [selectedDateKey]);
 
     return (
-        <div className="w-screen h-screen theme-page text-white flex overflow-hidden">
-            {id ? <Sidebar canvasId={id} /> : (
+        <div className="w-full h-[100dvh] theme-page text-white flex overflow-hidden">
+            {!id && (
                 <div className="hidden md:flex w-16 h-full theme-page border-r border-white/[0.04] flex-col items-center py-6 gap-6">
                     <button onClick={() => navigate('/dashboard')} className="p-3 rounded-xl bg-white/[0.04] text-white/40 hover:text-white active:scale-95 transition-all border border-white/[0.04]" aria-label="Go to dashboard">
                         <Calendar size={20} />
@@ -148,30 +153,30 @@ export default function CalendarView() {
 
             {/* Desktop sub-nav */}
             <div className="hidden md:flex w-48 lg:w-56 theme-panel border-r border-white/[0.04] flex-col pt-6 px-4 gap-1.5">
-                <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-4 px-2">Views</h2>
+                <h2 className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/40 mb-4 px-2">Views</h2>
 
                 <button
                     onClick={() => navigate(id ? `/calendar/${id}` : '/calendar')}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${viewMode === 'month' ? 'bg-primary/[0.08] text-white border border-primary/15 shadow-[0_0_20px_rgba(249,115,22,0.06)]' : 'text-white/35 hover:bg-white/[0.04] hover:text-white'}`}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${viewMode === 'month' ? 'bg-primary/[0.08] text-white border border-primary/15 shadow-[0_0_20px_rgba(169,154,233,0.06)]' : 'text-white/35 hover:bg-white/[0.04] hover:text-white'}`}
                 >
                     <CalendarDays size={17} className={viewMode === 'month' ? 'text-primary' : ''} />
-                    <span className="text-xs font-black uppercase tracking-wider">Calendar</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider">Calendar</span>
                 </button>
 
                 <button
                     onClick={() => navigate(id ? `/calendar/${id}?mode=week` : '/calendar?mode=week')}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${viewMode === 'week' ? 'bg-primary/[0.08] text-white border border-primary/15 shadow-[0_0_20px_rgba(249,115,22,0.06)]' : 'text-white/35 hover:bg-white/[0.04] hover:text-white'}`}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${viewMode === 'week' ? 'bg-primary/[0.08] text-white border border-primary/15 shadow-[0_0_20px_rgba(169,154,233,0.06)]' : 'text-white/35 hover:bg-white/[0.04] hover:text-white'}`}
                 >
                     <ListChecks size={17} className={viewMode === 'week' ? 'text-primary' : ''} />
-                    <span className="text-xs font-black uppercase tracking-wider">Weekly Planner</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider">Weekly Planner</span>
                 </button>
 
                 {/* Month stats mini card */}
                 {monthStats.total > 0 && (
                     <div className="mt-6 mx-1 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
-                        <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/50 mb-2.5">This Month</p>
+                        <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-white/50 mb-2.5">This Month</p>
                         <div className="flex items-end gap-2 mb-2.5">
-                            <span className="text-2xl font-black text-white/80 leading-none">{monthStats.completed}</span>
+                            <span className="text-2xl font-semibold text-white/80 leading-none">{monthStats.completed}</span>
                             <span className="text-[10px] font-bold text-white/45 mb-0.5">/ {monthStats.total}</span>
                         </div>
                         <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
@@ -258,19 +263,19 @@ export default function CalendarView() {
                             </button>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-3">
-                                    <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase truncate">
+                                    <h1 className="text-2xl md:text-3xl font-semibold tracking-tighter text-white uppercase truncate">
                                         {viewMode === 'month' ? 'Calendar' : 'Weekly Planner'}
                                     </h1>
                                     {monthStats.total > 0 && (
                                         <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.05]">
                                             <Target size={11} className="text-primary/60" />
-                                            <span className="text-[10px] font-black text-white/40">
+                                            <span className="text-[10px] font-semibold text-white/40">
                                                 {monthStats.completed}/{monthStats.total}
                                             </span>
                                         </div>
                                     )}
                                 </div>
-                                <span className="text-[10px] uppercase font-black tracking-[0.2em] text-primary/50">
+                                <span className="text-[10px] uppercase font-semibold tracking-[0.2em] text-primary/50">
                                     {viewMode === 'month' ? 'Overview & Roadmap' : 'Execution & Focus'}
                                 </span>
                             </div>
@@ -279,7 +284,7 @@ export default function CalendarView() {
                         <div className="flex items-center gap-2.5 shrink-0">
                             <button
                                 onClick={() => setCurrentDate(new Date())}
-                                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20 text-xs font-black uppercase tracking-wide hover:bg-primary/20 active:scale-95 transition-all shadow-[0_0_15px_rgba(249,115,22,0.08)]"
+                                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20 text-xs font-semibold uppercase tracking-wide hover:bg-primary/20 active:scale-95 transition-all shadow-[0_0_15px_rgba(169,154,233,0.08)]"
                             >
                                 <Sparkles size={13} /> Today
                             </button>
@@ -287,7 +292,7 @@ export default function CalendarView() {
                                 <button onClick={previousMonth} className="p-2 hover:bg-white/[0.06] rounded-xl transition-all text-white/40 hover:text-white active:scale-90">
                                     <ChevronLeft size={18} />
                                 </button>
-                                <span className="text-sm font-black text-white px-3 text-center tracking-tight whitespace-nowrap min-w-[140px]">
+                                <span className="text-sm font-semibold text-white px-3 text-center tracking-tight whitespace-nowrap min-w-[140px]">
                                     {viewMode === 'month'
                                         ? `${monthNames[month]} ${year}`
                                         : `${weekDays[0].getDate()} ${monthNames[weekDays[0].getMonth()].slice(0, 3)} — ${weekDays[6].getDate()} ${monthNames[weekDays[6].getMonth()].slice(0, 3)}`
@@ -301,24 +306,10 @@ export default function CalendarView() {
                     </div>
                 </div>
 
-                {/* Reminder permission banner */}
-                {notifPermission !== 'granted' && (
-                    <div className="mx-2 md:mx-6 mb-2 md:mb-3 flex items-center justify-between gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-2xl border border-orange-500/15 bg-orange-500/[0.04] flex-shrink-0 flex-wrap">
-                        <div className="flex items-center gap-2">
-                            <BellOff size={13} className="text-orange-400 shrink-0" />
-                            <span className="text-[11px] md:text-xs text-white/60">
-                                <span className="text-white/90 font-bold">Enable reminders</span>
-                                <span className="hidden sm:inline"> — get notified 15 min before events</span>
-                            </span>
-                        </div>
-                        <button
-                            onClick={handleEnableReminders}
-                            className="shrink-0 px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-orange-500/15 text-orange-400 text-[11px] md:text-xs font-black uppercase tracking-wider hover:bg-orange-500/25 active:scale-95 transition-all"
-                        >
-                            Enable
-                        </button>
-                    </div>
-                )}
+                <div className="calendar-reminder-banner" role="status">
+                    <div>{reminderMode === 'off' ? <BellOff size={17}/> : <Bell size={17}/>}<span><strong>{reminderMode === 'off' ? 'Event reminders' : reminderMode === 'browser' ? 'Browser reminders enabled' : 'In-app reminders enabled'}</strong><small>{reminderMode === 'off' ? 'Get reminders 15 minutes before timed events and when they start.' : reminderMode === 'in-app' ? 'Keep Stratabin open. This browser is not allowing desktop notifications, so reminders appear inside the app.' : 'Keep Stratabin open to receive scheduled reminders.'}</small></span></div>
+                    {reminderMode === 'off' ? <button disabled={enablingReminders} onClick={() => void handleEnableReminders()}>{enablingReminders ? 'Enabling…' : 'Enable reminders'}</button> : <button onClick={() => { NotificationManager.disableReminders(); setReminderMode('off'); }}>Turn off</button>}
+                </div>
 
                 {/* Body */}
                 <div className="flex-1 flex flex-col lg:flex-row gap-3 md:gap-4 px-2 md:px-6 pb-20 md:pb-6 overflow-hidden min-h-0">
@@ -334,7 +325,7 @@ export default function CalendarView() {
                                 {/* Day headers */}
                                 <div className="grid grid-cols-7 border-b border-white/[0.06] flex-shrink-0 bg-[#0a0a0a]">
                                     {dayNames.map((d, i) => (
-                                        <div key={d} className={`py-3 md:py-4 text-center text-[9px] md:text-[10px] font-black uppercase tracking-[0.15em] ${i === 0 || i === 6 ? 'text-white/40' : 'text-white/55'}`}>
+                                        <div key={d} className={`py-3 md:py-4 text-center text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.15em] ${i === 0 || i === 6 ? 'text-white/40' : 'text-white/55'}`}>
                                             <span className="md:hidden">{d[0]}</span>
                                             <span className="hidden md:inline">{d}</span>
                                         </div>
@@ -365,7 +356,7 @@ export default function CalendarView() {
                                                     border-b border-r border-white/[0.04] p-0.5 md:p-2 cursor-pointer transition-all duration-200 relative group
                                                     ${isWeekend ? 'bg-[#060606]/50' : ''}
                                                     ${isSelected
-                                                        ? 'bg-primary/[0.06] z-10 shadow-[inset_0_0_20px_rgba(249,115,22,0.04)]'
+                                                        ? 'bg-primary/[0.06] z-10 shadow-[inset_0_0_20px_rgba(169,154,233,0.04)]'
                                                         : 'hover:bg-white/[0.03]'
                                                     }
                                                     ${isToday ? 'bg-primary/[0.03]' : ''}
@@ -377,9 +368,9 @@ export default function CalendarView() {
 
                                                 <div className="flex flex-col items-center md:flex-row md:items-start md:justify-between mb-0.5 md:mb-1 mt-0.5 md:mt-0">
                                                     <span className={`
-                                                        text-[11px] md:text-[13px] font-black w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full transition-all duration-200
+                                                        text-[11px] md:text-[13px] font-semibold w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full transition-all duration-200
                                                         ${isToday
-                                                            ? 'bg-primary text-black shadow-[0_0_12px_rgba(249,115,22,0.5)]'
+                                                            ? 'bg-primary text-black shadow-[0_0_12px_rgba(169,154,233,0.5)]'
                                                             : isSelected
                                                                 ? 'bg-white/[0.08] text-white'
                                                                 : isWeekend ? 'text-white/45 group-hover:text-white/60' : 'text-white/55 group-hover:text-white/80'
@@ -390,12 +381,12 @@ export default function CalendarView() {
                                                     {dayEvents.length > 0 && (
                                                         <div className="hidden md:flex items-center gap-1">
                                                             {pendingCount > 0 && (
-                                                                <span className="text-[8px] font-black text-primary/70 bg-primary/[0.1] w-4 h-4 flex items-center justify-center rounded-full">
+                                                                <span className="text-[8px] font-semibold text-primary/70 bg-primary/[0.1] w-4 h-4 flex items-center justify-center rounded-full">
                                                                     {pendingCount}
                                                                 </span>
                                                             )}
                                                             {completedCount > 0 && (
-                                                                <span className="text-[8px] font-black text-white/50 bg-white/[0.06] w-4 h-4 flex items-center justify-center rounded-full">
+                                                                <span className="text-[8px] font-semibold text-white/50 bg-white/[0.06] w-4 h-4 flex items-center justify-center rounded-full">
                                                                     {completedCount}
                                                                 </span>
                                                             )}
@@ -406,7 +397,7 @@ export default function CalendarView() {
                                                 {/* Mobile: dot indicators */}
                                                 <div className="flex md:hidden justify-center gap-[3px] mt-0.5">
                                                     {dayEvents.slice(0, 3).map(evt => (
-                                                        <div key={evt.id} className={`w-[5px] h-[5px] rounded-full transition-all ${evt.completed ? 'bg-white/15' : 'bg-primary/70 shadow-[0_0_4px_rgba(249,115,22,0.4)]'}`} />
+                                                        <div key={evt.id} className={`w-[5px] h-[5px] rounded-full transition-all ${evt.completed ? 'bg-white/15' : 'bg-primary/70 shadow-[0_0_4px_rgba(169,154,233,0.4)]'}`} />
                                                     ))}
                                                     {dayEvents.length > 3 && <div className="w-[5px] h-[5px] rounded-full bg-white/25" />}
                                                 </div>
@@ -428,7 +419,7 @@ export default function CalendarView() {
                                                         </div>
                                                     ))}
                                                     {dayEvents.length > 2 && (
-                                                        <span className="text-[8px] font-black text-white/45 px-1.5">+{dayEvents.length - 2} more</span>
+                                                        <span className="text-[8px] font-semibold text-white/45 px-1.5">+{dayEvents.length - 2} more</span>
                                                     )}
                                                 </div>
 
@@ -457,7 +448,7 @@ export default function CalendarView() {
                                 <div className="flex-shrink-0 px-3 md:px-6 py-3 md:py-4 border-b border-white/[0.05] bg-gradient-to-r from-primary/[0.03] to-transparent">
                                     <div className="flex items-center gap-2 mb-3">
                                         <Zap size={14} className="text-primary" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">Daily Check-in</span>
+                                        <span className="text-[10px] font-semibold uppercase tracking-widest text-primary/80">Daily Check-in</span>
                                     </div>
                                     {(() => {
                                         const logKey = id ? `${todayKey}_${id}` : todayKey;
@@ -465,7 +456,7 @@ export default function CalendarView() {
                                         return (
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
                                                 <div>
-                                                    <label className="text-[9px] font-black uppercase tracking-wider text-white/40 block mb-1">What did I execute today?</label>
+                                                    <label className="text-[9px] font-semibold uppercase tracking-wider text-white/40 block mb-1">What did I execute today?</label>
                                                     <input
                                                         type="text"
                                                         value={log?.executed ?? ''}
@@ -475,7 +466,7 @@ export default function CalendarView() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-[9px] font-black uppercase tracking-wider text-white/40 block mb-1">What&apos;s blocking me?</label>
+                                                    <label className="text-[9px] font-semibold uppercase tracking-wider text-white/40 block mb-1">What&apos;s blocking me?</label>
                                                     <input
                                                         type="text"
                                                         value={log?.blocking ?? ''}
@@ -485,7 +476,7 @@ export default function CalendarView() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-[9px] font-black uppercase tracking-wider text-white/40 block mb-1">Top action for tomorrow</label>
+                                                    <label className="text-[9px] font-semibold uppercase tracking-wider text-white/40 block mb-1">Top action for tomorrow</label>
                                                     <input
                                                         type="text"
                                                         value={log?.tomorrowAction ?? ''}
@@ -524,7 +515,7 @@ export default function CalendarView() {
                                             {/* Day header area */}
                                             <div className={`p-3 md:p-3.5 border-b border-white/[0.04] ${isToday ? 'bg-primary/[0.03]' : ''}`}>
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <span className={`text-[8px] font-black uppercase tracking-[0.25em] ${isToday ? 'text-primary' : 'text-white/45 group-hover:text-white/60 transition-colors'}`}>
+                                                    <span className={`text-[8px] font-semibold uppercase tracking-[0.25em] ${isToday ? 'text-primary' : 'text-white/45 group-hover:text-white/60 transition-colors'}`}>
                                                         {dayNames[i]}
                                                     </span>
                                                     {totalCount > 0 && (
@@ -539,13 +530,13 @@ export default function CalendarView() {
                                                     )}
                                                 </div>
                                                 <div className="flex items-baseline gap-2">
-                                                    <span className={`text-2xl md:text-[28px] font-black tracking-tight leading-none ${
+                                                    <span className={`text-2xl md:text-[28px] font-semibold tracking-tight leading-none ${
                                                         isToday ? 'text-primary' : isWeekend ? 'text-white/50' : 'text-white/65 group-hover:text-white/85 transition-colors'
                                                     }`}>
                                                         {date.getDate()}
                                                     </span>
                                                     {pendingCount > 0 && (
-                                                        <span className={`text-[9px] font-black ${isToday ? 'text-primary/70' : 'text-white/50'}`}>
+                                                        <span className={`text-[9px] font-semibold ${isToday ? 'text-primary/70' : 'text-white/50'}`}>
                                                             {pendingCount} left
                                                         </span>
                                                     )}
@@ -575,10 +566,10 @@ export default function CalendarView() {
                                                         </div>
                                                         <div className="flex items-center gap-1.5 pl-4">
                                                             <Clock size={8} className="text-white/40 shrink-0" />
-                                                            <span className={`text-[8px] font-black text-white/50 uppercase tracking-wider ${evt.completed ? 'line-through' : ''}`}>
+                                                            <span className={`text-[8px] font-semibold text-white/50 uppercase tracking-wider ${evt.completed ? 'line-through' : ''}`}>
                                                                 {evt.time}
                                                             </span>
-                                                            {evt.time !== 'All Day' && notifPermission === 'granted' && !evt.completed && (
+                                                            {evt.time !== 'All Day' && reminderMode !== 'off' && !evt.completed && (
                                                                 <Bell size={7} className="text-orange-400/40 ml-auto" />
                                                             )}
                                                         </div>
@@ -591,13 +582,13 @@ export default function CalendarView() {
                                                         className="flex flex-col items-center justify-center h-full min-h-[80px] rounded-xl border-2 border-dashed border-white/[0.06] hover:border-primary/30 hover:bg-primary/[0.04] transition-all w-full group/empty"
                                                     >
                                                         <Plus size={16} className="text-white/30 group-hover/empty:text-primary/60 transition-colors" />
-                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] mt-1.5 text-white/40 group-hover/empty:text-primary/60 transition-colors">Add task</span>
+                                                        <span className="text-[8px] font-semibold uppercase tracking-[0.2em] mt-1.5 text-white/40 group-hover/empty:text-primary/60 transition-colors">Add task</span>
                                                     </button>
                                                 )}
                                             </div>
 
                                             {isSelected && (
-                                                <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_8px_rgba(249,115,22,0.4)]" />
+                                                <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_8px_rgba(169,154,233,0.4)]" />
                                             )}
                                         </div>
                                     );
@@ -615,13 +606,13 @@ export default function CalendarView() {
                             <div className="flex items-center gap-3">
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
                                     selectedDateKey
-                                        ? 'bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 shadow-[0_0_15px_rgba(249,115,22,0.1)]'
+                                        ? 'bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 shadow-[0_0_15px_rgba(169,154,233,0.1)]'
                                         : 'bg-white/[0.04] border border-white/[0.05]'
                                 }`}>
                                     <Calendar size={17} className={`transition-colors duration-300 ${selectedDateKey ? 'text-primary' : 'text-white/45'}`} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <h3 className="text-[14px] font-black text-white leading-tight truncate">
+                                    <h3 className="text-[14px] font-semibold text-white leading-tight truncate">
                                         {selectedDateLabel || 'Select a day'}
                                     </h3>
                                     <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest mt-0.5">
@@ -642,7 +633,7 @@ export default function CalendarView() {
                                             style={{ width: `${(selectedEvents.filter(e => e.completed).length / selectedEvents.length) * 100}%` }}
                                         />
                                     </div>
-                                    <span className="text-[9px] font-black text-white/55 tabular-nums">
+                                    <span className="text-[9px] font-semibold text-white/55 tabular-nums">
                                         {Math.round((selectedEvents.filter(e => e.completed).length / selectedEvents.length) * 100)}%
                                     </span>
                                 </div>
@@ -679,7 +670,7 @@ export default function CalendarView() {
                                                     <span className="text-[10px] font-bold text-white/55 bg-white/[0.06] px-2 py-0.5 rounded-lg border border-white/[0.05] flex items-center gap-1">
                                                         <Clock size={8} />{evt.time}
                                                     </span>
-                                                    {evt.time !== 'All Day' && notifPermission === 'granted' && !evt.completed && (
+                                                    {evt.time !== 'All Day' && reminderMode !== 'off' && !evt.completed && (
                                                         <Bell size={9} className="text-orange-400/50" />
                                                     )}
                                                 </div>
@@ -697,7 +688,7 @@ export default function CalendarView() {
                                         <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-dashed border-white/[0.06] flex items-center justify-center mb-4">
                                             <Plus size={20} className="text-white/35" />
                                         </div>
-                                        <p className="text-xs font-black text-white/50 uppercase tracking-widest">Nothing scheduled</p>
+                                        <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Nothing scheduled</p>
                                         <p className="text-[11px] text-white/45 mt-1.5">Add an event below</p>
                                     </div>
                                 )
@@ -710,7 +701,7 @@ export default function CalendarView() {
                                         .slice(0, 8);
                                     return upcoming.length > 0 ? (
                                         <div>
-                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/50 mb-3">Upcoming</p>
+                                            <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/50 mb-3">Upcoming</p>
                                             <div className="space-y-1.5">
                                                 {upcoming.map(evt => {
                                                     const [y, m, d] = evt.dateKey.split('-').map(Number);
@@ -722,8 +713,8 @@ export default function CalendarView() {
                                                             className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.06] hover:border-white/[0.08] cursor-pointer transition-all group/item"
                                                         >
                                                             <div className="shrink-0 w-9 text-center py-0.5">
-                                                                <div className="text-[8px] font-black text-primary/60 uppercase tracking-wider">{label.split(' ')[0]}</div>
-                                                                <div className="text-lg font-black text-white/60 leading-none group-hover/item:text-white/85 transition-colors">{d}</div>
+                                                                <div className="text-[8px] font-semibold text-primary/60 uppercase tracking-wider">{label.split(' ')[0]}</div>
+                                                                <div className="text-lg font-semibold text-white/60 leading-none group-hover/item:text-white/85 transition-colors">{d}</div>
                                                             </div>
                                                             <div className="flex-1 min-w-0 border-l border-white/[0.05] pl-3">
                                                                 <p className="text-[12px] font-bold text-white/75 truncate group-hover/item:text-white/95 transition-colors">{evt.task}</p>
@@ -737,7 +728,7 @@ export default function CalendarView() {
                                     ) : (
                                         <div className="flex flex-col items-center justify-center h-full py-12 text-center">
                                             <Layout size={36} className="text-white/20 mb-4" />
-                                            <p className="text-xs font-black text-white/45 uppercase tracking-widest">No upcoming events</p>
+                                            <p className="text-xs font-semibold text-white/45 uppercase tracking-widest">No upcoming events</p>
                                             <p className="text-[11px] text-white/40 mt-1.5">Click a day to get started</p>
                                         </div>
                                     );
@@ -796,7 +787,7 @@ export default function CalendarView() {
                                 <button
                                     onClick={() => handleAddEvent()}
                                     disabled={!selectedDateKey || !newEventTitle.trim()}
-                                    className="w-full py-2.5 bg-gradient-to-r from-primary to-primary/80 text-black text-xs font-black uppercase tracking-wider rounded-xl hover:shadow-[0_4px_15px_rgba(249,115,22,0.25)] transition-all disabled:opacity-20 disabled:shadow-none flex items-center justify-center gap-2 active:scale-[0.98]"
+                                    className="w-full py-2.5 bg-gradient-to-r from-primary to-primary/80 text-black text-xs font-semibold uppercase tracking-wider rounded-xl hover:shadow-[0_4px_15px_rgba(169,154,233,0.25)] transition-all disabled:opacity-20 disabled:shadow-none flex items-center justify-center gap-2 active:scale-[0.98]"
                                 >
                                     <Plus size={14} strokeWidth={3} />
                                     Add Task
@@ -807,7 +798,7 @@ export default function CalendarView() {
                 </div>
             </div>
 
-            {id && <MobileNav canvasId={id} />}
+
 
             {/* ── Mobile Event Modal ──────────────────────── */}
             {selectedDateKey && (
@@ -828,7 +819,7 @@ export default function CalendarView() {
                                     <Calendar size={18} className="text-primary" />
                                 </div>
                                 <div>
-                                    <h3 className="text-base font-black text-white">{selectedDateLabel}</h3>
+                                    <h3 className="text-base font-semibold text-white">{selectedDateLabel}</h3>
                                     <p className="text-[9px] uppercase font-bold tracking-widest text-white/50 mt-0.5">
                                         {selectedEvents.length} event{selectedEvents.length !== 1 ? 's' : ''}
                                         {selectedEvents.filter(e => e.completed).length > 0 && ` · ${selectedEvents.filter(e => e.completed).length} done`}
@@ -852,7 +843,7 @@ export default function CalendarView() {
                                         style={{ width: `${(selectedEvents.filter(e => e.completed).length / selectedEvents.length) * 100}%` }}
                                     />
                                 </div>
-                                <span className="text-[10px] font-black text-white/55 tabular-nums">
+                                <span className="text-[10px] font-semibold text-white/55 tabular-nums">
                                     {selectedEvents.filter(e => e.completed).length}/{selectedEvents.length}
                                 </span>
                             </div>
@@ -896,7 +887,7 @@ export default function CalendarView() {
                                                 <Clock size={9} />
                                                 {evt.time}
                                             </div>
-                                            {evt.time !== 'All Day' && notifPermission === 'granted' && !evt.completed && (
+                                            {evt.time !== 'All Day' && reminderMode !== 'off' && !evt.completed && (
                                                 <Bell size={10} className="text-orange-400/50" aria-label="Reminder set" />
                                             )}
                                         </div>
@@ -952,7 +943,7 @@ export default function CalendarView() {
                                 <button
                                     onClick={() => handleAddEvent()}
                                     disabled={!newEventTitle.trim()}
-                                    className="w-full py-3.5 bg-gradient-to-r from-primary to-primary/80 text-black font-black text-sm uppercase tracking-wider rounded-xl hover:shadow-[0_4px_15px_rgba(249,115,22,0.25)] transition-all disabled:opacity-20 disabled:shadow-none active:scale-[0.97] flex items-center justify-center gap-2"
+                                    className="w-full py-3.5 bg-gradient-to-r from-primary to-primary/80 text-black font-semibold text-sm uppercase tracking-wider rounded-xl hover:shadow-[0_4px_15px_rgba(169,154,233,0.25)] transition-all disabled:opacity-20 disabled:shadow-none active:scale-[0.97] flex items-center justify-center gap-2"
                                 >
                                     <Plus size={18} />
                                     Add Task

@@ -490,125 +490,6 @@ a {
   overflow: hidden;
 }
 
-/* ── ReactFlow canvas overrides ────────────────────────────────────── */
-
-/* Selection rectangle → orange line only */
-.react-flow__selection {
-  border: 1.5px solid rgba(249,115,22,0.7) !important;
-  background: transparent !important;
-  border-radius: 6px !important;
-}
-.react-flow__nodesselection-rect {
-  border: 1.5px solid rgba(249,115,22,0.7) !important;
-  background: transparent !important;
-  border-radius: 4px !important;
-}
-
-/* Edges → subtle warm color, slightly brighter */
-.react-flow__edge-path {
-  stroke: rgba(249,115,22,0.35) !important;
-  stroke-width: 1.5px !important;
-}
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke: rgba(249,115,22,0.8) !important;
-}
-.react-flow__edge:hover .react-flow__edge-path {
-  stroke: rgba(249,115,22,0.6) !important;
-}
-
-/* Connection line while dragging — clearer visibility */
-.react-flow__connection-path {
-  stroke: rgba(249,115,22,0.85) !important;
-  stroke-width: 2.5px !important;
-  stroke-dasharray: 8 4 !important;
-  stroke-linecap: round !important;
-}
-
-/* Handles — larger hit area for easier connection */
-.react-flow__handle {
-  width: 18px !important;
-  height: 18px !important;
-  min-width: 18px !important;
-  min-height: 18px !important;
-  border-radius: 50% !important;
-  cursor: crosshair !important;
-}
-.react-flow__handle:hover {
-  transform: scale(1.15);
-}
-
-/* Controls → match app theme */
-.react-flow__controls {
-  background: #111111 !important;
-  border: 1px solid rgba(255,255,255,0.07) !important;
-  border-radius: 14px !important;
-  overflow: hidden !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
-}
-.react-flow__controls-button {
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
-  fill: rgba(255,255,255,0.3) !important;
-  width: 32px !important;
-  height: 32px !important;
-  transition: all 0.15s !important;
-}
-.react-flow__controls-button:last-child {
-  border-bottom: none !important;
-}
-.react-flow__controls-button:hover {
-  background: rgba(249,115,22,0.08) !important;
-  fill: rgba(249,115,22,0.9) !important;
-}
-
-/* Edge label */
-.react-flow__edge-text {
-  fill: rgba(255,255,255,0.4) !important;
-  font-size: 11px !important;
-}
-
-/* Attribution (hide Vercel badge area) */
-.react-flow__attribution {
-  opacity: 0.15 !important;
-}
-
-/* ── ReactFlow: Light theme overrides ─────────────────────────────────── */
-[data-theme="light"] .react-flow__controls {
-  background: #ffffff !important;
-  border: 1px solid rgba(0,0,0,0.08) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
-}
-
-[data-theme="light"] .react-flow__controls-button {
-  border-bottom-color: rgba(0,0,0,0.05) !important;
-  fill: #525252 !important;
-}
-
-[data-theme="light"] .react-flow__controls-button:hover {
-  background: rgba(249,115,22,0.08) !important;
-  fill: #f97316 !important;
-}
-
-[data-theme="light"] .react-flow__edge-text {
-  fill: rgba(0,0,0,0.5) !important;
-}
-
-/* Light theme: flow edges — brighter orange for visibility */
-[data-theme="light"] .react-flow__edge-path {
-  stroke: rgba(249,115,22,0.7) !important;
-  stroke-width: 2px !important;
-}
-[data-theme="light"] .react-flow__edge.selected .react-flow__edge-path {
-  stroke: rgba(249,115,22,0.95) !important;
-}
-[data-theme="light"] .react-flow__edge:hover .react-flow__edge-path {
-  stroke: rgba(249,115,22,0.9) !important;
-}
-[data-theme="light"] .react-flow__connection-path {
-  stroke: rgba(249,115,22,0.9) !important;
-}
-
 /* Dashboard project cards — white bg, dark text in light theme */
 [data-theme="light"] .dashboard-project-card h3,
 [data-theme="light"] .dashboard-project-card .text-white {
@@ -899,3 +780,65 @@ a {
 .pulse-ring {
   animation: pulse-ring 2s infinite;
 }
+/* Project studio: quiet surfaces, open documents, one visible AI entry. */
+.studio-header{gap:4px;background:var(--bg-page)!important;backdrop-filter:blur(16px)}
+.project-ai-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 15px;background:linear-gradient(120deg,#7762cc,#5e54a1);color:white;font-size:12px;font-weight:600;border:1px solid #b86cff50;border-radius:10px;box-shadow:0 3px 14px #7163bb20}
+.writing-surface{background:var(--bg-page)}.writing-document{border:0!important;box-shadow:none!important;background:transparent!important}.writing-document>div{background:transparent}.writing-toolbar{font-size:12px}.writing-planner>button{padding-left:0;padding-right:0}.writing-document input[aria-label="Document title"]{letter-spacing:-1.2px;font-weight:600!important}.writing-document textarea{line-height:1.9!important}.writing-surface textarea::placeholder{color:var(--text-dim)}
+.project-ai-launcher{position:fixed;right:22px;bottom:22px;z-index:65}.project-ai-launcher>button{display:flex;align-items:center;gap:8px;border:1px solid #9b89db55;border-radius:12px;background:var(--bg-panel);color:#b86cff;padding:12px 16px;font-size:12px;font-weight:600;box-shadow:0 6px 30px #0002}.project-ai-menu{width:290px;max-width:calc(100vw - 36px);background:var(--bg-panel);border:1px solid var(--border-strong);border-radius:16px;box-shadow:0 12px 50px #0003;padding:20px;margin-bottom:10px}.project-ai-menu h3{font-size:15px;font-weight:600;margin-bottom:5px}.project-ai-menu p{font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:14px}.project-ai-menu button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 8px;border-top:1px solid var(--border);font-size:12px;color:var(--text-secondary)}
+@media(max-width:767px){.project-ai-launcher{bottom:88px;right:16px}.studio-header>div:first-child{margin-right:2px!important}.studio-header nav{gap:0}.studio-header nav button{padding:8px 10px}.project-ai-button{padding:9px}.writing-toolbar>div:first-child{display:none}.writing-toolbar{justify-content:center;min-height:48px;padding:4px 8px}.writing-document input[aria-label="Document title"]{font-size:30px!important}.writing-surface [title="Toggle keyboard"]{bottom:90px}}
+
+/* Shared workspace refresh: softer ink, quieter panels, consistent accents. */
+:root,[data-theme="dark"]{--bg-page:#111216;--bg-panel:#191a20;--bg-elevated:#23242d;--bg-card:#1c1d24;--bg-muted:#292b35;--text:#eeedf3;--text-secondary:#d7d6e0;--text-muted:#9695a6;--text-dim:#6d6c7d;--border:rgba(180,176,209,.09);--border-strong:rgba(180,176,209,.18);--input-bg:rgba(180,176,209,.055);--input-border:rgba(180,176,209,.14);--primary:#b86cff;--accent-soft:rgba(176,72,255,.12)}
+[data-theme="light"]{--bg-page:#fafaf8;--bg-panel:#fff;--bg-elevated:#f2f1f7;--bg-card:#fff;--bg-muted:#eeedf3;--text:#292735;--text-secondary:#514e60;--text-muted:#7e798c;--text-dim:#a19bab;--border:rgba(73,65,97,.09);--border-strong:rgba(73,65,97,.18);--input-bg:rgba(73,65,97,.04);--input-border:rgba(73,65,97,.13);--primary:#7463bd;--accent-soft:rgba(116,99,189,.1)}
+.theme-page{letter-spacing:-.015em}.theme-panel{background:var(--bg-panel)}.premium-card{box-shadow:0 1px 3px #00000008!important;border-color:var(--border)!important}.dashboard-project-card,.dashboard-hero-card{box-shadow:0 3px 15px #0000000a!important;background:var(--bg-panel)!important}.project-card-stat-box{border-color:var(--border)!important;background:var(--input-bg)!important}.studio-header nav button{border-radius:8px}.studio-header nav button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+/* One project shell for every tool. Navigation belongs to the shell, never the canvas. */
+.project-shell{height:100dvh;display:flex;flex-direction:column;background:var(--bg-page);color:var(--text);overflow:hidden;position:relative}
+.project-content{flex:1;min-height:0;min-width:0;overflow:hidden;position:relative}.project-content>div{height:100%!important;min-height:0!important}.project-content>.min-h-\[100dvh\]{min-height:0!important}
+.workspace-header{display:flex;align-items:center;gap:22px;min-height:72px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg-panel);flex-shrink:0;z-index:60;position:relative}.workspace-identity{display:flex;align-items:center;gap:14px;min-width:150px;max-width:250px}.workspace-identity>button{color:var(--text-muted);padding:7px;border-radius:8px}.workspace-identity>button:hover{background:var(--input-bg)}.workspace-identity>div{display:flex;flex-direction:column;min-width:0;gap:3px}.workspace-identity>div>span{font-size:8px;letter-spacing:1.5px;color:var(--text-muted)}.workspace-project-name{font-size:13px;font-weight:600;color:var(--text);text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:210px}.workspace-header nav{display:flex;align-items:center;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none}.workspace-header nav>button{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;white-space:nowrap;padding:10px 12px;border-radius:8px;color:var(--text-muted);transition:background .15s,color .15s}.workspace-header nav>button:hover{background:var(--input-bg);color:var(--text)}.workspace-header nav>button[aria-current="page"]{background:var(--accent-soft);color:var(--primary)}.workspace-header button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}.workspace-header>.project-ai-button{box-shadow:none;white-space:nowrap;margin-left:auto;background:var(--accent-soft);border-color:rgba(176,72,255,.2);color:var(--primary)}
+.project-ai-launcher{bottom:22px}.project-ai-launcher>button{box-shadow:0 4px 18px #0001;background:var(--bg-panel)}.section-toolbar{background:var(--bg-page)!important}.section-toolbar>button[aria-label="Back"],.section-toolbar>div.min-w-0{display:none}.section-toolbar{justify-content:flex-end}
+.dashboard-shell main{background:var(--bg-page)!important;background-image:none!important}.dashboard-shell aside{background:var(--bg-panel)!important;border-color:var(--border)!important}.dashboard-shell .dashboard-header h2{font-weight:600;font-size:25px;letter-spacing:-.7px}.dashboard-shell .dashboard-header p{text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:12px;font-weight:400}.dashboard-tabs{border:0!important;padding-bottom:4px!important;gap:4px!important}.dashboard-tabs button{padding:10px 14px!important;border-radius:8px;color:var(--text-muted)!important}.dashboard-tabs button>div{display:none}.dashboard-tabs button[aria-pressed="true"]{background:var(--accent-soft);color:var(--primary)!important}.dashboard-tabs button span{font-size:12px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important}.dashboard-header button.bg-primary{background:var(--accent-soft)!important;color:var(--primary)!important;box-shadow:none!important;font-weight:600;letter-spacing:0;text-transform:none;border:1px solid rgba(176,72,255,.2)}.dashboard-empty{border:0!important;min-height:330px;background:transparent!important}.dashboard-empty h3{color:var(--text)!important;font-weight:500;font-size:20px}.dashboard-empty p{color:var(--text-muted)!important;font-size:13px}.dashboard-empty button{background:var(--accent-soft)!important;color:var(--primary)!important;border-color:transparent!important}.dashboard-shell .dashboard-project-card,.dashboard-shell .dashboard-hero-card{border-radius:14px!important}.dashboard-project-card h3,.dashboard-hero-card h3{font-weight:600!important}.dashboard-shell .tracking-widest{letter-spacing:.04em}.dashboard-shell .dashboard-project-card .project-card-stat-box{background:transparent!important;border:0!important;padding-left:0;padding-right:0}.dashboard-shell .dashboard-project-card .project-card-stat-box>p{font-weight:500!important;text-transform:none;letter-spacing:0}
+.brainstorm-board{background:var(--bg-page)!important;color:var(--text)!important}.brainstorm-board .board-toolrail,.brainstorm-board .board-topline button,.brainstorm-board .board-history,.brainstorm-board .board-selection,.brainstorm-board .board-palette{box-shadow:0 3px 15px #00000008!important;border-color:var(--border-strong)}.brainstorm-board .board-toolrail button.active{background:var(--accent-soft);color:var(--primary)}.brainstorm-board .board-ai{background:var(--accent-soft);color:var(--primary);border-color:rgba(176,72,255,.2);box-shadow:none}.brainstorm-board .board-welcome button:first-child{background:var(--primary);color:#191722}.brainstorm-board .board-welcome h3{font-weight:500}.brainstorm-board .board-object.object-selected{outline-color:var(--primary)}
+[data-theme="light"] .dashboard-project-card .text-primary{color:var(--primary)!important}
+@media(max-width:1050px) and (min-width:768px){.workspace-header{gap:10px;padding:0 16px}.workspace-header nav>button{padding:10px 8px;font-size:11px}.workspace-identity{min-width:115px;max-width:170px}.workspace-project-name{max-width:130px}.workspace-header>.project-ai-button{padding:9px}}
+@media(max-width:767px){.workspace-header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:8px 16px 0;min-height:98px}.workspace-identity{min-width:0;max-width:none;gap:8px}.workspace-project-name{max-width:calc(100vw - 185px);font-size:13px}.workspace-identity>div>span{font-size:7px}.workspace-header nav{grid-row:2;grid-column:1/-1;width:100%;gap:2px;padding:5px 0 6px}.workspace-header nav>button{padding:9px 11px;font-size:11px;gap:6px;flex:1}.workspace-header nav>button svg{width:14px}.workspace-header>.project-ai-button{grid-row:1;grid-column:2;padding:8px 10px;font-size:11px}.workspace-header>.project-ai-button>span{display:inline}.project-ai-launcher{bottom:20px;right:16px}.writing-toolbar{justify-content:flex-start;padding-left:14px}.writing-surface [aria-label="Toggle keyboard edit mode"]{bottom:20px}.dashboard-shell .dashboard-header h2{font-size:22px}.dashboard-tabs{margin-left:-4px;margin-right:-4px}.dashboard-empty{min-height:330px}.dashboard-empty h3{font-size:20px}.dashboard-shell .dashboard-header{margin-bottom:20px}.board-history{bottom:16px}.board-ai{bottom:16px}}
+
+.workspace-header .project-ai-launcher{position:relative;right:auto;bottom:auto;z-index:70;flex-shrink:0;margin-left:auto}.workspace-header .project-ai-launcher>.project-ai-button{padding:10px 14px;background:var(--accent-soft);border-color:rgba(176,72,255,.2);color:var(--primary);box-shadow:none;border-radius:9px;font-size:12px}.workspace-header .project-ai-menu{position:absolute;top:calc(100% + 12px);right:0;margin:0;box-shadow:0 8px 36px #0002;text-align:left}.workspace-header .project-ai-menu h3{line-height:1.5}.workspace-header .project-ai-menu button{border-radius:6px}.workspace-header .project-ai-menu button:hover{background:var(--input-bg)}
+@media(max-width:767px){.workspace-header .project-ai-launcher{grid-row:1;grid-column:2}.workspace-header .project-ai-launcher>.project-ai-button{font-size:11px;padding:8px 10px}.workspace-header nav{padding-right:0}.workspace-header .project-ai-menu{top:calc(100% + 10px)}}
+
+.project-content button[aria-label="Go back"]{display:none}
+
+@media(max-width:480px){.workspace-header nav>button{padding:9px 8px;gap:0;font-size:11px;min-width:0}.workspace-header nav>button>svg{display:none}.workspace-header nav{gap:1px}.writing-document input[aria-label="Document title"]{font-size:27px!important;letter-spacing:-.8px}}
+
+/* Workspace readability refinements shared with the personal AI editor. */
+.workspace-header nav>button{font-size:14px;min-height:44px}.workspace-project-name{font-size:15px}.workspace-identity>div>span{font-size:10px;letter-spacing:.1em}.workspace-header .project-ai-launcher>.project-ai-button{min-height:44px;font-size:14px}.writing-toolbar button{min-width:40px;min-height:40px}.writing-document textarea{font-size:17px;line-height:1.9}.writing-document input[aria-label="Document title"]{line-height:1.35}.writing-planner>button{min-height:56px}.writing-planner>button>span{font-size:15px}.project-content input:not([type=checkbox]):not([type=radio]):not([aria-label="Document title"]),.project-content select{font-size:16px}.project-shell .theme-page{font-size:15px}
+@media(max-width:1050px) and (min-width:768px){.workspace-header nav>button{font-size:12px}.workspace-header .project-ai-launcher>.project-ai-button{font-size:12px}}
+@media(max-width:767px){.workspace-header nav>button{font-size:12px;min-height:44px}.workspace-project-name{font-size:14px}.workspace-header .project-ai-launcher>.project-ai-button{font-size:12px}.workspace-identity>div>span{font-size:9px}}
+@media(max-width:480px){.workspace-header nav>button{font-size:11px;padding:9px 7px}.workspace-project-name{max-width:calc(100vw - 185px)}}
+
+/* Project cards share the workspace's slate and lavender surfaces. */
+.dashboard-shell .dashboard-project-card{background:linear-gradient(145deg,var(--bg-elevated),var(--bg-panel) 75%)!important;border:1px solid var(--border-strong)!important;border-radius:16px!important;box-shadow:0 4px 16px #00000008!important}
+.dashboard-shell .dashboard-project-card:hover{border-color:var(--primary)!important;box-shadow:0 8px 28px #00000012!important}
+.dashboard-project-card [class*="bg-teal-500"],.dashboard-project-card [class*="from-teal-500"]{background:var(--accent-soft)!important;border-color:var(--border-strong)!important}
+.dashboard-project-card [class*="text-teal-"]{color:var(--primary)!important}
+.dashboard-project-card>div:first-child{background:var(--border-strong)!important}
+
+/* Black glass surfaces with restrained lavender reflections, without bloom. */
+:root:not([data-theme="light"]){--bg-page:#000;--bg-panel:#030204;--bg-elevated:#09060d;--bg-card:#050307;--bg-muted:#0a070e;--input-bg:rgba(176,72,255,.035);--input-border:rgba(176,72,255,.2);--border:rgba(176,72,255,.11);--border-strong:rgba(176,72,255,.22);--primary:#b86cff;--accent-soft:rgba(176,72,255,.12)}
+[data-theme="dark"] .dashboard-shell aside{background:linear-gradient(115deg,#09060d 0,#000 46%,#030204 100%)!important;box-shadow:inset -1px 0 0 #e6d7ff08}
+[data-theme="dark"] .dashboard-shell .dashboard-project-card,[data-theme="dark"] .ai-project-card{background:linear-gradient(125deg,#ffffff09 0,#ffffff02 19%,transparent 38%),linear-gradient(165deg,#0c0712 0,#000 64%,#040205 100%)!important;box-shadow:inset 0 1px 0 #eee3ff20,0 8px 24px #0005!important;border-color:#b86cff30!important}
+[data-theme="dark"] .dashboard-shell .dashboard-project-card:hover,[data-theme="dark"] .ai-project-card:hover{border-color:#b86cff80!important;box-shadow:inset 0 1px 0 #eee3ff38,0 10px 28px #0008!important}
+[data-theme="dark"] :is(.ai-provider-grid>button,.ai-capsule-options,.ai-project-search,.project-ai-button){background-image:linear-gradient(120deg,#ffffff07,transparent 35%,#b86cff03)!important;box-shadow:inset 0 1px 0 #eee3ff12}
+[data-theme="dark"] :is(.ai-primary-action,.dashboard-header button.bg-primary){background:linear-gradient(150deg,#d8c6ff2b,#b86cff12)!important;box-shadow:inset 0 1px 0 #eee3ff26!important;border-color:#b86cff40!important;color:var(--primary)!important}
+[data-theme="dark"] .workspace-header{background:#000;border-color:var(--border-strong)}
+
+/* Rich violet reflections and crisp white typography throughout dark mode. */
+:root:not([data-theme="light"]){--text:#fff;--text-secondary:#fff;--text-muted:#d1c9de;--text-dim:#b0a5c2;--primary:#b86cff;--accent-soft:rgba(158,43,255,.16);--border:rgba(188,107,255,.13);--border-strong:rgba(188,107,255,.28)}
+[data-theme="light"]{--primary:#8517cc;--accent-soft:rgba(133,23,204,.09)}
+[data-theme="dark"] :is(.text-white\/80,.text-white\/70){color:#fff!important}
+[data-theme="dark"] .text-white\/60{color:#eee7f7!important}
+[data-theme="dark"] .text-white\/50{color:#d8cfe5!important}
+[data-theme="dark"] .text-white\/40{color:#c0b5ce!important}
+[data-theme="dark"] :is(.team-primary,.ai-primary-action,.project-ai-button){background:linear-gradient(120deg,#bd65ff16 0,#8e21d625 28%,#c56dff14 48%,#6f13b718 78%,#d6a4ff14 100%)!important;border-color:#bd65ff60!important;box-shadow:inset 0 1px 0 #eac6ff24!important}
+
+.calendar-reminder-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 24px 16px;padding:16px 18px;border:1px solid var(--border-strong);border-radius:12px;background:var(--accent-soft);flex-shrink:0}.calendar-reminder-banner>div{display:flex;align-items:center;gap:12px;min-width:0}.calendar-reminder-banner svg{color:var(--primary);flex-shrink:0}.calendar-reminder-banner strong{display:block;font-size:13px;color:var(--text);font-weight:500}.calendar-reminder-banner small{display:block;font-size:12px;line-height:1.7;color:var(--text-muted);margin-top:4px}.calendar-reminder-banner button{padding:10px 14px;min-height:44px;border-radius:9px;border:1px solid var(--border-strong);font-size:12px;color:var(--primary);white-space:nowrap;background:var(--bg-panel)}.calendar-reminder-banner button:disabled{opacity:.5}@media(max-width:600px){.calendar-reminder-banner{margin:0 8px 12px;align-items:flex-start;flex-wrap:wrap;padding:14px}.calendar-reminder-banner button{margin-left:29px}}

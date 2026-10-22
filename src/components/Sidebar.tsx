@@ -1,34 +1,34 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot, Network, BookOpen, Code2 } from 'lucide-react';
+import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot, Network, BookOpen } from 'lucide-react';
 
 const GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
 
 const NAV_ITEMS = [
     {
-        label: 'Strategy',
+        label: 'Writing',
         icon: Layout,
         path: (id: string) => `/strategy/${id}`,
-        match: (p: string, _s: string) => p.includes('/strategy'),
-        accent: '#f97316',
-        activeBg: 'rgba(249,115,22,0.12)',
-        activeBorder: 'rgba(249,115,22,0.3)',
+        match: (p: string) => (p.includes('/strategy') || p.includes('/canvas')),
+        accent: 'var(--primary)',
+        activeBg: 'rgba(176,72,255,0.12)',
+        activeBorder: 'rgba(176,72,255,0.3)',
     },
     {
         label: 'Timeline',
         icon: Clock,
         path: (id: string) => `/timeline/${id}`,
-        match: (p: string, _s: string) => p.includes('/timeline'),
-        accent: '#f97316',
-        activeBg: 'rgba(249,115,22,0.12)',
-        activeBorder: 'rgba(249,115,22,0.3)',
+        match: (p: string) => p.includes('/timeline'),
+        accent: 'var(--primary)',
+        activeBg: 'rgba(176,72,255,0.12)',
+        activeBorder: 'rgba(176,72,255,0.3)',
     },
     {
         label: 'Calendar',
         icon: Calendar,
         path: (id: string) => `/calendar/${id}`,
         match: (p: string, s: string) => p.includes('/calendar') && !s.includes('mode=week'),
-        accent: '#e2e8f0',
+        accent: 'var(--text-secondary)',
         activeBg: 'rgba(226,232,240,0.08)',
         activeBorder: 'rgba(226,232,240,0.2)',
     },
@@ -37,7 +37,7 @@ const NAV_ITEMS = [
         icon: CheckCircle2,
         path: (id: string) => `/calendar/${id}?mode=week`,
         match: (_p: string, s: string) => s.includes('mode=week'),
-        accent: '#e2e8f0',
+        accent: 'var(--text-secondary)',
         activeBg: 'rgba(226,232,240,0.08)',
         activeBorder: 'rgba(226,232,240,0.2)',
     },
@@ -45,19 +45,10 @@ const NAV_ITEMS = [
         label: 'Tasks',
         icon: CheckSquare,
         path: (id: string) => `/todo/${id}`,
-        match: (p: string, _s: string) => p.includes('/todo'),
+        match: (p: string) => p.includes('/todo'),
         accent: '#fb923c',
         activeBg: 'rgba(251,146,60,0.12)',
         activeBorder: 'rgba(251,146,60,0.3)',
-    },
-    {
-        label: 'Code',
-        icon: Code2,
-        path: (id: string) => `/code/${id}`,
-        match: (p: string, _s: string) => p.includes('/code'),
-        accent: '#3b82f6',
-        activeBg: 'rgba(59,130,246,0.12)',
-        activeBorder: 'rgba(59,130,246,0.3)',
     },
 ];
 
@@ -85,8 +76,8 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                 title={workspaceId ? 'Team Workspace' : 'General Projects'}
             >
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center overflow-hidden border border-white/10 shadow-sm group-hover:scale-105 transition-transform">
-                        <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                    <div className="w-8 h-8 bg-transparent rounded-lg flex items-center justify-center overflow-hidden border border-white/10 shadow-sm group-hover:scale-105 transition-transform">
+                        <img src="/stratabin-icon.svg" alt="Stratabin" className="w-full h-full object-contain" />
                     </div>
                 </div>
                 <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 theme-elevated border border-[var(--border)] text-[var(--text)] text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
@@ -108,7 +99,7 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                             style={{
                                 background: active ? activeBg : 'transparent',
                                 border: `1px solid ${active ? activeBorder : 'transparent'}`,
-                                boxShadow: active ? `0 0 12px ${accent}18` : 'none',
+                                boxShadow: active ? `0 0 12px ${activeBg}` : 'none',
                             }}
                             aria-label={label}
                             title={label}
@@ -127,11 +118,11 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                         >
                             <Icon
                                 size={18}
-                                style={{ color: active ? accent : 'var(--text-dim)', transition: 'color 0.2s' }}
+                                style={{ color: active ? accent : 'var(--text-muted)', transition: 'color 0.2s' }}
                             />
                             <span
-                                className="text-[8px] font-black uppercase tracking-wider transition-colors"
-                                style={{ color: active ? accent : 'var(--text-dim)', opacity: active ? 0.9 : 0.7 }}
+                                className="text-[10px] font-semibold uppercase tracking-wider transition-colors"
+                                style={{ color: active ? accent : 'var(--text-muted)', opacity: 1 }}
                             >
                                 {label}
                             </span>
@@ -157,8 +148,8 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                     e.currentTarget.style.border = '1px solid transparent';
                 }}
             >
-                <Network size={18} style={{ color: 'var(--text-dim)' }} />
-                <span className="text-[8px] font-black uppercase tracking-wider" style={{ color: 'var(--text-dim)', opacity: 0.7 }}>
+                <Network size={18} style={{ color: 'var(--text-muted)' }} />
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
                     Share
                 </span>
                 <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 theme-elevated border border-[var(--border)] text-[var(--text)] text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
@@ -168,21 +159,21 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
 
             {/* STRAB AI */}
             {(() => {
-                const active = pathname.includes('/strab');
+                const active = pathname.includes('/ai');
                 return (
                     <button
-                        onClick={() => navigate(`/strab/${canvasId}`, { state: location.state })}
+                        onClick={() => navigate(`/ai/${canvasId}`, { state: location.state })}
                         className="group relative flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl w-14 transition-all duration-200 active:scale-90"
                         style={{
-                            background: active ? 'rgba(249,115,22,0.12)' : 'transparent',
-                            border: `1px solid ${active ? 'rgba(249,115,22,0.3)' : 'transparent'}`,
+                            background: active ? 'rgba(176,72,255,0.12)' : 'transparent',
+                            border: `1px solid ${active ? 'rgba(176,72,255,0.3)' : 'transparent'}`,
                         }}
-                        aria-label="Project STRAB — chat and reports for this project"
-                        title="Project STRAB — chat, Reports & follow-up"
+                        aria-label="Use my AI for this project"
+                        title="Use ChatGPT, Claude, or Gemini"
                         onMouseEnter={e => {
                             if (!active) {
-                                e.currentTarget.style.background = 'rgba(249,115,22,0.06)';
-                                e.currentTarget.style.border = '1px solid rgba(249,115,22,0.15)';
+                                e.currentTarget.style.background = 'rgba(176,72,255,0.06)';
+                                e.currentTarget.style.border = '1px solid rgba(176,72,255,0.15)';
                             }
                         }}
                         onMouseLeave={e => {
@@ -192,10 +183,10 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                             }
                         }}
                     >
-                        <Bot size={18} style={{ color: active ? '#f97316' : 'var(--text-dim)' }} />
+                        <Bot size={18} style={{ color: active ? 'var(--primary)' : 'var(--text-muted)' }} />
                         <span
-                            className="text-[8px] font-black uppercase tracking-wider"
-                            style={{ color: active ? '#f97316' : 'var(--text-dim)', opacity: active ? 0.9 : 0.7 }}
+                            className="text-[10px] font-semibold uppercase tracking-wider"
+                            style={{ color: active ? 'var(--primary)' : 'var(--text-muted)', opacity: 1 }}
                         >
                             AI
                         </span>
@@ -212,8 +203,8 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                 aria-label="How to use Stratabin — opens guide in a new tab"
                 title="How to use Stratabin (guide)"
             >
-                <BookOpen size={18} style={{ color: 'var(--text-dim)' }} />
-                <span className="text-[8px] font-black uppercase tracking-wider text-center leading-tight" style={{ color: 'var(--text-dim)', opacity: 0.7 }}>
+                <BookOpen size={18} style={{ color: 'var(--text-muted)' }} />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-center leading-tight" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
                     Guide
                 </span>
                 <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 theme-elevated border border-[var(--border)] text-[var(--text)] text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">

@@ -1,11 +1,13 @@
+import type { WritingPage } from '../lib/writingPages';
 /**
  * Workspace, Project, Feed, Profile API client
  */
 
+import { ScopedRequestPool } from '../lib/scopedRequestPool';
 import { API_BASE_URL } from '../constants';
 
 /** Dedupe concurrent loads (React Strict Mode + effect replays) to avoid 429s */
-const projectCanvasInflight = new Map<number, Promise<Record<string, unknown>>>();
+const projectCanvasInflight = new ScopedRequestPool<Record<string, unknown>>();
 
 async function fetchWithAuth(path: string, options: RequestInit = {}, token: string | null) {
   const headers: Record<string, string> = {
@@ -13,9 +15,9 @@ async function fetchWithAuth(path: string, options: RequestInit = {}, token: str
     ...(options.headers as Record<string, string>),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers, signal: options.signal ?? AbortSignal.timeout(30000) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Request failed: ${res.status}`);
+  if (!res.ok) throw new Error(`${data.error || 'Request failed'} (${res.status})`);
   return data;
 }
 
@@ -240,10 +242,7 @@ export const workspaceService = {
   },
 
   async getProjectCanvas(projectId: number, token: string | null) {
-    const existing = projectCanvasInflight.get(projectId);
-    if (existing) return existing;
-
-    const task = (async () => {
+    return projectCanvasInflight.run(token, projectId, async () => {
       const delays = [0, 1500, 4000, 8000];
       for (let i = 0; i < delays.length; i++) {
         if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
@@ -262,13 +261,7 @@ export const workspaceService = {
         }
       }
       throw new Error('Failed to load project canvas after retries.');
-    })();
-
-    projectCanvasInflight.set(projectId, task);
-    task.catch(() => {}).finally(() => {
-      if (projectCanvasInflight.get(projectId) === task) projectCanvasInflight.delete(projectId);
     });
-    return task;
   },
 
   async saveProjectCanvas(
@@ -277,8 +270,12 @@ export const workspaceService = {
       nodes: unknown[];
       edges: unknown[];
       writingContent?: string;
+      writingPages?: WritingPage[];
       name?: string;
       todos?: Array<{ id: string; text: string; completed: boolean }>;
+      codeFiles?: unknown[];
+      externalAiReports?: unknown[];
+      timelineContent?: string;
     },
     token: string | null
   ) {
@@ -287,6 +284,10 @@ export const workspaceService = {
       { method: 'POST', body: JSON.stringify(data) },
       token
     );
+  },
+
+  async createReport(projectId: number, data: { title: string; content: string; provider?: string }, token: string | null) {
+    return fetchWithAuth(`/api/projects/${projectId}/reports`, { method: 'POST', body: JSON.stringify(data) }, token);
   },
 
   async getFeed() {
@@ -320,3 +321,4 @@ export const workspaceService = {
     return fetchWithAuth(`/api/notifications/${id}/read`, { method: 'POST' }, token);
   },
 };
+

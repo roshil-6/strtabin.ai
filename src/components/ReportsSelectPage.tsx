@@ -15,7 +15,7 @@ export default function ReportsSelectPage() {
     );
 
     return (
-        <div className="min-h-screen theme-page text-white flex flex-col">
+        <div className="min-h-[100dvh] theme-page text-white flex flex-col">
             <header className="flex-shrink-0 border-b border-white/[0.06] px-4 md:px-8 py-4 md:py-6 flex items-center gap-4">
                 <button
                     onClick={() => navigate('/dashboard')}
@@ -25,7 +25,7 @@ export default function ReportsSelectPage() {
                     <ArrowLeft size={20} />
                 </button>
                 <div className="flex-1">
-                    <h1 className="text-xl md:text-2xl font-black tracking-tight">STRAB AI Reports</h1>
+                    <h1 className="text-xl md:text-2xl font-black tracking-tight">Project AI reports</h1>
                     <p className="text-xs text-white/40 mt-0.5 uppercase tracking-widest font-bold">Select project to see the report</p>
                 </div>
             </header>
@@ -50,7 +50,7 @@ export default function ReportsSelectPage() {
                                 return (
                                     <button
                                         key={p.id}
-                                        onClick={() => navigate(`/strab/${p.id}?tab=reports`)}
+                                        onClick={() => navigate(`/ai/${p.id}?tab=reports`)}
                                         className="group text-left p-5 md:p-6 rounded-2xl border border-white/[0.08] hover:border-emerald-500/40 bg-white/[0.02] hover:bg-emerald-500/[0.06] transition-all active:scale-[0.99]"
                                     >
                                         <div className="flex items-start gap-3">

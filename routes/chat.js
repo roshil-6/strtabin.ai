@@ -6,6 +6,7 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { randomUUID } from 'crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadDir = path.join(__dirname, '../uploads/chat');
@@ -15,7 +16,7 @@ const storage = multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => {
         const ext = (path.extname(file.originalname) || '.bin').toLowerCase().slice(0, 8);
-        const safe = `${Date.now()}_${(req.userId || 'anon')}_${Math.random().toString(36).slice(2, 10)}${ext}`;
+        const safe = `${Date.now()}_${req.userId}_${randomUUID()}${ext}`;
         cb(null, safe);
     },
 });
@@ -23,13 +24,13 @@ const upload = multer({
     storage,
     limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
-        const allowed = /\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx|txt|md)$/i.test(file.originalname) ||
-            /^image\//.test(file.mimetype) || /^(application\/pdf|text\/)/.test(file.mimetype);
+        const allowed = /\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx|txt|md)$/i.test(file.originalname);
         cb(null, !!allowed);
     },
 });
 
 import {
+    createWorkspaceGroupChat,
     getUserById,
     getUsersWhoShareWorkspaceWith,
     searchUsersForChat,
@@ -42,6 +43,7 @@ import {
     getMessage,
     markChatRead,
     getUnreadCount,
+    canReadChatFile,
 } from '../db/models.js';
 import { requireClerkAuth as requireAuthMiddleware } from '../middleware/requireClerkAuth.js';
 
@@ -51,6 +53,22 @@ function sanitize(str, max = 10000) {
 
 export function registerChatRoutes(app, clerkClient) {
     app.locals.clerk = clerkClient;
+
+    app.get('/uploads/chat/:filename', requireAuthMiddleware, async (req, res) => {
+        const filename = req.params.filename;
+        if (!/^\d+_\d+_[a-zA-Z0-9-]+\.[a-zA-Z0-9]+$/.test(filename)) return res.status(404).json({ error: 'File not found.' });
+        const url = `/uploads/chat/${filename}`;
+        try {
+            const owner = Number(filename.split('_')[1]);
+            if (owner !== req.userId && !(await canReadChatFile(url, req.userId))) return res.status(404).json({ error: 'File not found.' });
+            res.setHeader('Cache-Control', 'private, no-store');
+            res.setHeader('X-Content-Type-Options', 'nosniff');
+            res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+            return res.download(path.join(uploadDir, filename), filename, (error) => {
+                if (error && !res.headersSent) res.status(404).json({ error: 'File not found.' });
+            });
+        } catch { return res.status(500).json({ error: 'Could not load file.' }); }
+    });
 
     // GET /api/users/chatable — list all users you can chat with (share a workspace)
     app.get('/api/users/chatable', requireAuthMiddleware, async (req, res) => {
@@ -127,6 +145,17 @@ export function registerChatRoutes(app, clerkClient) {
         }
     });
 
+    app.post('/api/chats/group', requireAuthMiddleware, async (req, res) => {
+        try {
+            const { workspaceId, name, memberIds } = req.body || {};
+            const chatId = await createWorkspaceGroupChat(workspaceId, req.userId, name, memberIds);
+            const chat = await getChatWithParticipants(chatId, req.userId);
+            const io = req.app.locals?.io;
+            if (io) for (const participant of chat.participants || []) { if (participant.id !== req.userId) io.to(`user:${participant.id}`).emit('chat:created', { chat: { ...chat, otherUser: null } }); }
+            return res.status(201).json({ chat, chatId });
+        } catch (error) { return res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not create group chat.' }); }
+    });
+
     // GET /api/chats/:id - get chat
     app.get('/api/chats/:id', requireAuthMiddleware, async (req, res) => {
         try {
@@ -179,6 +208,12 @@ export function registerChatRoutes(app, clerkClient) {
             const contentOrUrl = msgType === 'text' ? text : sanitize(fileUrl, 500);
             if (msgType === 'text' && !contentOrUrl) return res.status(400).json({ error: 'Message content required.' });
             if ((msgType === 'image' || msgType === 'file') && !contentOrUrl) return res.status(400).json({ error: 'File URL required for image/file message.' });
+            if (msgType !== 'text') {
+                const match = /^\/uploads\/chat\/(\d+_(\d+)_[a-zA-Z0-9-]+\.[a-zA-Z0-9]+)$/.exec(contentOrUrl);
+                if (!match || Number(match[2]) !== req.userId || !fs.existsSync(path.join(uploadDir, match[1]))) {
+                    return res.status(400).json({ error: 'Attach a file you uploaded.' });
+                }
+            }
 
             const metadata = {};
             if (canvasId) metadata.canvasId = String(canvasId).slice(0, 100);

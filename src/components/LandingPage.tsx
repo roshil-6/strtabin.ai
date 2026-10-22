@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
-import { Check, Zap, ArrowRight, Bot, X, Compass, Target, Rocket, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, ChevronDown, Gift, Smartphone, Network, FileText, CheckSquare, Lightbulb, Star } from 'lucide-react';
+import { Zap, ArrowRight, Bot, X, Compass, Target, Rocket, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, ChevronDown, Network, FileText, CheckSquare, Lightbulb, Star } from 'lucide-react';
 
 import { enableGuestMode } from '../constants';
 import HexagonBackground from './HexagonBackground';
 import ThemeToggle from './ThemeToggle';
+import PricingSection from './PricingSection';
 
 export default function LandingPage() {
     const navigate = useNavigate();
@@ -30,11 +31,11 @@ export default function LandingPage() {
     const faqs = [
         {
             q: "What is Stratabin and how does the AI strategy planning work?",
-            a: "Stratabin is an AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI help you unscatter your thoughts and turn them into execution plans. STRAB AI analyzes your canvas, writing, and project structure to provide context-aware insights and suggest next steps."
+            a: "Stratabin is an AI workspace and strategy planner for ideas. Notes, tasks, and your AI help you unscatter your thoughts and turn them into execution plans. Choose project context to download or copy into your own AI, then save its response alongside your work."
         },
         {
             q: "Is Stratabin free to use?",
-            a: "Yes. Stratabin is free to use — create an account with email or username and password. STRAB AI has a generous daily limit per account to keep the service sustainable for everyone."
+            a: "You can get started free. The planned Free allowance is 4 active projects with one timetable per project. Pro is planned at ₹109 per month for unlimited projects, unlimited timetables, and team workspaces. Pro subscriptions are not open and plan limits are not enforced yet. Your own AI provider’s charges and limits apply separately."
         },
         {
             q: "Can I use Stratabin on my phone or tablet?",
@@ -42,7 +43,7 @@ export default function LandingPage() {
         },
         {
             q: "How is Stratabin different from Notion, Miro, or Trello?",
-            a: "Unlike task-only tools (Trello) or document tools (Notion) or whiteboard tools (Miro), Stratabin unifies all three: a distraction-free writing editor, an interactive flow canvas for visual mapping, and integrated task management — all powered by AI that understands your strategy context."
+            a: "Unlike task-only tools (Trello) or document tools (Notion) or whiteboard tools (Miro), Stratabin unifies all three: a distraction-free writing editor, project timelines, and integrated task management — all powered by AI that understands your strategy context."
         },
         {
             q: "Can I work with a team or share my projects?",
@@ -50,24 +51,24 @@ export default function LandingPage() {
         },
         {
             q: "Can I merge or connect multiple strategy projects?",
-            a: "Yes. Stratabin's project merging feature combines multiple canvases into a unified view. You can also use Folder Workflow Maps to visualize relationships between projects in the same workspace."
+            a: "Yes. Stratabin's project merging feature combines multiple canvases into a unified view. Organize related projects in folders."
         },
         {
-            q: "What can STRAB AI actually do?",
-            a: "STRAB AI reads your entire project context — nodes, writing, tasks, timelines — and provides strategic analysis, gap identification, progress reports, and actionable recommendations. It's a strategy co-pilot, not just a chatbot."
+            q: "How do I use my own AI?",
+            a: "Select the writing, board ideas, tasks, and timeline you want to share. Download or copy the brief, attach it in your AI account, and save the response back into the project."
         },
     ];
 
     return (
-        <div className={`min-h-screen theme-page font-sans selection:bg-white/20 relative ${showHowTo ? 'overflow-hidden' : 'overflow-x-hidden'}`}>
+        <div className={`min-h-[100dvh] theme-page font-sans selection:bg-white/20 relative ${showHowTo ? 'overflow-hidden' : 'overflow-x-hidden'}`}>
             <HexagonBackground />
 
             {/* Header */}
             <header className="fixed top-0 w-full z-50 border-b border-[var(--border)] theme-panel backdrop-blur-2xl">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 md:w-10 md:h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10">
-                            <img src="/favicon.png" alt="Stratabin — AI workspace and strategy planner for ideas" className="w-full h-full object-contain" />
+                        <div className="w-9 h-9 md:w-10 md:h-10 bg-transparent rounded-xl flex items-center justify-center overflow-hidden shadow-lg ">
+                            <img src="/stratabin-icon.svg" alt="Stratabin — AI workspace and strategy planner for ideas" className="w-full h-full object-contain" />
                         </div>
                         <span className="text-xl md:text-2xl font-black tracking-tighter text-white">Stratabin<span className="text-primary">.</span></span>
                     </div>
@@ -95,7 +96,7 @@ export default function LandingPage() {
                             }}
                             className="flex text-xs md:text-sm font-bold text-white/35 hover:text-white transition-colors px-3 py-2 rounded-xl hover:bg-white/5 items-center"
                         >
-                            Free access
+                            Plans
                         </Link>
                         <button
                             onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
@@ -140,8 +141,8 @@ export default function LandingPage() {
             <section id="hero-cta" className="pt-32 md:pt-40 pb-16 md:pb-20 px-4 md:px-6 text-center">
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-10 flex justify-center animate-in fade-in zoom-in duration-1000">
-                        <div className="relative w-20 h-20 md:w-24 md:h-24 bg-white rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center overflow-hidden shadow-2xl border-4 border-white/5">
-                            <img src="/favicon.png" alt="Stratabin — AI workspace and strategy planner for ideas" className="w-full h-full object-contain" />
+                        <div className="relative w-20 h-20 md:w-24 md:h-24 bg-transparent rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center overflow-hidden shadow-2xl border-4 border-white/5">
+                            <img src="/stratabin-icon.svg" alt="Stratabin — AI workspace and strategy planner for ideas" className="w-full h-full object-contain" />
                         </div>
                     </div>
 
@@ -152,31 +153,16 @@ export default function LandingPage() {
 
                     <h1 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tighter leading-[1.1] mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 break-words">
                         Unscatter your ideas. <br />
-                        <span className="text-white/40">Notes, flows, and AI.</span>
+                        <span className="text-white/40">Notes, tasks, and AI.</span>
                     </h1>
 
                     <p className="text-base md:text-xl text-white/40 max-w-2xl mx-auto mb-6 leading-relaxed font-medium px-2">
-                        Stratabin is the AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI — unscatter your thoughts and turn them into execution plans.
+                        Work with your own AI, with the full context of your project. Bring your writing, tasks, timelines, calendar, and flows together in a project capsule to share with ChatGPT, Claude, or Gemini.
                     </p>
 
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
                         <Users size={13} />
                         Now with Team Workspaces — Build & execute together
-                    </div>
-
-                    {/* Demo Video */}
-                    <div className="w-full max-w-3xl mx-auto mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400">
-                        <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-2xl aspect-video">
-                            <video
-                                src="/strtabin%20ad%203.mp4"
-                                controls
-                                playsInline
-                                className="w-full h-full object-contain"
-                            >
-                                Your browser does not support the video tag.
-                            </video>
-                        </div>
-                        <p className="text-center text-white/30 text-xs mt-3 font-medium">See Stratabin in action</p>
                     </div>
 
                     <div className="flex items-center justify-center gap-2 mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300">
@@ -266,11 +252,11 @@ export default function LandingPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         {[
                             { icon: PenTool, title: "Distraction-Free Writing", desc: "Long-form writing editor with split view, branch creation, and a collapsible planner for deep strategic thinking." },
-                            { icon: Layout, title: "Interactive Flow Canvas", desc: "Drag-and-drop visual canvas to map ideas as nodes, connect strategies, and see the big picture at a glance." },
-                            { icon: Bot, title: "STRAB AI Intelligence", desc: "Context-aware AI that analyzes your entire project — nodes, writing, tasks — and provides strategic insights and gap analysis." },
+                            { icon: Layout, title: "Project Writing", desc: "Write down ideas, organize plans, and keep project resources together." },
+                            { icon: Bot, title: "Your AI. Your full project context.", desc: "Copy or download a project capsule, share it in your own ChatGPT, Claude, or Gemini account, and save the response with your project. You choose what to include." },
                             { icon: GitBranch, title: "Branch & Merge Ideas", desc: "Split one idea into multiple branches, or merge separate strategy canvases into a unified project overview." },
                             { icon: Calendar, title: "Calendar & Timeline", desc: "Built-in calendar with event reminders and a timeline planner tied directly to your strategy projects." },
-                            { icon: FolderOpen, title: "Folder Workspaces", desc: "Organize projects into custom folders with dedicated workflow maps showing inter-project relationships." },
+                            { icon: FolderOpen, title: "Folder Workspaces", desc: "Organize projects into custom folders for writing, tasks, and project resources." },
                             { icon: Users, title: "Team & Social Workspaces", desc: "Create team workspaces, invite members, share public projects, and build together. Streaks and progress scoring keep everyone accountable." },
                             { icon: Layers, title: "Project Merging", desc: "Combine multiple strategy canvases into one master view with tabbed sub-projects for complex initiatives." },
                             { icon: Sparkles, title: "Task Management", desc: "Integrated to-do lists for every project. Track progress alongside your strategy, not in a separate tool." },
@@ -296,9 +282,9 @@ export default function LandingPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
                         {[
-                            { step: "01", title: "Capture & Write", desc: "Start with your raw ideas in the writing editor. Use split view to compare angles, or branch into visual flowcharts." },
-                            { step: "02", title: "Map & Organize", desc: "Drag ideas onto the flow canvas as connected nodes. Merge related projects, create folder workspaces, and let AI organize the structure." },
-                            { step: "03", title: "Execute & Track", desc: "Convert strategies into tasks, set calendar deadlines, build timelines, and use STRAB AI reports to monitor progress and identify gaps." },
+                            { step: "01", title: "Capture & Write", desc: "Start with your raw ideas in the writing editor. Use split view to compare angles, and organize your notes." },
+                            { step: "02", title: "Plan & Organize", desc: "Organize ideas in your project notes. Merge related projects, create folder workspaces, and let AI organize the structure." },
+                            { step: "03", title: "Execute & Track", desc: "Convert strategies into tasks, set calendar deadlines, build timelines, and use your AI reports to monitor progress and identify gaps." },
                         ].map((item, idx) => (
                             <div key={idx} className="relative group">
                                 <div className="absolute -top-8 -left-4 text-8xl md:text-9xl font-black text-white/[0.02] pointer-events-none group-hover:text-primary/[0.06] transition-colors">{item.step}</div>
@@ -315,98 +301,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* H2 — Free access */}
-            <section id="pricing" className="py-16 md:py-28 px-4 md:px-6 relative overflow-hidden">
-                <div className="max-w-5xl mx-auto relative z-10">
-                    <div className="text-center mb-12 md:mb-16 max-w-2xl mx-auto">
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-[10px] md:text-xs font-black uppercase tracking-widest mb-5 md:mb-6">
-                            <Gift size={14} className="shrink-0" />
-                            Full workspace — $0
-                        </div>
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-white mb-4 md:mb-5 leading-[1.1]">
-                            Everything you need to plan{' '}
-                            <span className="text-white/35">and ship</span>
-                        </h2>
-                        <p className="text-white/40 text-sm md:text-base leading-relaxed">
-                            One account unlocks canvases, STRAB AI, team workspaces, and your calendar — no tiers, no timer, no card on file.
-                        </p>
-                    </div>
-
-                    <div className="relative rounded-[1.75rem] md:rounded-[2rem] border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-transparent p-px shadow-[0_24px_80px_-12px_rgba(0,0,0,0.55)]">
-                        <div className="relative rounded-[1.65rem] md:rounded-[1.85rem] bg-[var(--bg-muted)] overflow-hidden">
-                            <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(218,119,86,0.12),transparent)]" aria-hidden />
-                            <div className="relative z-[1] p-6 md:p-10 lg:p-12">
-                                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-10 lg:gap-14 mb-10 md:mb-12">
-                                    <div className="lg:max-w-md">
-                                        <p className="text-primary font-bold uppercase tracking-[0.2em] text-[10px] md:text-xs mb-3">
-                                            What&apos;s included
-                                        </p>
-                                        <p className="text-xl md:text-2xl font-black text-white leading-snug mb-3">
-                                            The same tools students and teams use to turn messy ideas into executable plans.
-                                        </p>
-                                        <p className="text-white/45 text-sm leading-relaxed">
-                                            STRAB AI uses a fair daily limit per account so the service stays fast and available for everyone.
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 lg:justify-end lg:pt-1">
-                                        {['No paywall', 'No trial expiry', 'Sign in with email or username'].map((label) => (
-                                            <span
-                                                key={label}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[11px] md:text-xs font-semibold text-white/70"
-                                            >
-                                                <Check size={12} className="text-primary shrink-0" strokeWidth={3} />
-                                                {label}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-10 md:mb-12">
-                                    {[
-                                        { icon: Layout, title: 'Strategy canvases', desc: 'Unlimited flow maps and project boards' },
-                                        { icon: Bot, title: 'STRAB AI', desc: 'Project-aware assistant with a daily usage cap' },
-                                        { icon: Users, title: 'Team workspaces', desc: 'Invite people, share visibility, collaborate' },
-                                        { icon: FolderOpen, title: 'Folder maps', desc: 'See how folders and projects connect' },
-                                        { icon: PenTool, title: 'Writing & tasks', desc: 'Long-form notes plus integrated to-dos' },
-                                        { icon: Smartphone, title: 'Install anywhere', desc: 'PWA on phone, tablet, and desktop' },
-                                    ].map(({ icon: Icon, title, desc }) => (
-                                        <div
-                                            key={title}
-                                            className="group flex gap-4 p-4 md:p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-primary/25 hover:bg-white/[0.05] transition-all duration-300"
-                                        >
-                                            <div className="w-11 h-11 shrink-0 rounded-xl bg-primary/12 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
-                                                <Icon size={20} strokeWidth={2} />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h3 className="font-black text-white text-sm md:text-base mb-0.5 leading-tight">{title}</h3>
-                                                <p className="text-white/40 text-xs md:text-[13px] leading-relaxed">{desc}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => (isSignedIn ? navigate('/dashboard') : navigate('/auth'))}
-                                        className="group flex-1 sm:flex-initial sm:min-w-[240px] flex items-center justify-center gap-3 py-4 px-8 bg-primary text-black rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white transition-all shadow-[0_12px_40px_rgba(218,119,86,0.2)] active:scale-[0.98]"
-                                    >
-                                        <Zap size={18} fill="currentColor" className="group-hover:scale-110 transition-transform" />
-                                        {isSignedIn ? 'Open dashboard' : 'Get started free'}
-                                        <ArrowRight size={16} className="opacity-70 group-hover:translate-x-0.5 transition-transform" />
-                                    </button>
-                                    <Link
-                                        to="/features"
-                                        className="text-center sm:text-left text-sm font-bold text-white/35 hover:text-primary transition-colors py-2"
-                                    >
-                                        Browse all features →
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <PricingSection signedIn={Boolean(isSignedIn)} />
 
             {/* H2 — FAQ Section (Schema-backed) */}
             <section id="faq" className="py-16 md:py-24 px-4 md:px-6">
@@ -441,13 +336,13 @@ export default function LandingPage() {
             <footer className="border-t border-white/[0.04] py-10 md:py-14 px-4 md:px-6">
                 <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center overflow-hidden">
-                            <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                        <div className="w-7 h-7 bg-transparent rounded-lg flex items-center justify-center overflow-hidden">
+                            <img src="/stratabin-icon.svg" alt="Stratabin" className="w-full h-full object-contain" />
                         </div>
-                        <span className="text-sm font-black tracking-tighter text-white/60">Stratabin</span>
+                        <span className="text-sm font-black tracking-tighter text-white">Stratabin<span className="text-primary">.</span></span>
                     </div>
                     <p className="text-[11px] text-white/15 text-center md:text-left">
-                        AI workspace and strategy planner for ideas. Notes, flows, STRAB AI, and team workspaces.
+                        AI workspace and strategy planner for ideas. Notes, tasks, your AI, and team workspaces.
                     </p>
                     <p className="text-[11px] text-white/10">&copy; {new Date().getFullYear()} Stratabin. All rights reserved.</p>
                 </div>
@@ -486,7 +381,7 @@ export default function LandingPage() {
                                 {[
                                     { icon: Compass, title: 'Mental Clarity', color: '#f97316', desc: 'See every idea on one visual canvas. Drag, connect, and reshape your thinking until it clicks.' },
                                     { icon: Target, title: 'Structured Execution', color: '#a855f7', desc: 'Turn ideas into tasks, timelines, and writing — all linked to the same project, no copy-paste.' },
-                                    { icon: Rocket, title: 'AI That Gets It', color: '#3b82f6', desc: 'STRAB AI reads your canvas, writing, tasks, and goals — not just what you type in the chat box.' },
+                                    { icon: Rocket, title: 'AI That Gets It', color: '#3b82f6', desc: 'Choose the project context your AI receives, then bring its response back into your workspace.' },
                                 ].map(({ icon: Icon, title, color, desc }) => (
                                     <div key={title} className="p-7 rounded-3xl border border-white/[0.05] bg-white/[0.02] hover:border-white/10 transition-all group">
                                         <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110" style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
@@ -506,7 +401,7 @@ export default function LandingPage() {
                                     <Zap size={12} fill="currentColor" /> The Stratabin Loop
                                 </div>
                                 <h2 className="text-3xl md:text-5xl font-black tracking-tighter mb-4">From raw thought to shipped result</h2>
-                                <p className="text-white/35 text-sm md:text-base max-w-xl mx-auto">Every part of Stratabin is connected. Ideas flow into writing, writing connects to flows, flows feed the AI, the AI drives action.</p>
+                                <p className="text-white/35 text-sm md:text-base max-w-xl mx-auto">Every part of Stratabin is connected. Writing, tasks, and timelines give AI the context to help you plan your next action.</p>
                             </div>
 
                             {/* Visual loop diagram */}
@@ -518,8 +413,8 @@ export default function LandingPage() {
                                     {[
                                         { icon: Lightbulb, label: 'Raw Ideas', desc: 'Brain dump everything. No structure needed yet.', color: '#f97316' },
                                         { icon: FileText, label: 'Writing', desc: 'Flesh out ideas in the long-form editor. Split views, branches.', color: '#a855f7' },
-                                        { icon: Network, label: 'Flow Canvas', desc: 'Drag ideas as nodes. Connect them. See the structure emerge.', color: '#3b82f6' },
-                                        { icon: Bot, label: 'STRAB AI', desc: 'AI reads the full context: nodes, writing, tasks, goals.', color: '#10b981' },
+                                        { icon: Network, label: 'Project Notes', desc: 'Capture ideas and project plans in one place.', color: '#3b82f6' },
+                                        { icon: Bot, label: 'your AI', desc: 'Prepare selected notes, writing, tasks, and goals.', color: '#10b981' },
                                         { icon: CheckSquare, label: 'Execution', desc: 'Tasks, calendar, timeline — all linked to your strategy.', color: '#f59e0b' },
                                     ].map(({ icon: Icon, label, desc, color }, i) => (
                                         <div key={label} className="flex-1 flex flex-col items-center text-center relative">
@@ -542,8 +437,8 @@ export default function LandingPage() {
                                     {[
                                         { icon: Lightbulb, label: 'Raw Ideas', desc: 'Brain dump everything. No structure needed yet.', color: '#f97316' },
                                         { icon: FileText, label: 'Writing', desc: 'Flesh out ideas in the long-form editor.', color: '#a855f7' },
-                                        { icon: Network, label: 'Flow Canvas', desc: 'Connect ideas as nodes. See the structure emerge.', color: '#3b82f6' },
-                                        { icon: Bot, label: 'STRAB AI', desc: 'AI reads the full context to give real insights.', color: '#10b981' },
+                                        { icon: Network, label: 'Project Notes', desc: 'Capture ideas and project plans in one place.', color: '#3b82f6' },
+                                        { icon: Bot, label: 'your AI', desc: 'Export your brief and keep the response here.', color: '#10b981' },
                                         { icon: CheckSquare, label: 'Execution', desc: 'Tasks, calendar, timeline — all linked together.', color: '#f59e0b' },
                                     ].map(({ icon: Icon, label, desc, color }, i, arr) => (
                                         <div key={label} className="flex flex-col items-center w-full">
@@ -589,29 +484,11 @@ export default function LandingPage() {
                                     <div className="p-5 md:p-6">
                                         <div className="flex items-center gap-2 mb-4">
                                             <Network size={14} className="text-primary" />
-                                            <span className="text-xs font-black text-white/50 uppercase tracking-widest">Flow Canvas</span>
+                                            <span className="text-xs font-black text-white/50 uppercase tracking-widest">Project Notes</span>
                                         </div>
                                         <div className="relative h-48 rounded-xl bg-[#0a0a0a] border border-white/[0.04] overflow-hidden p-3">
-                                            {/* Mock nodes */}
-                                            {[
-                                                { x: 10, y: 8, label: 'Market Research', color: '#f97316' },
-                                                { x: 50, y: 5, label: 'MVP Scope', color: '#a855f7' },
-                                                { x: 10, y: 55, label: 'UI Design', color: '#3b82f6' },
-                                                { x: 50, y: 55, label: 'Dev Sprint', color: '#10b981' },
-                                                { x: 30, y: 78, label: 'App Store Launch', color: '#f59e0b' },
-                                            ].map(({ x, y, label, color }) => (
-                                                <div key={label} className="absolute px-2 py-1 rounded-lg text-[9px] font-bold border shadow-md" style={{ left: `${x}%`, top: `${y}%`, background: `${color}15`, borderColor: `${color}40`, color }}>
-                                                    {label}
-                                                </div>
-                                            ))}
-                                            {/* Mock connections */}
-                                            <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
-                                                <line x1="30%" y1="20%" x2="60%" y2="18%" stroke="rgba(249,115,22,0.25)" strokeWidth="1" strokeDasharray="3 2" />
-                                                <line x1="30%" y1="20%" x2="20%" y2="65%" stroke="rgba(249,115,22,0.2)" strokeWidth="1" strokeDasharray="3 2" />
-                                                <line x1="60%" y1="18%" x2="65%" y2="65%" stroke="rgba(168,85,247,0.25)" strokeWidth="1" strokeDasharray="3 2" />
-                                                <line x1="20%" y1="75%" x2="45%" y2="88%" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="3 2" />
-                                                <line x1="65%" y1="75%" x2="55%" y2="88%" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="3 2" />
-                                            </svg>
+                                            <p className="text-sm text-white/60">Project brief</p>
+                                            <p className="mt-3 text-xs text-white/40">Capture your goals, plans, and next steps in one writing space.</p>
                                         </div>
                                     </div>
 
@@ -634,15 +511,15 @@ export default function LandingPage() {
                                         </div>
                                     </div>
 
-                                    {/* Mock STRAB AI */}
+                                    {/* Mock your AI */}
                                     <div className="p-5 md:p-6">
                                         <div className="flex items-center gap-2 mb-4">
                                             <Bot size={14} className="text-emerald-400" />
-                                            <span className="text-xs font-black text-white/50 uppercase tracking-widest">STRAB AI Analysis</span>
+                                            <span className="text-xs font-black text-white/50 uppercase tracking-widest">Saved AI response</span>
                                         </div>
                                         <div className="space-y-3">
                                             <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] text-[11px] text-white/50 leading-relaxed">
-                                                You have 5 canvas nodes but only 3 connections. <span className="text-white/70">UI Design and Dev Sprint are disconnected</span> — this gap in your flow suggests a missing handoff step.
+                                                Your project has 5 tasks and 3 deadlines. <span className="text-white/70">Two tasks still need dates</span> — add deadlines to keep your plan on track.
                                             </div>
                                             <div className="p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/15 text-[11px] text-white/50 leading-relaxed">
                                                 <span className="text-emerald-400 font-bold">Your 3 top actions:</span><br />
@@ -677,24 +554,24 @@ export default function LandingPage() {
                                         step: '02',
                                         icon: Network,
                                         color: '#f97316',
-                                        title: 'Build a flow — or let STRAB build it',
-                                        desc: 'Switch to the Flow tab and drag ideas as nodes onto the canvas. Connect them with edges to show logic, dependencies, or sequence. Or: ask STRAB AI to build the entire canvas for you — it will create nodes, connections, writing, and tasks in one shot based on your project description.',
-                                        tags: ['Drag & drop canvas', 'Node types: idea / question / decision', 'AI canvas generation', 'Merge canvases'],
+                                        title: 'Plan your project with your AI',
+                                        desc: 'Write your project brief, add tasks, and ask your AI to help refine your plan.',
+                                        tags: ['Project writing', 'Task lists', 'AI planning', 'Project folders'],
                                     },
                                     {
                                         step: '03',
                                         icon: Bot,
                                         color: '#10b981',
-                                        title: 'Ask STRAB — it reads everything',
-                                        desc: 'STRAB AI isn\'t a generic chatbot. It reads your actual canvas nodes, connections, writing content, task list, timeline milestones, goals, and daily execution logs. Ask it to analyse your strategy, find gaps, write a full report, or update your project directly.',
-                                        tags: ['Project-aware analysis', 'Gap detection', 'Report generation', 'Canvas manipulation'],
+                                        title: 'Work with your AI, with full project context',
+                                        desc: 'Bring your project details and your request together in one capsule. Choose what to include, copy or download it, and share it in your own ChatGPT, Claude, or Gemini account. Save the response with your project.',
+                                        tags: ['Choose your provider', 'Preview context', 'Download a brief', 'Save responses'],
                                     },
                                     {
                                         step: '04',
                                         icon: CheckSquare,
                                         color: '#f59e0b',
                                         title: 'Execute — tasks, calendar, timeline',
-                                        desc: 'Every project has integrated tasks (to-dos), a calendar for deadline tracking, and a visual timeline for milestone planning. All linked to the same canvas. No copy-pasting between apps. STRAB AI can see your tasks and will flag when execution momentum stalls.',
+                                        desc: 'Every project has integrated tasks (to-dos), a calendar for deadline tracking, and a visual timeline for milestone planning. Keep planning and execution together. Include selected tasks in your AI brief when you want a second perspective.',
                                         tags: ['Integrated tasks', 'Calendar events', 'Timeline milestones', 'Daily execution logs'],
                                     },
                                 ].map(({ step, icon: Icon, color, title, desc, tags }) => (
@@ -732,7 +609,7 @@ export default function LandingPage() {
                                 {[
                                     {
                                         title: 'The AI reads your project, not just your message',
-                                        desc: 'Most AI tools only know what you type in the chat box. STRAB reads your entire project — all nodes, every connection, your writing, tasks, goals, and how long since you last worked on it. The advice is always specific to what\'s actually in your project.',
+                                        desc: 'Choose the project context to include in a brief, then use it in your own AI account. Your provider generates the response; Stratabin keeps the saved insights with the project.',
                                         icon: Bot,
                                         color: '#10b981',
                                         badge: 'AI Intelligence',

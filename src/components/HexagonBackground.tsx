@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 
 export default function HexagonBackground() {
     const canvasRef = useRef<HTMLCanvasElement>(null);

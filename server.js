@@ -2,10 +2,10 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+
+
 import helmet from 'helmet';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
@@ -16,7 +16,8 @@ import OpenAI from 'openai';
 import { createClerkClient } from '@clerk/backend';
 import { registerWorkspaceRoutes } from './routes/workspaces.js';
 import { registerChatRoutes } from './routes/chat.js';
-import { getOrCreateUser } from './db/models.js';
+import { getOrCreateUser, getChatWithParticipants } from './db/models.js';
+import { registerChatSocket } from './lib/chatSocket.js';
 import { initDb, isDbReady } from './db/index.js';
 import { summarizePgUrl } from './db/driver.js';
 import { invalidateClerkUserCache } from './lib/clerkUserCache.js';
@@ -72,7 +73,7 @@ function isAllowedOrigin(origin) {
     try {
         const host = new URL(origin).hostname;
         if (host === 'localhost' || host === '127.0.0.1') return true;
-        return host === 'stratabin.com' || host.endsWith('.stratabin.com') || host.endsWith('.vercel.app') || host.endsWith('.onrender.com');
+        return false;
     } catch { return false; }
 }
 
@@ -284,7 +285,7 @@ async function requireAuth(req, res, next) {
             return res.status(401).json({ error: 'Unauthorized: invalid token.' });
         }
     }
-    // If CLERK_SECRET_KEY is not set (local dev), accept any non-empty Bearer token
+    if (!clerk) return res.status(503).json({ error: 'Auth service not configured.' });
 
     next();
 }
@@ -364,10 +365,11 @@ function sanitiseContext(ctx) {
                                     : [],
                               }
                             : { total: 0, completedCount: 0, completionRate: 0, pending: [], completed: [] },
-        writing:         typeof ctx.writing === 'string'         ? ctx.writing.slice(0, 2000) : '',
+        writing:         typeof ctx.writing === 'string'         ? ctx.writing.slice(0, 8000) : '',
         writingWordCount: typeof ctx.writingWordCount === 'number' ? ctx.writingWordCount : 0,
-        timeline:        typeof ctx.timeline === 'string'         ? ctx.timeline.slice(0, 1000) : '',
-        hasTimeline:     typeof ctx.hasTimeline === 'boolean'     ? ctx.hasTimeline : false,
+        timeline:        typeof ctx.timeline === 'string'         ? ctx.timeline.slice(0, 3000) : (typeof ctx.timelineContent === 'string' ? ctx.timelineContent.slice(0, 3000) : ''),
+        hasTimeline:     typeof ctx.hasTimeline === 'boolean'     ? ctx.hasTimeline : Boolean(ctx.timeline || ctx.timelineContent),
+        codeFiles:       Array.isArray(ctx.codeFiles)             ? ctx.codeFiles.slice(0, 15).map(f => ({ name: String(f.name || 'untitled').slice(0, 150), language: String(f.language || 'text').slice(0, 50), content: String(f.content || '').slice(0, 4000) })) : [],
         daysSinceUpdate: typeof ctx.daysSinceUpdate === 'number'  ? ctx.daysSinceUpdate : 0,
         lastUpdated:     typeof ctx.lastUpdated === 'string'      ? ctx.lastUpdated.slice(0, 30) : '',
         todayExecution:  typeof ctx.todayExecution === 'string'    ? ctx.todayExecution.slice(0, 500) : '',
@@ -463,7 +465,7 @@ RESPONSE MODES
 
 BLANK CANVAS — POPULATE ON REQUEST (CRITICAL)
 
-When **nodeCount** is 0 (or **canvasIsBlank** is true) AND the user asks you to **create, build, generate, plan, map, design**, or deliver a **strategy, roadmap, launch plan, GTM plan, workflow**, or similar **on this project / canvas**:
+When **canvasIsBlank** is true AND the user asks you to **create, build, generate, plan, map, design**, or deliver a **strategy, roadmap, launch plan, GTM plan, workflow**, or similar **on this project / canvas**:
 
 - You MUST **not** only tell them to place ideas manually. Give a **short** reply (2–4 sentences), then append an **[ACTIONS]** block with **canvasRef "current"** (this is the open project — not a new tab).
 - The block MUST include:
@@ -473,7 +475,7 @@ When **nodeCount** is 0 (or **canvasIsBlank** is true) AND the user asks you to 
   - **3–5** \`add_todo\` with concrete next tasks
 - Layout: x = 100, 340, 580, 820… (~240px apart); use y = 200 and y = 400 (or 440) for a second row so ideas do not overlap.
 
-When **nodeCount** is 0 and the user only asks for **analysis** (risks, summary, "what am I missing") **without** asking to populate the canvas: say the canvas is empty, you cannot analyse structure yet, and **offer** to generate a starter map if they describe their goal.
+When **nodeCount** is 0 (or **canvasIsBlank** is true) and the user only asks for **analysis** (risks, summary, "what am I missing"): if there is content in **writing**, **codeFiles**, **tasks**, or **timeline**, DO NOT say the project or canvas is empty! Directly analyze, review, and answer questions using whatever content exists in writing, code files, tasks, and timeline. Only if **canvasIsBlank** is true AND writing, codeFiles, tasks, and timeline are entirely empty should you explain the project is empty and offer to generate a starter map.
 
 Do **not** use **create_canvas** unless **workspaceId** is in context **and** they explicitly want a **separate new project** in the team workspace. For a blank personal / single-project canvas, always use **canvasRef "current"**.
 
@@ -495,7 +497,7 @@ If the user asks to **create a new project**, **start another project**, **a sec
 
 ANALYSIS RULES
 
-- If namedNodes is empty: follow **BLANK CANVAS — POPULATE ON REQUEST** when they want a built strategy; otherwise explain the canvas is empty and offer to generate one.
+- If namedNodes is empty: if writing, codeFiles, tasks, or timeline exist, analyze them directly! Only if there is no content anywhere should you explain the project is empty and offer to generate a starter map.
 - If tasks.pending is long but tasks.completed is zero: flag this as a risk — no execution momentum.
 - If writingWordCount is 0 and nodeCount > 5: the strategy exists on the canvas but hasn't been written up. Point this out.
 - If connections array is short relative to nodeCount: disconnected thinking — ideas exist but aren't logically linked yet.
@@ -639,51 +641,12 @@ RULES:
 });
 
 // ─── Static uploads (chat photos/files) ─────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Chat downloads are authenticated in routes/chat.js.
 
 // ─── Code Execution Proxy (Local) ──────────────────────────────────────────
-app.post('/api/execute', async (req, res) => {
-    try {
-        const { language, files } = req.body;
-        if (!language || !files || !files.length) {
-            return res.status(400).json({ error: 'Missing language or files for execution.' });
-        }
-
-        const { exec } = await import('child_process');
-        const fs = await import('fs/promises');
-        const os = await import('os');
-        const crypto = await import('crypto');
-
-        const file = files[0];
-        const content = file.content;
-        const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'strab-exec-'));
-        const fileName = file.name || (language === 'python' ? 'main.py' : language === 'javascript' ? 'main.js' : 'main.txt');
-        const filePath = path.join(tmpDir, fileName);
-        await fs.writeFile(filePath, content);
-
-        let cmd = '';
-        if (language === 'python' || language === 'py') cmd = `python "${filePath}"`;
-        else if (language === 'javascript' || language === 'node' || language === 'js') cmd = `node "${filePath}"`;
-        else if (language === 'typescript' || language === 'ts') cmd = `npx tsx "${filePath}"`;
-        else {
-            await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
-            return res.status(400).json({ error: `Unsupported language: ${language}` });
-        }
-
-        exec(cmd, { timeout: 10000 }, async (error, stdout, stderr) => {
-            await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
-            res.json({
-                run: {
-                    stdout: stdout || "",
-                    stderr: stderr || "",
-                    code: error ? (error.code || 1) : 0
-                }
-            });
-        });
-    } catch (error) {
-        console.error('Execution Error:', error);
-        return res.status(500).json({ error: 'Failed to execute code locally.' });
-    }
+// User code requires an isolated execution service; never execute it on the app host.
+app.post('/api/execute', (_req, res) => {
+    return res.status(503).json({ error: 'Code execution is currently unavailable.' });
 });
 
 // ─── Social + Team Workspace System (Phase 2) ───────────────────────────────
@@ -728,15 +691,7 @@ io.on('connection', async (socket) => {
     socket.join(`user:${userId}`);
     socket.userId = userId;
 
-    socket.on('chat:typing', ({ chatId }) => {
-        socket.to(`chat:${chatId}`).emit('chat:typing', { chatId, userId });
-    });
-    socket.on('chat:join', ({ chatId }) => {
-        socket.join(`chat:${chatId}`);
-    });
-    socket.on('chat:leave', ({ chatId }) => {
-        socket.leave(`chat:${chatId}`);
-    });
+    registerChatSocket(socket, userId, getChatWithParticipants);
 });
 
 // Broadcast new messages to chat room (called from API)

@@ -1,9 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+
 import { ArrowLeft, Plus, Trash2, CheckCircle2, Clock, Circle, ChevronDown, ChevronUp, GripVertical, FileText } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import Sidebar from './Sidebar';
-import MobileNav from './MobileNav';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -53,7 +52,7 @@ const STATUS_META: Record<PhaseStatus, { label: string; icon: React.ElementType;
     active: {
         label: 'In Progress',
         icon: Clock,
-        dot: 'bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.6)]',
+        dot: 'bg-orange-400 shadow-[0_0_8px_rgba(169,154,233,0.6)]',
         badge: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
     },
     done: {
@@ -116,7 +115,7 @@ function PhaseCard({ phase, index, total, onUpdate, onDelete }: PhaseCardProps) 
                             {editingField === 'name' || !phase.name || nameInputActive ? (
                                 <input
                                     autoFocus={editingField === 'name' || !phase.name}
-                                    className="w-full bg-transparent text-white font-black text-sm outline-none border-b border-primary/40 pb-0.5 placeholder-white/20 timeline-phase-name"
+                                    className="w-full bg-transparent text-white font-semibold text-sm outline-none border-b border-primary/40 pb-0.5 placeholder-white/20 timeline-phase-name"
                                     value={phase.name}
                                     placeholder="Untitled phase — add a title"
                                     onChange={e => onUpdate(phase.id, { name: e.target.value })}
@@ -127,7 +126,7 @@ function PhaseCard({ phase, index, total, onUpdate, onDelete }: PhaseCardProps) 
                                 />
                             ) : (
                                 <span
-                                    className="font-black text-sm text-white hover:text-primary transition-colors timeline-phase-name"
+                                    className="font-semibold text-sm text-white hover:text-primary transition-colors timeline-phase-name"
                                     onDoubleClick={e => { e.stopPropagation(); setEditingField('name'); }}
                                     title="Double-click to edit"
                                 >
@@ -201,6 +200,7 @@ function PhaseCard({ phase, index, total, onUpdate, onDelete }: PhaseCardProps) 
 
 export default function TimelineSection() {
     const { id } = useParams<{ id: string }>();
+
     const navigate = useNavigate();
     const canvas = useStore(state => state.canvases[id || '']);
     const updateCanvasTimeline = useStore(state => state.updateCanvasTimeline);
@@ -245,7 +245,7 @@ export default function TimelineSection() {
     };
 
     if (!canvas) return (
-        <div className="flex items-center justify-center h-screen theme-page text-white/40 text-sm">
+        <div className="flex items-center justify-center h-[100dvh] theme-page text-white/40 text-sm">
             Project not found
         </div>
     );
@@ -256,13 +256,13 @@ export default function TimelineSection() {
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
     return (
-        <div className="timeline-section w-screen h-screen theme-page text-white flex overflow-hidden">
-            <Sidebar canvasId={id} />
+        <div className="timeline-section w-full h-[100dvh] theme-page text-white flex overflow-hidden">
+
 
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
                 {/* Header */}
-                <div className="h-13 md:h-16 border-b border-white/[0.04] flex items-center px-3 md:px-6 gap-2 shrink-0 theme-panel backdrop-blur-2xl">
+                <div className="section-toolbar h-12 md:h-14 border-b border-white/[0.04] flex items-center px-3 md:px-6 gap-2 shrink-0 theme-panel backdrop-blur-2xl">
                     <button
                         onClick={() => navigate('/dashboard')}
                         className="md:hidden p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] active:scale-95 transition-all"
@@ -272,8 +272,8 @@ export default function TimelineSection() {
                     </button>
 
                     <div className="min-w-0 flex-1">
-                        <p className="text-[9px] text-white/25 font-black uppercase tracking-[0.2em] leading-none mb-0.5 hidden sm:block">Timeline</p>
-                        <h1 className="text-[13px] md:text-base font-black truncate text-white">
+                        <p className="text-[9px] text-white/25 font-semibold uppercase tracking-[0.2em] leading-none mb-0.5 hidden sm:block">Timeline</p>
+                        <h1 className="text-[13px] md:text-base font-semibold truncate text-white">
                             {canvas.name || canvas.title || 'Untitled'}
                         </h1>
                     </div>
@@ -288,12 +288,12 @@ export default function TimelineSection() {
                                         style={{ width: `${pct}%` }}
                                     />
                                 </div>
-                                <span className="text-[11px] font-black text-white/40">{pct}%</span>
+                                <span className="text-[11px] font-semibold text-white/40">{pct}%</span>
                             </div>
                             {active > 0 && (
                                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20">
                                     <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
-                                    <span className="text-[10px] font-black text-orange-400">{active} active</span>
+                                    <span className="text-[10px] font-semibold text-orange-400">{active} active</span>
                                 </div>
                             )}
                         </div>
@@ -301,7 +301,7 @@ export default function TimelineSection() {
 
                     <button
                         onClick={addPhase}
-                        className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 bg-primary/10 text-primary border border-primary/25 rounded-xl font-black text-[11px] md:text-xs uppercase tracking-wider hover:bg-primary/20 active:scale-95 transition-all shrink-0 shadow-[0_2px_12px_rgba(249,115,22,0.12)]"
+                        className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 bg-primary/10 text-primary border border-primary/25 rounded-xl font-semibold text-[11px] md:text-xs uppercase tracking-wider hover:bg-primary/20 active:scale-95 transition-all shrink-0 shadow-[0_2px_12px_rgba(169,154,233,0.12)]"
                     >
                         <Plus size={13} strokeWidth={3} />
                         <span className="hidden sm:inline">Add Phase</span>
@@ -323,7 +323,7 @@ export default function TimelineSection() {
                                     { label: 'Planned', value: total - done - active, color: 'text-white/30' },
                                 ].map(({ label, value, color }) => (
                                     <div key={label} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.03] border border-white/[0.05] rounded-xl">
-                                        <span className={`text-sm font-black ${color}`}>{value}</span>
+                                        <span className={`text-sm font-semibold ${color}`}>{value}</span>
                                         <span className="text-[10px] font-bold uppercase tracking-wider text-white/25">{label}</span>
                                     </div>
                                 ))}
@@ -368,13 +368,13 @@ export default function TimelineSection() {
                                         <div className="w-2 h-2 rounded-full bg-white/10" />
                                     </div>
                                 </div>
-                                <h3 className="text-base font-black text-white/50 mb-2">No phases yet</h3>
+                                <h3 className="text-base font-semibold text-white/50 mb-2">No phases yet</h3>
                                 <p className="text-sm text-white/25 max-w-xs leading-relaxed mb-8">
                                     Break your project into phases — each with a name, timeframe, and status.
                                 </p>
                                 <button
                                     onClick={addPhase}
-                                    className="flex items-center gap-2 px-6 py-3 bg-primary/10 text-primary border border-primary/25 rounded-2xl font-black text-sm hover:bg-primary/20 active:scale-95 transition-all"
+                                    className="flex items-center gap-2 px-6 py-3 bg-primary/10 text-primary border border-primary/25 rounded-2xl font-semibold text-sm hover:bg-primary/20 active:scale-95 transition-all"
                                 >
                                     <Plus size={15} />
                                     Add first phase
@@ -389,7 +389,7 @@ export default function TimelineSection() {
                                 className="flex items-center gap-2 text-white/30 hover:text-white/60 transition-colors mb-4 w-full text-left"
                             >
                                 <FileText size={13} />
-                                <span className="text-[10px] font-black uppercase tracking-widest">
+                                <span className="text-[10px] font-semibold uppercase tracking-widest">
                                     Notes & Free-form Plan
                                 </span>
                                 {notesOpen ? <ChevronUp size={12} className="ml-auto" /> : <ChevronDown size={12} className="ml-auto" />}
@@ -411,7 +411,7 @@ export default function TimelineSection() {
                 </div>
             </div>
 
-            {id && <MobileNav canvasId={id} />}
+
         </div>
     );
 }

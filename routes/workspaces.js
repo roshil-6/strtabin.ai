@@ -47,6 +47,7 @@ import {
     doUsersShareWorkspace,
     createSharedCanvas,
     getSharedCanvas,
+    appendProjectReport,
     saveProjectCanvas,
     getProjectCanvas,
     joinWorkspaceById,
@@ -554,8 +555,9 @@ export function registerWorkspaceRoutes(app, clerkClient) {
     // POST /api/canvas/share — store canvas data for chat sharing (auth required)
     app.post('/api/canvas/share', requireAuthMiddleware, async (req, res) => {
         try {
-            const { name, nodes, edges, writingContent } = req.body || {};
+            const { name, nodes, edges, writingContent, writingPages } = req.body || {};
             const data = JSON.stringify({
+                writingPages: Array.isArray(writingPages) ? writingPages.slice(0, 100).filter(p => p && typeof p.id === 'string' && typeof p.parentId === 'string').map(p => ({ id: p.id.slice(0, 80), parentId: p.parentId.slice(0, 80), title: String(p.title || '').slice(0, 200), content: String(p.content || '').slice(0, 500000) })) : [],
                 nodes: Array.isArray(nodes) ? nodes : [],
                 edges: Array.isArray(edges) ? edges : [],
                 writingContent: typeof writingContent === 'string' ? writingContent.slice(0, 500000) : '',
@@ -608,7 +610,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             }
             const row = await getProjectCanvas(projectId);
             if (!row) {
-                return res.json({ nodes: [], edges: [], writingContent: '', name: project.title || null });
+                return res.json({ nodes: [], edges: [], writingContent: '', name: project.title || null, codeFiles: [], timelineContent: '' });
             }
             let data;
             try {
@@ -628,6 +630,22 @@ export function registerWorkspaceRoutes(app, clerkClient) {
         }
     });
 
+    app.post('/api/projects/:id/reports', requireAuthMiddleware, async (req, res) => {
+        try {
+            const projectId = Number(req.params.id);
+            if (!Number.isSafeInteger(projectId) || projectId < 1) return res.status(400).json({ error: 'Invalid project.' });
+            const project = await getProject(projectId);
+            if (!project || !(await hasWorkspaceAccess(req.userId, project.workspace_id))) return res.status(403).json({ error: 'Project access denied.' });
+            const { title, content, provider } = req.body || {};
+            if (typeof content !== 'string' || !content.trim() || content.length > 40000) return res.status(400).json({ error: 'Report must contain 1–40,000 characters.' });
+            const now = Date.now();
+            const report = { id: crypto.randomUUID(), title: sanitizeStr(title, 160) || 'Team insight', content: content.trim(), provider: ['chatgpt','claude','gemini'].includes(provider) ? provider : 'other', createdAt: now, updatedAt: now, archived: false };
+            const reports = await appendProjectReport(projectId, report);
+            await logActivity({ userId: req.userId, workspaceId: project.workspace_id, action: 'shared_report', entityType: 'project', entityId: String(projectId), metadata: { title: report.title } }).catch(error => console.error('Report activity log failed:', error));
+            return res.status(201).json({ report, reports });
+        } catch (error) { return res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not save report.' }); }
+    });
+
     // POST /api/projects/:id/canvas — save team project canvas (auth, workspace member)
     app.post('/api/projects/:id/canvas', requireAuthMiddleware, async (req, res) => {
         try {
@@ -636,7 +654,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const project = await getProject(projectId);
             if (!project) return res.status(404).json({ error: 'Project not found.' });
             if (!(await hasWorkspaceAccess(req.userId, project.workspace_id))) return res.status(403).json({ error: 'Access denied.' });
-            const { nodes, edges, writingContent, name, todos } = req.body || {};
+            const { nodes, edges, writingContent, writingPages, name, todos, codeFiles, timelineContent, externalAiReports } = req.body || {};
             const safeTodos = Array.isArray(todos)
                 ? todos.slice(0, 500).map((t) => {
                     if (!t || typeof t !== 'object') return null;
@@ -648,15 +666,38 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                     return text ? { id, text, completed } : null;
                 }).filter(Boolean)
                 : [];
+            const safeCodeFiles = Array.isArray(codeFiles)
+                ? codeFiles.slice(0, 50).map(f => f && typeof f === 'object' ? {
+                    id: String(f.id || '').slice(0, 80) || crypto.randomUUID(),
+                    name: String(f.name || 'untitled').slice(0, 200),
+                    language: String(f.language || 'text').slice(0, 50),
+                    content: String(f.content || '').slice(0, 200000),
+                    updatedAt: Number(f.updatedAt || Date.now())
+                } : null).filter(Boolean)
+                : undefined;
+            const previousCanvas = externalAiReports === undefined || writingPages === undefined ? await getProjectCanvas(projectId) : null;
+            const previousReports = previousCanvas?.data ? JSON.parse(previousCanvas.data).externalAiReports : undefined;
+            const reportInput = externalAiReports === undefined ? previousReports : externalAiReports;
+            const safeReports = Array.isArray(reportInput) ? reportInput.slice(0, 30).filter(r => r && typeof r.id === 'string' && typeof r.content === 'string' && r.content.trim()).map(r => ({
+                id: r.id.slice(0, 80), title: typeof r.title === 'string' ? r.title.slice(0, 160) : 'AI report', content: r.content.slice(0, 40000),
+                provider: ['chatgpt', 'claude', 'gemini', 'other'].includes(r.provider) ? r.provider : 'other',
+                createdAt: Number.isFinite(r.createdAt) ? r.createdAt : Date.now(), updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : Date.now(), archived: r.archived === true,
+            })) : undefined;
+            const pageInput = writingPages === undefined && previousCanvas?.data ? JSON.parse(previousCanvas.data).writingPages : writingPages;
+            const safePages = Array.isArray(pageInput) ? pageInput.slice(0, 100).filter(p => p && typeof p.id === 'string' && p.id !== 'root' && typeof p.parentId === 'string').map(p => ({ id: p.id.slice(0, 80), parentId: p.parentId.slice(0, 80), title: typeof p.title === 'string' ? p.title.slice(0, 200) : 'Untitled page', content: typeof p.content === 'string' ? p.content.slice(0, 500000) : '' })) : [];
             const data = {
+                writingPages: safePages,
                 nodes: Array.isArray(nodes) ? nodes : [],
                 edges: Array.isArray(edges) ? edges : [],
                 writingContent: typeof writingContent === 'string' ? writingContent.slice(0, 500000) : '',
                 name: typeof name === 'string' ? name.trim().slice(0, 200) : project.title,
                 todos: safeTodos,
+                ...(safeCodeFiles ? { codeFiles: safeCodeFiles } : {}),
+                ...(safeReports ? { externalAiReports: safeReports } : {}),
+                ...(typeof timelineContent === 'string' ? { timelineContent: timelineContent.slice(0, 200000) } : {}),
             };
             const dataStr = JSON.stringify(data);
-            if (dataStr.length > 600000) return res.status(400).json({ error: 'Canvas too large.' });
+            if (dataStr.length > 2000000) return res.status(400).json({ error: 'Canvas too large.' });
             await saveProjectCanvas(projectId, dataStr);
             return res.json({ ok: true });
         } catch (err) {
@@ -805,3 +846,5 @@ export function registerWorkspaceRoutes(app, clerkClient) {
         }
     });
 }
+
+

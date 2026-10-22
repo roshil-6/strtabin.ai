@@ -187,13 +187,11 @@ const FLOW_BUILDER_TRIGGER = 'I just created a new project.';
  * selectProvider — picks the AI engine for each STRAB message.
  *
  * @param userMessage  The user's raw message string.
- * @param chatLength   Total messages in the conversation so far (before this one).
  * @returns 'anthropic' (Claude) only for the Flow Builder initial brief;
  *          'openai' (GPT-4) for everything else.
  */
 export function selectProvider(
-    userMessage: string,
-    _chatLength = 1
+    userMessage: string
 ): 'openai' | 'anthropic' {
     // Only use Claude for the Flow Builder kick-off message
     if (userMessage.trimStart().startsWith(FLOW_BUILDER_TRIGGER)) return 'anthropic';

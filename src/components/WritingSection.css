@@ -1,0 +1,86 @@
+/* Reading typography is separate from the tighter display typography. */
+.writing-surface {
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: normal;
+    word-spacing: normal;
+}
+.writing-surface .writing-scroll-area {
+    padding: 40px clamp(24px, 6vw, 96px) 64px;
+}
+.writing-surface .writing-document {
+    max-width: 880px;
+    margin-left: 0;
+    margin-right: auto;
+    text-align: left;
+}
+.writing-surface .writing-document textarea {
+    display: block;
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 400;
+    letter-spacing: .01em;
+    word-spacing: .08em;
+    line-height: 1.75 !important;
+    text-align: left;
+    padding: 0;
+    tab-size: 4;
+}
+.writing-surface .writing-document input[aria-label="Document title"] {
+    font-family: inherit;
+    letter-spacing: -.02em;
+    word-spacing: .04em;
+    padding: 0;
+    margin-bottom: 24px;
+}
+.writing-surface .writing-planner { margin-bottom: 28px; }
+.writing-surface .writing-planner > button { gap: 10px; letter-spacing: normal; word-spacing: .04em; }
+@media (max-width: 767px) {
+    .writing-surface .writing-scroll-area { padding: 28px 24px 96px; }
+}
+.writing-project { display:flex; height:100%; min-height:0; overflow:hidden; }
+.writing-page-editor { display:flex; flex-direction:column; flex:1; min-width:0; min-height:0; }
+.writing-page-editor > .writing-surface { flex:1; min-height:0; height:auto; }
+.writing-page-tree { width:248px; flex-shrink:0; padding:20px 12px; border-right:1px solid var(--border); overflow:auto; background:var(--bg-page); }
+.writing-pages-heading { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:0 8px 16px; }
+.writing-pages-heading > span { font-size:10px; letter-spacing:.12em; color:var(--text-muted); }
+.writing-pages-heading > button { display:flex; align-items:center; gap:6px; padding:8px; border-radius:8px; background:var(--accent-soft); color:var(--primary); font-size:12px; }
+.writing-page-tree ul { list-style:none; padding:0; margin:0; }
+.writing-page-tree li > ul { margin-left:14px; padding-left:10px; border-left:1px solid var(--border-strong); }
+.writing-page-row { display:flex; align-items:center; border-radius:8px; min-height:42px; margin:3px 0; }
+.writing-page-row[data-active=true] { background:var(--accent-soft); color:var(--primary); }
+.writing-page-row button { min-height:36px; }
+.writing-page-row .page-name { flex:1; min-width:0; text-align:left; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.page-disclosure, .page-add-child { flex-shrink:0; padding:6px; color:var(--text-muted); }
+.page-disclosure:disabled { opacity:.5; }
+.page-add-child:hover { color:var(--primary); }
+.writing-page-tree > p { font-size:11px; line-height:1.7; color:var(--text-muted); padding:18px 8px; }
+.writing-breadcrumbs { display:flex; flex-wrap:wrap; gap:8px; padding:10px 24px; border-bottom:1px solid var(--border); font-size:12px; color:var(--text-muted); }
+.writing-breadcrumbs > span { display:flex; align-items:center; gap:8px; }
+.writing-breadcrumbs button { padding:5px 0; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.writing-breadcrumbs button[aria-current=page] { color:var(--text); }
+.writing-project button:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+.writing-page-editor .writing-scroll-area { padding-left:clamp(24px,4vw,64px); padding-right:clamp(24px,4vw,64px); }
+@media(max-width:767px) { .writing-project { flex-direction:column; } .writing-page-tree { width:100%; max-height:210px; border-right:0; border-bottom:1px solid var(--border); padding:10px 16px; } .writing-page-tree > p { display:none; } .writing-pages-heading { padding-bottom:6px; justify-content:space-between; } .writing-breadcrumbs { padding:5px 24px; } }
+.writing-document-blocks > textarea { display:block; width:100%; min-height:5rem; resize:vertical; background:transparent; border:0; outline:none; color:var(--text); font:inherit; line-height:1.75; }
+.writing-document-blocks > textarea:focus-visible { outline:1px solid var(--border); outline-offset:8px; border-radius:4px; }
+.writing-inline-branch { margin:24px 0; padding:12px 0; overflow-x:auto; }
+.writing-branch-node { position:relative; display:flex; align-items:center; gap:8px; min-width:180px; padding:8px 0 8px 24px; border-left:1px solid var(--primary, #bf79ff); }
+.writing-branch-node::before { content:''; width:16px; height:1px; background:var(--primary, #bf79ff); position:absolute; left:0; top:50%; }
+.writing-branch-node.is-topic { padding-left:0; border:0; font-weight:650; font-size:1.15em; }
+.writing-branch-node.is-topic::before { display:none; }
+.writing-branch-label { display:inline-grid; min-width:3ch; max-width:calc(100% - 52px); }
+.writing-branch-label > * { grid-area:1 / 1; padding:8px; border:1px solid transparent; font:inherit; letter-spacing:inherit; }
+.writing-branch-measure { visibility:hidden; white-space:pre; overflow:hidden; }
+.writing-branch-node input { width:0; min-width:100%; background:transparent; color:var(--text); border-radius:0; outline:none; box-shadow:none; caret-color:var(--primary, #bf79ff); }
+.writing-branch-node input:focus { outline:none; box-shadow:none; border-bottom-color:var(--primary, #bf79ff); }
+.writing-branch-node button { display:flex; flex-shrink:0; align-items:center; justify-content:center; width:44px; height:44px; border-radius:8px; color:var(--primary, #bf79ff); }
+@media (hover:hover) and (pointer:fine) {
+    .writing-branch-node button { opacity:0; pointer-events:none; }
+    .writing-branch-node:hover button, .writing-branch-node:focus-within button { opacity:1; pointer-events:auto; }
+}
+@media (any-pointer:coarse) {
+    .writing-branch-node button { opacity:1; pointer-events:auto; }
+}
+.writing-branch-node button:hover { background:var(--input-bg); }
+.writing-branch-convert { margin-top:16px; font-size:12px; padding:8px; color:var(--text-muted); text-decoration:underline; }
+.writing-inline-branch button:focus-visible { outline:2px solid var(--primary, #bf79ff); outline-offset:2px; }
+

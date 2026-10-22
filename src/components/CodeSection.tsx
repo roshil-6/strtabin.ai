@@ -1,6 +1,10 @@
-import { useState, useEffect } from 'react';
+import { BUILT_IN_AI_ENABLED } from '../lib/featureFlags';
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@clerk/clerk-react';
+import { executableLanguages, requestExecution } from '../lib/codeExecution';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import useStore from '../store/useStore';
+
 import useModalStore from '../store/useModalStore';
 import { ChevronLeft, FileCode, Plus, Trash2, Download, Code2, Play, Terminal, X, Loader2, Bot, Send } from 'lucide-react';
 import Editor from '@monaco-editor/react';
@@ -8,8 +12,15 @@ import { API_BASE_URL } from '../constants';
 import { sendGeneralStrabMessage, type ChatMessage } from '../services/strabService';
 import MarkdownRenderer from './MarkdownRenderer';
 
+const EMPTY_CODE_FILES: NonNullable<import('../store/useStore').CanvasData['codeFiles']> = [];
+
 export default function CodeSection() {
     const { id } = useParams<{ id: string }>();
+    const { getToken } = useAuth();
+    const runController = useRef<AbortController | null>(null);
+    const [stdin, setStdin] = useState('');
+    useEffect(() => () => { runController.current?.abort(); runController.current = null; }, [id]);
+
     const navigate = useNavigate();
     const location = useLocation();
     const store = useStore();
@@ -25,7 +36,7 @@ export default function CodeSection() {
     const [debugMessages, setDebugMessages] = useState<ChatMessage[]>([]);
     const [debugInput, setDebugInput] = useState('');
     const [isDebugging, setIsDebugging] = useState(false);
-    
+
     // Ensure canvas exists
     useEffect(() => {
         if (id) {
@@ -33,11 +44,11 @@ export default function CodeSection() {
         }
     }, [id, store]);
 
-    const codeFiles = canvas?.codeFiles || [];
+    const codeFiles = canvas?.codeFiles || EMPTY_CODE_FILES;
 
     // Auto-select first file if none active
     useEffect(() => {
-        if (!activeFileId && codeFiles.length > 0) {
+        if (!codeFiles.some(file => file.id === activeFileId) && codeFiles.length > 0) {
             setActiveFileId(codeFiles[0].id);
         } else if (codeFiles.length === 0) {
             setActiveFileId(null);
@@ -49,10 +60,10 @@ export default function CodeSection() {
     const handleCreateFile = (e: React.FormEvent) => {
         e.preventDefault();
         if (!id || !newFileName.trim()) return;
-        
+
         let filename = newFileName.trim();
         let ext = filename.split('.').pop()?.toLowerCase();
-        
+
         // Auto-append .py if no extension
         if (!filename.includes('.')) {
             filename += '.py';
@@ -94,50 +105,44 @@ export default function CodeSection() {
     };
 
     const handleRun = async () => {
-        if (!activeFile) return;
+        if (!activeFile || runController.current) return;
+        const controller = new AbortController();
+        runController.current = controller;
+        const timeout = window.setTimeout(() => controller.abort(), 25000);
         setIsExecuting(true);
         setShowTerminal(true);
         setRunOutput({ stdout: 'Executing...', stderr: '', code: 0 });
-        
+
         try {
-            const res = await fetch(`${API_BASE_URL}/api/execute`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    language: activeFile.language,
-                    files: [activeFile]
-                })
-            });
-            const data = await res.json();
-            if (res.ok && data.run) {
-                setRunOutput(data.run);
-            } else {
-                setRunOutput({ stdout: '', stderr: data.error || 'Execution failed', code: 1 });
-            }
-        } catch (err) {
-            setRunOutput({ stdout: '', stderr: 'Network error. Could not reach execution server.', code: 1 });
+            const token = await getToken();
+            if (!token) throw new Error('Sign in to run code. You can still edit and download your files.');
+            const result = await requestExecution(`${API_BASE_URL}/api/execute`, activeFile, token, controller.signal, stdin);
+            if (runController.current === controller) setRunOutput(result);
+        } catch (error) {
+            if (runController.current === controller) setRunOutput({ stdout: '', stderr: error instanceof Error ? error.message : 'Unable to run this file.', code: 1 });
         } finally {
-            setIsExecuting(false);
+            window.clearTimeout(timeout);
+            if (runController.current === controller) { runController.current = null; setIsExecuting(false); }
         }
     };
 
     const handleSendDebug = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         if (!debugInput.trim() && !activeFile) return;
-        
+
         const userMsg = debugInput.trim() || `Please review my code in ${activeFile?.name} and check for any errors.`;
-        
+
         const contextMsg = `I am debugging my code. Here is my current context:\nFile: ${activeFile?.name}\nLanguage: ${activeFile?.language}\nCode:\n\`\`\`\n${activeFile?.content}\n\`\`\`\n\nTerminal Output:\n\`\`\`\n${runOutput ? JSON.stringify(runOutput) : 'No output yet'}\n\`\`\`\n\n`;
-        
+
         const newMessages: ChatMessage[] = [
             ...debugMessages, 
             { role: 'user', content: debugMessages.length === 0 ? contextMsg + userMsg : userMsg }
         ];
-        
+
         setDebugMessages([...newMessages, { role: 'assistant', content: '' }]);
         setDebugInput('');
         setIsDebugging(true);
-        
+
         try {
             await sendGeneralStrabMessage(newMessages, (chunk) => {
                 setDebugMessages(prev => {
@@ -146,7 +151,7 @@ export default function CodeSection() {
                     return updated;
                 });
             }, undefined, undefined, 'anthropic');
-        } catch (err) {
+        } catch {
             setDebugMessages(prev => {
                 const updated = [...prev];
                 updated[updated.length - 1].content = 'Error communicating with AI debugger.';
@@ -160,9 +165,9 @@ export default function CodeSection() {
     if (!canvas) return null;
 
     return (
-        <div className="flex h-screen w-full bg-[#080808] text-white">
+        <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-[var(--bg-page)] text-white ">
             {/* Sidebar */}
-            <div className="w-64 border-r border-white/10 flex flex-col bg-[#0e0e0e]">
+            <div className="hidden md:flex w-64 border-r border-white/10 flex-col bg-[var(--bg-panel)] shrink-0">
                 <div className="p-4 border-b border-white/10 flex items-center justify-between">
                     <button 
                         onClick={() => {
@@ -179,7 +184,7 @@ export default function CodeSection() {
                         <span className="text-sm font-medium">Back</span>
                     </button>
                 </div>
-                
+
                 <div className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-primary">
                         <Code2 size={18} />
@@ -208,7 +213,7 @@ export default function CodeSection() {
                             />
                         </form>
                     )}
-                    
+
                     {codeFiles.map(file => (
                         <div 
                             key={file.id}
@@ -227,7 +232,7 @@ export default function CodeSection() {
                             </button>
                         </div>
                     ))}
-                    
+
                     {codeFiles.length === 0 && !isCreating && (
                         <div className="text-center px-4 py-8 text-white/40 text-sm">
                             No files yet. Click + to create one.
@@ -249,21 +254,23 @@ export default function CodeSection() {
                                 </span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <button
+                                {BUILT_IN_AI_ENABLED && <button
                                     onClick={() => setShowDebugger(!showDebugger)}
                                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${showDebugger ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30 border' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}
                                 >
                                     <Bot size={14} />
                                     AI Debugger
-                                </button>
+                                </button>}
                                 <button
                                     onClick={handleRun}
-                                    disabled={isExecuting}
+                                    disabled={isExecuting || !executableLanguages.has(activeFile.language)}
+                                    title={executableLanguages.has(activeFile.language) ? 'Run the current file only' : 'This file type supports editing and download only'}
                                     className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-lg text-sm font-bold transition-all disabled:opacity-50"
                                 >
                                     {isExecuting ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} className="fill-current" />}
                                     Run
                                 </button>
+                                {isExecuting && <button onClick={() => runController.current?.abort()} className="text-sm text-white px-3 py-2">Stop waiting</button>}
                                 <button
                                     onClick={handleDownload}
                                     className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-sm font-medium transition-colors"
@@ -273,8 +280,10 @@ export default function CodeSection() {
                                 </button>
                             </div>
                         </div>
-                        <div className={`flex-1 relative ${showTerminal ? 'h-[60%]' : 'h-full'}`}>
+                        <div className="px-6 py-2 border-b border-white/10 text-xs text-white/70">Runs the current file only. External packages and other project files are not included.</div>
+                        <div className={`flex-1 min-h-0 relative ${showTerminal ? 'h-[60%]' : 'h-full'}`}>
                             <Editor
+                                path={`${id}/${activeFile.id}/${activeFile.name}`}
                                 height="100%"
                                 language={activeFile.language}
                                 theme="vs-dark"
@@ -294,7 +303,7 @@ export default function CodeSection() {
                                 }}
                             />
                         </div>
-                        
+
                         {/* Terminal Panel */}
                         {showTerminal && (
                             <div className="h-[40%] min-h-[200px] border-t border-white/10 bg-[#050505] flex flex-col">
@@ -307,6 +316,10 @@ export default function CodeSection() {
                                         <X size={14} />
                                     </button>
                                 </div>
+                                <label className="px-4 py-2 text-xs text-white/70 border-b border-white/10">
+                                    Program input (one value per line)
+                                    <textarea aria-label="Program input" value={stdin} onChange={e => setStdin(e.target.value)} maxLength={4000} rows={2} className="block w-full mt-1 p-2 rounded bg-white/5 text-white" placeholder="Input for the next run" />
+                                </label>
                                 <div className="flex-1 p-4 overflow-y-auto font-mono text-sm">
                                     {runOutput ? (
                                         <>
@@ -335,8 +348,8 @@ export default function CodeSection() {
             </div>
 
             {/* AI Debugger Sidebar */}
-            {showDebugger && (
-                <div className="w-80 border-l border-white/10 flex flex-col bg-[#0e0e0e]">
+            {BUILT_IN_AI_ENABLED && showDebugger && (
+                <div className="w-80 border-l border-white/10 flex flex-col bg-[var(--bg-panel)]">
                     <div className="h-14 border-b border-white/10 flex items-center justify-between px-4">
                         <div className="flex items-center gap-2 text-indigo-400 font-semibold text-sm">
                             <Bot size={16} />
@@ -346,7 +359,7 @@ export default function CodeSection() {
                             <X size={16} />
                         </button>
                     </div>
-                    
+
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
                         {debugMessages.length === 0 ? (
                             <div className="text-center text-white/40 text-sm mt-10">
@@ -405,6 +418,8 @@ export default function CodeSection() {
                     </div>
                 </div>
             )}
+
+
         </div>
     );
 }

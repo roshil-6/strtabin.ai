@@ -1,9 +1,10 @@
+import { localDateKey } from '../lib/localDate';
 /**
  * Workspace detail page: projects, members, activity feed
  * Structured team workspace with tabs, tools, and overview
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
@@ -83,7 +84,7 @@ export default function WorkspacePage() {
   const [editingProject, setEditingProject] = useState<number | null>(null);
   const [assigningProject, setAssigningProject] = useState<number | null>(null);
   const [dailyTasks, setDailyTasks] = useState<MemberDailyTask[]>([]);
-  const [taskDate, setTaskDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [taskDate, setTaskDate] = useState(() => localDateKey());
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskUserId, setNewTaskUserId] = useState<number | null>(null);
   const [roleMenuOpen, setRoleMenuOpen] = useState<number | null>(null);
@@ -102,10 +103,10 @@ export default function WorkspacePage() {
     toast.success('Pick the date, describe the task, then tap Add');
   };
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (isNaN(workspaceId)) return;
-    const token = await getToken();
     try {
+      const token = await getToken();
       const data = await workspaceService.getWorkspace(workspaceId, token);
       setWorkspace(data.workspace);
       setMembers(data.members || []);
@@ -121,22 +122,22 @@ export default function WorkspacePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId, getToken, navigate]);
 
-  const loadDailyTasks = async () => {
+  const loadDailyTasks = useCallback(async () => {
     if (isNaN(workspaceId)) return;
-    const token = await getToken();
     try {
+      const token = await getToken();
       const { tasks } = await workspaceService.getDailyTasks(workspaceId, token, { date: taskDate });
       setDailyTasks(tasks || []);
     } catch {
       setDailyTasks([]);
     }
-  };
+  }, [workspaceId, getToken, taskDate]);
 
   useEffect(() => {
     load();
-  }, [workspaceId]);
+  }, [load]);
 
   useEffect(() => {
     if (!workspace || !isTeam) return;
@@ -154,11 +155,11 @@ export default function WorkspacePage() {
     };
     const interval = setInterval(tick, 30000);
     return () => clearInterval(interval);
-  }, [workspaceId, workspace, isTeam]);
+  }, [workspaceId, workspace, isTeam, getToken, load]);
 
   useEffect(() => {
     if (workspace && isTeam) loadDailyTasks();
-  }, [workspaceId, taskDate, workspace, isTeam]);
+  }, [workspace, isTeam, loadDailyTasks]);
 
   useEffect(() => {
     if (!roleMenuOpen) return;
@@ -263,7 +264,7 @@ export default function WorkspacePage() {
     const state = { workspaceId: isNaN(workspaceId) ? undefined : workspaceId, projectTitle: project.title };
     if (project.canvas_id) {
       if (project.type === 'code') {
-        navigate(`/code/${project.canvas_id}`, { state });
+        navigate(`/strategy/${project.canvas_id}`, { state });
       } else if (project.type === 'notes') {
         navigate(`/notes/${project.canvas_id}`, { state });
       } else {
@@ -277,7 +278,7 @@ export default function WorkspacePage() {
         const token = await getToken();
         await workspaceService.updateProject(project.id, { canvasId }, token);
         if (project.type === 'code') {
-          navigate(`/code/${canvasId}`, { state });
+          navigate(`/strategy/${canvasId}`, { state });
         } else if (project.type === 'notes') {
           navigate(`/notes/${canvasId}`, { state });
         } else {
@@ -393,7 +394,7 @@ export default function WorkspacePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)]">
+    <div className="min-h-[100dvh] bg-[var(--bg-page)]">
       <div className="max-w-6xl mx-auto p-3 md:p-6">
         <button
           onClick={() => navigate('/dashboard')}
@@ -702,8 +703,8 @@ export default function WorkspacePage() {
                         </div>
                         {projects.length === 0 ? (
                           <div className="flex flex-col items-center py-6 text-center gap-3">
-                            <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10 shrink-0">
-                              <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                            <div className="w-14 h-14 rounded-2xl bg-transparent flex items-center justify-center overflow-hidden shadow-lg  shrink-0">
+                              <img src="/stratabin-icon.svg" alt="Stratabin" className="w-full h-full object-contain" />
                             </div>
                             <p className="text-white/40 text-xs font-bold">No projects yet</p>
                             <button
@@ -805,8 +806,8 @@ export default function WorkspacePage() {
                     {projects.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 md:py-16 px-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center gap-4">
                         <div className="relative">
-                          <div className="w-20 h-20 md:w-24 md:h-24 rounded-[1.25rem] bg-white flex items-center justify-center overflow-hidden shadow-2xl border-2 border-white/10">
-                            <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                          <div className="w-20 h-20 md:w-24 md:h-24 rounded-[1.25rem] bg-transparent flex items-center justify-center overflow-hidden shadow-2xl ">
+                            <img src="/stratabin-icon.svg" alt="Stratabin" className="w-full h-full object-contain" />
                           </div>
                           <div className="absolute -top-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-lg">
                             <Plus size={14} className="text-black" strokeWidth={2.5} />
@@ -1443,8 +1444,8 @@ export default function WorkspacePage() {
           <div className="w-full max-w-sm bg-[var(--bg-panel)] border border-white/10 rounded-2xl p-6">
             {projects.length === 0 && (
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center overflow-hidden shadow-lg border-2 border-white/10">
-                  <img src="/favicon.png" alt="Stratabin" className="w-full h-full object-contain" />
+                <div className="w-16 h-16 rounded-2xl bg-transparent flex items-center justify-center overflow-hidden shadow-lg ">
+                  <img src="/stratabin-icon.svg" alt="Stratabin" className="w-full h-full object-contain" />
                 </div>
               </div>
             )}
@@ -1452,7 +1453,6 @@ export default function WorkspacePage() {
             <form onSubmit={handleCreateProject} className="space-y-3">
               <div className="flex gap-2">
                 <button type="button" onClick={() => setNewProjectType('strategy')} className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${newProjectType === 'strategy' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 text-white/50 border-white/10 hover:border-white/20'}`}>Strategy</button>
-                <button type="button" onClick={() => setNewProjectType('code')} className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${newProjectType === 'code' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 text-white/50 border-white/10 hover:border-white/20'}`}>Code</button>
                 <button type="button" onClick={() => setNewProjectType('notes')} className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${newProjectType === 'notes' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 text-white/50 border-white/10 hover:border-white/20'}`}>Notes</button>
               </div>
               <input
