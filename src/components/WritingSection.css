@@ -60,8 +60,8 @@
 .writing-project button:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
 .writing-page-editor .writing-scroll-area { padding-left:clamp(24px,4vw,64px); padding-right:clamp(24px,4vw,64px); }
 @media(max-width:767px) { .writing-project { flex-direction:column; } .writing-page-tree { width:100%; max-height:210px; border-right:0; border-bottom:1px solid var(--border); padding:10px 16px; } .writing-page-tree > p { display:none; } .writing-pages-heading { padding-bottom:6px; justify-content:space-between; } .writing-breadcrumbs { padding:5px 24px; } }
-.writing-document-blocks > textarea { display:block; width:100%; min-height:5rem; resize:vertical; background:transparent; border:0; outline:none; color:var(--text); font:inherit; line-height:1.75; }
-.writing-document-blocks > textarea:focus-visible { outline:1px solid var(--border); outline-offset:8px; border-radius:4px; }
+.writing-surface .writing-document textarea, .writing-surface .writing-document textarea:focus, .writing-surface .writing-document textarea:focus-visible { background:transparent!important; border:0!important; outline:none!important; box-shadow:none!important; border-radius:0!important; resize:none; caret-color:var(--primary); }
+.writing-document-blocks > textarea { display:block; width:100%; min-height:5rem; color:var(--text); font:inherit; line-height:1.75; }
 .writing-inline-branch { margin:24px 0; padding:12px 0; overflow-x:auto; }
 .writing-branch-node { position:relative; display:flex; align-items:center; gap:8px; min-width:180px; padding:8px 0 8px 24px; border-left:1px solid var(--primary, #bf79ff); }
 .writing-branch-node::before { content:''; width:16px; height:1px; background:var(--primary, #bf79ff); position:absolute; left:0; top:50%; }
@@ -84,3 +84,22 @@
 .writing-branch-convert { margin-top:16px; font-size:12px; padding:8px; color:var(--text-muted); text-decoration:underline; }
 .writing-inline-branch button:focus-visible { outline:2px solid var(--primary, #bf79ff); outline-offset:2px; }
 
+.voice-typing > button { display:flex; align-items:center; gap:6px; padding:8px; color:var(--text-secondary); }
+.voice-panel { position:absolute; z-index:80; top:52px; right:12px; width:min(380px,calc(100vw - 32px)); max-height:70dvh; overflow:auto; padding:20px; background:var(--bg-panel); border:1px solid var(--border-strong); border-radius:12px; box-shadow:0 10px 30px #0003; }
+.voice-panel p, .voice-panel label { display:block; margin:12px 0; font-size:13px; line-height:1.6; color:var(--text-secondary); }
+.voice-panel select { background:var(--input-bg); color:var(--text); margin-left:8px; padding:6px; }
+.voice-panel .voice-draft { max-height:140px; overflow:auto; white-space:pre-wrap; }
+.voice-panel .voice-action { display:flex; gap:8px; align-items:center; padding:10px 14px; border-radius:8px; background:var(--accent-soft); color:var(--primary); }
+.writing-attachment-preview { margin:24px 0 36px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); padding:16px 0; }
+.writing-attachment-preview header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.writing-attachment-preview h3 { overflow-wrap:anywhere; font-size:15px; }
+.writing-attachment-preview button { padding:8px 12px; min-height:40px; color:var(--text); }
+.writing-attachment-preview button:disabled { opacity:.4; }
+.writing-attachment-body { max-height:65dvh; overflow:auto; overscroll-behavior:contain; }
+.writing-attachment-body nav { display:flex; align-items:center; justify-content:space-between; gap:8px; position:sticky; top:0; background:var(--bg-page); font-size:13px; }
+.writing-attachment-body canvas, .writing-attachment-body img { display:block; max-width:100%; height:auto; margin:auto; }
+.writing-attachment-body pre { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.7; font-size:15px; }
+.writing-attachment-body details { padding:12px 0; }
+.attachment-document { background:white; color:#171717; padding:24px; line-height:1.7; overflow-wrap:anywhere; }
+.attachment-document p { margin:12px 0; }
+.attachment-document a { color:#5a2194; text-decoration:underline; }
