@@ -5,10 +5,11 @@ import { appendWritingBranch, pageAncestors, ROOT_PAGE } from '../lib/writingPag
 import { generateId } from '../utils/uuid';
 import toast from 'react-hot-toast';
 import { localDateKey } from '../lib/localDate';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import VoiceTyping from './VoiceTyping';
+const WritingAttachmentPreview = lazy(() => import('./WritingAttachmentPreview'));
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, Loader2, CalendarDays, Pin, PinOff, ChevronDown, Keyboard } from 'lucide-react';
-import DOMPurify from 'dompurify';
+import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, CalendarDays, Pin, PinOff, ChevronDown, Keyboard } from 'lucide-react';
 import './WritingSection.css';
 import type { CalendarEvent } from '../store/useStore';
 
@@ -121,63 +122,8 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
         });
     };
 
-    const openPreview = (doc: { url: string; name: string }) => {
-        if (doc.url.startsWith('data:')) {
-            try {
-                const arr = doc.url.split(',');
-                const mime = arr[0].match(/:(.*?);/)?.[1];
-                const bstr = atob(arr[1]);
-                let n = bstr.length;
-                const u8arr = new Uint8Array(n);
-                while (n--) {
-                    u8arr[n] = bstr.charCodeAt(n);
-                }
-                const blob = new Blob([u8arr], { type: mime as string });
-                const blobUrl = URL.createObjectURL(blob);
-                setPreviewDoc({ url: blobUrl, name: doc.name });
-                return;
-            } catch {
-                // Fall through to setPreviewDoc with original url
-            }
-        }
-        setPreviewDoc(doc);
-    };
-
-    const closePreview = () => {
-        if (previewDoc?.url.startsWith('blob:')) {
-            URL.revokeObjectURL(previewDoc.url);
-        }
-        setPreviewDoc(null);
-        setDocxHtml('');
-    };
-
-    // Mammoth DOCX parsing
-    const [docxHtml, setDocxHtml] = useState<string>('');
-    const [isRenderingDocx, setIsRenderingDocx] = useState(false);
-
-    useEffect(() => {
-        const parseDocx = async () => {
-            if (!previewDoc || !previewDoc.name.toLowerCase().endsWith('.docx')) {
-                setDocxHtml('');
-                return;
-            }
-
-            setIsRenderingDocx(true);
-            try {
-                const response = await fetch(previewDoc.url);
-                const arrayBuffer = await response.arrayBuffer();
-                const { default: mammoth } = await import('mammoth');
-                const result = await mammoth.convertToHtml({ arrayBuffer });
-                setDocxHtml(result.value);
-            } catch {
-                setDocxHtml('<div class="text-red-400 p-4">Failed to render document preview.</div>');
-            } finally {
-                setIsRenderingDocx(false);
-            }
-        };
-
-        parseDocx();
-    }, [previewDoc]);
+    const openPreview = (doc: { url: string; name: string }) => setPreviewDoc(doc);
+    const closePreview = () => setPreviewDoc(null);
 
     // Sync with store
     useEffect(() => {
@@ -268,14 +214,19 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const fileUrl = event.target?.result as string;
-                addCanvasDoc(canvasId, { name: file.name, url: fileUrl });
-            };
-            reader.readAsDataURL(file);
-        }
+        e.target.value = '';
+        if (!file) return;
+        if (file.size > 1024 * 1024) { toast.error('Choose a file under 1 MB for browser-stored attachments.'); return; }
+        const reader = new FileReader();
+        reader.onerror = () => toast.error('Could not read this file. Please try again.');
+        reader.onload = () => {
+            const doc = { name: file.name, url: String(reader.result) };
+            try {
+                addCanvasDoc(canvasId, doc);
+                setPreviewDoc(doc);
+            } catch { toast.error('Attachment could not be saved. Browser storage may be full.'); }
+        };
+        reader.readAsDataURL(file);
     };
 
     const insertSplitSeparator = () => {
@@ -383,6 +334,7 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                     >
                         <File size={16} />
                     </button>
+                    <VoiceTyping onInsert={text => handleContentChange(content + (content.trim() ? '\n\n' : '') + text)} />
                     <input type="file" ref={fileInputRef} className="hidden" accept="*" onChange={handleFileUpload} />
                 </div>
 
@@ -576,6 +528,8 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                         </div>
                     )}
 
+                    {previewDoc && <Suspense fallback={<p role="status">Opening viewer…</p>}><WritingAttachmentPreview key={previewDoc.url} doc={previewDoc} close={closePreview} /></Suspense>}
+
                     {/* Main Writing Textarea — no outline */}
                     <WritingDocument value={content} onChange={handleContentChange} inputRef={textareaRef}
                         fontSize={fontSize} readOnly={isMobile && !mobileEditMode} />
@@ -747,83 +701,7 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                 </div>
             )}
 
-            {/* Document Preview Modal */}
-            {previewDoc && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-12 animate-in fade-in duration-300">
-                    <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={closePreview} />
-                    <div className="relative w-full h-full max-w-6xl theme-panel border border-[var(--border)] rounded-2xl md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
-                        <div className="flex-shrink-0 p-4 border-b border-[var(--border)] flex items-center justify-between theme-elevated">
-                            <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-lg ${previewDoc.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'}`}>
-                                    {previewDoc.name.toLowerCase().endsWith('.pdf') ? <FileText size={20} /> : <File size={20} />}
-                                </div>
-                                <h3 className="text-sm font-bold text-[var(--text)] truncate max-w-[200px] md:max-w-md">{previewDoc.name}</h3>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <a
-                                    href={previewDoc.url}
-                                    download={previewDoc.name}
-                                    className="p-2 bg-[var(--input-bg)] hover:bg-white/10 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] transition-colors text-xs font-bold flex items-center gap-2"
-                                >
-                                    Download Original
-                                </a>
-                                <button onClick={closePreview} className="p-2 bg-[var(--input-bg)] hover:bg-white/10 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
-                                    <X size={20} />
-                                </button>
-                            </div>
-                        </div>
 
-                        <div className="flex-1 bg-white relative overflow-hidden">
-                            {previewDoc.name.toLowerCase().endsWith('.pdf') ? (
-                                <iframe
-                                    src={`${previewDoc.url}#toolbar=0`}
-                                    className="w-full h-full border-none"
-                                    title={previewDoc.name}
-                                />
-                            ) : previewDoc.name.toLowerCase().endsWith('.docx') ? (
-                                <div className="w-full h-full overflow-y-auto bg-white p-8 md:p-16 text-black custom-scrollbar">
-                                    {isRenderingDocx ? (
-                                        <div className="flex flex-col items-center justify-center h-full text-black/50 gap-4">
-                                            <Loader2 size={32} className="animate-spin" />
-                                            <span className="font-bold">Rendering Document...</span>
-                                        </div>
-                                    ) : (
-                                        <div
-                                            className="max-w-4xl mx-auto prose prose-neutral prose-headings:font-black prose-p:leading-relaxed"
-                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(docxHtml) }}
-                                        />
-                                    )}
-                                </div>
-                            ) : previewDoc.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] p-8">
-                                    <img src={previewDoc.url} alt={previewDoc.name} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
-                                </div>
-                            ) : previewDoc.name.toLowerCase().endsWith('.txt') ? (
-                                <iframe
-                                    src={previewDoc.url}
-                                    className="w-full h-full border-none bg-white p-8"
-                                    title={previewDoc.name}
-                                />
-                            ) : (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111] text-white p-6 text-center">
-                                    <File size={64} className="text-white/20 mb-6" />
-                                    <h2 className="text-xl font-black mb-2">No Native Preview Available</h2>
-                                    <p className="text-sm text-[var(--text-muted)] max-w-sm leading-relaxed mb-8">
-                                        Browsers cannot securely render older <b>.doc</b> or binary file formats visually without downloading them first. Please download the file to view it.
-                                    </p>
-                                    <a
-                                        href={previewDoc.url}
-                                        download={previewDoc.name}
-                                        className="px-6 py-3 bg-white text-black font-black uppercase tracking-widest text-xs rounded-xl hover:bg-white/90 transition-all"
-                                    >
-                                        Download to View
-                                    </a>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
