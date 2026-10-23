@@ -4,7 +4,9 @@ import ProjectPage from './components/ProjectPage';
 import ProjectSync from './components/ProjectSync';
 import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
+const PersonalAssistant = lazy(() => import('./components/PersonalAssistant'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
+const BillingPage = lazy(() => import('./components/BillingPage'));
 const Canvas = lazy(() => import('./components/Canvas'));
 const TimelineSection = lazy(() => import('./components/TimelineSection'));
 const TimetablePage = lazy(() => import('./components/TimetablePage'));
@@ -22,6 +24,7 @@ const WorkspacePage = lazy(() => import('./components/WorkspacePage'));
 const JoinWorkspacePage = lazy(() => import('./components/JoinWorkspacePage'));
 const ProfilePage = lazy(() => import('./components/ProfilePage'));
 const CommunityPage = lazy(() => import('./components/CommunityPage'));
+import PushAccountGuard from './components/PushAccountGuard';
 import AuthGate from './components/AuthGate';
 import UserSyncOnLoad from './components/UserSyncOnLoad';
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'));
@@ -43,9 +46,11 @@ function App() {
   return (
     <div className="min-h-[100dvh] w-full theme-page relative">
     <GlobalModals />
+    <PushAccountGuard />
     <UserSyncOnLoad />
     <ProjectSync />
     <Suspense fallback={<div role="status" className="min-h-[100dvh] theme-page flex items-center justify-center text-[var(--text-muted)]">Opening workspace…</div>}>
+    <PersonalAssistant />
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
@@ -53,6 +58,7 @@ function App() {
       <Route path="/features" element={<FeaturesPage />} />
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
       <Route path="/dashboard" element={<AuthGate><Dashboard /></AuthGate>} />
+      <Route path="/billing" element={<AuthGate><BillingPage /></AuthGate>} />
       <Route path="/project/:id" element={<AuthGate><ProjectPage><ProjectOverview /></ProjectPage></AuthGate>} />
       <Route path="/flow-creator" element={<Navigate to="/dashboard" replace />} />
       <Route path="/folder-workflow/:folderId" element={<Navigate to="/dashboard" replace />} />

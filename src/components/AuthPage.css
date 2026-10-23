@@ -29,6 +29,21 @@
 .auth-page .cl-formFieldInput { min-height: 46px; border: 1px solid #675270; }
 .auth-page .cl-formFieldInput:focus { border-color: #c98aff; box-shadow: 0 0 0 3px #b86cff26; }
 .auth-page .cl-footerActionLink, .auth-page .cl-formFieldAction { color: #d5a5ff; }
+.auth-page .auth-google-primary {
+    order: -1;
+    width: 100%;
+    min-height: 50px;
+    background: #fff;
+    color: #151119;
+    border: 1px solid #fff;
+    border-radius: 12px;
+    box-shadow: none;
+    font-size: 16px;
+    font-weight: 600;
+}
+.auth-page .auth-google-primary:hover { background: #eee8f4; border-color: #eee8f4; }
+.auth-page .auth-google-primary:focus-visible { outline: 2px solid #c98aff; outline-offset: 4px; }
+.auth-page .auth-google-primary .cl-socialButtonsBlockButtonText { color: inherit; }
 .auth-guest { margin-top: 26px; text-align: center; }
 .auth-guest button { width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 46px; border: 1px solid #b86cff30; border-radius: 12px; color: #fff; background: #08040b; font-size: 14px; }
 .auth-guest button:hover { background: #1a0c24; border-color: #b86cff70; }

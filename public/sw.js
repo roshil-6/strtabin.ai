@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stratabin-violet-brand-v2';
+const CACHE_NAME = 'stratabin-assistant-v3';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/stratabin-icon.svg'];
 
 // Install: cache static assets
@@ -24,7 +24,7 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
 
     const url = new URL(event.request.url);
-    if (url.origin !== self.location.origin) return;
+    if (url.origin !== self.location.origin || url.pathname.startsWith('/api/') || event.request.headers.has('Authorization')) return;
 
     event.respondWith(
         fetch(event.request)
@@ -42,17 +42,28 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// Push notifications
-self.addEventListener('push', (event) => {
-    const data = event.data ? event.data.json() : { body: 'New reminder from Stratabin.' };
-    self.registration.showNotification('Stratabin AI', {
-        body: data.body,
-        icon: '/stratabin-icon.svg',
-        badge: '/stratabin-icon.svg',
-    });
+// Background delivery must keep the worker alive until the notification is shown.
+self.addEventListener('push', event => {
+    let data = {};
+    try { data = event.data ? event.data.json() : {}; } catch { /* generic fallback */ }
+    const tag = typeof data.tag === 'string' ? data.tag.slice(0, 160) : 'stratabin-reminder';
+    event.waitUntil(self.registration.showNotification('Stratabin reminder', {
+        body: 'A reminder is ready. Open Stratabin to see your schedule.',
+        icon: '/stratabin-icon.svg', badge: '/stratabin-icon.svg', tag,
+        data: { url: '/dashboard?assistant=reminders' },
+    }));
 });
-
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener('notificationclick', event => {
     event.notification.close();
-    event.waitUntil(clients.openWindow('/'));
+    const target = new URL('/dashboard?assistant=reminders', self.location.origin).href;
+    event.waitUntil((async () => {
+        const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of windows) {
+            if (new URL(client.url).origin === self.location.origin) {
+                await client.navigate(target);
+                return client.focus();
+            }
+        }
+        return self.clients.openWindow(target);
+    })());
 });

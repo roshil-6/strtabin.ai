@@ -669,6 +669,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="pt-6 pb-2">
+                            <button type="button" onClick={() => { navigate('/billing'); setIsSidebarOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 mb-5 rounded-xl border border-primary/25 text-primary hover:bg-[var(--input-bg)]"><Star size={18} /><span className="font-bold text-sm text-left">Plans & billing</span></button>
                             <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)] mb-4 px-3">Tools</h2>
                             <div className="space-y-1">
                                 <button type="button" onClick={() => { navigate('/ai'); setIsSidebarOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"><Bot size={18} /><span className="font-bold text-sm text-left">AI workspace</span></button>

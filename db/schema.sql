@@ -211,3 +211,43 @@ CREATE TABLE IF NOT EXISTS shared_canvases (
     created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_shared_canvases_share_id ON shared_canvases(share_id);
+
+-- Razorpay test subscriptions. Live charging is deliberately disabled during integration.
+CREATE TABLE IF NOT EXISTS billing_subscriptions (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    mode TEXT NOT NULL DEFAULT 'test',
+    provider_id TEXT UNIQUE,
+    status TEXT NOT NULL DEFAULT 'none',
+    paid_until BIGINT NOT NULL DEFAULT 0,
+    paid_count INTEGER NOT NULL DEFAULT 0,
+    cancel_scheduled INTEGER NOT NULL DEFAULT 0,
+    revision INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, mode)
+);
+
+-- Durable personal reminders and private browser push subscriptions.
+CREATE TABLE IF NOT EXISTS assistant_reminders (
+ id TEXT PRIMARY KEY,
+ user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ title TEXT NOT NULL,
+ project_id TEXT NOT NULL DEFAULT '',
+ start_date TEXT NOT NULL,
+ local_time TEXT NOT NULL,
+ timezone TEXT NOT NULL,
+ repeat_kind TEXT NOT NULL,
+ due_at BIGINT NOT NULL,
+ enabled INTEGER NOT NULL DEFAULT 1,
+ lease_until BIGINT NOT NULL DEFAULT 0,
+ retry_at BIGINT NOT NULL DEFAULT 0,
+ attempts INTEGER NOT NULL DEFAULT 0,
+ revision INTEGER NOT NULL DEFAULT 0,
+ last_delivery BIGINT NOT NULL DEFAULT 0,
+ last_error TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_assistant_reminders_due ON assistant_reminders(enabled, due_at);
+CREATE TABLE IF NOT EXISTS assistant_push_subscriptions (
+ endpoint_hash TEXT PRIMARY KEY,
+ user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ subscription_json TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_assistant_push_user ON assistant_push_subscriptions(user_id);

@@ -26,3 +26,9 @@ services:
         sync: false
       - key: CLERK_SECRET_KEY
         sync: false
+      - key: WEB_PUSH_PUBLIC_KEY
+        sync: false
+      - key: WEB_PUSH_PRIVATE_KEY
+        sync: false
+      - key: WEB_PUSH_SUBJECT
+        value: https://www.stratabin.com

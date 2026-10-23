@@ -8,6 +8,10 @@ import LavenderDotBackground from './LavenderDotBackground';
 import './AuthPage.css';
 
 const appearance = {
+    layout: {
+        socialButtonsPlacement: 'top' as const,
+        socialButtonsVariant: 'blockButton' as const,
+    },
     variables: {
         colorPrimary: '#b86cff', colorBackground: '#080609', colorText: '#ffffff',
         colorTextSecondary: '#c9bed4', colorInputBackground: '#000000', colorInputText: '#ffffff',
@@ -17,6 +21,7 @@ const appearance = {
     elements: {
         rootBox: 'auth-widget', cardBox: 'auth-widget', card: 'auth-card',
         formButtonPrimary: 'auth-primary', footer: 'auth-footer',
+        socialButtonsBlockButton__google: 'auth-google-primary',
     },
 };
 
@@ -53,7 +58,7 @@ export default function AuthPage() {
                         <footer>The idea behind Stratabin</footer>
                     </blockquote>
                     <ul className="auth-benefits" aria-label="Why use Stratabin">
-                        <li><Network size={20} aria-hidden="true" /><div><strong>Keep the whole picture</strong><span>Writing, brainstorms, and code in one project.</span></div></li>
+                        <li><Network size={20} aria-hidden="true" /><div><strong>Keep the whole picture</strong><span>Writing, brainstorms, and tasks in one project.</span></div></li>
                         <li><ListChecks size={20} aria-hidden="true" /><div><strong>Turn plans into progress</strong><span>Connect tasks, dates, and shared responsibilities.</span></div></li>
                         <li><Sparkles size={20} aria-hidden="true" /><div><strong>Bring your own AI</strong><span>Take your project context to the AI tool you choose.</span></div></li>
                     </ul>

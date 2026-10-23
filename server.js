@@ -1,4 +1,7 @@
 import express from 'express';
+import { registerReminderRoutes } from './routes/reminders.js';
+import { startReminderWorker } from './lib/reminders.js';
+import { registerAssistantRoutes } from './routes/assistant.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -23,6 +26,7 @@ import { summarizePgUrl } from './db/driver.js';
 import { invalidateClerkUserCache } from './lib/clerkUserCache.js';
 import { resolveBearerToClerkUser, verifyBearerSub } from './lib/clerkAuth.js';
 import { initRedisInfrastructure } from './lib/redisInfra.js';
+import { registerBillingWebhook, registerBillingRoutes } from './routes/billing.js';
 
 dotenv.config();
 
@@ -120,9 +124,12 @@ app.get('/', (_req, res) => {
     res.status(200).json({ status: 'STRAB Server is running.' });
 });
 
+registerBillingWebhook(app);
+
 // ─── Body Parser ───────────────────────────────────────────────────────────
 // Register early so req.body is available in all JSON route handlers
 app.use((req, res, next) => {
+    if ((req.path === '/api/assistant/chat' || req.path === '/api/assistant/voice/session')) return express.json({ limit: '160kb' })(req, res, next);
     // Canvas share needs larger limit for nodes/edges payload
     if (req.path === '/api/canvas/share' || req.path.match(/^\/api\/projects\/\d+\/canvas$/)) return express.json({ limit: '2mb' })(req, res, next);
     express.json({ limit: '50kb' })(req, res, next);
@@ -652,6 +659,9 @@ app.post('/api/execute', (_req, res) => {
 // ─── Social + Team Workspace System (Phase 2) ───────────────────────────────
 registerWorkspaceRoutes(app, clerk);
 registerChatRoutes(app, clerk);
+registerBillingRoutes(app);
+registerAssistantRoutes(app);
+registerReminderRoutes(app);
 
 // ─── 404 handler ──────────────────────────────────────────────────────────
 app.use((_req, res) => {
@@ -704,6 +714,7 @@ io.emitToChat = (chatId, event, data) => {
     try {
         await initDb();
         console.log('Database ready.');
+        startReminderWorker();
     } catch (err) {
         const pgUrl = process.env.DATABASE_URL?.trim()?.replace(/^['"]|['"]$/g, '')?.trim() || '';
         const usingPg = !!pgUrl;
