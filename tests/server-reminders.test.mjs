@@ -1,0 +1,73 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import express from 'express';
+import Database from 'better-sqlite3';
+import { readFileSync } from 'node:fs';
+import webpush from 'web-push';
+const { generateVAPIDKeys } = webpush;
+import { attachSqlite, qGet, qRun } from '../db/driver.js';
+import { reminderInput, nextOccurrence, validateSubscription, pushConfig, deliverDueReminders } from '../lib/reminders.js';
+import { registerReminderRoutes } from '../routes/reminders.js';
+
+test('reminders validate dates, timezone, weekday start and reject past or ambiguous starts', () => {
+    const draft = { id: 'reminder-123', title: 'Review', date: '2030-06-03', time: '09:00', timezone: 'Asia/Kolkata', repeat: 'daily' };
+    assert.equal(reminderInput(draft, Date.parse('2029-01-01')).dueAt, Date.parse('2030-06-03T03:30:00Z'));
+    for (const change of [{ date: '2030-02-30' }, { timezone: 'invalid/zone' }, { time: '24:00' }, { repeat: 'every-second' }, { title: '' }, { date: '2030-06-01', repeat: 'weekdays' }]) assert.throws(() => reminderInput({ ...draft, ...change }, Date.parse('2029-01-01')));
+    assert.throws(() => reminderInput({ ...draft, date: '2026-11-01', time: '01:30', timezone: 'America/New_York' }, Date.parse('2026-01-01')), /ambiguous/);
+});
+test('recurrence follows local wall time through DST, weekdays, weeks and server downtime', () => {
+    const row = { start_date: '2026-03-01', local_time: '02:30', timezone: 'America/New_York', repeat_kind: 'daily' };
+    assert.equal(nextOccurrence(row, Date.parse('2026-03-08T00:00Z')), Date.parse('2026-03-08T07:30Z'));
+    assert.equal(nextOccurrence(row, Date.parse('2026-03-08T08:00Z')), Date.parse('2026-03-09T06:30Z'));
+    assert.equal(nextOccurrence({ ...row, repeat_kind: 'weekdays' }, Date.parse('2026-03-06T12:00Z')), Date.parse('2026-03-09T06:30Z'));
+    assert.equal(nextOccurrence({ ...row, repeat_kind: 'weekly' }, Date.parse('2026-04-10T12:00Z')), Date.parse('2026-04-12T06:30Z'));
+    assert.equal(nextOccurrence({ ...row, repeat_kind: 'once' }, Date.now()), null);
+});
+test('push validation blocks arbitrary network endpoints and checks matching VAPID keys', () => {
+    const subscription = { endpoint: 'https://fcm.googleapis.com/fcm/send/test', keys: { p256dh: Buffer.alloc(65).toString('base64url'), auth: Buffer.alloc(16).toString('base64url') } };
+    assert.equal(validateSubscription(subscription).endpoint, subscription.endpoint);
+    for (const endpoint of ['http://fcm.googleapis.com/x', 'https://localhost/private', 'https://169.254.169.254/', 'https://fcm.googleapis.com.evil.test/', 'https://user@fcm.googleapis.com/x', 'https://fcm.googleapis.com:444/x']) assert.throws(() => validateSubscription({ ...subscription, endpoint }));
+    assert.throws(() => validateSubscription({ ...subscription, keys: { ...subscription.keys, auth: 'short' } }));
+    const keys = generateVAPIDKeys();
+    assert.equal(pushConfig({ WEB_PUSH_PUBLIC_KEY: keys.publicKey, WEB_PUSH_PRIVATE_KEY: keys.privateKey, WEB_PUSH_SUBJECT: 'https://stratabin.com' }).ready, true);
+    assert.equal(pushConfig({ WEB_PUSH_PUBLIC_KEY: keys.publicKey, WEB_PUSH_PRIVATE_KEY: generateVAPIDKeys().privateKey, WEB_PUSH_SUBJECT: 'https://stratabin.com' }).ready, false);
+});
+
+test('reminder API isolates accounts and atomically/idempotently saves batches; worker leases, retries and expiry', async t => {
+    const db = new Database(':memory:'); attachSqlite(db); db.exec(readFileSync(new URL('../db/schema.sql', import.meta.url), 'utf8'));
+    db.prepare('INSERT INTO users (id, clerk_user_id) VALUES (?, ?)').run(1, 'first');
+    db.prepare('INSERT INTO users (id, clerk_user_id) VALUES (?, ?)').run(2, 'second');
+    const app = express(); app.use(express.json());
+    registerReminderRoutes(app, { auth: (req, res, next) => { if (!['1', '2'].includes(req.headers.authorization)) return res.sendStatus(401); req.userId = Number(req.headers.authorization); next(); } });
+    const server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
+    t.after(() => { server.close(); db.close(); });
+    const base = `http://127.0.0.1:${server.address().port}/api/assistant/reminders`;
+    const call = (path = '', method = 'GET', body, user = '1') => fetch(base + path, { method, headers: { 'Content-Type': 'application/json', Authorization: user }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    const draft = { id: 'reminder-123', title: 'Private project review', date: '2030-06-03', time: '09:00', timezone: 'Asia/Kolkata', repeat: 'daily', projectId: 'private-project' };
+    assert.equal((await call('', 'GET', undefined, '')).status, 401);
+    assert.equal((await call('/batch', 'POST', { items: [draft, { ...draft, id: 'reminder-456', date: 'invalid' }] })).status, 400);
+    assert.equal((await qGet('SELECT COUNT(*) AS count FROM assistant_reminders')).count, 0);
+    assert.equal((await call('/batch', 'POST', { items: [draft] })).status, 200);
+    assert.equal((await call('/batch', 'POST', { items: [draft] })).status, 200);
+    assert.equal((await qGet('SELECT COUNT(*) AS count FROM assistant_reminders')).count, 1);
+    assert.equal((await call('/batch', 'POST', { items: [draft] }, '2')).status, 409);
+    assert.equal((await (await call('', 'GET', undefined, '2')).json()).reminders.length, 0);
+    await call('/reminder-123', 'DELETE', undefined, '2');
+    assert.ok(await qGet('SELECT * FROM assistant_reminders WHERE id = ?', [draft.id]));
+    const now = Date.now();
+    await qRun('UPDATE assistant_reminders SET due_at = ?, start_date = ? WHERE id = ?', [now - 1000, '2026-01-01', draft.id]);
+    await qRun('INSERT INTO assistant_push_subscriptions (endpoint_hash, user_id, subscription_json) VALUES (?, ?, ?)', ['device', 1, JSON.stringify({ endpoint: 'https://fcm.googleapis.com/test' })]);
+    let deliveries = 0;
+    const config = { ready: true, vapidDetails: {} };
+    const send = async (_sub, payload) => { deliveries++; assert.equal(payload.includes('Private project'), false); assert.ok(JSON.parse(payload).tag.includes(draft.id)); };
+    await Promise.all([deliverDueReminders({ now, send, config }), deliverDueReminders({ now, send, config })]);
+    assert.equal(deliveries, 1);
+    assert.ok((await qGet('SELECT due_at FROM assistant_reminders WHERE id = ?', [draft.id])).due_at > now);
+    await qRun('UPDATE assistant_reminders SET due_at = ?, repeat_kind = ? WHERE id = ?', [now - 1000, 'once', draft.id]);
+    await deliverDueReminders({ now, config, send: async () => { throw Object.assign(new Error('temporary'), { statusCode: 503 }); } });
+    const failed = await qGet('SELECT * FROM assistant_reminders WHERE id = ?', [draft.id]);
+    assert.equal(failed.attempts, 1); assert.ok(failed.retry_at > now); assert.equal(failed.enabled, 1);
+    await deliverDueReminders({ now: failed.retry_at + 1, config, send: async () => { throw Object.assign(new Error('gone'), { statusCode: 410 }); } });
+    assert.equal((await qGet('SELECT COUNT(*) AS count FROM assistant_push_subscriptions')).count, 0);
+    assert.equal((await qGet('SELECT enabled FROM assistant_reminders WHERE id = ?', [draft.id])).enabled, 0);
+});

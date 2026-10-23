@@ -12,7 +12,7 @@ type Recognition = {
 };
 type SpeechWindow = Window & { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
 
-export default function VoiceTyping({ onInsert }: { onInsert: (text: string) => void }) {
+export default function VoiceTyping({ onInsert, destination = 'your writing' }: { onInsert: (text: string) => void; destination?: string }) {
     const [open, setOpen] = useState(false);
     const [listening, setListening] = useState(false);
     const [draft, setDraft] = useState('');
@@ -48,7 +48,7 @@ export default function VoiceTyping({ onInsert }: { onInsert: (text: string) => 
             // On an error, preserve the draft for manual recovery instead of inserting partial text silently.
             if (failed) return;
             const text = cleanup ? cleanDictation(finalText) : finalText.trim();
-            if (text) { insert.current(text); setDraft(''); setMessage('Added to your writing.'); }
+            if (text) { insert.current(text); setDraft(''); setMessage(`Added to ${destination}.`); }
             else setMessage('No speech was captured. Try again.');
         };
         setDraft(''); setMessage('');
@@ -63,7 +63,7 @@ export default function VoiceTyping({ onInsert }: { onInsert: (text: string) => 
         <button type="button" aria-expanded={open} onClick={() => setOpen(true)} title="Voice typing" aria-label="Voice typing"><Mic size={17} /><span>Dictate</span></button>
         {open && <section className="voice-panel" aria-label="Voice typing controls">
             <div className="flex justify-between items-center gap-4"><strong>Voice typing</strong><button onClick={cancel} aria-label="Cancel dictation and close"><X size={18} /></button></div>
-            <p>Speak, then stop to add text at the end of this page. Your browser’s speech service may process audio online.</p>
+            <p>Speak, then stop to add text to {destination}. Your browser’s speech service may process audio online.</p>
             <label>Language <select value={language} onChange={event => setLanguage(event.target.value)} disabled={listening}><option value="en-IN">English (India)</option><option value="en-US">English (US)</option><option value="hi-IN">Hindi</option><option value="ml-IN">Malayalam</option></select></label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={cleanup} disabled={listening} onChange={event => setCleanup(event.target.checked)} />Clean common English fillers and repeated function words</label>
             {draft && <p className="voice-draft">{draft}</p>}
