@@ -1,12 +1,12 @@
 # Personal assistant
 
-Signed-in users open Assistant from the floating workspace button. Chat, Live voice and Reminders share a black and violet panel. Live voice includes a mouse-responsive 3D particle wave, pause-animation control and reduced-motion support. The separate capsule/export workspace still works without API keys.
+Signed-in users see a compact violet 3D particle sphere labelled Agent (or their chosen name). Tap to start a live conversation; tap again to end it. Hold for 550 ms to open options, or use the visible options button, right-click, or keyboard Arrow Down. Settings, Conversation and Reminders open in a separate compact panel. API keys, model IDs, project context, the agent name and animation preference live in Settings. Missing connection details route the first tap to Settings without starting the microphone. The sphere respects reduced motion. Action proposals open the conversation for explicit review and stop live audio. The separate capsule/export workspace still works without API keys.
 
 ## Provider connections and privacy
 
 Users choose Gemini or OpenAI and supply their own API key. Provider API charges are separate from Stratabin Pro. Keys and conversations stay in React memory and clear on refresh, sign-out or Disconnect. The authenticated backend forwards requests to fixed provider endpoints; never log these request bodies. HTTPS is required.
 
-Live voice uses OpenAI Realtime WebRTC or Gemini Live WebSocket audio. The backend exchanges the permanent key for a short-lived session credential. Start, Mute and End are explicit controls; closing the panel or switching away from Voice stops the microphone and connection. Sessions stop after nine minutes and never reconnect automatically. Model IDs are editable because provider access varies. Browser dictation and read-aloud remain available for text chat. Speech is AI-generated.
+Live voice uses OpenAI Realtime WebRTC or Gemini Live WebSocket audio. The backend exchanges the permanent key for a short-lived session credential. Tap-to-start/end and a microphone mute button control the session; opening a settings/conversation/reminders panel stops the microphone and connection. Sessions stop after nine minutes and never reconnect automatically. Model IDs are editable because provider access varies. Browser dictation and read-aloud remain available for text chat. Speech is AI-generated.
 
 Only the selected, loaded project's capsule and relevant saved reminders are shared. Context over 24,000 characters is rejected, not silently truncated. Binary attachments are excluded. Cloud project access is checked before sharing or applying changes. Shared-link projects are excluded.
 
@@ -26,7 +26,7 @@ Push messages contain a generic notification, not project content. Clicking one 
 2. Run `npm run push:keys` locally once. It writes a VAPID key pair into the local `.env` without printing secrets and refuses to replace an existing pair. Copy `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY` and `WEB_PUSH_SUBJECT` into the backend host's environment settings. Keep the private key server-only. Use the same stable pair across instances and deployments; rotating it requires browsers to subscribe again.
 3. Use the deployed HTTPS domain with working Clerk authentication and the correct allowed frontend origin. Serve `/sw.js` and `/assistant-capture.js` from the frontend origin. The development app deliberately unregisters service workers on reload, so background push acceptance testing belongs on the deployed site.
 4. In Assistant > Reminders, click Enable on this device and allow notifications. A missing or invalid VAPID configuration displays setup required; it does not pretend notifications are enabled.
-5. In Live voice, supply a user-authorized Gemini/OpenAI key with access to the chosen live model. No shared provider key needs to be added to the server.
+5. In Agent settings, supply a user-authorized Gemini/OpenAI key with access to the chosen live model. No shared provider key needs to be added to the server.
 
 ## Release acceptance checks
 
