@@ -557,7 +557,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
         try {
             const { name, nodes, edges, writingContent, writingPages } = req.body || {};
             const data = JSON.stringify({
-                writingPages: Array.isArray(writingPages) ? writingPages.slice(0, 100).filter(p => p && typeof p.id === 'string' && typeof p.parentId === 'string').map(p => ({ id: p.id.slice(0, 80), parentId: p.parentId.slice(0, 80), title: String(p.title || '').slice(0, 200), content: String(p.content || '').slice(0, 500000) })) : [],
+                writingPages: Array.isArray(writingPages) ? writingPages.slice(0, 100).filter(p => p && typeof p.id === 'string' && typeof p.parentId === 'string').map(p => ({ id: p.id.slice(0, 80), parentId: p.parentId.slice(0, 80), ...(['page', 'part', 'section', 'scene'].includes(p.kind) ? { kind: p.kind } : {}), title: String(p.title || '').slice(0, 200), content: String(p.content || '').slice(0, 500000) })) : [],
                 nodes: Array.isArray(nodes) ? nodes : [],
                 edges: Array.isArray(edges) ? edges : [],
                 writingContent: typeof writingContent === 'string' ? writingContent.slice(0, 500000) : '',
@@ -684,7 +684,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 createdAt: Number.isFinite(r.createdAt) ? r.createdAt : Date.now(), updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : Date.now(), archived: r.archived === true,
             })) : undefined;
             const pageInput = writingPages === undefined && previousCanvas?.data ? JSON.parse(previousCanvas.data).writingPages : writingPages;
-            const safePages = Array.isArray(pageInput) ? pageInput.slice(0, 100).filter(p => p && typeof p.id === 'string' && p.id !== 'root' && typeof p.parentId === 'string').map(p => ({ id: p.id.slice(0, 80), parentId: p.parentId.slice(0, 80), title: typeof p.title === 'string' ? p.title.slice(0, 200) : 'Untitled page', content: typeof p.content === 'string' ? p.content.slice(0, 500000) : '' })) : [];
+            const safePages = Array.isArray(pageInput) ? pageInput.slice(0, 100).filter(p => p && typeof p.id === 'string' && p.id !== 'root' && typeof p.parentId === 'string').map(p => ({ id: p.id.slice(0, 80), parentId: p.parentId.slice(0, 80), ...(['page', 'part', 'section', 'scene'].includes(p.kind) ? { kind: p.kind } : {}), title: typeof p.title === 'string' ? p.title.slice(0, 200) : 'Untitled page', content: typeof p.content === 'string' ? p.content.slice(0, 500000) : '' })) : [];
             const data = {
                 writingPages: safePages,
                 nodes: Array.isArray(nodes) ? nodes : [],
