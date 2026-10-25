@@ -47,3 +47,5 @@
 
 /* A card is draggable until its text editor is explicitly opened. */
 .board-text-preview{flex:1;min-height:40px;width:100%;padding:10px 14px;color:#25212b;white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;font-size:16px;line-height:1.5;cursor:grab;user-select:none;touch-action:none}.board-text-preview:active,.board-node-heading:active{cursor:grabbing}.board-text-preview:focus-visible{outline:2px solid #6941af;outline-offset:-3px}.board-node-heading{min-height:36px;touch-action:none;user-select:none}.object-diamond .board-text-preview{position:relative;padding:8px 35px;text-align:center}.object-circle .board-text-preview{padding:8px 25px;text-align:center}.board-object .board-add-child{position:relative;z-index:2;min-height:34px;cursor:pointer}
+
+.brainstorm-board.tool-select.background-pan .react-flow__pane{cursor:grab}.brainstorm-board.tool-select.background-pan .react-flow__pane.dragging{cursor:grabbing}
