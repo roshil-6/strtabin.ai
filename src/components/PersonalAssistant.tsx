@@ -35,7 +35,7 @@ function AssistantSession() {
     const [tab, setTab] = useState<'chat' | 'settings' | 'reminders'>(() => new URLSearchParams(location.search).get('assistant') === 'reminders' ? 'reminders' : 'settings');
     const [voiceActive, setVoiceActive] = useState(false);
     const voice = useRef<LiveVoiceClient | null>(null);
-    const [name, setName] = useState('Agent');
+    const [name, setName] = useState('Sasha');
     const [provider, setProvider] = useState('gemini');
     const [model, setModel] = useState('gemini-2.5-flash');
     const [voiceModel, setVoiceModel] = useState('gemini-3.8-live');

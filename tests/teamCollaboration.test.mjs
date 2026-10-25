@@ -124,3 +124,11 @@ test('shared writing pages survive saving, loading and older clients omitting th
  await callRoute('post /api/projects/:id/canvas',{params:{id:'1'},body:{writingContent:'Updated main'}});
  assert.deepEqual(JSON.parse((await getProjectCanvas(1)).data).writingPages,pages);
 });
+
+test('scene types and hierarchy survive cloud saving', async () => {
+ const pages=[{id:'act',parentId:'root',kind:'part',title:'Act one',content:''},{id:'arrival',parentId:'act',kind:'scene',title:'Arrival',content:'A new beginning'}];
+ const saved=await callRoute('post /api/projects/:id/canvas',{params:{id:'1'},body:{writingPages:pages}});
+ assert.equal(saved.status,200);
+ const loaded=await callRoute('get /api/projects/:id/canvas',{params:{id:'1'}});
+ assert.deepEqual(loaded.payload.writingPages,pages);
+});

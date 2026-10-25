@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { Mic, MicOff, Settings2, MessageSquare, Bell, MoreHorizontal } from 'lucide-react';
+import { Mic, MicOff, Settings2, MessageSquare, Bell, MoreHorizontal, ChevronDown } from 'lucide-react';
 import { LiveVoiceClient, type VoiceState } from '../lib/liveVoiceClient';
 import type { VoiceProposal } from '../lib/voiceProtocol';
 import { API_BASE_URL } from '../constants';
@@ -19,6 +19,7 @@ export default function AssistantLiveVoice({ provider, apiKey, name, context, on
     const [state, setState] = useState<VoiceState>('idle');
     const [level, setLevel] = useState(0);
     const [error, setError] = useState('');
+    const [expanded, setExpanded] = useState(false);
     const [menu, setMenu] = useState(false);
     const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
     const held = useRef(false);
@@ -51,12 +52,13 @@ export default function AssistantLiveVoice({ provider, apiKey, name, context, on
     const tap = () => {
         if (held.current) { held.current = false; return; }
         setMenu(false);
+        if (!expanded) { setExpanded(true); return; }
         if (state !== 'idle') { controllerRef.current?.stop(); return; }
         if (!ready) { openSection('settings'); return; }
         start();
     };
     const label = state === 'idle' ? 'Tap to talk' : state === 'connecting' ? 'Connecting…' : state === 'muted' ? 'Microphone muted' : state === 'speaking' ? 'Speaking' : 'Listening';
-    return <section className="agent-dock" hidden={hidden} aria-label={`${name} voice agent`} onKeyDown={event => {
+    return <section className={`agent-dock ${expanded ? 'expanded' : 'collapsed'}`} hidden={hidden} aria-label={`${name} voice agent`} onKeyDown={event => {
         if (event.key === 'Escape') { setMenu(false); controllerRef.current?.stop(); launcherRef.current?.focus(); }
     }}>
         {menu && <div className="agent-options" ref={menuRef} role="group" aria-label="Agent options">
@@ -65,7 +67,7 @@ export default function AssistantLiveVoice({ provider, apiKey, name, context, on
             <button onClick={() => openSection('reminders')}><Bell size={17} />Reminders</button>
             <button onClick={() => { setMenu(false); launcherRef.current?.focus(); }}>Close options</button>
         </div>}
-        <button ref={launcherRef} className={`agent-orb ${state}`} disabled={disabled} aria-label={`${name}: ${state === 'idle' ? 'start conversation' : 'end conversation'}. Hold for options.`} aria-describedby="agent-gesture-hint"
+        <button ref={launcherRef} className={`${expanded ? 'agent-orb' : 'agent-pill'} ${state}`} disabled={disabled} aria-label={`${name}: ${!expanded ? 'expand voice agent' : state === 'idle' ? 'start conversation' : 'end conversation'}. Hold for options.`} aria-describedby={expanded ? 'agent-gesture-hint' : undefined}
             onClick={tap} onContextMenu={event => { event.preventDefault(); clearHold(); held.current = true; setMenu(true); }}
             onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) { event.preventDefault(); setMenu(true); } }}
             onPointerDown={event => {
@@ -73,14 +75,15 @@ export default function AssistantLiveVoice({ provider, apiKey, name, context, on
                 held.current = false; clearHold();
                 hold.current = setTimeout(() => { held.current = true; setMenu(true); }, 550);
             }} onPointerUp={clearHold} onPointerLeave={clearHold} onPointerCancel={() => { clearHold(); held.current = true; }}>
-            <AssistantPresence state={state} level={level} paused={!motionEnabled || hidden} />
+            {expanded ? <AssistantPresence state={state} level={level} paused={!motionEnabled || hidden} /> : <><span className="agent-three-dots" aria-hidden="true"><i /><i /><i /></span><span>Talk to {name} AI</span></>}
         </button>
-        <strong className="agent-name">{name}</strong><span className="agent-status" role="status">{label}</span>
+        {expanded && <><strong className="agent-name">{name}</strong><span className="agent-status" role="status">{label}</span>
         <div className="agent-quick-controls">
             {state !== 'idle' && <button disabled={state === 'connecting'} aria-label={state === 'muted' ? 'Unmute microphone' : 'Mute microphone'} onClick={() => controllerRef.current?.setMuted(state !== 'muted')}>{state === 'muted' ? <MicOff size={16} /> : <Mic size={16} />}</button>}
             <button aria-label="Agent options" aria-expanded={menu} onClick={() => setMenu(value => !value)}><MoreHorizontal size={19} /></button>
         </div>
-        <small id="agent-gesture-hint">{state === 'idle' ? 'Hold for options' : 'Tap circle to end'}</small>
+        <button aria-label="Minimise agent" onClick={() => { controllerRef.current?.stop(); setMenu(false); setExpanded(false); }}><ChevronDown size={16} /></button>
+        <small id="agent-gesture-hint">{state === 'idle' ? 'Hold for options' : 'Tap circle to end'}</small></>}
         {error && <div className="agent-error" role="alert">{error}<button onClick={() => setError('')}>Dismiss</button></div>}
     </section>;
 }

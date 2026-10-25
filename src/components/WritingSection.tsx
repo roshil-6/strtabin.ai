@@ -1,7 +1,8 @@
 import WritingDocument from './WritingDocument';
 import { writeWritingBlocks, writingPlainText } from '../lib/writingBranches';
 import WritingPageTree from './WritingPageTree';
-import { appendWritingBranch, pageAncestors, ROOT_PAGE } from '../lib/writingPages';
+import { appendWritingBranch, moveWritingPage, pageAncestors, ROOT_PAGE } from '../lib/writingPages';
+import type { WritingPage } from '../lib/writingPages';
 import { generateId } from '../utils/uuid';
 import toast from 'react-hot-toast';
 import { localDateKey } from '../lib/localDate';
@@ -16,6 +17,7 @@ import type { CalendarEvent } from '../store/useStore';
 interface WritingSectionProps {
     canvasId: string;
     onBranch?: () => void;
+    initialView?: 'document' | 'cards';
 }
 
 const EMPTY_PROJECT_EVENTS: Record<string, CalendarEvent[]> = {};
@@ -24,23 +26,35 @@ const EMPTY_PINNED_KEYS: string[] = [];
 export default function WritingSection(props: WritingSectionProps) {
     return <WritingProject key={props.canvasId} {...props} />;
 }
-function WritingProject({ canvasId }: WritingSectionProps) {
+function WritingProject({ canvasId, initialView = 'document' }: WritingSectionProps) {
     const canvas = useStore(state => state.canvases[canvasId]);
     const [activeId, setActiveId] = useState(ROOT_PAGE);
+    const [view, setView] = useState(initialView);
+    const [kind, setKind] = useState<NonNullable<WritingPage['kind']>>('scene');
+    const [newTitle, setNewTitle] = useState('');
     const pages = canvas?.writingPages || [];
+    const current = pages.find(page => page.id === activeId);
+    const save = (next: WritingPage[]) => useStore.getState().setWritingPages(canvasId, next);
+    const reparent = (parent: string) => { try { save(moveWritingPage(pages, activeId, parent)); } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not move section.'); } };
     const selected = pages.some(page => page.id === activeId) ? activeId : ROOT_PAGE;
-    const create = (parentId: string, title = 'Untitled page', children: string[] = []) => {
+    const create = (parentId: string, title = 'Untitled page', children: string[] = [], pageKind: WritingPage['kind'] = 'page') => {
         try {
             const result = appendWritingBranch(useStore.getState().canvases[canvasId]?.writingPages || [], parentId, title, children, generateId);
-            useStore.getState().setWritingPages(canvasId, result.pages);
+            save(result.pages.map(page => page.id === result.id ? { ...page, kind: pageKind } : page));
             setActiveId(result.id);
         } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not add page.'); }
     };
     return <div className="writing-project">
         <WritingPageTree pages={pages} activeId={selected} rootTitle={canvas?.name || canvas?.title || 'Main page'} select={setActiveId} add={parent => create(parent)} />
         <div className="writing-page-editor">
+            <div className="manuscript-toolbar"><div role="group" aria-label="Writing view"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Scene board</button></div><span>{pages.length} / 100 sections</span></div>
             <nav className="writing-breadcrumbs" aria-label="Page path"><button onClick={() => setActiveId(ROOT_PAGE)}>{canvas?.name || canvas?.title || 'Main page'}</button>{pageAncestors(pages, selected).map(page => <span key={page.id}><span aria-hidden="true">/</span><button aria-current={page.id === selected ? 'page' : undefined} onClick={() => setActiveId(page.id)}>{page.title || 'Untitled page'}</button></span>)}</nav>
-            <WritingEditor key={selected} canvasId={canvasId} pageId={selected} />
+            <form className="manuscript-create" onSubmit={event => { event.preventDefault(); create(selected, newTitle.trim() || `Untitled ${kind}`, [], kind); setNewTitle(''); }}><label>Type<select value={kind} onChange={event => setKind(event.target.value as NonNullable<WritingPage['kind']>)}><option value="part">Part</option><option value="section">Section</option><option value="scene">Scene</option><option value="page">Page</option></select></label><label>Title<input value={newTitle} maxLength={200} placeholder={`New ${kind} in ${current?.title || 'main page'}`} onChange={event => setNewTitle(event.target.value)} /></label><button type="submit" disabled={pages.length >= 100}>Add {kind}</button></form>
+            {current && <details className="manuscript-organise"><summary>Organise this {current.kind || 'page'}</summary><label>Type<select value={current.kind || 'page'} onChange={event => save(pages.map(page => page.id === selected ? { ...page, kind: event.target.value as WritingPage['kind'] } : page))}>{['part', 'section', 'scene', 'page'].map(value => <option key={value}>{value}</option>)}</select></label><label>Move into<select value={current.parentId} onChange={event => reparent(event.target.value)}><option value={ROOT_PAGE}>Main page</option>{pages.filter(page => page.id !== selected && !pageAncestors(pages, page.id).some(ancestor => ancestor.id === selected)).map(page => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label></details>}
+            <div className={`manuscript-workspace ${view}`}>
+                {view === 'cards' && <section className="manuscript-board" aria-label="Section cards"><header><h3>{current?.title || 'Project outline'}</h3><p>Sections inside this page. Open a card to write; use the outline to move between levels.</p></header><div className="manuscript-cards">{pages.filter(page => page.parentId === selected).map(page => <button className="manuscript-card" key={page.id} data-kind={page.kind || 'page'} onClick={() => setActiveId(page.id)}><span>{page.kind || 'page'}</span><strong>{page.title}</strong><p>{writingPlainText(page.content).slice(0, 240) || 'Start writing this section…'}</p><small>{pages.filter(child => child.parentId === page.id).length} subsections · Open</small></button>)}</div>{!pages.some(page => page.parentId === selected) && <p className="manuscript-empty">Add a part, section or scene above to build this level of your outline.</p>}</section>}
+                <WritingEditor key={selected} canvasId={canvasId} pageId={selected} />
+            </div>
         </div>
     </div>;
 }
