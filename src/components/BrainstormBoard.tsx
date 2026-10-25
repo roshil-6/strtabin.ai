@@ -1,4 +1,4 @@
-import { availableBoardPosition, duplicateBoardSelection, projectBoardPatch, readableBoardLabel, boardConnectionError } from '../lib/boardOperations';
+import { boardTreeIds, translateBoardTree, availableBoardPosition, duplicateBoardSelection, projectBoardPatch, readableBoardLabel, boardConnectionError } from '../lib/boardOperations';
 import { createContext, useContext, useCallback, useRef, useState, useLayoutEffect, useEffect, useMemo, type CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, Handle, Position, NodeResizer, ConnectionMode, MarkerType, applyNodeChanges, applyEdgeChanges, addEdge, reconnectEdge, useReactFlow, useNodesInitialized, type Node, type Edge, type NodeProps, type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
@@ -37,6 +37,8 @@ function Board({ canvasId }: { canvasId: string }) {
     const project = useStore(state => state.canvases[canvasId]);
     const nodes = project?.nodes || EMPTY_NODES;
     const edges = project?.edges || EMPTY_EDGES;
+    const [moveTree, setMoveTree] = useState(true);
+    const treeDrag = useRef<{ root: string; ids: Set<string>; nodes: Node[] } | null>(null);
     const [tool, setTool] = useState<Tool>('select');
     const flowNodes = useMemo(() => nodes.map(node => ({ ...node, draggable: tool === 'select', dragHandle: undefined })), [nodes, tool]);
     const pendingFocus = useRef<string[] | null>(null);
@@ -74,7 +76,12 @@ function Board({ canvasId }: { canvasId: string }) {
     const changeNodes = (changes: NodeChange[]) => {
         if (changes.some(change => change.type === 'remove')) checkpoint();
         const current = snapshot();
-        const next = applyNodeChanges(changes, current.nodes);
+        let next = applyNodeChanges(changes, current.nodes);
+        const drag = treeDrag.current;
+        if (drag) {
+            const movement = changes.find(change => change.type === 'position' && change.id === drag.root);
+            if (movement?.type === 'position' && movement.position) next = translateBoardTree(next, drag.nodes, drag.ids, drag.root, movement.position);
+        }
         const ids = new Set(next.map(node => node.id));
         write({ nodes: next, edges: current.edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)) });
     };
@@ -142,7 +149,7 @@ function Board({ canvasId }: { canvasId: string }) {
         const shortcuts: Record<string, Tool> = { v: 'select', h: 'hand', n: 'sticky', t: 'text', r: 'rectangle', l: 'connect', Escape: 'select' };
         if (shortcuts[event.key]) { setEditingId(null); setTool(shortcuts[event.key]); connectFrom.current = null; }
     }}>
-        <ReactFlow zoomOnDoubleClick={false} nodes={flowNodes} edges={edges} nodeTypes={NODE_TYPES} onNodesChange={changeNodes} onEdgesChange={changeEdges} onConnect={connect} connectionMode={ConnectionMode.Loose} edgesReconnectable onReconnectStart={checkpoint} onReconnect={(edge, connection) => { const current = snapshot(); const error = boardConnectionError(current, connection, edge.id); if (error) { setHelp(error); return; } write({ ...current, edges: reconnectEdge(edge, connection, current.edges) }); setHelp('Connection updated.'); }} onNodeDragStart={() => { setEditingId(null); checkpoint(); }} onPaneClick={event => { if (!['select', 'hand', 'connect'].includes(tool)) add(tool, screenToFlowPosition({ x: event.clientX, y: event.clientY })); }} onNodeClick={(_, node) => {
+        <ReactFlow zoomOnDoubleClick={false} nodes={flowNodes} edges={edges} nodeTypes={NODE_TYPES} onNodesChange={changeNodes} onEdgesChange={changeEdges} onConnect={connect} connectionMode={ConnectionMode.Loose} edgesReconnectable onReconnectStart={checkpoint} onReconnect={(edge, connection) => { const current = snapshot(); const error = boardConnectionError(current, connection, edge.id); if (error) { setHelp(error); return; } write({ ...current, edges: reconnectEdge(edge, connection, current.edges) }); setHelp('Connection updated.'); }} onNodeDragStart={(_, node) => { setEditingId(null); checkpoint(); const current = snapshot(); treeDrag.current = moveTree ? { root: node.id, ids: boardTreeIds(current, node.id), nodes: current.nodes } : null; }} onNodeDragStop={() => { treeDrag.current = null; }} onPaneClick={event => { if (!['select', 'hand', 'connect'].includes(tool)) add(tool, screenToFlowPosition({ x: event.clientX, y: event.clientY })); }} onNodeClick={(_, node) => {
             if (tool !== 'connect') return;
             if (!connectFrom.current) { connectFrom.current = node.id; setHelp('Now click the idea to connect to.'); }
             else { if (connectFrom.current === node.id) { setHelp('Choose a different idea to connect to.'); return; } connect({ source: connectFrom.current, target: node.id, sourceHandle: 'right', targetHandle: 'left' }); connectFrom.current = null; }
@@ -151,7 +158,7 @@ function Board({ canvasId }: { canvasId: string }) {
             <Controls showInteractive={false} />
             <MiniMap pannable zoomable nodeColor={node => String(node.data.color || COLORS[0])} />
         </ReactFlow>
-        <div className="board-topline"><div><span className="board-eyebrow">THINK WITHOUT LIMITS</span><h2>{project?.name || project?.title || 'Project'} board <span>{nodes.length} ideas</span></h2></div><button onClick={() => setTemplates(!templates)}><LayoutTemplate size={16} /><span>Templates</span></button><button onClick={exportBoard} title="Export board JSON" aria-label="Export board"><Download size={17} /></button></div>
+        <div className="board-topline"><div><span className="board-eyebrow">THINK WITHOUT LIMITS</span><h2>{project?.name || project?.title || 'Project'} board <span>{nodes.length} ideas</span></h2></div><button aria-pressed={moveTree} onClick={() => setMoveTree(value => !value)} title="Move an idea and all its descendants together">{moveTree ? 'Move tree' : 'Move box'}</button><button onClick={() => setTemplates(!templates)}><LayoutTemplate size={16} /><span>Templates</span></button><button onClick={exportBoard} title="Export board JSON" aria-label="Export board"><Download size={17} /></button></div>
         <div className="board-toolrail" aria-label="Board tools">{tools.map(({ id, icon: Icon, label }) => <button key={id} className={tool === id ? 'active' : ''} title={label} aria-label={label} aria-pressed={tool === id} onClick={() => { setEditingId(null); connectFrom.current = null; if (!['select', 'hand', 'connect'].includes(id)) { add(id); return; } setTool(id); setHelp(id === 'connect' ? 'Click a source idea, then a target. Or drag between the dots on any objects.' : ''); }}><Icon size={20} /></button>)}<span className="rail-divider" /><button title="Upload image" aria-label="Upload image" onClick={() => upload.current?.click()}><ImagePlus size={20} /></button><input ref={upload} type="file" accept="image/*" hidden onChange={event => {
             const file = event.target.files?.[0]; if (!file) return; if (file.size > 3 * 1024 * 1024) { setHelp('Choose an image under 3 MB.'); return; }
             if (!file.type.startsWith('image/')) { setHelp('Choose an image file.'); return; }

@@ -15,7 +15,7 @@ export default function Canvas() {
     return (
         <div className="project-studio flex h-full theme-page overflow-hidden">
             <main className="flex flex-1 min-w-0 flex-col ">
-                {board && <div className="manuscript-toolbar"><div role="group" aria-label="Flow workspace"><button aria-pressed={!sceneBoard} onClick={() => setSceneBoard(false)}>Brainstorming</button><button aria-pressed={sceneBoard} onClick={() => setSceneBoard(true)}>Parts & scenes</button></div></div>}
+                {board && <div className="manuscript-toolbar"><div role="group" aria-label="Flow workspace"><button aria-pressed={!sceneBoard} onClick={() => setSceneBoard(false)}>Brainstorming</button><button aria-pressed={sceneBoard} onClick={() => setSceneBoard(true)}>Parts & sections</button></div></div>}
                 <div className="flex-1 min-h-0 overflow-hidden">
                     {board && !sceneBoard ? <BrainstormBoard key={id} canvasId={id} /> : <WritingSection key={`${id}:${board}`} canvasId={id} initialView={board ? 'cards' : 'document'} />}
                 </div>

@@ -37,3 +37,21 @@ export function boardConnectionError(current:BoardSnapshot,connection:{source:st
  if(current.edges.some(e=>e.id!==replacingId&&e.source===connection.source&&e.target===connection.target))return 'These ideas are already connected.';
  return '';
 }
+
+/** Follow outgoing connections and parent-idea links, without looping on cyclic boards. */
+export function boardTreeIds(board: BoardSnapshot, root: string): Set<string> {
+ const ids = new Set<string>(); const pending = [root];
+ while (pending.length) {
+  const id = pending.pop()!;
+  if (ids.has(id) || !board.nodes.some(node => node.id === id)) continue;
+  ids.add(id);
+  pending.push(...board.edges.filter(edge => edge.source === id).map(edge => edge.target));
+  pending.push(...board.nodes.filter(node => node.data.parentIdeaId === id).map(node => node.id));
+ }
+ return ids;
+}
+export function translateBoardTree(nodes: Node[], original: Node[], ids: Set<string>, root: string, position: {x:number;y:number}): Node[] {
+ const anchor = original.find(node => node.id === root); if (!anchor) return nodes;
+ const dx = position.x - anchor.position.x, dy = position.y - anchor.position.y;
+ return nodes.map(node => { const before = original.find(item => item.id === node.id); return ids.has(node.id) && before ? { ...node, position: {x:before.position.x + dx,y:before.position.y + dy} } : node; });
+}

@@ -50,3 +50,15 @@ test('duplicated groups preserve spacing and avoid overlapping the original grou
  assert.equal(b.position.y-a.position.y,50);
  assert.ok(a.position.y>240);
 });
+import { boardTreeIds, translateBoardTree } from '../src/lib/boardOperations.ts';
+test('tree dragging moves connected descendants once and preserves unrelated boxes', () => {
+ const nodes=[node('root',10,20),node('child',100,40),node('leaf',180,60),node('other',500,500)];
+ nodes[2].data.parentIdeaId='child';
+ const ids=boardTreeIds({nodes,edges:[{id:'a',source:'root',target:'child'},{id:'b',source:'child',target:'root'}]},'root');
+ assert.deepEqual([...ids].sort(),['child','leaf','root']);
+ const moved=translateBoardTree(nodes,nodes,ids,'root',{x:30,y:50});
+ assert.deepEqual(moved.map(n=>n.position),[{x:30,y:50},{x:120,y:70},{x:200,y:90},{x:500,y:500}]);
+ const again=translateBoardTree(moved,nodes,ids,'root',{x:40,y:60});
+ assert.deepEqual(again[1].position,{x:130,y:80});
+ assert.deepEqual(nodes[1].position,{x:100,y:40});
+});
