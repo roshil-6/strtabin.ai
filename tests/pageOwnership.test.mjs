@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import ts from 'typescript';
+
+test('adding pages through both current and legacy actions never creates projects or clears content', async () => {
+ globalThis.localStorage={getItem:()=>null,setItem:()=>{}};
+ const sourceUrl=new URL('../src/store/useStore.ts',import.meta.url);
+ const constants=ts.transpileModule((await readFile(new URL('../src/constants.ts',import.meta.url),'utf8')).replaceAll('import.meta.env','({})'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+ const constantsUrl='data:text/javascript;base64,'+Buffer.from(constants).toString('base64');
+ let compiled=ts.transpileModule(await readFile(sourceUrl,'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+ compiled=compiled.replace(/from ["']([^"']+)["']/g,(_,name)=>`from ${JSON.stringify(name==='../constants'?constantsUrl:name.startsWith('.')?new URL(name+'.ts',sourceUrl).href:import.meta.resolve(name))}`);
+ const {default:store}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
+ const project={id:'project',name:'My project',nodes:[{id:'idea',position:{x:0,y:0},data:{label:'Keep'}}],edges:[],writingContent:'Main writing',todos:[{id:'task',text:'Keep task',completed:false}],updatedAt:1};
+ store.setState({canvases:{project},currentCanvasId:'project',nodes:project.nodes,edges:[]});
+ const second=store.getState().addCanvasPage('project');
+ const third=store.getState().addSubCanvasToMerged('project');
+ const state=store.getState();
+ assert.deepEqual(Object.keys(state.canvases),['project']);
+ assert.deepEqual(state.canvases.project.writingPages.map(p=>[p.id,p.title,p.parentId,p.kind]),[[second,'Page 2','root','page'],[third,'Page 3','root','page']]);
+ assert.equal(state.canvases.project.writingContent,'Main writing');
+ assert.deepEqual(state.canvases.project.nodes,project.nodes);
+ assert.deepEqual(state.canvases.project.todos,project.todos);
+ assert.equal(state.canvases.project.mergedCanvasIds,undefined);
+ assert.equal(state.currentCanvasId,'project');
+ assert.throws(()=>state.addCanvasPage('missing'),/no longer/);
+ state.duplicateCanvas('project',null);
+ const duplicate=Object.values(store.getState().canvases).find(item=>item.id!=='project');
+ assert.notEqual(duplicate.writingPages,state.canvases.project.writingPages);
+ assert.notEqual(duplicate.nodes[0].data,state.canvases.project.nodes[0].data);
+ duplicate.writingPages[0].content='Only the copy';
+ assert.equal(store.getState().canvases.project.writingPages[0].content,'');
+});

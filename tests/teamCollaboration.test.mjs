@@ -132,3 +132,17 @@ test('scene types and hierarchy survive cloud saving', async () => {
  const loaded=await callRoute('get /api/projects/:id/canvas',{params:{id:'1'}});
  assert.deepEqual(loaded.payload.writingPages,pages);
 });
+
+test('partial page saves preserve the project board, tasks, main writing and timeline', async () => {
+ const before={nodes:[{id:'idea',position:{x:1,y:2},data:{label:'Keep'}}],edges:[],writingContent:'Original writing',todos:[{id:'task',text:'Keep task',completed:false}],timelineContent:'Keep timeline',name:'Same project'};
+ assert.equal((await callRoute('post /api/projects/:id/canvas',{params:{id:'1'},body:before})).status,200);
+ const pages=[{id:'second',parentId:'root',kind:'page',title:'Page 2',content:'Second page'}];
+ assert.equal((await callRoute('post /api/projects/:id/canvas',{params:{id:'1'},body:{writingPages:pages}})).status,200);
+ const stored=JSON.parse((await getProjectCanvas(1)).data);
+ for(const key of Object.keys(before)) assert.deepEqual(stored[key],before[key]);
+ assert.deepEqual(stored.writingPages,pages);
+ assert.equal((await callRoute('post /api/projects/:id/canvas',{params:{id:'1'},body:{writingPages:null}})).status,400);
+ assert.deepEqual(JSON.parse((await getProjectCanvas(1)).data),stored);
+ assert.equal((await callRoute('post /api/projects/:id/canvas',{params:{id:'1'},body:{writingPages:[]}})).status,200);
+ assert.deepEqual(JSON.parse((await getProjectCanvas(1)).data).writingPages,[]);
+});
