@@ -18,5 +18,5 @@ export default function WritingPageTree({ pages, activeId, rootTitle, select, ad
             {open && children.length > 0 && <ul>{children.map(child => render(child.id, child.title || 'Untitled page', [...trail, id]))}</ul>}
         </li>;
     };
-    return <nav className="writing-page-tree" aria-label="Project pages"><div className="writing-pages-heading"><span>PROJECT OUTLINE</span><button type="button" onClick={() => add(ROOT_PAGE)}><Plus size={15} /> Add page</button></div><ul>{render(ROOT_PAGE, rootTitle || 'Main page')}</ul><p>Pages stay connected to this project. Use + to add a subpage.</p></nav>;
+    return <nav className="writing-page-tree" aria-label="Project pages"><div className="writing-pages-heading"><span>PROJECT OUTLINE</span><button type="button" onClick={() => add(ROOT_PAGE)}><Plus size={15} /> Add page</button></div><ul>{render(ROOT_PAGE, rootTitle || 'Main page')}</ul><p>Add page creates a blank writing page. Sections and notes have separate controls in the editor.</p></nav>;
 }
