@@ -23,3 +23,5 @@ export function moveWritingPage(pages: WritingPage[], id: string, parentId: stri
     if (id === parentId || pageAncestors(pages, parentId).some(page => page.id === id)) throw new Error('A section cannot be moved inside itself.');
     return pages.map(page => page.id === id ? { ...page, parentId } : page);
 }
+
+export const writingKindLabel = (kind?: WritingPage['kind']) => kind === 'scene' ? 'note' : kind || 'page';
