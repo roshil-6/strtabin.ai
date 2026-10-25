@@ -1,7 +1,7 @@
 import { availableBoardPosition, duplicateBoardSelection, projectBoardPatch, readableBoardLabel, boardConnectionError } from '../lib/boardOperations';
-import { createContext, useContext, useCallback, useRef, useState, useLayoutEffect, type CSSProperties } from 'react';
+import { createContext, useContext, useCallback, useRef, useState, useLayoutEffect, useEffect, useMemo, type CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, Handle, Position, NodeResizer, ConnectionMode, MarkerType, applyNodeChanges, applyEdgeChanges, addEdge, reconnectEdge, useReactFlow, type Node, type Edge, type NodeProps, type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
+import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, Handle, Position, NodeResizer, ConnectionMode, MarkerType, applyNodeChanges, applyEdgeChanges, addEdge, reconnectEdge, useReactFlow, useNodesInitialized, type Node, type Edge, type NodeProps, type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { MousePointer2, Hand, StickyNote, Type, Square, Circle, Diamond, ArrowUpRight, Undo2, Redo2, Copy, Trash2, Download, ImagePlus, Sparkles, LayoutTemplate, X, Plus, GripHorizontal } from 'lucide-react';
 import useStore from '../store/useStore';
@@ -11,13 +11,13 @@ type Tool = 'select' | 'hand' | 'sticky' | 'text' | 'rectangle' | 'circle' | 'di
 type Snapshot = { nodes: Node[]; edges: Edge[] };
 const COLORS = ['#f9e8a0', '#d9eacc', '#d8e7fb', '#efdafa', '#f9d6c6', '#ffffff'];
 const BoardHistoryContext = createContext<() => void>(() => {});
-const BoardEditingContext = createContext<{ tool: Tool; editingId: string | null; edit: (id: string | null) => void; update: (id: string, label: string) => void; addChild: (id: string) => void }>({ tool: 'select', editingId: null, edit: () => {}, update: () => {}, addChild: () => {} });
+const BoardEditingContext = createContext<{ tool: Tool; editingId: string | null; edit: (id: string | null) => void; update: (id: string, label: string) => void; addChild: (id: string) => void; finish: (id: string) => void }>({ tool: 'select', editingId: null, edit: () => {}, update: () => {}, addChild: () => {}, finish: () => {} });
 const EMPTY_NODES: Node[] = [];
 const EMPTY_EDGES: Edge[] = [];
 
 function BoardObject({ id, data, selected }: NodeProps) {
     const checkpoint = useContext(BoardHistoryContext);
-    const { tool, editingId, edit, update, addChild } = useContext(BoardEditingContext);
+    const { tool, editingId, edit, update, addChild, finish } = useContext(BoardEditingContext);
     const editing = editingId === id && tool === 'select';
     const textInput = useRef<HTMLTextAreaElement>(null);
     useLayoutEffect(() => { if (editing) textInput.current?.focus({ preventScroll: true }); }, [editing]);
@@ -26,9 +26,9 @@ function BoardObject({ id, data, selected }: NodeProps) {
     return <div className={`board-object object-${kind} ${selected ? 'object-selected' : ''}`} style={{ background: String(data.color || COLORS[0]), '--object-color': String(data.color || COLORS[0]) } as CSSProperties} onDoubleClick={beginEditing}>
         <NodeResizer isVisible={selected} minWidth={180} minHeight={160} onResizeStart={checkpoint} />
         {[Position.Top, Position.Right, Position.Bottom, Position.Left].map(position => <Handle key={position} id={position} type="source" position={position} />)}
-        <div className="board-node-heading"><GripHorizontal size={15}/><span>{data.parentIdeaId ? 'SUB-IDEA' : 'IDEA'}</span></div>
-        <textarea ref={textInput} className="nodrag nopan nowheel" aria-label={data.parentIdeaId ? "Sub-idea text" : "Idea text"} placeholder={kind === 'text' ? 'Add text' : 'Write your idea...'} value={readableBoardLabel(data.label)} readOnly={tool !== 'select'} style={{ pointerEvents: tool === 'select' ? 'auto' : 'none' }} tabIndex={tool === 'select' ? 0 : -1} onFocus={beginEditing} onBlur={() => edit(null)} onChange={event => update(id, event.target.value)} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.currentTarget.blur(); } }} />
-        {tool === 'select' && <button className="board-add-child nodrag nopan" aria-label="Add connected sub-idea" onClick={event => { event.stopPropagation(); addChild(id); }}><Plus size={14}/>Sub-idea</button>}
+        <div className="board-node-heading" title="Drag to move idea"><GripHorizontal size={15}/><span>{data.parentIdeaId ? 'SUB-IDEA' : 'IDEA'}</span></div>
+        {editing ? <textarea ref={textInput} className="nodrag nopan nowheel" aria-label={data.parentIdeaId ? "Sub-idea text" : "Idea text"} placeholder={kind === 'text' ? 'Add text' : 'Write your idea...'} value={readableBoardLabel(data.label)} readOnly={tool !== 'select'} style={{ pointerEvents: tool === 'select' ? 'auto' : 'none' }} tabIndex={tool === 'select' ? 0 : -1} onFocus={beginEditing} onBlur={() => finish(id)} onChange={event => update(id, event.target.value)} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.currentTarget.blur(); } }} /> : <div className="board-text-preview" role="button" tabIndex={tool === 'select' ? 0 : -1} aria-label="Edit idea text" onClick={beginEditing} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); beginEditing(); } }}>{readableBoardLabel(data.label) || 'Click to write your idea…'}</div>}
+        {tool === 'select' && <button className="board-add-child nodrag nopan" aria-label="Add connected sub-idea" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); addChild(id); }}><Plus size={14}/>Sub-idea</button>}
     </div>;
 }
 const NODE_TYPES = { brainstorm: BoardObject, default: BoardObject, text: BoardObject, question: BoardObject, decision: BoardObject, image: BoardObject, subproject: BoardObject };
@@ -38,6 +38,9 @@ function Board({ canvasId }: { canvasId: string }) {
     const nodes = project?.nodes || EMPTY_NODES;
     const edges = project?.edges || EMPTY_EDGES;
     const [tool, setTool] = useState<Tool>('select');
+    const flowNodes = useMemo(() => nodes.map(node => ({ ...node, draggable: tool === 'select', dragHandle: undefined })), [nodes, tool]);
+    const pendingFocus = useRef<string[] | null>(null);
+    const nodesReady = useNodesInitialized();
     const [editingId, setEditingId] = useState<string | null>(null);
     const [color, setColor] = useState(COLORS[0]);
     const [templates, setTemplates] = useState(false);
@@ -47,6 +50,11 @@ function Board({ canvasId }: { canvasId: string }) {
     const connectFrom = useRef<string | null>(null);
     const upload = useRef<HTMLInputElement>(null);
     const { screenToFlowPosition, fitView, getViewport } = useReactFlow();
+    useEffect(() => {
+        if (!pendingFocus.current || !nodesReady || !pendingFocus.current.every(id => nodes.some(node => node.id === id && node.measured?.width))) return;
+        void fitView({ nodes: pendingFocus.current.map(id => ({ id })), padding: .4, maxZoom: 1, duration: 200 });
+        pendingFocus.current = null;
+    }, [nodesReady, nodes, fitView]);
     const navigate = useNavigate();
     const location = useLocation();
     const root = useRef<HTMLDivElement>(null);
@@ -90,7 +98,7 @@ function Board({ canvasId }: { canvasId: string }) {
         const position = availableBoardPosition(current.nodes, requestedPosition);
         write({ ...current, nodes: [...current.nodes.map(node => ({ ...node, selected: false })), { id, type: 'brainstorm', position, style: { width: 200, height: 190 }, data: { kind, color, label: '' }, selected: true }] });
         setTool('select'); setEditingId(id);
-        requestAnimationFrame(() => void fitView({nodes:[{id}],padding:0.5,maxZoom:1,duration:150}));
+        pendingFocus.current = [id];
     };
     const addChild = (parentId: string) => {
         const current = snapshot();
@@ -102,7 +110,7 @@ function Board({ canvasId }: { canvasId: string }) {
         const position = availableBoardPosition(current.nodes, {x:parent.position.x+width+100,y:parent.position.y});
         write({nodes:[...current.nodes.map(node=>({...node,selected:false})),{id,type:'brainstorm',position,style:{width:220,height:190},selected:true,data:{kind:'sticky',label:'',color:parent.data.color||color,parentIdeaId:parentId}}],edges:[...current.edges,{id:crypto.randomUUID(),source:parentId,target:id,sourceHandle:'right',targetHandle:'left',type:'smoothstep',markerEnd:{type:MarkerType.ArrowClosed}}]});
         setTool('select'); setEditingId(id);
-        requestAnimationFrame(()=>void fitView({nodes:[{id:parentId},{id}],padding:0.4,maxZoom:1,duration:200}));
+        pendingFocus.current = [parentId, id];
     };
     const undo = () => { if (!history.length) return; setFuture(items => [...items, snapshot()]); write(history[history.length - 1]); setHistory(items => items.slice(0, -1)); };
     const redo = () => { if (!future.length) return; setHistory(items => [...items, snapshot()]); write(future[future.length - 1]); setFuture(items => items.slice(0, -1)); };
@@ -127,18 +135,18 @@ function Board({ canvasId }: { canvasId: string }) {
     const selected = nodes.filter(node => node.selected);
     const tools = [{ id: 'select', icon: MousePointer2, label: 'Select (V)' }, { id: 'hand', icon: Hand, label: 'Pan (H)' }, { id: 'sticky', icon: StickyNote, label: 'Sticky note (N)' }, { id: 'text', icon: Type, label: 'Text (T)' }, { id: 'rectangle', icon: Square, label: 'Rectangle (R)' }, { id: 'circle', icon: Circle, label: 'Circle' }, { id: 'diamond', icon: Diamond, label: 'Decision' }, { id: 'connect', icon: ArrowUpRight, label: 'Connect (L)' }] as const;
 
-    return <BoardHistoryContext.Provider value={checkpoint}><BoardEditingContext.Provider value={{ tool, editingId, edit: setEditingId, update: updateText, addChild }}><div ref={root} className={`brainstorm-board tool-${tool}`} tabIndex={0} aria-label="Brainstorming board" onKeyDown={event => {
+    return <BoardHistoryContext.Provider value={checkpoint}><BoardEditingContext.Provider value={{ tool, editingId, edit: setEditingId, update: updateText, addChild, finish: id => setEditingId(current => current === id ? null : current) }}><div ref={root} className={`brainstorm-board tool-${tool}`} tabIndex={0} aria-label="Brainstorming board" onKeyDown={event => {
         if ((event.target as HTMLElement).closest('input,textarea,select,[contenteditable=true]')) return;
         if (event.ctrlKey || event.metaKey) { if (event.key.toLowerCase() === 'z') { event.preventDefault(); if (event.shiftKey) redo(); else undo(); } if (event.key.toLowerCase() === 'd') { event.preventDefault(); duplicate(); } return; }
         if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); remove(); return; }
         const shortcuts: Record<string, Tool> = { v: 'select', h: 'hand', n: 'sticky', t: 'text', r: 'rectangle', l: 'connect', Escape: 'select' };
         if (shortcuts[event.key]) { setEditingId(null); setTool(shortcuts[event.key]); connectFrom.current = null; }
     }}>
-        <ReactFlow zoomOnDoubleClick={false} nodes={nodes} edges={edges} nodeTypes={NODE_TYPES} onNodesChange={changeNodes} onEdgesChange={changeEdges} onConnect={connect} connectionMode={ConnectionMode.Loose} edgesReconnectable onReconnectStart={checkpoint} onReconnect={(edge, connection) => { const current = snapshot(); const error = boardConnectionError(current, connection, edge.id); if (error) { setHelp(error); return; } write({ ...current, edges: reconnectEdge(edge, connection, current.edges) }); setHelp('Connection updated.'); }} onNodeDragStart={checkpoint} onPaneClick={event => { if (!['select', 'hand', 'connect'].includes(tool)) add(tool, screenToFlowPosition({ x: event.clientX, y: event.clientY })); }} onNodeClick={(_, node) => {
+        <ReactFlow zoomOnDoubleClick={false} nodes={flowNodes} edges={edges} nodeTypes={NODE_TYPES} onNodesChange={changeNodes} onEdgesChange={changeEdges} onConnect={connect} connectionMode={ConnectionMode.Loose} edgesReconnectable onReconnectStart={checkpoint} onReconnect={(edge, connection) => { const current = snapshot(); const error = boardConnectionError(current, connection, edge.id); if (error) { setHelp(error); return; } write({ ...current, edges: reconnectEdge(edge, connection, current.edges) }); setHelp('Connection updated.'); }} onNodeDragStart={() => { setEditingId(null); checkpoint(); }} onPaneClick={event => { if (!['select', 'hand', 'connect'].includes(tool)) add(tool, screenToFlowPosition({ x: event.clientX, y: event.clientY })); }} onNodeClick={(_, node) => {
             if (tool !== 'connect') return;
             if (!connectFrom.current) { connectFrom.current = node.id; setHelp('Now click the idea to connect to.'); }
             else { if (connectFrom.current === node.id) { setHelp('Choose a different idea to connect to.'); return; } connect({ source: connectFrom.current, target: node.id, sourceHandle: 'right', targetHandle: 'left' }); connectFrom.current = null; }
-        }} nodesDraggable={tool === 'select'} elementsSelectable={tool !== 'hand'} selectionOnDrag={tool === 'select'} panOnDrag={tool === 'hand' ? true : [1, 2]} deleteKeyCode={null} fitView fitViewOptions={{ padding: 0.3, maxZoom: 1 }} minZoom={0.15} maxZoom={3} defaultEdgeOptions={{ type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed }, style: { stroke: '#8591a6', strokeWidth: 2 } }} proOptions={{ hideAttribution: true }}>
+        }} nodesDraggable={tool === 'select'} nodeDragThreshold={5} nodeClickDistance={5} elementsSelectable={tool !== 'hand'} selectionOnDrag={tool === 'select'} panOnDrag={tool === 'hand' ? true : [1, 2]} deleteKeyCode={null} fitView fitViewOptions={{ padding: 0.3, maxZoom: 1 }} minZoom={0.15} maxZoom={3} defaultEdgeOptions={{ type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed }, style: { stroke: '#8591a6', strokeWidth: 2 } }} proOptions={{ hideAttribution: true }}>
             <Background gap={24} size={1} color="var(--board-dot)" />
             <Controls showInteractive={false} />
             <MiniMap pannable zoomable nodeColor={node => String(node.data.color || COLORS[0])} />
@@ -152,7 +160,7 @@ function Board({ canvasId }: { canvasId: string }) {
         <div className="board-palette" aria-label="Note colors">{COLORS.map(value => <button key={value} title={`Color ${value}`} aria-label={`Color ${value}`} aria-pressed={color === value} style={{ background: value }} className={color === value ? 'active' : ''} onClick={() => { setColor(value); if (selected.length) { checkpoint(); const current = snapshot(); write({ ...current, nodes: current.nodes.map(node => node.selected ? { ...node, data: { ...node.data, color: value } } : node) }); } }} />)}</div>
         {selected.length > 0 && <div className="board-selection"><span>{selected.length} selected</span><button title="Duplicate selected (Ctrl+D)" aria-label="Duplicate selected" onClick={duplicate}><Copy size={16} /></button><button title="Delete selected" aria-label="Delete selected" onClick={remove}><Trash2 size={16} /></button></div>}
         {selectedEdge && !selected.length && <div className="board-selection edge-properties"><input aria-label="Connection label" placeholder="Connection label" value={String(selectedEdge.label || '')} onFocus={checkpoint} onChange={event => editEdge({ label: event.target.value })} /><select aria-label="Connection style" value={selectedEdge.type || 'smoothstep'} onChange={event => { checkpoint(); editEdge({ type: event.target.value }); }}><option value="smoothstep">Elbow</option><option value="default">Curve</option><option value="straight">Straight</option></select><button aria-label="Delete connection" onClick={remove}><Trash2 size={15} /></button></div>}
-        <div className="board-history"><button disabled={!history.length} onClick={undo} aria-label="Undo"><Undo2 size={17} /></button><button disabled={!future.length} onClick={redo} aria-label="Redo"><Redo2 size={17} /></button><span>{help || (tool === 'select' ? 'Drag to select  /  Scroll to zoom  /  Right-drag to pan' : tool === 'hand' ? 'Drag anywhere to explore your board' : tool === 'connect' ? 'Click two ideas to connect them' : 'Click anywhere to place your idea')}</span></div>
+        <div className="board-history"><button disabled={!history.length} onClick={undo} aria-label="Undo"><Undo2 size={17} /></button><button disabled={!future.length} onClick={redo} aria-label="Redo"><Redo2 size={17} /></button><span>{help || (tool === 'select' ? 'Drag an idea to move / Click text to write / Right-drag to pan' : tool === 'hand' ? 'Drag anywhere to explore your board' : tool === 'connect' ? 'Click two ideas to connect them' : 'Click anywhere to place your idea')}</span></div>
         {!nodes.length && <div className="board-welcome"><span className="board-welcome-icon"><StickyNote size={27} /></span><h3>A little space for your next big idea.</h3><p>Drop a note. Follow a thought. Connect the dots.</p><div><button onClick={() => add('sticky')}>Add your first note</button><button onClick={() => template('Brainstorm')}>Start with a template</button></div></div>}
         {templates && <div className="board-templates"><header><h3>A starting point for your thinking</h3><button aria-label="Close templates" onClick={() => setTemplates(false)}><X size={18} /></button></header>{['Brainstorm', 'Retrospective', 'SWOT'].map(name => <button key={name} onClick={() => template(name)}><LayoutTemplate size={20} /><span>{name}<small>{name === 'Brainstorm' ? 'Explore a question and its possibilities' : name === 'SWOT' ? 'Find strengths, risks, and opportunities' : 'Reflect, learn, and plan the next step'}</small></span><ArrowUpRight size={16} /></button>)}</div>}
         <button className="board-ai" onClick={() => navigate(`/ai/${canvasId}?prompt=${encodeURIComponent('Help me brainstorm this project. Review my board and writing, suggest new ideas, and identify useful connections.')}`, { state: location.state })}><Sparkles size={16} /><span>Brainstorm with AI</span></button>
