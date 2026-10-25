@@ -77,6 +77,7 @@ export default function AssistantLiveVoice({ provider, apiKey, name, context, on
             }} onPointerUp={clearHold} onPointerLeave={clearHold} onPointerCancel={() => { clearHold(); held.current = true; }}>
             {expanded ? <AssistantPresence state={state} level={level} paused={!motionEnabled || hidden} /> : <><span className="agent-three-dots" aria-hidden="true"><i /><i /><i /></span><span>Talk to {name} AI</span></>}
         </button>
+        <button className="agent-rename-hint" onClick={() => openSection('settings')}>(change the name of the AI according to your choice)</button>
         {expanded && <><strong className="agent-name">{name}</strong><span className="agent-status" role="status">{label}</span>
         <div className="agent-quick-controls">
             {state !== 'idle' && <button disabled={state === 'connecting'} aria-label={state === 'muted' ? 'Unmute microphone' : 'Mute microphone'} onClick={() => controllerRef.current?.setMuted(state !== 'muted')}>{state === 'muted' ? <MicOff size={16} /> : <Mic size={16} />}</button>}
