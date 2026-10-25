@@ -40,9 +40,14 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
     const save = (next: WritingPage[]) => useStore.getState().setWritingPages(canvasId, next);
     const reparent = (parent: string) => { try { save(moveWritingPage(pages, activeId, parent)); } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not move section.'); } };
     const selected = pages.some(page => page.id === activeId) ? activeId : ROOT_PAGE;
-    const selectPage = (id: string) => { setActiveId(id); const page = pages.find(item => item.id === id); setView(!page?.kind || page.kind === 'page' ? 'document' : 'cards'); };
+    const selectPage = (id: string) => { setActiveId(id); const page = pages.find(item => item.id === id); const isPage = !page?.kind || page.kind === 'page'; setView(isPage ? 'document' : 'cards'); setOpenNoteId(isPage ? null : id); };
     const create = (parentId: string, title = 'Untitled page', children: string[] = [], pageKind: WritingPage['kind'] = 'page') => {
         try {
+            if (pageKind === 'page' && parentId === ROOT_PAGE) {
+                const id = useStore.getState().addCanvasPage(canvasId);
+                setActiveId(id); setView('document');
+                return;
+            }
             const result = appendWritingBranch(useStore.getState().canvases[canvasId]?.writingPages || [], parentId, title, children, generateId);
             save(result.pages.map(page => page.id === result.id ? { ...page, kind: pageKind } : page));
             if (!pageKind || pageKind === 'page') { setActiveId(result.id); setView('document'); } else { setView('cards'); setOpenNoteId(result.id); setExpandedCards(previous => new Set([...previous, parentId, result.id])); }

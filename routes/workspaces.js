@@ -654,7 +654,17 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const project = await getProject(projectId);
             if (!project) return res.status(404).json({ error: 'Project not found.' });
             if (!(await hasWorkspaceAccess(req.userId, project.workspace_id))) return res.status(403).json({ error: 'Access denied.' });
-            const { nodes, edges, writingContent, writingPages, name, todos, codeFiles, timelineContent, externalAiReports } = req.body || {};
+            const previousCanvas = await getProjectCanvas(projectId);
+            const previousData = previousCanvas?.data ? JSON.parse(previousCanvas.data) : {};
+            const incoming = req.body || {};
+            for (const field of ['nodes', 'edges', 'writingPages', 'todos', 'codeFiles', 'externalAiReports']) {
+                if (incoming[field] !== undefined && !Array.isArray(incoming[field])) return res.status(400).json({ error: `${field} must be an array.` });
+            }
+            for (const field of ['writingContent', 'name', 'timelineContent']) {
+                if (incoming[field] !== undefined && typeof incoming[field] !== 'string') return res.status(400).json({ error: `${field} must be text.` });
+            }
+            // A partial update changes only supplied fields; omission must never erase another section.
+            const { nodes, edges, writingContent, writingPages, name, todos, codeFiles, timelineContent, externalAiReports } = { ...previousData, ...incoming };
             const safeTodos = Array.isArray(todos)
                 ? todos.slice(0, 500).map((t) => {
                     if (!t || typeof t !== 'object') return null;
@@ -675,7 +685,6 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                     updatedAt: Number(f.updatedAt || Date.now())
                 } : null).filter(Boolean)
                 : undefined;
-            const previousCanvas = externalAiReports === undefined || writingPages === undefined ? await getProjectCanvas(projectId) : null;
             const previousReports = previousCanvas?.data ? JSON.parse(previousCanvas.data).externalAiReports : undefined;
             const reportInput = externalAiReports === undefined ? previousReports : externalAiReports;
             const safeReports = Array.isArray(reportInput) ? reportInput.slice(0, 30).filter(r => r && typeof r.id === 'string' && typeof r.content === 'string' && r.content.trim()).map(r => ({
