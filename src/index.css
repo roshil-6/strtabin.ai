@@ -823,22 +823,40 @@ a {
 .dashboard-project-card [class*="text-teal-"]{color:var(--primary)!important}
 .dashboard-project-card>div:first-child{background:var(--border-strong)!important}
 
-/* Black glass surfaces with restrained lavender reflections, without bloom. */
-:root:not([data-theme="light"]){--bg-page:#000;--bg-panel:#030204;--bg-elevated:#09060d;--bg-card:#050307;--bg-muted:#0a070e;--input-bg:rgba(176,72,255,.035);--input-border:rgba(176,72,255,.2);--border:rgba(176,72,255,.11);--border-strong:rgba(176,72,255,.22);--primary:#b86cff;--accent-soft:rgba(176,72,255,.12)}
-[data-theme="dark"] .dashboard-shell aside{background:linear-gradient(115deg,#09060d 0,#000 46%,#030204 100%)!important;box-shadow:inset -1px 0 0 #e6d7ff08}
-[data-theme="dark"] .dashboard-shell .dashboard-project-card,[data-theme="dark"] .ai-project-card{background:linear-gradient(125deg,#ffffff09 0,#ffffff02 19%,transparent 38%),linear-gradient(165deg,#0c0712 0,#000 64%,#040205 100%)!important;box-shadow:inset 0 1px 0 #eee3ff20,0 8px 24px #0005!important;border-color:#b86cff30!important}
-[data-theme="dark"] .dashboard-shell .dashboard-project-card:hover,[data-theme="dark"] .ai-project-card:hover{border-color:#b86cff80!important;box-shadow:inset 0 1px 0 #eee3ff38,0 10px 28px #0008!important}
-[data-theme="dark"] :is(.ai-provider-grid>button,.ai-capsule-options,.ai-project-search,.project-ai-button){background-image:linear-gradient(120deg,#ffffff07,transparent 35%,#b86cff03)!important;box-shadow:inset 0 1px 0 #eee3ff12}
-[data-theme="dark"] :is(.ai-primary-action,.dashboard-header button.bg-primary){background:linear-gradient(150deg,#d8c6ff2b,#b86cff12)!important;box-shadow:inset 0 1px 0 #eee3ff26!important;border-color:#b86cff40!important;color:var(--primary)!important}
-[data-theme="dark"] .workspace-header{background:#000;border-color:var(--border-strong)}
-
-/* Rich violet reflections and crisp white typography throughout dark mode. */
-:root:not([data-theme="light"]){--text:#fff;--text-secondary:#fff;--text-muted:#d1c9de;--text-dim:#b0a5c2;--primary:#b86cff;--accent-soft:rgba(158,43,255,.16);--border:rgba(188,107,255,.13);--border-strong:rgba(188,107,255,.28)}
+/* Charcoal workspace palette: quiet surfaces, crisp text, restrained violet accents. */
+:root:not([data-theme="light"]),[data-theme="dark"] {
+  --bg-page:#0d1118; --bg-panel:#10151d; --bg-elevated:#1b2230;
+  --bg-card:#151c26; --bg-muted:#242d3c;
+  --text:#fff; --text-secondary:#e3e9f3; --text-muted:#aab8ce; --text-dim:#8291a8;
+  --primary:#b299f6; --accent-soft:rgba(160,131,235,.13);
+  --border:rgba(154,175,209,.13); --border-strong:rgba(154,175,209,.24);
+  --input-bg:#111720; --input-border:rgba(154,175,209,.22);
+  --note-surface:#151c26; --note-border:rgba(154,175,209,.22); --note-edge:rgba(255,255,255,.04);
+  --card-shadow:inset 0 1px 0 #ffffff04,0 3px 12px #00000012;
+  --card-shadow-hover:inset 0 1px 0 #ffffff07,0 4px 16px #00000018;
+}
+[data-theme="dark"] .dashboard-shell aside {background:linear-gradient(160deg,#10151d,#0d1118)!important;box-shadow:none}
+[data-theme="dark"] :is(.dashboard-shell .dashboard-project-card,.ai-project-card,.dashboard-hero-card,.dashboard-option-card) {
+  background:linear-gradient(120deg,#181f2a,#121821)!important;
+  border-color:var(--border-strong)!important;box-shadow:var(--card-shadow)!important;
+}
+[data-theme="dark"] :is(.dashboard-shell .dashboard-project-card,.ai-project-card):hover {
+  border-color:#69738d!important;box-shadow:var(--card-shadow-hover)!important;
+}
+[data-theme="dark"] .dashboard-shell .dashboard-card--selected {border-color:var(--primary)!important}
+[data-theme="dark"] :is(.workspace-header,.writing-toolbar) {background:var(--bg-panel);border-color:var(--border)}
+[data-theme="dark"] :is(.ai-provider-grid>button,.ai-capsule-options,.ai-project-search,.project-ai-button) {background-color:var(--bg-card);box-shadow:none}
+[data-theme="dark"] :is(.ai-primary-action,.dashboard-header button.bg-primary,.team-primary,.project-ai-button) {
+  background:linear-gradient(140deg,#292744,#211f38)!important;border-color:#8d78c83d!important;color:#d2bdff!important;box-shadow:inset 0 1px 0 #ffffff05!important;
+}
 [data-theme="light"]{--primary:#8517cc;--accent-soft:rgba(133,23,204,.09)}
-[data-theme="dark"] :is(.text-white\/80,.text-white\/70){color:#fff!important}
-[data-theme="dark"] .text-white\/60{color:#eee7f7!important}
-[data-theme="dark"] .text-white\/50{color:#d8cfe5!important}
-[data-theme="dark"] .text-white\/40{color:#c0b5ce!important}
-[data-theme="dark"] :is(.team-primary,.ai-primary-action,.project-ai-button){background:linear-gradient(120deg,#bd65ff16 0,#8e21d625 28%,#c56dff14 48%,#6f13b718 78%,#d6a4ff14 100%)!important;border-color:#bd65ff60!important;box-shadow:inset 0 1px 0 #eac6ff24!important}
+[data-theme="dark"] :is(.text-white\/80,.text-white\/70){color:var(--text-secondary)!important}
+[data-theme="dark"] :is(.text-white\/60,.text-white\/50,.text-white\/40){color:var(--text-muted)!important}
+.dashboard-shell .dashboard-project-card {border-radius:11px!important}
+.dashboard-shell .dashboard-header h2 {font-size:30px;line-height:1.25;font-weight:500;letter-spacing:-.025em}
+.dashboard-shell .dashboard-tabs {gap:12px!important;border-bottom:1px solid var(--border)!important;padding-bottom:0!important}
+.dashboard-shell .dashboard-tabs button {width:auto;flex-shrink:0;white-space:nowrap;border-radius:0;padding:13px 12px!important;border-bottom:2px solid transparent}
+.dashboard-shell .dashboard-tabs button[aria-pressed="true"] {background:transparent;border-bottom-color:var(--primary)}
+.dashboard-shell .dashboard-tabs button:focus-visible {outline:2px solid var(--primary);outline-offset:-3px}
 
 .calendar-reminder-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 24px 16px;padding:16px 18px;border:1px solid var(--border-strong);border-radius:12px;background:var(--accent-soft);flex-shrink:0}.calendar-reminder-banner>div{display:flex;align-items:center;gap:12px;min-width:0}.calendar-reminder-banner svg{color:var(--primary);flex-shrink:0}.calendar-reminder-banner strong{display:block;font-size:13px;color:var(--text);font-weight:500}.calendar-reminder-banner small{display:block;font-size:12px;line-height:1.7;color:var(--text-muted);margin-top:4px}.calendar-reminder-banner button{padding:10px 14px;min-height:44px;border-radius:9px;border:1px solid var(--border-strong);font-size:12px;color:var(--primary);white-space:nowrap;background:var(--bg-panel)}.calendar-reminder-banner button:disabled{opacity:.5}@media(max-width:600px){.calendar-reminder-banner{margin:0 8px 12px;align-items:flex-start;flex-wrap:wrap;padding:14px}.calendar-reminder-banner button{margin-left:29px}}

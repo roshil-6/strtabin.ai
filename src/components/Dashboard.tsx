@@ -1395,6 +1395,10 @@ export default function Dashboard() {
                 key={p.id}
                 name={(p.title || p.name || '').trim() || 'Untitled'}
                 status={p.isStuck ? 'Blocked' : todoCount > 0 && completedTodoCount === todoCount ? 'Complete' : p.isCurrent || hasContent ? 'In progress' : 'Not started'}
+                description={nextTodoLine || (previewText ? previewText.slice(0, 120) : undefined)}
+                taskCount={todoCount}
+                progress={completionRate}
+                tone={isMerged ? 'amber' : p.isCurrent ? 'green' : p.projectType === 'notes' ? 'blue' : 'violet'}
                 lockedOpen={renamingId === p.id || showMoveMenu === p.id || showDuplicateMenu === p.id}
                 selectionMode={selectionMode}
                 selected={isSelected}
