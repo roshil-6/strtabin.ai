@@ -1,3 +1,4 @@
+import { dashboardDestination } from '../lib/dashboardDestination';
 import CompactProjectCard from './CompactProjectCard';
 import LavenderDotBackground from './LavenderDotBackground';
 import { localDateKey } from '../lib/localDate';
@@ -1379,6 +1380,7 @@ export default function Dashboard() {
     );
 
     function renderProjectCard(p: CanvasData) {
+        const destination = dashboardDestination(activeTab, p.id);
         const isSelected = selectedIds.includes(p.id);
         const isMerged = !!p.mergedCanvasIds;
         const wordCount = (p.writingContent || '').trim().split(/\s+/).filter(Boolean).length;
@@ -1395,6 +1397,8 @@ export default function Dashboard() {
                 key={p.id}
                 name={(p.title || p.name || '').trim() || 'Untitled'}
                 status={p.isStuck ? 'Blocked' : todoCount > 0 && completedTodoCount === todoCount ? 'Complete' : p.isCurrent || hasContent ? 'In progress' : 'Not started'}
+                onOpen={destination ? () => navigate(destination.path) : undefined}
+                openLabel={destination?.label}
                 description={nextTodoLine || (previewText ? previewText.slice(0, 120) : undefined)}
                 taskCount={todoCount}
                 progress={completionRate}
