@@ -39,7 +39,7 @@ export default function AssistantPresence({ state, level, paused = false }: { st
                 for (const point of points) {
                     ctx.globalAlpha = .22 + (point.z + 1.1) / 2.2 * .78;
                     const gradient = ctx.createRadialGradient(point.x - point.size * .3, point.y - point.size * .4, 0, point.x, point.y, point.size);
-                    gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(.3, '#d8a2ff'); gradient.addColorStop(1, '#7330b1');
+                    gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(.3, '#c4bcff'); gradient.addColorStop(1, '#6776ba');
                     ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(point.x, point.y, point.size, 0, Math.PI * 2); ctx.fill();
                 }
                 ctx.globalAlpha = 1;
