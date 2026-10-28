@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { attachSqlite } from '../db/driver.js';
-import { createWorkspaceGroupChat, getChatWithParticipants, getChatsListEnriched, createMessage, getMessages, appendProjectReport, getProjectCanvas } from '../db/models.js';
+import { createWorkspaceGroupChat, getChatWithParticipants, getChatsListEnriched, createMessage, getMessages, appendProjectReport, getProjectCanvas, getWorkspaceRevision } from '../db/models.js';
 const database=new Database(':memory:');
 database.pragma('foreign_keys = ON');
 database.exec(readFileSync(new URL('../db/schema.sql',import.meta.url),'utf8'));
@@ -145,4 +145,15 @@ test('partial page saves preserve the project board, tasks, main writing and tim
  assert.deepEqual(JSON.parse((await getProjectCanvas(1)).data),stored);
  assert.equal((await callRoute('post /api/projects/:id/canvas',{params:{id:'1'},body:{writingPages:[]}})).status,200);
  assert.deepEqual(JSON.parse((await getProjectCanvas(1)).data).writingPages,[]);
+});
+
+
+test('workspace revision handles empty related tables and tracks later updates', async () => {
+ database.prepare("INSERT INTO workspaces (id,name,type,owner_id) VALUES (99,'Empty','individual',1)").run();
+ const before = await getWorkspaceRevision(99);
+ assert.ok(before.revision);
+ assert.equal(before.revision.includes('null'), false);
+ database.prepare("INSERT INTO projects (id,workspace_id,title) VALUES (99,99,'New project')").run();
+ assert.notEqual((await getWorkspaceRevision(99)).revision, before.revision);
+ assert.equal(await getWorkspaceRevision(9999), null);
 });

@@ -100,18 +100,22 @@ export async function getWorkspaceRevision(workspaceId) {
         SELECT
             w.updated_at AS w_u,
             (SELECT COUNT(*) FROM workspace_members wm WHERE wm.workspace_id = w.id) AS member_count,
-            (SELECT ${ifNull('MAX(p.updated_at)', "''")} FROM projects p WHERE p.workspace_id = w.id) AS p_max,
-            (SELECT ${ifNull('MAX(al.created_at)', "''")} FROM activity_logs al WHERE al.workspace_id = w.id) AS a_max,
-            (SELECT ${ifNull('MAX(wm.joined_at)', "''")} FROM workspace_members wm WHERE wm.workspace_id = w.id) AS m_max,
-            (SELECT ${ifNull('MAX(mdt.updated_at)', "''")} FROM member_daily_tasks mdt WHERE mdt.workspace_id = w.id) AS t_max,
-            (SELECT ${ifNull('MAX(pc.updated_at)', "''")} FROM project_canvases pc
+            (SELECT MAX(p.updated_at) FROM projects p WHERE p.workspace_id = w.id) AS p_max,
+            (SELECT MAX(al.created_at) FROM activity_logs al WHERE al.workspace_id = w.id) AS a_max,
+            (SELECT MAX(wm.joined_at) FROM workspace_members wm WHERE wm.workspace_id = w.id) AS m_max,
+            (SELECT MAX(mdt.updated_at) FROM member_daily_tasks mdt WHERE mdt.workspace_id = w.id) AS t_max,
+            (SELECT MAX(pc.updated_at) FROM project_canvases pc
                 INNER JOIN projects pj ON pj.id = pc.project_id WHERE pj.workspace_id = w.id) AS c_max
         FROM workspaces w WHERE w.id = ?
     `,
         [workspaceId]
     );
     if (!row) return null;
-    const revision = `${row.w_u}|${row.member_count}|${row.p_max}|${row.a_max}|${row.m_max}|${row.t_max}|${row.c_max}`;
+    // Keep timestamp aggregates nullable in SQL: PostgreSQL cannot coalesce them
+    // with an empty string. Normalize only after the database returns them.
+    const revision = [row.w_u, row.member_count, row.p_max, row.a_max, row.m_max, row.t_max, row.c_max]
+        .map(value => value instanceof Date ? value.toISOString() : value ?? '')
+        .join('|');
     return { revision };
 }
 
