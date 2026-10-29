@@ -47,7 +47,7 @@ export default function PricingSection({ signedIn }: { signedIn: boolean }) {
                         <ul className="my-7 pt-6 border-t border-white/10 space-y-4">
                             {proFeatures.map(feature => <li key={feature} className="flex gap-3 text-sm text-white leading-relaxed"><Check size={17} aria-hidden="true" className="text-primary shrink-0 mt-0.5" /><span>{feature}</span></li>)}
                         </ul>
-                        <div className="mt-auto rounded-xl bg-primary/[0.06] border border-primary/15 p-4 text-sm leading-relaxed text-white/75">Pro subscriptions aren’t open yet. You can start with Free today.<Link to="/billing" className="block mt-3 text-primary underline underline-offset-4">View billing setup & test checkout</Link></div>
+                        <div className="mt-auto rounded-xl bg-primary/[0.06] border border-primary/15 p-4 text-sm leading-relaxed text-white/75">Start with Free, or view Pro subscription options.<Link to="/billing" className="block mt-3 text-primary underline underline-offset-4">View plans & billing</Link></div>
                     </article>
                 </div>
                 <p className="mt-6 text-sm text-white/65 leading-relaxed max-w-3xl">These are the planned launch allowances; plan limits are not enforced yet. Your own AI provider’s subscription and usage limits apply separately.</p>
