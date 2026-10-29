@@ -1,3 +1,4 @@
+import { currentAccount } from '../lib/accountStorage';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import useStore, { type CanvasData } from '../store/useStore';
@@ -27,7 +28,9 @@ export default function ProjectSync() {
         if (!userId) return;
         const queue = new ProjectSaveQueue<Payload>(async (id, payload) => {
             const token = await tokenRef.current();
-            if (!token) throw new Error('Sign in again to sync your changes.');
+            if (!token || currentAccount() !== userId) throw new Error('Sign in again to sync your changes.');
+            const claims = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+            if (claims.sub !== userId) throw new Error('Account changed. This save belongs to the previous account.');
             return workspaceService.saveProjectCanvas(Number(id.slice(5)), payload, token);
         }, () => {
             const ids = queue.pendingIds();

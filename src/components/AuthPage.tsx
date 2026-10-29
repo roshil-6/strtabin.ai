@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SignIn, SignUp, useAuth } from '@clerk/clerk-react';
 import { ArrowLeft, ArrowRight, Network, ListChecks, Sparkles } from 'lucide-react';
 import { enableGuestMode, clearGuestMode } from '../constants';
-import { restoreGuestDataIfNeeded } from '../store/useStore';
 import LavenderDotBackground from './LavenderDotBackground';
 import './AuthPage.css';
 
@@ -35,7 +34,6 @@ export default function AuthPage() {
         try { sessionStorage.removeItem('stratabin-auth-prefill'); } catch { /* Storage may be blocked. */ }
         if (isLoaded && isSignedIn) {
             clearGuestMode();
-            if (restoreGuestDataIfNeeded()) { window.location.assign('/dashboard'); return; }
             navigate('/dashboard', { replace: true });
         }
     }, [isLoaded, isSignedIn, navigate]);

@@ -1,3 +1,4 @@
+import { currentAccount } from '../lib/accountStorage';
 import { useTimetables } from '../store/useTimetables';
 import LavenderDotBackground from './LavenderDotBackground';
 import { useMemo, useRef, useState, useEffect } from 'react';
@@ -34,7 +35,7 @@ function Workspace() {
     const [params] = useSearchParams();
     const { userId } = useAuth();
     const draftKey = `stratabin:ai-draft:${userId || 'guest'}:${id}`;
-    const [draft] = useState(() => { try { return JSON.parse(sessionStorage.getItem(draftKey) || '{}') || {}; } catch { return {}; } });
+    const [draft] = useState(() => { try { return JSON.parse(sessionStorage.getItem(`${currentAccount()}:${draftKey}`) || '{}') || {}; } catch { return {}; } });
     const project = useStore(state => state.canvases[id]);
     const reports = project?.externalAiReports || EMPTY_REPORTS;
     const [provider, setProvider] = useState<ReportProvider>(['chatgpt', 'claude', 'gemini', 'other'].includes(draft.provider) ? draft.provider : 'chatgpt');
@@ -62,7 +63,7 @@ function Workspace() {
     const [showArchived, setShowArchived] = useState(false);
     const [undoSave, setUndoSave] = useState<ReportUndo | null>(null);
     useEffect(() => { document.title = `Use my AI — ${project?.name || 'Project'} | Stratabin`; }, [project?.name]);
-    useEffect(() => { try { sessionStorage.setItem(draftKey, JSON.stringify({ provider, instruction, reportTitle, reportContent, editingReport })); } catch { /* The editor remains usable when storage is unavailable. */ } }, [draftKey, provider, instruction, reportTitle, reportContent, editingReport]);
+    useEffect(() => { try { sessionStorage.setItem(`${currentAccount()}:${draftKey}`,  JSON.stringify({ provider, instruction, reportTitle, reportContent, editingReport })); } catch { /* The editor remains usable when storage is unavailable. */ } }, [draftKey, provider, instruction, reportTitle, reportContent, editingReport]);
     const fileInput = useRef<HTMLInputElement>(null);
     const timetables = useTimetables(state => state.tables);
     const packageText = useMemo(() => fullCapsule && project ? buildProjectCapsule(project, { projectCalendarEvents: calendars, writingPinnedCalendarEventKeys: pins, timelines, diagrams, dailyExecutionLogs: logs, timetables }, instruction) : buildProjectAiPackage(project || {}, sections, instruction), [project, sections, instruction, fullCapsule, calendars, pins, timelines, diagrams, logs, timetables]);
