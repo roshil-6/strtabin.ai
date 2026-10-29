@@ -30,3 +30,15 @@ test('completing an already completed task is idempotent and undo preserves its 
     assert.equal(result.undo.completedTaskIds.length, 0);
     assert.equal(undoAssistantActions(result.project, {}, result.undo).project.todos[0].completed, true);
 });
+
+test('generated maps append connected editable ideas and undo preserves existing content',()=>{
+ let sequence=0;
+ const existing={...project,nodes:[{id:'keep',position:{x:0,y:0},data:{label:'Keep'}}],edges:[]};
+ const result=planAssistantActions(existing,{},[action('create_flow',{text:'Launch\nResearch\nBuild\nReview'})],1,()=>`generated-${++sequence}`);
+ assert.equal(result.project.nodes.length,5);assert.equal(result.project.edges.length,3);
+ const added=result.project.nodes.slice(1);assert.equal(added[0].type,'brainstorm');
+ for(const edge of result.project.edges){assert.equal(edge.source,added[0].id);assert.ok(added.some(node=>node.id===edge.target));}
+ assert.deepEqual(undoAssistantActions(result.project,{},result.undo).project.nodes,existing.nodes);
+ assert.equal(existing.nodes.length,1);
+ assert.throws(()=>planAssistantActions(existing,{},[action('create_flow',{text:'Only root'})],1,()=> 'id'));
+});

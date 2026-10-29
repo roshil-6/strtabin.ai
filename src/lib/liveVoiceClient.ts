@@ -3,6 +3,8 @@ import { decodePcm, pcmBase64, parseVoiceProposal, type VoiceProposal } from './
 export type VoiceState = 'idle' | 'connecting' | 'listening' | 'speaking' | 'muted';
 type Options = {
     provider: string;
+    audioContext?: AudioContext;
+    initialRequest?: string;
     createSession: (signal: AbortSignal) => Promise<{ token: string; setup?: object; maxSeconds: number }>;
     onState: (state: VoiceState) => void;
     onLevel: (level: number) => void;
@@ -36,9 +38,12 @@ export class LiveVoiceClient {
     async start() {
         this.options.onState('connecting');
         try {
+            this.context = this.options.audioContext;
             if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('Live voice needs HTTPS and a browser with microphone support.');
-            this.context = new AudioContext({ sampleRate: 16000 });
+            this.context = this.context || new AudioContext({ sampleRate: 16000 });
             await this.context.resume();
+            if (this.stopped) return;
+            if (this.context.state === 'suspended') throw new Error('Tap Sasha once to allow audio playback in this browser.');
             this.timers.push(setTimeout(() => { if (!this.ready) this.fail('Voice connection timed out. Check microphone permission and try again.'); }, 30000));
             const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
             if (this.stopped) { stream.getTracks().forEach(track => track.stop()); return; }
@@ -46,7 +51,7 @@ export class LiveVoiceClient {
             stream.getAudioTracks().forEach(track => track.addEventListener('ended', () => this.fail('Microphone disconnected. Start a new voice session when ready.')));
             const session = await this.options.createSession(this.abort.signal);
             if (this.stopped) return;
-            this.timers.push(setTimeout(() => this.fail('Voice session ended after nine minutes. Start a new session to continue.'), Math.min(session.maxSeconds, 540) * 1000));
+            this.timers.push(setTimeout(() => this.fail('Voice session time is complete. Start a new session to continue.'), Math.min(session.maxSeconds, 540) * 1000));
             if (this.options.provider === 'openai') await this.startOpenAI(session.token);
             else await this.startGemini(session.token, session.setup || {});
         } catch (error) {
@@ -112,6 +117,8 @@ export class LiveVoiceClient {
             if (data.error) { this.fail('Gemini rejected the voice session. Check your live model ID and account access.'); return; }
             if (data.setupComplete && !this.ready) {
                 this.ready = true; this.state('listening');
+                if (this.options.initialRequest) this.options.onTranscript('user', this.options.initialRequest);
+                if (this.options.initialRequest !== undefined) socket.send(JSON.stringify({clientContent:{turns:[{role:'user',parts:[{text:this.options.initialRequest || 'I called your wake word. Briefly say you are ready, then listen.'}]}],turnComplete:true}}));
                 const source = this.context!.createMediaStreamSource(this.stream!);
                 this.capture = new AudioWorkletNode(this.context!, 'assistant-capture');
                 const silence = this.context!.createGain(); silence.gain.value = 0;
@@ -128,7 +135,7 @@ export class LiveVoiceClient {
             if (content?.interrupted) this.clearAudio();
             if (content?.inputTranscription?.text) this.transcript.user = (this.transcript.user + content.inputTranscription.text).slice(-12000);
             if (content?.outputTranscription?.text) this.transcript.assistant = (this.transcript.assistant + content.outputTranscription.text).slice(-12000);
-            for (const part of content?.modelTurn?.parts || []) if (part.inlineData?.mimeType?.startsWith('audio/pcm')) this.play(part.inlineData.data, Number(/rate=(\d+)/.exec(part.inlineData.mimeType)?.[1] || 24000));
+            for (const part of (content?.interrupted ? [] : content?.modelTurn?.parts || [])) if (part.inlineData?.mimeType?.startsWith('audio/pcm')) this.play(part.inlineData.data, Number(/rate=(\d+)/.exec(part.inlineData.mimeType)?.[1] || 24000));
             if (content?.turnComplete || content?.interrupted) {
                 for (const role of ['user', 'assistant'] as const) { if (this.transcript[role]) this.options.onTranscript(role, this.transcript[role]); this.transcript[role] = ''; }
             }
@@ -148,7 +155,7 @@ export class LiveVoiceClient {
         const source = context.createBufferSource(); source.buffer = buffer; source.connect(context.destination);
         this.sources.add(source); this.state('speaking');
         source.onended = () => { source.disconnect(); this.sources.delete(source); if (!this.sources.size) this.state('listening'); };
-        const start = Math.max(context.currentTime, this.playhead); source.start(start); this.playhead = start + buffer.duration;
+        const start = Math.max(context.currentTime + 0.035, this.playhead); source.start(start); this.playhead = start + buffer.duration;
     }
     private clearAudio() { for (const source of this.sources) { source.onended = null; try { source.stop(); } catch { /* already stopped */ } source.disconnect(); } this.sources.clear(); this.playhead = 0; this.state('listening'); }
     setMuted(muted: boolean) {
