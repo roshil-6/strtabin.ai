@@ -1,7 +1,8 @@
+import { publicFeatures, publicFaqs } from '../content/publicContent';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
-import { Zap, ArrowRight, Bot, X, Compass, Target, Rocket, Layout, PenTool, Calendar, GitBranch, FolderOpen, Layers, Sparkles, Users, ChevronDown, Network, FileText, CheckSquare, Lightbulb, Star } from 'lucide-react';
+import { Zap, ArrowRight, Bot, X, Compass, Target, Rocket, PenTool, GitBranch, Layers, Sparkles, Users, ChevronDown, Network, FileText, CheckSquare, Lightbulb, Star } from 'lucide-react';
 
 import { enableGuestMode } from '../constants';
 import HexagonBackground from './HexagonBackground';
@@ -28,36 +29,7 @@ export default function LandingPage() {
         }
     }, []);
 
-    const faqs = [
-        {
-            q: "What is Stratabin and how does the AI strategy planning work?",
-            a: "Stratabin is an AI workspace and strategy planner for ideas. Notes, tasks, and your AI help you unscatter your thoughts and turn them into execution plans. Choose project context to download or copy into your own AI, then save its response alongside your work."
-        },
-        {
-            q: "Is Stratabin free to use?",
-            a: "You can get started free. The planned Free allowance is 4 active projects with one timetable per project. Pro is planned at ₹109 per month for unlimited projects, unlimited timetables, and team workspaces. Pro subscriptions are not open and plan limits are not enforced yet. Your own AI provider’s charges and limits apply separately."
-        },
-        {
-            q: "Can I use Stratabin on my phone or tablet?",
-            a: "Absolutely. Stratabin is a Progressive Web App (PWA) that installs on any device — iPhone, Android, tablet, or desktop. It works offline and provides a native app-like experience with touch-optimized controls."
-        },
-        {
-            q: "How is Stratabin different from Notion, Miro, or Trello?",
-            a: "Unlike task-only tools (Trello) or document tools (Notion) or whiteboard tools (Miro), Stratabin unifies all three: a distraction-free writing editor, project timelines, and integrated task management — all powered by AI that understands your strategy context."
-        },
-        {
-            q: "Can I work with a team or share my projects?",
-            a: "Yes. Create Team Workspaces to invite members via email or username. Share public projects in the community feed, track execution streaks, and build strategies together. Individual workspaces stay private; team workspaces support roles (admin/member) and visibility (private/public)."
-        },
-        {
-            q: "Can I merge or connect multiple strategy projects?",
-            a: "Yes. Stratabin's project merging feature combines multiple canvases into a unified view. Organize related projects in folders."
-        },
-        {
-            q: "How do I use my own AI?",
-            a: "Select the writing, board ideas, tasks, and timeline you want to share. Download or copy the brief, attach it in your AI account, and save the response back into the project."
-        },
-    ];
+    const faqs = publicFaqs;
 
     return (
         <div className={`min-h-[100dvh] theme-page font-sans selection:bg-white/20 relative ${showHowTo ? 'overflow-hidden' : 'overflow-x-hidden'}`}>
@@ -250,20 +222,9 @@ export default function LandingPage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {[
-                            { icon: PenTool, title: "Distraction-Free Writing", desc: "Long-form writing editor with split view, branch creation, and a collapsible planner for deep strategic thinking." },
-                            { icon: Layout, title: "Project Writing", desc: "Write down ideas, organize plans, and keep project resources together." },
-                            { icon: Bot, title: "Your AI. Your full project context.", desc: "Copy or download a project capsule, share it in your own ChatGPT, Claude, or Gemini account, and save the response with your project. You choose what to include." },
-                            { icon: GitBranch, title: "Branch & Merge Ideas", desc: "Split one idea into multiple branches, or merge separate strategy canvases into a unified project overview." },
-                            { icon: Calendar, title: "Calendar & Timeline", desc: "Built-in calendar with event reminders and a timeline planner tied directly to your strategy projects." },
-                            { icon: FolderOpen, title: "Folder Workspaces", desc: "Organize projects into custom folders for writing, tasks, and project resources." },
-                            { icon: Users, title: "Team & Social Workspaces", desc: "Create team workspaces, invite members, share public projects, and build together. Streaks and progress scoring keep everyone accountable." },
-                            { icon: Layers, title: "Project Merging", desc: "Combine multiple strategy canvases into one master view with tabbed sub-projects for complex initiatives." },
-                            { icon: Sparkles, title: "Task Management", desc: "Integrated to-do lists for every project. Track progress alongside your strategy, not in a separate tool." },
-                            { icon: Zap, title: "Works Everywhere", desc: "Progressive Web App that installs on phones, tablets, and desktops. Touch-optimized mobile interface with offline support." },
-                        ].map((feat, i) => (
+                        {publicFeatures.map((feat, i) => (
                             <div key={i} className="group p-5 md:p-7 bg-white/[0.02] border border-white/[0.04] rounded-2xl hover:border-primary/20 hover:bg-white/[0.03] transition-all duration-300">
-                                <feat.icon size={22} className="text-primary mb-4 group-hover:scale-110 transition-transform" />
+                                <Sparkles size={22} className="text-primary mb-4 group-hover:scale-110 transition-transform" />
                                 <h3 className="text-sm md:text-base font-black text-white mb-2">{feat.title}</h3>
                                 <p className="text-white/30 text-xs md:text-sm leading-relaxed">{feat.desc}</p>
                             </div>
@@ -283,7 +244,7 @@ export default function LandingPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
                         {[
                             { step: "01", title: "Capture & Write", desc: "Start with your raw ideas in the writing editor. Use split view to compare angles, and organize your notes." },
-                            { step: "02", title: "Plan & Organize", desc: "Organize ideas in your project notes. Merge related projects, create folder workspaces, and let AI organize the structure." },
+                            { step: "02", title: "Plan & Organize", desc: "Organize ideas in your project notes. Merge related projects, create folder workspaces, and review AI suggestions for the structure." },
                             { step: "03", title: "Execute & Track", desc: "Convert strategies into tasks, set calendar deadlines, build timelines, and use your AI reports to monitor progress and identify gaps." },
                         ].map((item, idx) => (
                             <div key={idx} className="relative group">

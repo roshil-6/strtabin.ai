@@ -15,6 +15,7 @@ const proFeatures = [
     'Shared projects and task assignments',
     'Team chat and shared insights',
     'All Free planning tools and AI capsules',
+    'Sasha AI chat and voice with daily usage allowances',
 ];
 
 export default function PricingSection({ signedIn }: { signedIn: boolean }) {
@@ -40,17 +41,17 @@ export default function PricingSection({ signedIn }: { signedIn: boolean }) {
                         </Link>
                     </article>
                     <article aria-labelledby="pro-plan-title" className="flex flex-col rounded-2xl border border-primary/45 bg-[#0b080f] p-6 md:p-8">
-                        <div className="flex items-center justify-between gap-3 flex-wrap"><h3 id="pro-plan-title" className="text-xl font-semibold text-white flex items-center gap-2"><Users size={20} aria-hidden="true" className="text-primary" />Pro</h3><span className="rounded-full border border-primary/25 px-3 py-1 text-xs text-primary">Coming soon</span></div>
+                        <div className="flex items-center justify-between gap-3 flex-wrap"><h3 id="pro-plan-title" className="text-xl font-semibold text-white flex items-center gap-2"><Users size={20} aria-hidden="true" className="text-primary" />Pro</h3><span className="rounded-full border border-primary/25 px-3 py-1 text-xs text-primary">Monthly plan</span></div>
                         <p className="mt-2 text-sm leading-relaxed text-white/70">For bigger plans and working together.</p>
                         <p className="mt-7 mb-1"><span className="text-4xl font-semibold text-white">₹109</span><span className="ml-2 text-sm text-white/65">/ month</span></p>
-                        <p className="text-sm text-white/60">Planned monthly price in INR</p>
+                        <p className="text-sm text-white/60">INR · up to 12 monthly billing cycles</p>
                         <ul className="my-7 pt-6 border-t border-white/10 space-y-4">
                             {proFeatures.map(feature => <li key={feature} className="flex gap-3 text-sm text-white leading-relaxed"><Check size={17} aria-hidden="true" className="text-primary shrink-0 mt-0.5" /><span>{feature}</span></li>)}
                         </ul>
                         <div className="mt-auto rounded-xl bg-primary/[0.06] border border-primary/15 p-4 text-sm leading-relaxed text-white/75">Start with Free, or view Pro subscription options.<Link to="/billing" className="block mt-3 text-primary underline underline-offset-4">View plans & billing</Link></div>
                     </article>
                 </div>
-                <p className="mt-6 text-sm text-white/65 leading-relaxed max-w-3xl">These are the planned launch allowances; plan limits are not enforced yet. Your own AI provider’s subscription and usage limits apply separately.</p>
+                <p className="mt-6 text-sm text-white/65 leading-relaxed max-w-3xl">Free project and timetable allowances are planned limits and are not enforced yet. Sasha AI requires Pro and has daily usage allowances. Your own AI provider’s subscription and usage limits apply separately.</p>
             </div>
         </section>
     );

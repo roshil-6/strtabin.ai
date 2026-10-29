@@ -1,22 +1,49 @@
 {
-    "rewrites": [
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/features",
+      "destination": "/features/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/app.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/index.html",
+      "headers": [
         {
-            "source": "/(.*)",
-            "destination": "/index.html"
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
         }
-    ],
-    "headers": [
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
         {
-            "source": "/index.html",
-            "headers": [
-                { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-            ]
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/app.html",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
         },
         {
-            "source": "/sw.js",
-            "headers": [
-                { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-            ]
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
         }
-    ]
+      ]
+    }
+  ]
 }

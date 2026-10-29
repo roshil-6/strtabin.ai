@@ -1,3 +1,4 @@
+import './WorkspacePage.css';
 import { localDateKey } from '../lib/localDate';
 /**
  * Workspace detail page: projects, members, activity feed
@@ -394,8 +395,8 @@ export default function WorkspacePage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[var(--bg-page)]">
-      <div className="max-w-6xl mx-auto p-3 md:p-6">
+    <div className="team-workspace-page min-h-[100dvh] bg-[var(--bg-page)]">
+      <div className="team-workspace-shell">
         <button
           onClick={() => navigate('/dashboard')}
           className="flex items-center gap-2 text-white/50 hover:text-white mb-3 md:mb-6 text-xs md:text-sm font-bold"
@@ -425,7 +426,7 @@ export default function WorkspacePage() {
                     className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-white/10 hover:bg-white/20 rounded-lg md:rounded-xl text-white font-bold text-xs md:text-sm transition-all"
                   >
                     <UserPlus size={14} className="md:w-4 md:h-4" />
-                    <span className="hidden sm:inline">Invite</span>
+                    <span>Invite</span>
                   </button>
                 )}
                 <button
@@ -439,14 +440,14 @@ export default function WorkspacePage() {
                   className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-white/10 hover:bg-white/20 rounded-lg md:rounded-xl text-white font-bold text-xs md:text-sm transition-all disabled:opacity-50"
                 >
                   <RefreshCw size={14} className={`md:w-4 md:h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline">Refresh</span>
+                  <span>Refresh</span>
                 </button>
                 <button
                   onClick={() => setShowNewProject(true)}
                   className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-primary text-black font-bold rounded-lg md:rounded-xl hover:bg-white text-xs md:text-sm transition-all"
                 >
                   <Plus size={14} className="md:w-4 md:h-4" />
-                  <span className="hidden sm:inline">New Project</span>
+                  <span>New project</span>
                 </button>
                 {isTeam && (
                   <button
@@ -454,7 +455,7 @@ export default function WorkspacePage() {
                     className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-white/10 hover:bg-white/20 rounded-lg md:rounded-xl text-white font-bold text-xs md:text-sm transition-all"
                   >
                     <MessageCircle size={14} className="md:w-4 md:h-4" />
-                    <span className="hidden sm:inline">Community Chat</span>
+                    <span>Team chat</span>
                   </button>
                 )}
               </div>
@@ -462,7 +463,7 @@ export default function WorkspacePage() {
 
             {/* Tab navigation — compact on mobile */}
             {isTeam && (
-              <div className="flex gap-1 p-1 rounded-lg md:rounded-xl bg-white/[0.03] border border-white/10 mb-4 md:mb-6 overflow-x-auto">
+              <div className="team-workspace-tabs" role="group" aria-label="Workspace sections">
                 {[
                   { id: 'overview' as const, label: 'Overview', icon: LayoutDashboard },
                   { id: 'projects' as const, label: 'Projects', icon: FolderPlus },
@@ -472,20 +473,21 @@ export default function WorkspacePage() {
                 ].map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
+                    aria-pressed={activeTab === id}
                     onClick={() => setActiveTab(id)}
                     className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-bold transition-all shrink-0 ${
                       activeTab === id ? 'bg-primary text-black' : 'text-white/60 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     <Icon size={14} className="md:w-4 md:h-4" />
-                    <span className="hidden sm:inline">{label}</span>
+                    <span>{label}</span>
                   </button>
                 ))}
               </div>
             )}
 
-            <div className="grid md:grid-cols-3 gap-4 md:gap-6 items-start">
-              <div className="md:col-span-2 space-y-6 overflow-visible">
+            <div className={`team-workspace-layout ${isTeam && activeTab !== 'overview' ? 'focused-section' : ''}`}>
+              <div className="team-workspace-main space-y-6">
                 {/* Overview tab */}
                 {isTeam && activeTab === 'overview' && (
                   <section className="space-y-5">
@@ -948,7 +950,7 @@ export default function WorkspacePage() {
                         </button>
                       )}
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="team-member-grid">
                       {members.map((m) => {
                         const assignedCount = getProjectsAssignedTo(m.id);
                         const canMessage = m.id !== currentUserId;
@@ -1039,6 +1041,7 @@ export default function WorkspacePage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <input
                           type="date"
+                          aria-label="Task date"
                           value={taskDate}
                           onChange={(e) => setTaskDate(e.target.value)}
                           className={`${wsField} w-full sm:w-auto min-w-0`}
@@ -1053,9 +1056,10 @@ export default function WorkspacePage() {
                           </button>
                         )}
                       </div>
-                      <form onSubmit={handleAddDailyTask} className="flex flex-col gap-3">
+                      <form onSubmit={handleAddDailyTask} className="team-task-compose">
                         {isAdmin && (
                           <select
+                            aria-label="Assign task to team member"
                             value={newTaskUserId ?? ''}
                             onChange={(e) => setNewTaskUserId(e.target.value ? parseInt(e.target.value, 10) : null)}
                             className={wsField}
@@ -1073,7 +1077,8 @@ export default function WorkspacePage() {
                             type="text"
                             value={newTaskText}
                             onChange={(e) => setNewTaskText(e.target.value)}
-                            placeholder="Task description..."
+                            aria-label="Task description"
+                            placeholder="What needs to be done?"
                             className={`${wsField} flex-1 min-w-0`}
                           />
                           <button
@@ -1161,7 +1166,7 @@ export default function WorkspacePage() {
                 )}
               </div>
 
-              <div className="space-y-6">
+              <div className="team-workspace-sidebar space-y-6" hidden={isTeam && activeTab !== 'overview'}>
                 {/* Sidebar: Team - hide when Team tab (team is in main) */}
                 {isTeam && activeTab !== 'team' && (
                   <section className="rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/10 p-3 md:p-5">
@@ -1271,6 +1276,7 @@ export default function WorkspacePage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <input
                           type="date"
+                          aria-label="Task date"
                           value={taskDate}
                           onChange={(e) => setTaskDate(e.target.value)}
                           className={`${wsField} w-full sm:w-auto min-w-0`}
@@ -1285,10 +1291,11 @@ export default function WorkspacePage() {
                           </button>
                         )}
                       </div>
-                      <form onSubmit={handleAddDailyTask} className="flex flex-col gap-3">
+                      <form onSubmit={handleAddDailyTask} className="team-task-compose">
                           {isAdmin && (
                             <select
-                              value={newTaskUserId ?? ''}
+                              aria-label="Assign task to team member"
+                            value={newTaskUserId ?? ''}
                               onChange={(e) => setNewTaskUserId(e.target.value ? parseInt(e.target.value, 10) : null)}
                               className={wsField}
                             >
@@ -1305,7 +1312,8 @@ export default function WorkspacePage() {
                               type="text"
                               value={newTaskText}
                               onChange={(e) => setNewTaskText(e.target.value)}
-                              placeholder="Task description..."
+                              aria-label="Task description"
+                            placeholder="What needs to be done?"
                               className={`${wsField} flex-1 min-w-0`}
                             />
                             <button

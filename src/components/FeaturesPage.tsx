@@ -1,26 +1,11 @@
-import { useEffect } from 'react';
+import { publicFeatures } from '../content/publicContent';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, PenTool, Layout, Bot, GitBranch, Calendar, FolderOpen, Layers, Sparkles, Zap } from 'lucide-react';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import HexagonBackground from './HexagonBackground';
 import ThemeToggle from './ThemeToggle';
 
 export default function FeaturesPage() {
-    useEffect(() => {
-        document.title = 'Features — AI Strategy Planner, Project Writing & your AI | Stratabin';
-        return () => { document.title = 'Stratabin — AI Workspace & Strategy Planner for Ideas'; };
-    }, []);
-
-    const features = [
-        { icon: PenTool, title: 'Distraction-Free Writing', desc: 'Long-form writing editor with split view, branch creation, and a collapsible planner. Organize scattered thoughts into clear strategy documents for your project.' },
-        { icon: Layout, title: 'Interactive Project Writing', desc: 'Capture ideas and plans in a focused writing space.' },
-        { icon: Bot, title: 'Bring your own AI', desc: 'Prepare a project brief for ChatGPT, Claude, or Gemini using your own account, then save the response with your project.' },
-        { icon: GitBranch, title: 'Organize Ideas', desc: 'Keep your ideas and project notes organized alongside tasks and timelines.' },
-        { icon: Calendar, title: 'Calendar & Timeline', desc: 'Built-in calendar with event reminders and a timeline planner tied directly to your strategy projects. Track execution alongside planning.' },
-        { icon: FolderOpen, title: 'Folder Workspaces', desc: 'Organize projects into custom folders for writing, tasks, and project resources. Keep your strategy workspace clean.' },
-        { icon: Layers, title: 'Project Merging', desc: 'Combine multiple strategy canvases into one master view with tabbed sub-projects. Essential for complex initiatives spanning multiple workstreams.' },
-        { icon: Sparkles, title: 'Task Management', desc: 'Integrated to-do lists for every project. Track progress alongside your strategy — no need for a separate project management tool.' },
-        { icon: Zap, title: 'Works Everywhere', desc: 'Progressive Web App that installs on phones, tablets, and desktops. Touch-optimized mobile interface with offline support. One workspace, all devices.' },
-    ];
+    const features = publicFeatures;
 
     return (
         <div className="min-h-[100dvh] theme-page font-sans selection:bg-white/20 relative overflow-x-hidden">
@@ -56,7 +41,7 @@ export default function FeaturesPage() {
                     </Link>
 
                     <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight mb-4 text-[var(--text)]">
-                        Stratabin features: AI workspace & strategy planner for ideas
+                        Writing, planning, teamwork and AI — connected
                     </h1>
                     <p className="text-lg text-[var(--text-muted)] mb-16 leading-relaxed max-w-2xl">
                         Stratabin is the AI workspace and strategy planner that helps you unscatter your thoughts and turn them into execution plans. Here&apos;s everything you get in one unified strategy workspace.
@@ -67,14 +52,14 @@ export default function FeaturesPage() {
                             Everything you need to plan and execute
                         </h2>
                         <p className="text-[var(--text-muted)] leading-relaxed">
-                            Unlike traditional project management tools that only track tasks, Stratabin bridges ideation and execution. Write long-form strategies, branch ideas into visual flowcharts, merge projects, and get AI-powered insights — all in one place.
+                            Keep your planning and daily work together. Write long-form strategies, branch ideas into visual flowcharts, merge projects, and get AI-powered insights — all in one place.
                         </p>
 
                         <div className="grid gap-5 md:gap-6">
                             {features.map((feat, i) => (
                                 <article key={i} className="pro-surface-card p-6 md:p-8">
                                     <div className="w-11 h-11 rounded-xl bg-[var(--accent-soft)] border border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] flex items-center justify-center mb-4">
-                                        <feat.icon size={22} className="text-primary" />
+                                        <Sparkles size={22} className="text-primary" />
                                     </div>
                                     <h3 className="text-lg md:text-xl font-semibold text-[var(--text)] mb-2 tracking-tight">{feat.title}</h3>
                                     <p className="text-[var(--text-muted)] text-sm md:text-base leading-relaxed">{feat.desc}</p>
