@@ -260,3 +260,10 @@ CREATE TABLE IF NOT EXISTS assistant_usage (
  used INTEGER NOT NULL DEFAULT 0,
  PRIMARY KEY (user_id, day_key, kind)
 );
+
+-- Private personal workspace snapshot, isolated by authenticated internal user ID.
+CREATE TABLE IF NOT EXISTS personal_workspaces (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    revision INTEGER NOT NULL DEFAULT 0,
+    snapshot TEXT NOT NULL
+);

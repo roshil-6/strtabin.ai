@@ -5,7 +5,6 @@ import { ClerkProvider } from '@clerk/clerk-react'
 import { Toaster } from 'react-hot-toast'
 import './index.css'
 import App from './App'
-import useStore from './store/useStore'
 import { ThemeProvider } from './context/ThemeContext'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -28,11 +27,6 @@ if ('serviceWorker' in navigator && !import.meta.env.DEV) {
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   void navigator.serviceWorker.getRegistration('/').then(registration => registration?.unregister()).catch(() => {});
 }
-
-// Initial notification check after a short delay for hydration
-setTimeout(() => {
-  useStore.getState().checkNotifications();
-}, 2000);
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error: Error | null }> {
   constructor(props: { children: ReactNode }) {

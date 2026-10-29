@@ -2,6 +2,7 @@
  * Keeps a local copy of recent messages per chat on this device for faster reloads
  * and offline-style viewing. Does not replace server storage or provide true E2E encryption.
  */
+import { accountKey, currentAccount } from '../lib/accountStorage';
 import type { Message } from '../services/chatService';
 
 const STORAGE_KEY = 'stratabin-chat-mirror-v1';
@@ -11,7 +12,7 @@ type MirrorStore = Record<string, { updated: number; messages: Message[] }>;
 
 function readStore(): MirrorStore {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(accountKey(currentAccount() || 'locked', STORAGE_KEY));
     if (!raw) return {};
     const parsed = JSON.parse(raw) as MirrorStore;
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -22,7 +23,7 @@ function readStore(): MirrorStore {
 
 function writeStore(store: MirrorStore) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    localStorage.setItem(accountKey(currentAccount() || 'locked', STORAGE_KEY), JSON.stringify(store));
   } catch {
     /* quota / private mode */
   }

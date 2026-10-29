@@ -1,3 +1,4 @@
+import AccountWorkspace from './components/AccountWorkspace';
 import { BUILT_IN_AI_ENABLED } from './lib/featureFlags';
 import { lazy, Suspense } from 'react';
 import ProjectPage from './components/ProjectPage';
@@ -45,6 +46,7 @@ function App() {
 
   return (
     <div className="min-h-[100dvh] w-full theme-page relative">
+    <AccountWorkspace>
     <GlobalModals />
     <PushAccountGuard />
     <UserSyncOnLoad />
@@ -85,6 +87,7 @@ function App() {
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
     </Suspense>
+    </AccountWorkspace>
     </div>
   );
 }

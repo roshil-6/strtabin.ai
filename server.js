@@ -1,3 +1,4 @@
+import { registerPersonalWorkspaceRoutes } from './routes/personalWorkspace.js';
 import express from 'express';
 import { registerReminderRoutes } from './routes/reminders.js';
 import { startReminderWorker } from './lib/reminders.js';
@@ -132,6 +133,7 @@ app.use((req, res, next) => {
     if ((req.path === '/api/assistant/chat' || req.path === '/api/assistant/voice/session')) return express.json({ limit: '160kb' })(req, res, next);
     // Canvas share needs larger limit for nodes/edges payload
     if (req.path === '/api/canvas/share' || req.path.match(/^\/api\/projects\/\d+\/canvas$/)) return express.json({ limit: '2mb' })(req, res, next);
+    if (req.path === '/api/personal-workspace') return express.json({ limit: '9mb' })(req, res, next);
     express.json({ limit: '50kb' })(req, res, next);
 });
 
@@ -660,6 +662,7 @@ app.post('/api/execute', (_req, res) => {
 registerWorkspaceRoutes(app, clerk);
 registerChatRoutes(app, clerk);
 registerBillingRoutes(app);
+registerPersonalWorkspaceRoutes(app);
 registerAssistantRoutes(app);
 registerReminderRoutes(app);
 
