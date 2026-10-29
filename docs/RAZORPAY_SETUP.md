@@ -1,58 +1,45 @@
 # Razorpay setup for Stratabin Pro
 
-This integration is TEST MODE ONLY. It does not collect real money or enforce Free/Pro project limits. Test Pro status is stored server-side and expires when its confirmed paid period ends. Live keys are deliberately rejected until launch checks and entitlement enforcement are implemented.
+The backend supports test and live keys, with separate billing records for each mode. Live checkout requires the webhook secret. A test payment never unlocks paid Sasha AI. The server checks the price and ignores client-supplied amounts.
 
-## 1. Create your test credentials and plan
+## Railway variables (backend only)
 
-1. Open your Razorpay dashboard and switch to Test Mode.
-2. Generate API keys under Account & Settings / API Keys. Copy the Key ID and Key Secret into the local `.env` fields below. Do not put them in chat, source control, or frontend variables.
-3. Open Subscriptions / Plans and create a plan:
-   - Name: Stratabin Pro
-   - Period: Monthly
-   - Interval: 1
-   - Price: INR 109 (10900 paise)
-4. Copy the `plan_...` ID into `.env`. Do not enter a payment link or subscription ID.
+Set these on the Railway **strtabin.ai** service, not the Postgres service or Vercel:
 
 ```dotenv
-RAZORPAY_KEY_ID=rzp_test_...
-RAZORPAY_KEY_SECRET=...
-RAZORPAY_PRO_PLAN_ID=plan_...
-RAZORPAY_WEBHOOK_SECRET=...
+RAZORPAY_KEY_ID=rzp_live_your_key_id
+RAZORPAY_KEY_SECRET=your_key_secret
+RAZORPAY_PRO_PLAN_ID=plan_your_plan_id
+RAZORPAY_WEBHOOK_SECRET=your_independent_random_secret
 ```
 
-The webhook secret is a separate random secret you choose, not the API Key Secret. Never use a `VITE_` prefix for these settings. Restart the backend after changing them.
+Use the API keys and plan from the same Razorpay account and mode. The plan must be monthly, interval 1, quantity 1, INR 109 (10900 paise). Checkout creates subscriptions for up to **12 monthly cycles**, not an annual upfront payment. Never prefix secrets with VITE_. Redeploy the backend after changing variables.
 
-## 2. Configure webhooks
+## Razorpay webhook
 
-In Razorpay Test Mode, add a webhook pointing to:
+In Razorpay Live Mode, open Account & Settings → Webhooks → Add New Webhook:
 
-```text
-https://YOUR-BACKEND-HOST/api/billing/webhook
-```
+- URL: `https://strtabinai-production.up.railway.app/api/billing/webhook`
+- Secret: the identical value stored in Railway as `RAZORPAY_WEBHOOK_SECRET`. Choose a long random value separate from the API secret.
+- Events: subscription.authenticated, subscription.activated, subscription.charged, subscription.pending, subscription.halted, subscription.paused, subscription.resumed, subscription.cancelled, subscription.completed (where offered).
 
-Use the same independent secret as `RAZORPAY_WEBHOOK_SECRET`. Select subscription events including `subscription.authenticated`, `subscription.activated`, `subscription.charged`, `subscription.pending`, `subscription.halted`, `subscription.paused`, `subscription.resumed`, `subscription.cancelled`, and `subscription.completed` (where offered).
+The endpoint verifies the exact raw request bytes, then fetches authoritative subscription state from Razorpay. Duplicate and out-of-order deliveries cannot add paid time twice. A concurrent update is retried; unresolved conflicts return an error so Razorpay can retry delivery.
 
-Razorpay cannot reach a plain localhost address. Use a public HTTPS test backend, or a deliberately configured HTTPS development tunnel. The local checkout's Verify and Refresh status actions work without a webhook; unattended renewal updates require it.
+## Deploy and verify
 
-## 3. Try checkout
+1. Deploy backend changes to Railway and frontend changes to Vercel (the frontend includes the checkout security-policy update).
+2. Sign in and open `/billing`. It should show Subscribe for ₹109/month with live keys; test keys explicitly show Test mode.
+3. Authentication alone does not unlock Pro. A confirmed paid cycle sets the paid-through date; Sasha uses the same live entitlement.
+4. After an actual user-authorised payment, verify Pro status, a successful webhook delivery and Sasha access. If confirmation is pending, use Refresh status instead of paying again.
+5. Cancel renewal from billing. Confirmed paid access remains until its end date. Cancellation/refresh remain available if the webhook secret later goes missing, provided API credentials still work.
 
-1. Sign in locally with Clerk.
-2. Open Dashboard → Plans & billing, or `http://127.0.0.1:5174/billing`.
-3. Choose Test Pro checkout and use Razorpay's current documented test payment methods. Do not enter real card details.
-4. Pro activates only after a verified subscription has a paid billing cycle. Authentication alone can leave it pending.
-5. Test Refresh status, failed checkout, closing checkout, and Cancel renewal. Existing confirmed access remains until its end date.
-6. Verify webhook delivery and renewals from the dashboard. Local unit tests cannot prove a real Razorpay checkout works.
+No real subscription or charge is created by the automated tests. Local tests use a simulated provider. A successful read-only plan lookup proves credentials and plan access, not the end-to-end payment flow.
 
-The subscription is quantity 1, INR 109 monthly, for up to 12 cycles (1 year). The server verifies the configured plan and ignores browser-supplied prices.
+## Scope and recovery
 
-## Recovery and production readiness
+- Existing project/team/timetable free-plan limits are not enforced by this change. Paid Sasha access is enforced server-side. Test access is labelled separately.
+- Refund/dispute events are not automated here; review them in Razorpay and reconcile access manually. This integration does not implement tax invoicing or refund policy decisions.
+- A `creating` row after an ambiguous network failure blocks a second subscription. Locate the existing subscription using its `stratabin_user_id` and `environment` notes and reconcile its provider ID; never clear the lock blindly.
+- Keep production database backups. Both SQLite and PostgreSQL schemas already support separate test/live records.
 
-- A `creating` record after a network interruption deliberately blocks another subscription. An administrator must look up the Razorpay subscription using its `stratabin_user_id` note and reconcile the stored provider ID before retrying. Never clear this state blindly: the remote subscription may already exist.
-- SQLite and PostgreSQL schemas both include `billing_subscriptions`; use persistent storage and backups.
-- Do not switch to real charging yet. Remaining launch work: enforce plan entitlements, approve tax/invoice and refund policies, handle refunds/disputes, verify production merchant activation, and test live webhook delivery and cancellation. The current test integration ignores refund/dispute events.
-- Test status is not a production entitlement. Preserve the mode separation when adding live billing.
-
-Official references:
-- https://razorpay.com/docs/payments/subscriptions/
-- https://github.com/razorpay/markdown-docs/blob/master/payments/payment-gateway/s2s-integration/subscriptions.md
-- https://razorpay.com/docs/webhooks/validate-test/
+References: https://razorpay.com/docs/payments/subscriptions/integration-guide/ and https://razorpay.com/docs/webhooks/validate-test/

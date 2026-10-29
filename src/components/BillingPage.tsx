@@ -5,7 +5,7 @@ import { ArrowLeft, Check, CreditCard, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../constants';
 import useModalStore from '../store/useModalStore';
 
-type BillingStatus = { enabled: boolean; mode: 'test'; plan: 'free' | 'pro'; status: string; paidUntil: number; cancelScheduled: boolean };
+type BillingStatus = { enabled: boolean; configured: boolean; mode: 'test' | 'live'; plan: 'free' | 'pro'; status: string; paidUntil: number; cancelScheduled: boolean };
 type CheckoutResponse = { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string };
 type Checkout = { open(): void; close(): void; on(event: string, callback: () => void): void };
 type RazorpayWindow = Window & { Razorpay?: new (options: Record<string, unknown>) => Checkout };
@@ -25,6 +25,11 @@ function loadCheckout() {
 }
 
 export default function BillingPage() {
+    const { userId } = useAuth();
+    return <BillingContent key={userId || 'signed-out'} />;
+}
+
+function BillingContent() {
     const { isSignedIn, isLoaded, getToken, userId } = useAuth();
     const [status, setStatus] = useState<BillingStatus | null>(null);
     const [busy, setBusy] = useState(false);
@@ -53,7 +58,7 @@ export default function BillingPage() {
     }, [isSignedIn, userId, request]);
     const refresh = async () => {
         setBusy(true); setError('');
-        try { const data = await request(status?.enabled ? 'refresh' : 'status', status?.enabled ? {} : undefined); setStatus(data); setMessage(data.plan === 'pro' ? 'Test Pro access confirmed.' : 'Status updated.'); }
+        try { const data = await request(status?.configured ? 'refresh' : 'status', status?.configured ? {} : undefined); setStatus(data); setMessage(data.plan === 'pro' ? (data.mode === 'test' ? 'Test Pro access confirmed.' : 'Pro access confirmed.') : 'Status updated.'); }
         catch (err) { setError(err instanceof Error ? err.message : 'Unable to refresh status.'); }
         finally { setBusy(false); }
     };
@@ -67,10 +72,10 @@ export default function BillingPage() {
             const Razorpay = (window as RazorpayWindow).Razorpay!;
             let submitted = false;
             const instance = new Razorpay({ key: data.keyId, subscription_id: data.subscriptionId, name: 'Stratabin',
-                description: 'Pro — ₹109/month · Test mode', theme: { color: '#8b46cc' },
+                description: `Pro — ₹109/month${data.mode === 'test' ? ' · Test mode' : ''}`, theme: { color: '#8b46cc' },
                 handler: async (response: CheckoutResponse) => {
                     submitted = true;
-                    try { const confirmed = await request('verify', response); if (mounted.current) { setStatus(confirmed); setMessage(confirmed.plan === 'pro' ? 'Test payment verified. Test Pro is active.' : 'Authorisation received. Activation is pending the first successful charge; refresh status shortly.'); } }
+                    try { const confirmed = await request('verify', response); if (mounted.current) { setStatus(confirmed); setMessage(confirmed.plan === 'pro' ? (confirmed.mode === 'test' ? 'Test payment verified. Test Pro is active.' : 'Payment verified. Your Pro access is active.') : 'Authorisation received. Activation is pending the first successful charge; refresh status shortly.'); } }
                     catch (err) { if (mounted.current) setError(err instanceof Error ? err.message : 'Confirmation is pending. Refresh before paying again.'); }
                     finally { if (mounted.current) setBusy(false); }
                 },
@@ -91,8 +96,8 @@ export default function BillingPage() {
         <Link to="/dashboard" className="inline-flex items-center gap-2 text-[var(--text-muted)] mb-8"><ArrowLeft size={18} />Back to workspace</Link>
         <h1 className="text-3xl font-semibold mb-3">Plans & billing</h1>
         <p className="text-[var(--text-secondary)] mb-6">Manage your Stratabin Pro subscription.</p>
-        <div className="rounded-xl border border-primary/30 p-4 mb-6 text-sm leading-relaxed" role="note"><strong>Test mode only.</strong> No real payments are collected. Plan limits are not enforced yet, and test access is not a paid production subscription.</div>
-        {!isLoaded ? <p role="status">Loading your account…</p> : !isSignedIn ? <Link to="/auth" className="text-primary underline">Sign in to test Pro checkout</Link> : <>
+        {status?.mode === 'test' && <div className="rounded-xl border border-primary/30 p-4 mb-6 text-sm leading-relaxed" role="note"><strong>Test mode.</strong> No real payments are collected. Test access does not unlock paid Sasha AI.</div>}
+        {!isLoaded ? <p role="status">Loading your account…</p> : !isSignedIn ? <Link to="/auth" className="text-primary underline">Sign in to subscribe to Pro</Link> : <>
             {error && <p role="alert" className="p-4 mb-4 border border-red-400/30 rounded-xl text-red-300">{error}</p>}
             {message && <p role="status" className="p-4 mb-4 text-[var(--text-secondary)]">{message}</p>}
             <section className="rounded-2xl border border-primary/30 bg-[var(--bg-panel)] p-6 md:p-8">
@@ -100,12 +105,12 @@ export default function BillingPage() {
                 <p className="my-5"><strong className="text-4xl font-semibold">₹109</strong><span className="text-[var(--text-muted)]"> / month</span></p>
                 <ul className="space-y-3 mb-6">{['Unlimited projects', 'Unlimited timetables', 'Team workspaces, shared projects and assignments', 'Team chat and project capsules', 'Sasha AI chat and voice, with daily usage allowances'].map(label => <li key={label} className="flex items-start gap-3"><Check size={18} className="text-primary mt-1 shrink-0" />{label}</li>)}</ul>
                 <p className="text-sm text-[var(--text-muted)] mb-4">Monthly renewal until cancelled, for up to 12 monthly billing cycles (1 year). Cancel renewal from this page.</p>
-                {status && <p className="text-sm mb-4">{status.plan === 'pro' ? 'Test Pro' : 'Free'} · {status.status.replaceAll('_', ' ')}{status.paidUntil > 0 && ` · Access through ${new Date(status.paidUntil * 1000).toLocaleDateString()}`}{status.cancelScheduled && ' · Renewal cancellation requested'}</p>}
-                {status && !status.enabled && <p className="text-sm text-[var(--text-muted)] mb-4">Checkout is waiting for the workspace owner to configure Razorpay test keys and the monthly plan.</p>}
+                {status && <p className="text-sm mb-4">{status.plan === 'pro' ? (status.mode === 'test' ? 'Test Pro' : 'Pro') : 'Free'} · {status.status.replaceAll('_', ' ')}{status.paidUntil > 0 && ` · Access through ${new Date(status.paidUntil * 1000).toLocaleDateString()}`}{status.cancelScheduled && ' · Renewal cancellation requested'}</p>}
+                {status && !status.enabled && <p className="text-sm text-[var(--text-muted)] mb-4">Checkout is waiting for the workspace owner to finish the Razorpay keys, monthly plan and live webhook setup.</p>}
                 <div className="flex flex-wrap gap-3">
-                    <button disabled={busy || !status?.enabled || status.plan === 'pro' || ['active', 'authenticated', 'pending', 'halted', 'paused', 'creating'].includes(status.status)} onClick={subscribe} className="px-5 py-3 rounded-xl bg-primary text-black font-semibold disabled:opacity-40 flex items-center gap-2">{busy && <Loader2 size={16} className="animate-spin" />}Test Pro checkout</button>
+                    <button disabled={busy || !status?.enabled || status.plan === 'pro' || ['active', 'authenticated', 'pending', 'halted', 'paused', 'creating'].includes(status.status)} onClick={subscribe} className="px-5 py-3 rounded-xl bg-primary text-black font-semibold disabled:opacity-40 flex items-center gap-2">{busy && <Loader2 size={16} className="animate-spin" />}{status?.mode === 'test' ? 'Test Pro checkout' : 'Subscribe for ₹109/month'}</button>
                     <button onClick={refresh} disabled={busy} className="px-4 py-3 rounded-xl border border-[var(--border)] disabled:opacity-40">Refresh status</button>
-                    {status?.enabled && !status.cancelScheduled && ['active', 'authenticated', 'pending', 'halted', 'paused', 'created'].includes(status.status) && <button onClick={cancel} disabled={busy} className="px-4 py-3 rounded-xl border border-[var(--border)] disabled:opacity-40">Cancel renewal</button>}
+                    {status?.configured && !status.cancelScheduled && ['active', 'authenticated', 'pending', 'halted', 'paused', 'created'].includes(status.status) && <button onClick={cancel} disabled={busy} className="px-4 py-3 rounded-xl border border-[var(--border)] disabled:opacity-40">Cancel renewal</button>}
                 </div>
             </section>
         </>}

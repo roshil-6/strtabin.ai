@@ -6,6 +6,7 @@ import express from 'express';
 import Database from 'better-sqlite3';
 import { attachSqlite } from '../db/driver.js';
 import { validSignature, validPlan, subscriptionUpdate, publicBilling, billingConfig } from '../lib/billing.js';
+import { sashaAccess } from '../lib/sashaAccess.js';
 import { registerBillingRoutes, registerBillingWebhook } from '../routes/billing.js';
 
 test('both database schemas contain billing and no mixed-encoding NUL bytes', () => {
@@ -41,10 +42,10 @@ test('billing enforces price, monthly interval and paid periods rather than brow
     assert.equal(publicBilling(row, true, 501000).plan, 'free');
 });
 
-test('billing routes isolate users, reuse checkouts, verify signatures and handle duplicate webhooks', async () => {
+for (const mode of ['test', 'live']) test(`${mode} billing isolates users, reuses checkout, verifies signatures and handles duplicate webhooks`, async () => {
     const envNames = ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_PRO_PLAN_ID', 'RAZORPAY_WEBHOOK_SECRET'];
     const savedEnv = Object.fromEntries(envNames.map(k => [k, process.env[k]]));
-    Object.assign(process.env, { RAZORPAY_KEY_ID: 'rzp_test_fixture', RAZORPAY_KEY_SECRET: 'fixture-secret', RAZORPAY_PRO_PLAN_ID: 'plan_fixture', RAZORPAY_WEBHOOK_SECRET: 'fixture-webhook' });
+    Object.assign(process.env, { RAZORPAY_KEY_ID: `rzp_${mode}_fixture`, RAZORPAY_KEY_SECRET: 'fixture-secret', RAZORPAY_PRO_PLAN_ID: 'plan_fixture', RAZORPAY_WEBHOOK_SECRET: 'fixture-webhook' });
     const db = new Database(':memory:');
     db.exec(readFileSync(new URL('../db/schema.sql', import.meta.url), 'utf8'));
     db.exec("INSERT INTO users (id, clerk_user_id) VALUES (1, 'user_one'), (2, 'user_two')");
@@ -52,13 +53,19 @@ test('billing routes isolate users, reuse checkouts, verify signatures and handl
     const originalFetch = globalThis.fetch;
     let created = 0;
     let cancelled = 0;
+    let raceNextRefresh = false;
+    let revisionRaces = 0;
     let amount = 10900;
     let remote = { id: 'sub_fixture', plan_id: 'plan_fixture', status: 'created', quantity: 1, paid_count: 0, current_end: null };
     globalThis.fetch = async (url, options) => {
         assert.ok(String(url).startsWith('https://api.razorpay.com/v1/'));
         if (String(url).includes('/plans/')) return Response.json({ period: 'monthly', interval: 1, item: { amount, currency: 'INR' } });
         if (String(url).endsWith('/cancel')) { cancelled++; return Response.json(remote); }
-        if (options.method === 'POST') { created++; const body = JSON.parse(options.body); assert.equal(body.plan_id, 'plan_fixture'); assert.equal(body.quantity, 1); assert.equal(body.total_count, 12); return Response.json(remote); }
+        if (options.method === 'POST') { created++; const body = JSON.parse(options.body); assert.equal(body.plan_id, 'plan_fixture'); assert.equal(body.quantity, 1); assert.equal(body.total_count, 12); assert.equal(body.notes.environment, mode); return Response.json(remote); }
+        if (raceNextRefresh) {
+            raceNextRefresh = false; revisionRaces++;
+            db.prepare('UPDATE billing_subscriptions SET revision = revision + 1 WHERE user_id = 1 AND mode = ?').run(mode);
+        }
         return Response.json(remote);
     };
     const app = express();
@@ -84,9 +91,12 @@ test('billing routes isolate users, reuse checkouts, verify signatures and handl
         const event = JSON.stringify({ event: 'subscription.charged', payload: { subscription: { entity: { id: 'sub_fixture' } } } });
         const signature = createHmac('sha256', 'fixture-webhook').update(event).digest('hex');
         assert.equal((await request('webhook', event, '', { 'x-razorpay-signature': 'bad' })).status, 400);
+        raceNextRefresh = true;
         for (let i = 0; i < 2; i++) assert.equal((await request('webhook', event, '', { 'x-razorpay-signature': signature })).status, 200);
+        assert.equal(revisionRaces, 1);
         const status = await (await request('status')).json();
-        assert.equal(status.plan, 'pro'); assert.equal(status.paidUntil, remote.current_end);
+        assert.equal(status.plan, 'pro'); assert.equal(status.mode, mode); assert.equal(status.paidUntil, remote.current_end);
+        assert.equal((await sashaAccess({userId:1})).pro, mode === 'live');
         assert.equal((await (await request('status', undefined, '2')).json()).plan, 'free');
         assert.equal((await request('checkout', {})).status, 409);
         assert.equal((await request('cancel', {})).status, 200);
@@ -95,11 +105,28 @@ test('billing routes isolate users, reuse checkouts, verify signatures and handl
         assert.equal((await (await request('status')).json()).plan, 'pro');
         amount = 999;
         assert.equal((await request('checkout', {}, '2')).status, 503);
+        // Test and live records must never be substituted for one another.
+        process.env.RAZORPAY_KEY_ID = mode === 'live' ? 'rzp_test_fixture' : 'rzp_live_fixture';
+        assert.equal((await (await request('status')).json()).plan, 'free');
         process.env.RAZORPAY_KEY_ID = 'rzp_live_fixture';
+        delete process.env.RAZORPAY_WEBHOOK_SECRET;
         assert.equal(billingConfig().enabled, false);
+        assert.equal(billingConfig().configured, true);
+        assert.equal((await request('checkout', {})).status, 503);
+        // Missing webhook must not strand existing customers unable to cancel.
+        assert.equal((await request('cancel', {})).status, 200);
     } finally {
         globalThis.fetch = originalFetch;
         server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); db.close();
         for (const key of envNames) { if (savedEnv[key] === undefined) delete process.env[key]; else process.env[key] = savedEnv[key]; }
     }
+});
+
+
+test('checkout CSP permits only the required Razorpay script and frame hosts', () => {
+    const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+    assert.match(html,/script-src[^;]*https:\/\/checkout\.razorpay\.com/);
+    assert.match(html,/frame-src[^;]*https:\/\/api\.razorpay\.com/);
+    assert.match(html,/connect-src[^;]*https:\/\/api\.razorpay\.com/);
+    assert.equal(html.includes('https://*.razorpay.com'),false);
 });
