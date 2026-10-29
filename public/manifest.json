@@ -1,7 +1,7 @@
 {
-  "name": "Stratabin — AI Workspace & Strategy Planner for Ideas",
+  "name": "Stratabin \u2014 Project Planning & AI Workspace",
   "short_name": "Stratabin",
-  "description": "AI workspace and strategy planner for ideas. Notes, flows, and STRAB AI.",
+  "description": "Writing, brainstorming, tasks, timetables, team collaboration and project AI capsules.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#050505",

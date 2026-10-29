@@ -1,3 +1,4 @@
+import PageMetadata from './components/PageMetadata';
 import AccountWorkspace from './components/AccountWorkspace';
 import { BUILT_IN_AI_ENABLED } from './lib/featureFlags';
 import { lazy, Suspense } from 'react';
@@ -46,6 +47,7 @@ function App() {
 
   return (
     <div className="min-h-[100dvh] w-full theme-page relative">
+    <PageMetadata />
     <AccountWorkspace>
     <GlobalModals />
     <PushAccountGuard />

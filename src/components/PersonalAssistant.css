@@ -103,3 +103,27 @@
 .agent-wake-control small, .agent-wake-control span { font-size: 11px; line-height: 1.5; color: #b9c4d5; }
 .agent-wake-control span:empty { display: none; }
 .agent-dock.collapsed:has(.agent-wake-control) { width: 224px; }
+
+/* Settings use short, grouped controls instead of a long promotional form. */
+.assistant-settings-view.assistant-panel{background:var(--bg-page);border-color:var(--border-strong)}
+.assistant-settings-view.sasha-workspace{width:calc(100% - 48px);max-width:1500px}
+.assistant-settings-view .assistant-scroll{padding:28px;scrollbar-gutter:stable}
+.assistant-settings-view .assistant-tabs{background:transparent;border-color:var(--border);justify-content:flex-start;padding:12px 24px;gap:8px}
+.assistant-settings-view .assistant-tabs button{flex:0 1 auto;padding:10px 20px;color:var(--text-muted)}
+.assistant-settings-view .assistant-tabs button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--border-strong);color:var(--primary)}
+.sasha-settings-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
+.sasha-workspace .sasha-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.assistant-panel .sasha-setting-section{padding:24px;border:1px solid var(--border);border-radius:14px;background:var(--bg-panel);min-width:0}
+.sasha-setting-section h3{font-size:18px;font-weight:600;margin:0 0 10px;color:var(--text)}
+.assistant-panel .sasha-setting-section p,.assistant-panel .sasha-setting-section li{font-size:14px;line-height:1.7;color:var(--text-muted);margin:0 0 16px}
+.assistant-panel .sasha-setting-section small{font-size:12px;line-height:1.6;color:var(--text-muted)}
+.sasha-setting-section>label{font-size:13px;font-weight:600;margin-bottom:8px}
+.assistant-panel .sasha-setting-section input:not([type=checkbox]){background:var(--bg-page);color:var(--text);border-color:var(--border-strong);min-height:46px}
+.assistant-panel .sasha-setting-toggle{display:flex;align-items:center;justify-content:space-between;gap:20px;border-top:1px solid var(--border);margin:22px 0 0;padding-top:18px}
+.sasha-setting-toggle strong{font-size:14px;font-weight:500}.sasha-setting-toggle input{width:36px;height:20px;accent-color:var(--primary);flex-shrink:0}
+.sasha-setting-section ul{padding-left:18px;list-style:disc}.sasha-setting-section details{border-top:1px solid var(--border);padding-top:16px;font-size:13px}.sasha-setting-section summary{cursor:pointer;color:var(--text)}.sasha-setting-section details p{margin-top:12px}
+.sasha-usage-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}.sasha-usage-grid>div{display:flex;flex-direction:column;gap:6px}.sasha-usage-grid strong{font-size:30px;font-weight:600;color:var(--text)}.sasha-usage-grid span{font-size:13px;color:var(--text-muted)}
+.sasha-setting-section>button{margin:8px 8px 0 0;background:var(--bg-page);border-color:var(--border-strong);color:var(--text)}
+.assistant-panel .sasha-upgrade-compact{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 20px;margin-bottom:22px;border-radius:12px;background:var(--accent-soft)}
+.sasha-upgrade-compact>svg,.sasha-upgrade-compact>p{display:none}.sasha-upgrade-compact h3{font-size:15px;margin:0;flex:1}.sasha-upgrade-compact button{font-size:12px;margin:0}
+@media(max-width:760px){.sasha-workspace .sasha-settings-grid{grid-template-columns:1fr}.assistant-settings-view.sasha-workspace{width:100%}.assistant-settings-view .assistant-scroll{padding:18px 16px 90px}.assistant-panel .sasha-setting-section{padding:20px}.assistant-settings-view .assistant-tabs{padding:10px 12px}.assistant-settings-view .assistant-tabs button{padding:9px 12px;font-size:13px}}
