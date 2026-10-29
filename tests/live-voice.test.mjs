@@ -16,7 +16,7 @@ test('live sessions use short-lived credentials without returning permanent keys
         assert.equal(sent.options.body.includes('permanent-private-key'), false);
         assert.equal(result.maxSeconds, 540);
         if (provider === 'openai') { assert.equal(sent.body.expires_after.seconds, 60); assert.equal(sent.body.session.tools[0].name, 'propose_actions'); }
-        else { assert.equal(sent.body.uses, 1); assert.match(result.setup.systemInstruction.parts[0].text, /never executes/i); }
+        else { assert.equal(sent.body.uses, 1); assert.deepEqual(sent.body.bidiGenerateContentSetup, result.setup); assert.deepEqual(result.setup.generationConfig.responseModalities, ['AUDIO']); assert.match(result.setup.systemInstruction.parts[0].text, /never executes/i); }
     }
     await assert.rejects(createLiveSession({ provider: 'openai' }, async () => ({ ok: false })), /Could not start live voice/);
 });
@@ -53,4 +53,26 @@ test('service worker keeps push alive and only opens the fixed same-origin remin
     await work; assert.equal(shown.length, 1);
     handlers.notificationclick({ notification: { close() {}, data: { url: 'https://evil.test/' } }, waitUntil: promise => { work = promise; } });
     await work; assert.deepEqual(opened, ['https://stratabin.com/dashboard?assistant=reminders']);
+});
+
+
+test('Gemini voice allows natural pauses and interruptions', async () => {
+    const result = await createLiveSession({provider:'gemini',model:'live',apiKey:'test',name:'Sasha',context:''}, async () => ({ok:true,json:async()=>({name:'auth_tokens/test'})}));
+    assert.equal(result.setup.realtimeInputConfig.activityHandling,'START_OF_ACTIVITY_INTERRUPTS');
+    assert.equal(result.setup.realtimeInputConfig.automaticActivityDetection.silenceDurationMs,650);
+    assert.match(result.setup.systemInstruction.parts[0].text,/one to three spoken sentences/);
+});
+
+test('playback is buffered in order and interruption clears every queued source', () => {
+    const sources=[], states=[];
+    const client = new LiveVoiceClient({provider:'gemini',createSession:async()=>({}),onState:value=>states.push(value),onLevel:()=>{},onTranscript:()=>{},onProposal:()=>{},onError:()=>{}});
+    client.context={currentTime:10,destination:{},createBuffer:()=>({duration:0.1,copyToChannel(){}}),createBufferSource(){const source={connect(){},disconnect(){},start(time){this.time=time;},stop(){this.stopped=true;}};sources.push(source);return source;}};
+    client.play(pcmBase64(new Float32Array([0,0])),24000);
+    client.play(pcmBase64(new Float32Array([0,0])),24000);
+    assert.equal(sources[0].time,10.035);
+    assert.ok(sources[1].time >= sources[0].time+0.1);
+    client.clearAudio();
+    assert.ok(sources.every(source=>source.stopped));
+    assert.equal(client.sources.size,0);
+    assert.equal(states.at(-1),'listening');
 });

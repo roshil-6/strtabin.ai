@@ -157,3 +157,16 @@ test('workspace revision handles empty related tables and tracks later updates',
  assert.notEqual((await getWorkspaceRevision(99)).revision, before.revision);
  assert.equal(await getWorkspaceRevision(9999), null);
 });
+
+
+test('a lone team admin can create a project before inviting teammates', async () => {
+ database.prepare("INSERT INTO workspaces (id,name,type,owner_id) VALUES (100,'Start alone','team',1)").run();
+ database.prepare("INSERT INTO workspace_members (workspace_id,user_id,role) VALUES (100,1,'admin')").run();
+ const created = await callRoute('post /api/workspaces/:id/projects', {params:{id:'100'},body:{title:'First shared project',type:'strategy',assignedTo:1}});
+ assert.equal(created.status,201);
+ const project = database.prepare('SELECT * FROM projects WHERE workspace_id=100').get();
+ assert.equal(project.title,'First shared project');
+ assert.equal(project.assigned_to,1);
+ const outsider = await callRoute('post /api/workspaces/:id/projects', {userId:4,params:{id:'100'},body:{title:'Not allowed'}});
+ assert.equal(outsider.status,403);
+});

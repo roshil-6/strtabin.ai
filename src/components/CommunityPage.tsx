@@ -4,7 +4,7 @@ import ChatAttachment from './ChatAttachment';
  * Focus: Projects & work (not personal content). Connect, share insights, message anyone.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { io, type Socket } from 'socket.io-client';
@@ -125,10 +125,13 @@ export default function CommunityPage() {
   const socketRef = useRef<Socket | null>(null);
   const activeChatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
+  const olderScroll = useRef<{ chatId: number; height: number; top: number } | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const typingEmitRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = () => { followLatest.current = true; };
   activeChatRef.current = activeChat;
 
   useEffect(() => {
@@ -186,7 +189,6 @@ export default function CommunityPage() {
                 : c
             )
           );
-          scrollToBottom();
         });
         s.on('chat:typing', ({ chatId, userId }: { chatId: number; userId: number }) => {
           if (activeChatRef.current?.id === chatId) setTypingUser(String(userId));
@@ -212,6 +214,7 @@ export default function CommunityPage() {
   useEffect(() => {
     let cancelled = false;
     if (!activeChatId) return;
+    followLatest.current = true; olderScroll.current = null; setHasOlder(false);
     setLoadingMessages(true);
     setMessages(readMirroredMessages(activeChatId) || []);
     getToken().then(async token => {
@@ -230,7 +233,15 @@ export default function CommunityPage() {
 
 
 
-  useEffect(() => { scrollToBottom(); }, [messages]);
+  useLayoutEffect(() => {
+    const thread = threadRef.current;
+    if (!thread) return;
+    const older = olderScroll.current;
+    if (older && older.chatId === activeChatId) {
+      thread.scrollTop = older.top + thread.scrollHeight - older.height;
+      olderScroll.current = null;
+    } else if (followLatest.current) thread.scrollTop = thread.scrollHeight;
+  }, [messages, activeChatId, tab, loadingMessages]);
 
   useEffect(() => {
     const onOutside = (e: MouseEvent) => {
@@ -420,7 +431,7 @@ export default function CommunityPage() {
   const loadOlder = async () => {
     if (!activeChat || loadingOlder || !messages.length) return;
     const chatId = activeChat.id; setLoadingOlder(true);
-    try { const token = await getToken(); if (!token) throw new Error('Sign in again.'); const data = await chatService.getMessages(chatId, token, messages[0].id); if (activeChatRef.current?.id === chatId) { setMessages(previous => mergeChatMessages(data.messages || [], previous)); setHasOlder((data.messages || []).length === 50); } } catch(error) { toast.error(error instanceof Error ? error.message : 'Could not load earlier messages.'); } finally { setLoadingOlder(false); }
+    try { const token = await getToken(); if (!token) throw new Error('Sign in again.'); const data = await chatService.getMessages(chatId, token, messages[0].id); if (activeChatRef.current?.id === chatId) { const thread = threadRef.current; if (thread) olderScroll.current = {chatId, height: thread.scrollHeight, top: thread.scrollTop}; setMessages(previous => mergeChatMessages(data.messages || [], previous)); setHasOlder((data.messages || []).length === 50); } } catch(error) { toast.error(error instanceof Error ? error.message : 'Could not load earlier messages.'); } finally { setLoadingOlder(false); }
   };
 
   const uniqueMessages = useMemo(
@@ -489,7 +500,7 @@ export default function CommunityPage() {
     <div className="community-hub theme-page flex min-h-[100dvh] flex-col bg-[var(--bg-page)]">
       <LavenderDotBackground />
       <header className="community-header"><div className="community-header-top"><div><button className="community-back" aria-label="Back to projects" onClick={() => navigate('/dashboard')}><ArrowLeft size={19} /></button><span className="community-brand-icon"><Network size={23} /></span><div><span className="team-eyebrow">STRATABIN / COMMUNITY</span><h1>Better work, together.</h1></div></div><div className="team-actions">{isSignedIn && <button onClick={() => { setTab('chat'); setShowGroup(true); }}><Plus size={16} />New group</button>}<span className="community-live-label"><span />Team workspace</span></div></div><nav className="community-tabs" aria-label="Community sections">{([{id:'teams',label:'Teams',icon:Users},{id:'projects',label:'Projects',icon:FolderKanban},{id:'duties',label:'Duties',icon:ListChecks},{id:'reports',label:'Reports',icon:FileText},{id:'people',label:'People',icon:UserPlus},{id:'chat',label:'Chats',icon:MessageCircle},{id:'feed',label:'Insights',icon:Sparkles}] as const).map(item => <button key={item.id} aria-current={tab === item.id ? 'page' : undefined} onClick={() => setTab(item.id)}><item.icon size={17}/>{item.label}{item.id==='chat'&&chats.some(chat=>chat.unread)&&<span className="community-unread">{chats.reduce((sum,chat)=>sum+(chat.unread||0),0)}</span>}</button>)}</nav></header>
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className={`community-content ${tab === 'chat' ? 'community-chat-layout' : ''}`}>
         {(['teams','projects','duties','reports'] as string[]).includes(tab) ? <TeamWorkspace key={userId || "guest"} view={tab as TeamView} openChat={user => { void handleStartChat(user); }} openGroup={() => setShowGroup(true)} /> : !isSignedIn && (tab === 'chat' || tab === 'people') ? <section className="community-signin"><Users size={34}/><h2>Connect with your team.</h2><p>Sign in to find teammates, start personal or group chats, and share project capsules.</p><button className="team-primary" onClick={() => navigate('/auth')}>Sign in to collaborate<ExternalLink size={16}/></button></section> : tab === 'people' ? (
           <div className="flex-1 overflow-y-auto p-3 md:p-6">
             <div className="max-w-2xl mx-auto">
@@ -810,7 +821,7 @@ export default function CommunityPage() {
           <>
             {/* Chat list — messenger-style rail */}
             <div
-              className={`flex min-h-0 w-full flex-col border-[var(--border)] bg-[var(--chat-panel)] md:w-[min(100%,360px)] md:shrink-0 md:border-r ${activeChat ? 'hidden md:flex' : ''}`}
+              className={`community-chat-list flex min-h-0 w-full flex-col border-[var(--border)] bg-[var(--chat-panel)] md:w-[min(100%,360px)] md:shrink-0 md:border-r ${activeChat ? 'hidden md:flex' : ''}`}
             >
               <div className="community-chat-filters" aria-label="Filter conversations">{(['all','direct','group'] as const).map(filter => <button key={filter} aria-pressed={chatFilter === filter} onClick={() => setChatFilter(filter)}>{filter === 'all' ? 'All chats' : filter === 'direct' ? 'Personal' : 'Groups'}</button>)}</div>
               {loadingChats && loadingChatable ? (
@@ -901,7 +912,7 @@ export default function CommunityPage() {
             </div>
 
             {/* Message thread — Stratabin Chat */}
-            <div className={`flex min-h-0 flex-1 flex-col bg-[var(--chat-bg)] ${!activeChat ? 'hidden md:flex' : ''}`}>
+            <div className={`community-conversation flex min-h-0 flex-1 flex-col bg-[var(--chat-bg)] ${!activeChat ? 'hidden md:flex' : ''}`}>
               {activeChat ? (
                 <>
                   <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--chat-panel)] px-2 py-2 md:px-3">
@@ -928,7 +939,7 @@ export default function CommunityPage() {
                     </span>
                   </div>
 
-                  <div className="stratabin-chat-thread min-h-0 flex-1 overflow-y-auto px-2 py-3 md:px-4">
+                  <div ref={threadRef} onScroll={() => { const thread = threadRef.current; if (thread) followLatest.current = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 80; }} className="stratabin-chat-thread min-h-0 flex-1 overflow-y-auto px-2 py-3 md:px-4">
                     {hasOlder && !loadingMessages && <div className="community-earlier"><button disabled={loadingOlder} onClick={() => void loadOlder()}>{loadingOlder ? 'Loading…' : 'Load earlier messages'}</button></div>}
                     {loadingMessages ? (
                       <div className="flex justify-center py-12">
@@ -948,7 +959,7 @@ export default function CommunityPage() {
                         return (
                           <div key={m.id} className={`mb-1 flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                             <div
-                              className={`max-w-[min(92vw,520px)] rounded-lg px-2.5 py-1.5 shadow-sm sm:max-w-[78%] ${
+                              className={`community-message max-w-[min(92vw,520px)] rounded-lg px-2.5 py-1.5 shadow-sm sm:max-w-[78%] ${
                                 isMe
                                   ? 'rounded-tr-sm border border-[var(--chat-outgoing-border)] bg-[var(--chat-outgoing)] text-[var(--text)]'
                                   : 'rounded-tl-sm border border-[var(--border)] bg-[var(--chat-incoming)] text-[var(--text)]'

@@ -72,6 +72,7 @@ function App() {
       <Route path="/calendar" element={<AuthGate><CalendarView /></AuthGate>} />
       <Route path="/reports" element={<AuthGate><ReportsSelectPage /></AuthGate>} />
       <Route path="/strab" element={BUILT_IN_AI_ENABLED ? <AuthGate><StrabHome /></AuthGate> : <PersonalAIRedirect />} />
+      <Route path="/sasha" element={<AuthGate><span /></AuthGate>} />
       <Route path="/ai" element={<AuthGate><AIWorkspaceHome /></AuthGate>} />
       <Route path="/ai/:id" element={<AuthGate><ProjectPage><PersonalAIWorkspace /></ProjectPage></AuthGate>} />
       <Route path="/strab/:id" element={BUILT_IN_AI_ENABLED ? <AuthGate><ProjectPage><StrabView /></ProjectPage></AuthGate> : <PersonalAIRedirect />} />

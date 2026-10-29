@@ -251,3 +251,12 @@ CREATE TABLE IF NOT EXISTS assistant_push_subscriptions (
  subscription_json TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_assistant_push_user ON assistant_push_subscriptions(user_id);
+
+-- Hosted Sasha quota reservations persist across server restarts.
+CREATE TABLE IF NOT EXISTS assistant_usage (
+ user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ day_key TEXT NOT NULL,
+ kind TEXT NOT NULL,
+ used INTEGER NOT NULL DEFAULT 0,
+ PRIMARY KEY (user_id, day_key, kind)
+);

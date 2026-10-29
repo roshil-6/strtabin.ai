@@ -62,3 +62,33 @@
 .community-chat-filters{display:flex;gap:6px;padding:12px;border-bottom:1px solid var(--border-strong);flex-shrink:0}.community-chat-filters button{flex:1;padding:10px 6px;min-height:44px;border-radius:8px;font-size:12px;color:var(--text-muted)}.community-chat-filters button[aria-pressed=true]{color:var(--primary);background:var(--accent-soft)}.community-earlier{display:flex;justify-content:center;padding:14px}.community-earlier button{font-size:12px;color:var(--primary);padding:10px 16px;min-height:44px;border:1px solid var(--border-strong);border-radius:9px}
 
 .team-invitations{padding:20px;border:1px solid var(--border-strong);border-radius:12px;margin-bottom:24px;background:var(--accent-soft)}.team-invitations h3{font-size:16px;font-weight:500;margin-bottom:14px}.team-invitations article{display:flex;align-items:center;gap:14px;padding:12px 0}.team-invitations article>div:first-of-type{flex:1}.team-invitations strong{font-size:14px;font-weight:500}.team-invitations p{font-size:12px;color:var(--text-muted);line-height:1.7;margin-top:4px}@media(max-width:700px){.team-invitations article{flex-wrap:wrap}.team-invitations article>.team-actions{width:100%;justify-content:flex-end}}
+
+/* A bounded viewport gives each workspace and conversation its own scroll area. */
+.community-hub {height:100dvh;min-height:0;display:flex;flex-direction:column}
+.community-content {display:flex;flex:1;min-height:0;min-width:0;overflow:hidden}
+.community-content>.team-workspace {height:100%;min-height:0;min-width:0;margin:0 auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-bottom:100px}
+.team-switcher {margin-bottom:24px}
+.team-switcher-heading {display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px}
+.team-switcher-heading h3 {font-size:14px;font-weight:600}
+.team-switcher-heading>span {font-size:12px;color:var(--text-muted)}
+.team-switcher-list {display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;max-height:260px;overflow:auto;padding:4px}
+.team-switcher-list>button {display:flex;align-items:center;gap:12px;padding:16px;text-align:left;border:1px solid var(--border-strong);border-radius:12px;background:var(--bg-panel);color:var(--text)}
+.team-switcher-list>button>span:nth-child(2) {flex:1;min-width:0}
+.team-switcher-list strong {display:block;font-size:14px;overflow-wrap:anywhere}
+.team-switcher-list small {display:block;font-size:12px;color:var(--text-muted);margin-top:4px}
+.community-hub .team-switcher-list>button[aria-pressed=true] {opacity:1;cursor:default;border-color:var(--primary);background:var(--accent-soft)}
+.team-scope-bar {padding:20px;border:1px solid var(--border-strong);border-radius:14px;background:var(--bg-panel)}
+.team-scope-bar strong {font-size:17px;overflow-wrap:anywhere}
+.team-scope-bar p {margin-top:6px;line-height:1.7}
+.team-projects {grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))}
+.team-project {padding:22px;box-shadow:0 4px 16px #00000014;background:linear-gradient(145deg,var(--bg-elevated),var(--bg-panel))}
+.team-project h3 {margin:18px 0 8px;font-weight:600}
+.team-project>p {line-height:1.7}
+.community-chat-layout {margin:20px;gap:16px;padding-bottom:56px}
+.community-chat-list,.community-conversation {border:1px solid var(--border-strong);border-radius:16px;overflow:hidden;min-width:0}
+.community-conversation {--chat-outgoing:var(--accent-soft);--chat-outgoing-border:var(--border-strong);--chat-incoming:var(--bg-panel)}
+.community-hub .stratabin-chat-thread {padding:24px;overscroll-behavior:contain;scrollbar-gutter:stable}
+.community-message {padding:12px 16px;border-radius:14px;margin-bottom:10px;overflow-wrap:anywhere;min-width:0}
+.community-message p {line-height:1.65}
+.community-composer-tools {flex-wrap:wrap}
+@media(max-width:700px){.community-chat-layout{margin:8px;gap:0;padding-bottom:56px}.community-hub .stratabin-chat-thread{padding:12px}.team-switcher-list{grid-template-columns:1fr;max-height:210px}.team-scope-bar{padding:16px}.team-scope-bar>.team-actions{width:100%}.team-section-heading h2{font-size:25px}}
