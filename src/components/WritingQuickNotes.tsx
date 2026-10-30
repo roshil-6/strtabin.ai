@@ -1,3 +1,4 @@
+import useModalStore from '../store/useModalStore';
 import { useRef, useState } from 'react';
 import { Plus, GripHorizontal, ChevronDown, Trash2 } from 'lucide-react';
 import useStore from '../store/useStore';
@@ -43,7 +44,7 @@ export default function WritingQuickNotes({ canvasId, pageId }: { canvasId: stri
                         setPosition({ id: note.id, x: start.width ? Math.max(0, Math.min(1, (start.left + event.clientX - start.x) / start.width)) : 0, y: Math.max(0, Math.min(1200, start.top + event.clientY - start.y)) });
                     }} onPointerUp={() => {if (position?.id === note.id) update(note.id, { noteX: position.x, noteY: position.y });drag.current = null;setPosition(null);}} onPointerCancel={() => {drag.current = null;setPosition(null);}}><GripHorizontal size={16}/></button>
                     <button aria-label={open ? 'Collapse note' : 'Expand note'} aria-expanded={open} onClick={() => setExpanded(open ? null : note.id)}><ChevronDown size={15} style={{transform: open ? 'rotate(180deg)' : undefined}}/></button>
-                    <button aria-label="Delete quick note" onClick={() => {if (!window.confirm('Delete this quick note?')) return;const store=useStore.getState();store.setWritingPages(canvasId,(store.canvases[canvasId]?.writingPages || []).filter(page => page.id !== note.id));}}><Trash2 size={14}/></button></div>
+                    <button aria-label="Delete quick note" onClick={async () => {if (!await useModalStore.getState().confirm('Delete this quick note?')) return;const store=useStore.getState();store.setWritingPages(canvasId,(store.canvases[canvasId]?.writingPages || []).filter(page => page.id !== note.id));}}><Trash2 size={14}/></button></div>
                     {open ? <><input aria-label="Quick note title" value={note.title} maxLength={200} onChange={event => update(note.id, { title: event.target.value })}/><textarea autoFocus aria-label="Quick note text" placeholder="Write a quick thought…" value={note.content} maxLength={10000} rows={Math.min(7, Math.max(3, note.content.split('\n').length))} onChange={event => update(note.id, { content: event.target.value })}/></> : <button className="quick-note-preview" onClick={() => setExpanded(note.id)} aria-expanded={false}><strong>{note.title || 'Quick note'}</strong><span>{note.content || 'Click to write…'}</span></button>}
                 </article>;
             })}

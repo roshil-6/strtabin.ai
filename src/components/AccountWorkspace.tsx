@@ -1,3 +1,7 @@
+import { useAccountTransition } from '../store/useAccountTransition';
+import toast from 'react-hot-toast';
+import { useLocation } from 'react-router-dom';
+import useModalStore from '../store/useModalStore';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { useAuth, useClerk } from '@clerk/clerk-react';
@@ -25,6 +29,9 @@ function exportCopy(value:unknown, filename:string) {
 /** Resolve identity before hydrating or rendering any workspace data. */
 export default function AccountWorkspace({children}:{children:ReactNode}) {
     const {isLoaded,userId,getToken}=useAuth();
+    const {pathname}=useLocation();
+    const signingOut=useAccountTransition(state=>state.signingOut);
+    const publicPage=['/','/auth','/auth/sign-up','/features','/sso-callback'].includes(pathname);
     const {signOut}=useClerk();
     const tokenRef=useRef(getToken);
     useEffect(()=>{tokenRef.current=getToken;},[getToken]);
@@ -43,6 +50,7 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
         if(!owner)return;
         if(initialOwner.current && initialOwner.current!==owner) {
             // Terminate all stale requests, chat sockets, editors and speech sessions.
+            useModalStore.getState().resolveConfirm(false); useModalStore.getState().resolvePrompt(null);
             selectAccount(null); NotificationManager.cancelAllNotifications(); window.location.reload();return;
         }
         initialOwner.current=owner;
@@ -113,14 +121,15 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
         })();
         return ()=>{stopped=true;abort.abort();clearTimeout(timer);unsubs.forEach(unsub=>unsub());window.removeEventListener('beforeunload',beforeUnload);window.removeEventListener('online',online);};
     },[owner]);
-    if(!owner||result.owner!==owner||!result.ready)return <main className="theme-page min-h-screen flex items-center justify-center p-8"><div className="max-w-xl space-y-4" role="status"><p>{result.owner===owner&&result.error?result.error:'Opening your private workspace…'}</p>{result.owner===owner&&result.error&&<><button onClick={()=>window.location.reload()}>Retry</button><button onClick={()=>void signOut({redirectUrl:'/auth'})}>Sign out</button></>}{conflict&&result.owner===owner&&<><button onClick={()=>exportCopy(conflict.local,'stratabin-device-backup.json')}>Export this device’s copy</button><button onClick={()=>{
+    if(signingOut||!owner||result.owner!==owner)return <div className="theme-page min-h-screen grid place-items-center" role="status" aria-label="Switching account"><span className="h-6 w-6 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] motion-safe:animate-spin" /></div>;
+    if(!result.ready)return <main className="theme-page min-h-screen flex items-center justify-center p-8"><div className="max-w-xl space-y-4" role="status"><p>{result.owner===owner&&result.error?result.error:'Opening your private workspace…'}</p>{result.owner===owner&&result.error&&<><button onClick={()=>window.location.reload()}>Retry</button><button onClick={()=>void signOut({redirectUrl:'/auth'})}>Sign out</button></>}{conflict&&result.owner===owner&&<><button onClick={()=>exportCopy(conflict.local,'stratabin-device-backup.json')}>Export this device’s copy</button><button onClick={()=>{
         localStorage.setItem(accountKey(owner,'conflict-backup'),JSON.stringify(conflict.local));
         localStorage.setItem(accountKey(owner,'cloud-meta'),JSON.stringify({revision:conflict.revision,dirty:false}));
         window.location.reload();
     }}>Keep backup and load cloud copy</button></>}</div></main>;
-    return <>{children}{showNotice&&<aside className="fixed right-3 top-3 z-[95] max-w-[min(24rem,calc(100vw-1.5rem))] max-h-[60dvh] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-panel)] p-3 pr-12 text-xs shadow-lg" aria-label="Account storage"><button type="button" aria-label="Dismiss account storage notice" title="Dismiss notice" className="absolute right-1 top-1 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]" onClick={()=>{setNoticeDismissed(true);setDismissedError(saveError);}}><X size={18}/></button><p role="status">{saveStatus}</p>{saveError&&<button onClick={()=>retry.current()}>Retry cloud save</button>}{legacy&&<details><summary>Older local work is preserved separately</summary><p>This backup may contain another account’s work from this device. It is not assigned to your account. Export it before recovery.</p><button onClick={()=>{
-        if(Object.keys(useStore.getState().canvases).length||useTimetables.getState().tables.length){window.alert('Recovery is available only into an empty workspace, to avoid overwriting your projects. Export the backup first.');return;}
-        if(!window.confirm('Only recover this data if it belongs to you. Add the unassigned local work to the account currently signed in?'))return;
+    return <>{children}{!publicPage&&showNotice&&<aside className="fixed right-3 top-3 z-[95] max-w-[min(24rem,calc(100vw-1.5rem))] max-h-[60dvh] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-panel)] p-3 pr-12 text-xs shadow-lg" aria-label="Account storage"><button type="button" aria-label="Dismiss account storage notice" title="Dismiss notice" className="absolute right-1 top-1 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]" onClick={()=>{setNoticeDismissed(true);setDismissedError(saveError);}}><X size={18}/></button><p role="status">{saveStatus}</p>{saveError&&<button onClick={()=>retry.current()}>Retry cloud save</button>}{legacy&&<details><summary>Older local work is preserved separately</summary><p>This backup may contain another account’s work from this device. It is not assigned to your account. Export it before recovery.</p><button onClick={async()=>{
+        if(Object.keys(useStore.getState().canvases).length||useTimetables.getState().tables.length){toast.error('Recovery is available only into an empty workspace, to avoid overwriting your projects. Export the backup first.');return;}
+        if(!await useModalStore.getState().confirm('Only recover this data if it belongs to you. Add the unassigned local work to the account currently signed in?'))return;
         try {
             let recovered:Record<string,unknown>={};
             for(const key of [STORAGE_KEY,LEGACY_STORAGE_KEY,GUEST_DATA_BACKUP_KEY]) {
@@ -132,6 +141,6 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
             recovered.canvases=Object.fromEntries(Object.entries((recovered.canvases||{}) as Record<string,unknown>).filter(([id])=>!/^proj_\d+$/.test(id)&&!id.startsWith('shared_')));
             recovered.currentCanvasId=null;recovered.nodes=[];recovered.edges=[];
             applySnapshot({workspace:recovered,tables:Array.isArray(parsedTables.state?.tables)?parsedTables.state.tables:[]});
-        }catch{window.alert('The older backup could not be read. It has not been removed.');}
+        }catch{toast.error('The older backup could not be read. It has not been removed.');}
     }}>Recover my old work into this account</button><button onClick={()=>exportCopy(Object.fromEntries([STORAGE_KEY,LEGACY_STORAGE_KEY,GUEST_DATA_BACKUP_KEY,'stratabin-timetables-v1'].map(key=>[key,localStorage.getItem(key)])),'stratabin-unassigned-backup.json')}>Export unassigned backup</button></details>}</aside>}</>;
 }
