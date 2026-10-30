@@ -16,6 +16,7 @@ export const publicFeatures = [
  {title:'Account-specific cloud saving',desc:'Signed-in personal workspaces save to your account with local recovery copies and conflict checks. Guest work stays in that browser. Cloud saving and team features require an internet connection.'},
 ];
 export const publicFaqs = [
+ {q:'Can I edit or run software in Stratabin?',a:'No. Coding tools have been removed. Stratabin focuses on project planning, writing, visual brainstorming, tasks, schedules and team collaboration. Sasha helps with project context and reviewed workspace actions.'},
  {q:'What is Stratabin?',a:'Stratabin is a project planning and AI workspace for writing, brainstorming, tasks, timetables, calendars, team collaboration and project context capsules.'},
  {q:'How do project capsules work with my own AI?',a:'Select the project context you want to share, then copy or download a capsule. Paste or attach it yourself in ChatGPT, Claude or Gemini. Stratabin does not automatically attach a file to another service or connect your personal AI subscription.'},
  {q:'What does Sasha AI do?',a:'Sasha is the Pro chat and voice assistant. It can brief you on selected project context and propose projects, tasks, reminders and flow maps. You review and apply changes. Daily usage allowances apply; live voice requires a supported browser, microphone permission and internet access.'},
@@ -25,7 +26,7 @@ export const publicFaqs = [
 ];
 export const publicPages:Record<string,{title:string;description:string;heading:string}> = {
  '/':{title:'Stratabin — Project Planning, Brainstorming & AI Workspace',description:'Plan projects with writing, visual flow maps, tasks, weekly timetables and team chat. Use Sasha AI or share full project context with your own AI.',heading:'Project planning, brainstorming and AI in one workspace'},
- '/features':{title:'Stratabin Features — Writing, Flow Maps, Tasks & Sasha AI',description:'Explore Stratabin’s writing pages, brainstorming boards, tasks, timetables, calendars, team workspaces, project capsules and Sasha AI chat and voice.',heading:'Explore every part of your Stratabin workspace'},
+ '/features':{title:'Stratabin Features — Writing, Flow Maps, Tasks & Sasha AI',description:'Explore Stratabin’s writing pages, brainstorming boards, tasks, timetables, calendars, team workspaces, project capsules and Sasha AI chat and voice.',heading:'Writing, planning, teamwork and AI — connected'},
 };
 export function structuredData(path:string) {
  const page=publicPages[path];if(!page)return null;

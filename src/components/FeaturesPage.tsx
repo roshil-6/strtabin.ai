@@ -1,4 +1,4 @@
-import { publicFeatures } from '../content/publicContent';
+import { publicFeatures, publicFaqs, publicPages } from '../content/publicContent';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import HexagonBackground from './HexagonBackground';
@@ -41,10 +41,10 @@ export default function FeaturesPage() {
                     </Link>
 
                     <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight mb-4 text-[var(--text)]">
-                        Writing, planning, teamwork and AI — connected
+                        {publicPages['/features'].heading}
                     </h1>
                     <p className="text-lg text-[var(--text-muted)] mb-16 leading-relaxed max-w-2xl">
-                        Stratabin is the AI workspace and strategy planner that helps you unscatter your thoughts and turn them into execution plans. Here&apos;s everything you get in one unified strategy workspace.
+                        {publicPages['/features'].description}
                     </p>
 
                     <section className="space-y-12">
@@ -73,10 +73,17 @@ export default function FeaturesPage() {
                         <ol className="space-y-6 text-[var(--text-muted)]">
                             <li><strong className="text-[var(--text-secondary)] font-semibold">1. Capture & Write</strong> — Start with raw ideas in the writing editor. Use split view to compare angles, or branch into visual flowcharts.</li>
                             <li><strong className="text-[var(--text-secondary)] font-semibold">2. Plan & Organize</strong> — Organize your project notes, create folder workspaces, and let your AI help refine your plan.</li>
-                            <li><strong className="text-[var(--text-secondary)] font-semibold">3. Execute & Track</strong> — Convert strategies into tasks, set calendar deadlines, build timelines, and use AI reports to monitor progress and identify gaps.</li>
+                            <li><strong className="text-[var(--text-secondary)] font-semibold">3. Execute & Track</strong> — Convert strategies into tasks, set calendar deadlines, build timelines, and review reports to monitor progress and identify gaps.</li>
                         </ol>
                     </section>
 
+                    <section className="mt-16 space-y-4" aria-labelledby="features-questions">
+                        <h2 id="features-questions" className="text-2xl font-semibold text-[var(--text)]">Questions about Stratabin</h2>
+                        {publicFaqs.map(faq => <details key={faq.q} className="pro-surface-card p-5">
+                            <summary className="cursor-pointer font-medium text-[var(--text)]">{faq.q}</summary>
+                            <p className="mt-3 leading-relaxed text-[var(--text-muted)]">{faq.a}</p>
+                        </details>)}
+                    </section>
                     <div className="mt-16 text-center">
                         <Link
                             to="/"

@@ -127,3 +127,48 @@
 .assistant-panel .sasha-upgrade-compact{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 20px;margin-bottom:22px;border-radius:12px;background:var(--accent-soft)}
 .sasha-upgrade-compact>svg,.sasha-upgrade-compact>p{display:none}.sasha-upgrade-compact h3{font-size:15px;margin:0;flex:1}.sasha-upgrade-compact button{font-size:12px;margin:0}
 @media(max-width:760px){.sasha-workspace .sasha-settings-grid{grid-template-columns:1fr}.assistant-settings-view.sasha-workspace{width:100%}.assistant-settings-view .assistant-scroll{padding:18px 16px 90px}.assistant-panel .sasha-setting-section{padding:20px}.assistant-settings-view .assistant-tabs{padding:10px 12px}.assistant-settings-view .assistant-tabs button{padding:9px 12px;font-size:13px}}
+
+/* Conversation and reminders share the settings layout and workspace palette. */
+.assistant-settings-view.assistant-panel{color:var(--text)}
+.assistant-settings-view.assistant-panel>header,.assistant-settings-view.assistant-panel>footer{background:var(--bg-panel);border-color:var(--border)}
+.assistant-settings-view.assistant-panel button{background:var(--bg-panel);border-color:var(--border-strong);color:var(--text)}
+.assistant-settings-view.assistant-panel button:hover:not(:disabled){background:var(--accent-soft)}
+.assistant-settings-view.assistant-panel :is(input:not([type=checkbox]),select,textarea){background:var(--bg-page);border-color:var(--border-strong);color:var(--text)}
+.assistant-view-chat .assistant-scroll{padding:20px 28px 24px}
+.assistant-view-chat .sasha-context{padding:0 0 18px;margin-bottom:20px;gap:12px}
+.assistant-view-chat .assistant-project{font-size:12px;color:var(--text-muted)}
+.assistant-project select{margin-top:6px;min-height:44px}
+.assistant-view-chat .assistant-welcome{max-width:840px;margin:24px auto;text-align:center}
+.assistant-welcome>svg{margin:auto;color:var(--primary)}
+.assistant-view-chat .assistant-welcome p{color:var(--text-muted);max-width:620px;margin:0 auto;line-height:1.7}
+.sasha-workspace.assistant-view-chat .assistant-welcome>div{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.assistant-view-chat .assistant-welcome button{padding:16px;align-items:start;font-size:13px;line-height:1.6}
+.assistant-view-chat .assistant-welcome button svg{flex-shrink:0;margin-top:4px}
+.assistant-view-chat .assistant-messages{max-width:960px;margin:auto}
+.assistant-view-chat .assistant-message{padding:18px 22px;background:var(--bg-panel);border-color:var(--border);line-height:1.7}
+.assistant-view-chat .assistant-message.user{background:var(--accent-soft)}
+.assistant-view-chat.assistant-panel>footer{padding:14px 28px 18px;flex-shrink:0;max-height:45%;overflow-y:auto}
+.assistant-compose{font-size:12px;color:var(--text-muted)}
+.assistant-compose textarea{display:block;margin-top:6px;min-height:72px;max-height:160px;resize:vertical}
+.assistant-view-chat.assistant-panel .assistant-send{background:var(--primary);color:#100d18;border-color:transparent;padding:9px 20px}
+.assistant-compose-tools{gap:10px}
+.assistant-compose-tools label{color:var(--text-muted);padding:6px}
+.assistant-view-reminders .assistant-scroll{padding:24px 28px 32px}
+.assistant-schedule>.assistant-section-title{margin:0 0 22px}
+.assistant-section-title p,.assistant-panel .assistant-reminder-card p,.assistant-panel .assistant-push-status p,.assistant-panel .assistant-schedule small{color:var(--text-muted)}
+.assistant-reminder-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start}
+.sasha-workspace .assistant-reminder-layout{grid-template-columns:minmax(320px,.9fr) minmax(0,1.1fr)}
+.assistant-reminder-create,.assistant-reminder-list{min-width:0}
+.assistant-panel .assistant-push-status{background:var(--bg-panel);border-color:var(--border);padding:18px;margin:0 0 20px}
+.assistant-panel .assistant-schedule form{padding:22px;border:1px solid var(--border);background:var(--bg-panel);border-radius:14px}
+.assistant-schedule form .assistant-note{margin:0 0 16px}
+.assistant-schedule form label{font-size:12px;color:var(--text-muted)}
+.assistant-schedule form :is(input,select){margin-top:6px;min-height:44px}
+.assistant-panel .assistant-schedule form>button{background:var(--primary);color:#100d18;border-color:transparent;width:100%;min-height:44px}
+.assistant-reminder-list>.assistant-section-title{margin:0 0 16px;justify-content:space-between}
+.assistant-reminder-list>.assistant-section-title>span{padding:2px 10px;border-radius:20px;background:var(--accent-soft);color:var(--primary);font-size:12px}
+.assistant-panel .assistant-reminder-card{background:var(--bg-panel);border-color:var(--border);margin:0 0 12px;padding:20px}
+.assistant-panel .assistant-badge{background:var(--accent-soft);border-color:var(--border);color:var(--primary)}
+.assistant-reminder-list .assistant-empty{padding:48px 20px;border:1px dashed var(--border-strong);border-radius:14px;color:var(--text-muted)}
+@media(max-width:900px){.sasha-workspace .assistant-reminder-layout{grid-template-columns:1fr}.sasha-workspace.assistant-view-chat .assistant-welcome>div{grid-template-columns:1fr}.assistant-view-chat .assistant-welcome{margin:16px auto}}
+@media(max-width:760px){.assistant-view-chat .assistant-scroll,.assistant-view-reminders .assistant-scroll{padding:18px 16px}.assistant-view-chat.assistant-panel>footer{padding:12px 16px calc(14px + env(safe-area-inset-bottom))}.assistant-view-chat .sasha-context>button{font-size:12px}.assistant-panel .assistant-schedule form{padding:18px}.assistant-reminder-layout{gap:20px}}
