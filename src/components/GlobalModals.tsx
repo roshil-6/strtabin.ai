@@ -7,7 +7,7 @@ function ModalFrame({ title, message, cancel, children }: { title: string; messa
         dialog.current?.querySelector<HTMLElement>('input,button')?.focus();
         return () => { if (previous?.isConnected) previous.focus(); };
     }, []);
-    return <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget) cancel(); }}>
+    return <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget) cancel(); }}>
         <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="global-modal-title" aria-describedby="global-modal-message" className="bg-[var(--bg-panel)] border border-[var(--border-strong)] rounded-2xl shadow-2xl p-6 w-full max-w-sm text-[var(--text)]" onKeyDown={event => {
             if (event.key === 'Escape') { event.preventDefault(); cancel(); }
             if (event.key === 'Tab') {

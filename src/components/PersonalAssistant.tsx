@@ -1,3 +1,4 @@
+import useModalStore from '../store/useModalStore';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -248,7 +249,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                         <details><summary>What project information is shared?</summary><p>Your selected project context is sent to Google when you ask Sasha. Attachments are excluded. Changes to your project require your review.</p></details>
                     </section>
                     <section className="sasha-setting-section"><h3>Your daily allowance</h3><div className="sasha-usage-grid"><div><strong>30</strong><span>Chat requests</span></div><div><strong>3</strong><span>Voice sessions</span></div></div><p>Up to 3 minutes per voice session. Resets daily at midnight UTC.</p><small>Powered by Gemini through Stratabin. No personal API key needed.</small></section>
-                    <section className="sasha-setting-section"><h3>Conversation</h3><p>Clear the messages in this session. Your projects and saved work stay in place.</p><button disabled={applying || busy} onClick={()=>{if(window.confirm('Clear this conversation? Your projects will stay saved.'))reset();}}>Clear conversation</button><button onClick={()=>setTab('chat')}>Back to conversation<ArrowUpRight size={15}/></button></section>
+                    <section className="sasha-setting-section"><h3>Conversation</h3><p>Clear the messages in this session. Your projects and saved work stay in place.</p><button disabled={applying || busy} onClick={async()=>{if(await useModalStore.getState().confirm('Clear this conversation? Your projects will stay saved.'))reset();}}>Clear conversation</button><button onClick={()=>setTab('chat')}>Back to conversation<ArrowUpRight size={15}/></button></section>
                 </div>}
                 {tab === 'chat' && <div className="sasha-context"><label className="assistant-project">Project context<select value={projectId} disabled={busy || applying || voiceActive} onChange={event => { reset(); setProjectId(event.target.value); }}><option value="">New idea / create a project</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name || 'Untitled project'}</option>)}</select></label>{loader.error && <p role="alert">{loader.error}<button onClick={loader.retry}>Retry project</button></p>}<button onClick={() => navigate('/ai')}>Your own AI & capsules<ArrowUpRight size={15}/></button>{!fullPage && <button onClick={() => {setOpen(false);navigate('/sasha');}}>Open Sasha workspace<ArrowUpRight size={15}/></button>}</div>}
                 {tab === 'reminders' && <AssistantReminders projectId={projectId} />}
