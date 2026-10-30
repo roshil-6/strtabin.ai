@@ -18,7 +18,7 @@ test('test payments never grant server-funded Sasha access',async()=>{
 });
 test('concurrent daily reservations cannot exceed allowance',async()=>{
  const chat=await Promise.all(Array.from({length:40},()=>reserveSashaUsage(1,'chat')));
- assert.equal(chat.filter(Boolean).length,30);
- const voice=await Promise.all(Array.from({length:5},()=>reserveSashaUsage(1,'voice')));
- assert.equal(voice.filter(Boolean).length,3);
+ assert.equal(chat.filter(Boolean).length,10);
+ const voice=await Promise.all(Array.from({length:20},()=>reserveSashaUsage(1,'voice')));
+ assert.equal(voice.filter(Boolean).length,10);
 });
