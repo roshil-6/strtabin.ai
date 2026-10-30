@@ -19,6 +19,8 @@ test('public and private production HTML have distinct metadata and crawlable pu
   assert.match(html,/<main[ >]/);assert.match(html,/<h1>/);
   assert.match(html,/<meta name="robots" content="index, follow/);
   assert.doesNotMatch(html,/code editor|STRAB AI/i);
+  assert.ok(html.includes('Coding tools have been removed.'));
+  assert.ok(html.includes('Questions') || html.includes('Frequently asked questions'));
   const schema=JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)[1]);
   assert.deepEqual(schema,structuredData(path));
   assert.ok(html.includes('Writing, pages and sections'));
@@ -29,4 +31,9 @@ test('public and private production HTML have distinct metadata and crawlable pu
  assert.doesNotMatch(privateHtml,/rel="canonical"|application\/ld\+json/);
  const sitemap=readFileSync(new URL('../public/sitemap.xml',import.meta.url),'utf8');
  assert.doesNotMatch(sitemap,/dashboard|strategy|billing|auth|community/);
+});
+
+test('assistant instructions do not advertise retired coding features',()=>{
+ const server=readFileSync(new URL('../server.js',import.meta.url),'utf8');
+ assert.doesNotMatch(server,/integrated code editor|code execution platform|active code files in the built-in IDE/i);
 });

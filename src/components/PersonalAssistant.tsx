@@ -221,7 +221,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 if (proposal.actions.length) { voice.current?.stop(); setTab('chat'); setOpen(true); }
             }} />
         {open && !fullPage && <div className="assistant-backdrop" onClick={close} aria-hidden="true" />}
-        {visible && <section ref={panel} id="personal-assistant" className={`assistant-panel ${fullPage ? 'sasha-workspace' : ''} ${tab === 'settings' ? 'assistant-settings-view' : ''}`} role={fullPage ? 'region' : 'dialog'} aria-label="Sasha AI workspace" aria-modal={fullPage ? undefined : true} onKeyDown={event => {
+        {visible && <section ref={panel} id="personal-assistant" className={`assistant-panel ${fullPage ? 'sasha-workspace' : ''} assistant-settings-view assistant-view-${tab}`} role={fullPage ? 'region' : 'dialog'} aria-label="Sasha AI workspace" aria-modal={fullPage ? undefined : true} onKeyDown={event => {
             if (event.key === 'Escape') { close(); return; }
             if (!fullPage && event.key === 'Tab') {
                 const items = Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],summary') || []).filter(item => item.offsetParent !== null);
@@ -235,8 +235,8 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             <div className="assistant-scroll">
                 {!access && !accessError && <p role="status">Checking your Sasha access…</p>}
                 {accessError && <div role="alert" className="assistant-error">{accessError}<button onClick={() => setAccessAttempt(value => value+1)}>Retry</button></div>}
-                {access && !access.pro && <div className={`sasha-upgrade ${tab === 'settings' ? 'sasha-upgrade-compact' : ''}`}><Bot size={28}/><h3>Your workspace, with an assistant.</h3><p>Sasha Pro can brief your projects, brainstorm ideas, and prepare tasks and flow maps. No personal API key needed.</p><button onClick={() => navigate('/billing')}>View Pro plan</button><button onClick={() => navigate('/ai')}>Use your own AI with a capsule</button></div>}
-                {access?.pro && !access.configured && <p role="alert" className="assistant-error">Sasha is waiting for the backend connection to be configured.</p>}
+                {tab !== 'reminders' && access && !access.pro && <div className="sasha-upgrade sasha-upgrade-compact"><Bot size={28}/><h3>Your workspace, with an assistant.</h3><p>Sasha Pro can brief your projects, brainstorm ideas, and prepare tasks and flow maps. No personal API key needed.</p><button onClick={() => navigate('/billing')}>View Pro plan</button><button onClick={() => navigate('/ai')}>Use your own AI with a capsule</button></div>}
+                {tab !== 'reminders' && access?.pro && !access.configured && <p role="alert" className="assistant-error">Sasha is waiting for the backend connection to be configured.</p>}
                 {tab === 'settings' && <div className="sasha-settings-grid">
                     <section className="sasha-setting-section"><h3>Your assistant</h3><p>Make Sasha your own. Your name preference saves automatically.</p>
                         <label htmlFor="sasha-agent-name">Assistant name</label><input id="sasha-agent-name" value={name} maxLength={40} disabled={busy || voiceActive} onChange={event => setName(event.target.value)} />
@@ -259,9 +259,9 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 {busy && <p role="status">Thinking with Gemini 3.8 Flash…</p>}
                 {error && <p role="alert" className="assistant-error">{error}</p>}<div ref={end} />
             </div>
-            {tab === 'chat' && <footer><label className="assistant-compose">Your request<textarea rows={3} maxLength={3000} disabled={busy || applying} value={draft} placeholder="Ask about your project…" onChange={event => setDraft(event.target.value)} /></label>
+            {tab === 'chat' && <footer><label className="assistant-compose">Your request<textarea rows={2} maxLength={3000} disabled={busy || applying} value={draft} placeholder="Ask about your project…" onChange={event => setDraft(event.target.value)} /></label>
                 <div className="assistant-compose-tools">{!busy && !applying && !voiceActive && !wakeActive && <VoiceTyping destination="your request" onInsert={text => setDraft(previous => `${previous} ${text}`.trim().slice(0, 3000))} />}<button onClick={() => window.speechSynthesis?.cancel()} aria-label="Stop speaking"><Square size={16} /></button><label><input type="checkbox" checked={readAloud} onChange={event => setReadAloud(event.target.checked)} />Speak replies</label>{busy ? <button onClick={() => request.current?.abort()}>Stop request</button> : <button className="assistant-send" disabled={!draft.trim() || !ready || applying} onClick={() => void send()}><Send size={17} />Ask</button>}</div>
-                <button className="assistant-reminders" onClick={() => void NotificationManager.enableReminders().then(mode => { useStore.getState().checkNotifications(); setError(`Reminders enabled (${mode}). Keep Stratabin open to receive them.`); })}>Enable in-app reminders</button>
+
             </footer>}
         </section>}
     </>;
