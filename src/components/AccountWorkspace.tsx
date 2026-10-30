@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { X } from 'lucide-react';
 import { useAuth, useClerk } from '@clerk/clerk-react';
 import useStore from '../store/useStore';
 import { useTimetables } from '../store/useTimetables';
@@ -33,6 +34,10 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
     const [saveStatus,setSaveStatus]=useState('');
     const [conflict,setConflict]=useState<{local:Snapshot;cloud:Snapshot;revision:number}|null>(null);
     const [legacy,setLegacy]=useState(false);
+    const [noticeDismissed,setNoticeDismissed]=useState(false);
+    const [dismissedError,setDismissedError]=useState('');
+    const saveError=saveStatus && saveStatus!=='Saved to your account' && saveStatus!=='Saving your workspace…' ? saveStatus : '';
+    const showNotice=(!noticeDismissed && !!(saveStatus||legacy)) || (!!saveError && saveError!==dismissedError);
     const retry=useRef<()=>void>(()=>{});
     useEffect(()=>{
         if(!owner)return;
@@ -113,7 +118,7 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
         localStorage.setItem(accountKey(owner,'cloud-meta'),JSON.stringify({revision:conflict.revision,dirty:false}));
         window.location.reload();
     }}>Keep backup and load cloud copy</button></>}</div></main>;
-    return <>{children}{(saveStatus||legacy)&&<aside className="fixed left-3 bottom-3 z-[95] max-w-sm rounded-xl border border-[var(--border)] bg-[var(--bg-panel)] p-3 text-xs shadow-lg" aria-label="Account storage"><p role="status">{saveStatus}</p>{saveStatus&&saveStatus!=='Saved to your account'&&<button onClick={()=>retry.current()}>Retry cloud save</button>}{legacy&&<details><summary>Older local work is preserved separately</summary><p>This backup may contain another account’s work from this device. It is not assigned to your account. Export it before recovery.</p><button onClick={()=>{
+    return <>{children}{showNotice&&<aside className="fixed right-3 top-3 z-[95] max-w-[min(24rem,calc(100vw-1.5rem))] max-h-[60dvh] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-panel)] p-3 pr-12 text-xs shadow-lg" aria-label="Account storage"><button type="button" aria-label="Dismiss account storage notice" title="Dismiss notice" className="absolute right-1 top-1 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]" onClick={()=>{setNoticeDismissed(true);setDismissedError(saveError);}}><X size={18}/></button><p role="status">{saveStatus}</p>{saveError&&<button onClick={()=>retry.current()}>Retry cloud save</button>}{legacy&&<details><summary>Older local work is preserved separately</summary><p>This backup may contain another account’s work from this device. It is not assigned to your account. Export it before recovery.</p><button onClick={()=>{
         if(Object.keys(useStore.getState().canvases).length||useTimetables.getState().tables.length){window.alert('Recovery is available only into an empty workspace, to avoid overwriting your projects. Export the backup first.');return;}
         if(!window.confirm('Only recover this data if it belongs to you. Add the unassigned local work to the account currently signed in?'))return;
         try {
