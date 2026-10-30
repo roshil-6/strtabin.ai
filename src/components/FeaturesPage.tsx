@@ -1,4 +1,4 @@
-import { publicFeatures, publicFaqs, publicPages } from '../content/publicContent';
+import { publicFeatures, publicFaqs, publicPages, featureAvailabilityNotice } from '../content/publicContent';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import HexagonBackground from './HexagonBackground';
@@ -43,9 +43,14 @@ export default function FeaturesPage() {
                     <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight mb-4 text-[var(--text)]">
                         {publicPages['/features'].heading}
                     </h1>
-                    <p className="text-lg text-[var(--text-muted)] mb-16 leading-relaxed max-w-2xl">
+                    <p className="text-lg text-[var(--text-muted)] mb-6 leading-relaxed max-w-2xl">
                         {publicPages['/features'].description}
                     </p>
+
+                    <aside aria-label="Feature availability" className="mb-12 rounded-xl border border-[var(--border)] bg-[var(--bg-panel)] px-5 py-4 text-sm leading-relaxed text-[var(--text-muted)]">
+                        <strong className="block mb-1 font-medium text-[var(--text)]">Feature availability</strong>
+                        {featureAvailabilityNotice}
+                    </aside>
 
                     <section className="space-y-12">
                         <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--text)]">

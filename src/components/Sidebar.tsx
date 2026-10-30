@@ -157,7 +157,7 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                 </div>
             </button>
 
-            {/* STRAB AI */}
+            {/* Sasha AI */}
             {(() => {
                 const active = pathname.includes('/ai');
                 return (

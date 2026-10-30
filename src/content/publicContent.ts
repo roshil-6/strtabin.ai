@@ -1,3 +1,4 @@
+export const featureAvailabilityNotice = 'Coding tools are currently unavailable. Stratabin focuses on planning, writing, brainstorming, tasks, and teamwork.';
 export const SITE_URL = 'https://www.stratabin.com';
 export const publicFeatures = [
  {title:'Writing, pages and sections',desc:'Write long-form project notes, add separate pages, organize expandable sections, and use split view and branching to develop ideas.'},

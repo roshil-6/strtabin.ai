@@ -1,3 +1,4 @@
+import WritingQuickNotes from './WritingQuickNotes';
 import WritingDocument from './WritingDocument';
 import { writeWritingBlocks, writingPlainText } from '../lib/writingBranches';
 import WritingPageTree from './WritingPageTree';
@@ -5,23 +6,18 @@ import { writingKindLabel, appendWritingBranch, moveWritingPage, pageAncestors, 
 import type { WritingPage } from '../lib/writingPages';
 import { generateId } from '../utils/uuid';
 import toast from 'react-hot-toast';
-import { localDateKey } from '../lib/localDate';
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import VoiceTyping from './VoiceTyping';
 const WritingAttachmentPreview = lazy(() => import('./WritingAttachmentPreview'));
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, CalendarDays, Pin, PinOff, ChevronDown, Keyboard } from 'lucide-react';
+import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard } from 'lucide-react';
 import './WritingSection.css';
-import type { CalendarEvent } from '../store/useStore';
 
 interface WritingSectionProps {
     canvasId: string;
     onBranch?: () => void;
     initialView?: 'document' | 'cards';
 }
-
-const EMPTY_PROJECT_EVENTS: Record<string, CalendarEvent[]> = {};
-const EMPTY_PINNED_KEYS: string[] = [];
 
 export default function WritingSection(props: WritingSectionProps) {
     return <WritingProject key={props.canvasId} {...props} />;
@@ -54,7 +50,7 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
         } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not add page.'); }
     };
     const renderCard = (page: WritingPage, trail: string[] = []): React.ReactNode => {
-        if (trail.includes(page.id)) return null;
+        if (page.quickNote || trail.includes(page.id)) return null;
         if (!page.kind || page.kind === 'page') return <article className="manuscript-page-link" key={page.id}><FileText size={20} /><div><strong>{page.title || 'Untitled page'}</strong><small>Writing page</small></div><button onClick={() => selectPage(page.id)}>Open page</button></article>;
         const expanded = expandedCards.has(page.id);
         const children = pages.filter(child => child.parentId === page.id);
@@ -75,7 +71,7 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
         </article>;
     };
     return <div className="writing-project">
-        <WritingPageTree pages={pages} activeId={selected} rootTitle={canvas?.name || canvas?.title || 'Main page'} select={selectPage} add={parent => create(parent)} />
+        <WritingPageTree pages={pages.filter(page => !page.quickNote)} activeId={selected} rootTitle={canvas?.name || canvas?.title || 'Main page'} select={selectPage} add={parent => create(parent)} />
         <div className="writing-page-editor">
             <div className="manuscript-toolbar"><div role="group" aria-label="Writing view"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Section board</button></div><button disabled={pages.length >= 100} onClick={() => create(ROOT_PAGE)}>+ Add page</button><span>{pages.length} / 100 items</span></div>
             <nav className="writing-breadcrumbs" aria-label="Page path"><button onClick={() => selectPage(ROOT_PAGE)}>{canvas?.name || canvas?.title || 'Main page'}</button>{pageAncestors(pages, selected).map(page => <span key={page.id}><span aria-hidden="true">/</span><button aria-current={page.id === selected ? 'page' : undefined} onClick={() => selectPage(page.id)}>{page.title || 'Untitled page'}</button></span>)}</nav>
@@ -106,11 +102,6 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
     const deleteCanvasImage = useStore(state => state.deleteCanvasImage);
     const addCanvasDoc = useStore(state => state.addCanvasDoc);
     const deleteCanvasDoc = useStore(state => state.deleteCanvasDoc);
-    const addCalendarEvent = useStore(state => state.addCalendarEvent);
-    const toggleWritingPinnedCalendarEvent = useStore(state => state.toggleWritingPinnedCalendarEvent);
-    const projectCalendarEvents = useStore(state => state.projectCalendarEvents[canvasId] ?? EMPTY_PROJECT_EVENTS);
-    const writingPinnedKeys = useStore(state => state.writingPinnedCalendarEventKeys[canvasId] ?? EMPTY_PINNED_KEYS);
-
     const [title, setTitle] = useState(canvas?.name || canvas?.title || '');
     const [content, setContent] = useState('');
     const [isSplitMode, setIsSplitMode] = useState(false);
@@ -118,10 +109,6 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
     const [contentB, setContentB] = useState('');
     const [headingA, setHeadingA] = useState('Heading A');
     const [headingB, setHeadingB] = useState('Heading B');
-    const [quickTask, setQuickTask] = useState('');
-    const [quickDate, setQuickDate] = useState(() => localDateKey());
-    const [quickTime, setQuickTime] = useState('');
-
     const imageInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -130,7 +117,6 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     // Branch state
-    const [plannerOpen, setPlannerOpen] = useState(false);
     const [showBranchModal, setShowBranchModal] = useState(false);
     const [branchTopic, setBranchTopic] = useState('');
     const [branchCount, setBranchCount] = useState(3);
@@ -296,29 +282,6 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
         setBranchItems(['', '', '', '', '', '']);
     };
 
-    const flatProjectEvents = Object.entries(projectCalendarEvents)
-        .flatMap(([date, events]) =>
-            events.map(event => ({ ...event, date, pinKey: `${date}::${event.id}` }))
-        )
-        .sort((a, b) => `${a.date} ${a.time || '99:99'}`.localeCompare(`${b.date} ${b.time || '99:99'}`));
-    const pinnedKeySet = new Set(writingPinnedKeys);
-    const pinnedEvents = flatProjectEvents.filter(e => pinnedKeySet.has(e.pinKey));
-    const recentEvents = flatProjectEvents.slice(0, 8);
-
-    const formatDisplayDate = (dateKey: string) => {
-        const date = new Date(`${dateKey}T00:00:00`);
-        if (Number.isNaN(date.getTime())) return dateKey;
-        return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
-    };
-
-    const handleQuickAddTask = () => {
-        const task = quickTask.trim();
-        if (!task || !quickDate) return;
-        addCalendarEvent(quickDate, quickTime || 'All Day', task, canvasId);
-        setQuickTask('');
-        setQuickTime('');
-    };
-
     // Auto-resize textareas — saves/restores scroll position to prevent jump-to-top on Enter
     useEffect(() => {
         const scrollEl = scrollContainerRef.current;
@@ -431,100 +394,7 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                                         className="w-full bg-transparent outline-none ring-0 border-0 focus:ring-0 focus:border-0 text-2xl md:text-[2.5rem] font-bold text-[var(--text)] placeholder-[var(--text-dim)] leading-tight mb-6"
                                     />
 
-                                    {/* Writing Planner — collapsible, minimal */}
-                    <div className="writing-planner mb-9 border-y border-[var(--border)] overflow-hidden">
-                        <button
-                            onClick={() => setPlannerOpen(!plannerOpen)}
-                            className="w-full flex items-center gap-2 px-4 py-3 hover:bg-[var(--input-bg)]/50 transition-colors text-left"
-                        >
-                            <CalendarDays size={16} className="text-[var(--text-muted)] shrink-0" />
-                            <span className="text-sm font-medium text-[var(--text-secondary)] flex-1">Writing Planner</span>
-                            {pinnedEvents.length > 0 && (
-                                <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">{pinnedEvents.length}</span>
-                            )}
-                            <ChevronDown size={16} className={`text-[var(--text-muted)] transition-transform duration-200 ${plannerOpen ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {plannerOpen && (
-                            <div className="px-4 pb-4 border-t border-[var(--border)] space-y-4 pt-4 animate-in slide-in-from-top-2 fade-in duration-200">
-                                <div className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_auto] gap-2">
-                                    <input
-                                        type="text"
-                                        value={quickTask}
-                                        onChange={(e) => setQuickTask(e.target.value)}
-                                        placeholder="Add important task..."
-                                        className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-primary/30 transition-all placeholder-[var(--text-muted)]"
-                                    />
-                                    <input
-                                        type="date"
-                                        value={quickDate}
-                                        onChange={(e) => setQuickDate(e.target.value)}
-                                        className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-primary/30 transition-all min-h-[40px]"
-                                    />
-                                    <input
-                                        type="time"
-                                        value={quickTime}
-                                        onChange={(e) => setQuickTime(e.target.value)}
-                                        className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-primary/30 transition-all min-h-[40px]"
-                                    />
-                                    <button
-                                        onClick={handleQuickAddTask}
-                                        disabled={!quickTask.trim() || !quickDate}
-                                        className="px-4 py-2 rounded-xl bg-primary text-black text-xs font-black uppercase tracking-wider disabled:opacity-20 active:scale-95 transition-all"
-                                    >
-                                        Add
-                                    </button>
-                                </div>
-
-                                {pinnedEvents.length > 0 && (
-                                    <div>
-                                        <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Pinned</p>
-                                        <div className="space-y-2">
-                                            {pinnedEvents.map((event) => (
-                                                <div key={event.pinKey} className="flex items-center gap-2 p-2.5 rounded-lg bg-[var(--input-bg)]">
-                                                    <span className="text-[11px] font-bold text-primary min-w-[64px]">{formatDisplayDate(event.date)}</span>
-                                                    <span className="text-[11px] text-[var(--text-muted)] min-w-[62px]">{event.time || 'All Day'}</span>
-                                                    <span className={`text-sm flex-1 ${event.completed ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-secondary)]'}`}>{event.task}</span>
-                                                    <button
-                                                        onClick={() => toggleWritingPinnedCalendarEvent(canvasId, event.date, event.id)}
-                                                        className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors"
-                                                        title="Unpin from writing"
-                                                    >
-                                                        <PinOff size={14} />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {recentEvents.length > 0 && (
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">Pin from project calendar</p>
-                                        <div className="space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-1">
-                                            {recentEvents.map((event) => {
-                                                const pinned = pinnedKeySet.has(event.pinKey);
-                                                return (
-                                                    <div key={event.pinKey} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--input-bg)]">
-                                                        <span className="text-[10px] text-[var(--text-muted)] min-w-[58px]">{formatDisplayDate(event.date)}</span>
-                                                        <span className="text-[10px] text-[var(--text-muted)] min-w-[58px]">{event.time || 'All Day'}</span>
-                                                        <span className={`text-xs flex-1 ${event.completed ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-muted)]'}`}>{event.task}</span>
-                                                        <button
-                                                            onClick={() => toggleWritingPinnedCalendarEvent(canvasId, event.date, event.id)}
-                                                            className={`p-1.5 rounded-md transition-colors ${pinned ? 'text-primary bg-primary/10' : 'text-[var(--text-muted)] hover:text-primary hover:bg-primary/10'}`}
-                                                            title={pinned ? 'Unpin' : 'Pin to writing'}
-                                                        >
-                                                            <Pin size={13} />
-                                                        </button>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                    <WritingQuickNotes canvasId={canvasId} pageId={pageId} />
 
                     {/* Image Gallery */}
                     {canvas?.images && canvas.images.length > 0 && (

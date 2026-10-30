@@ -164,7 +164,7 @@ export const sendStrabMessageStreaming = async (
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STRAB SMART ROUTING  (GPT-4 first — Claude only when truly unavoidable)
+// Sasha SMART ROUTING  (GPT-4 first — Claude only when truly unavoidable)
 //
 // Claude (Anthropic) fires ONLY for:
 //   • The very first message from the Flow Builder wizard (bootstraps the canvas
@@ -176,7 +176,7 @@ export const sendStrabMessageStreaming = async (
 //   • Follow-up questions after the initial project setup
 //
 // Rationale: Claude credits are expensive. GPT-4 is fast and capable for 95%
-// of STRAB interactions. Reserve Claude's deeper reasoning for the one moment
+// of Sasha interactions. Reserve Claude's deeper reasoning for the one moment
 // where it genuinely matters — bootstrapping a brand-new project canvas.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -184,7 +184,7 @@ export const sendStrabMessageStreaming = async (
 const FLOW_BUILDER_TRIGGER = 'I just created a new project.';
 
 /**
- * selectProvider — picks the AI engine for each STRAB message.
+ * selectProvider — picks the AI engine for each Sasha message.
  *
  * @param userMessage  The user's raw message string.
  * @returns 'anthropic' (Claude) only for the Flow Builder initial brief;

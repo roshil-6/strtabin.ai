@@ -1,4 +1,4 @@
-export type WritingPage = { id: string; parentId: string; title: string; content: string; kind?: 'page' | 'part' | 'section' | 'scene' };
+export type WritingPage = { id: string; parentId: string; title: string; content: string; quickNote?: boolean; noteX?: number; noteY?: number; kind?: 'page' | 'part' | 'section' | 'scene' };
 export const ROOT_PAGE = 'root';
 export function pageAncestors(pages: WritingPage[], id: string): WritingPage[] {
     const result: WritingPage[] = [];

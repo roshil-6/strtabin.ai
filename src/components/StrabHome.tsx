@@ -219,7 +219,7 @@ export default function StrabHome() {
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
-        document.title = 'STRAB — New strategies (hub) | Stratabin';
+        document.title = 'Sasha — New strategies (hub) | Stratabin';
         serverWarmup.start();
         return () => { document.title = 'Stratabin AI — Strategy Workspace'; };
     }, []);
@@ -329,7 +329,7 @@ export default function StrabHome() {
             }
             const msg = (err as Error)?.message?.includes('503')
                 ? 'Server waking up — please try again in a moment.'
-                : 'STRAB is unreachable. Please try again.';
+                : 'Sasha is unreachable. Please try again.';
             toast.error(msg, {
                 style: { background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' },
             });
@@ -382,7 +382,7 @@ export default function StrabHome() {
                             type="button"
                             onClick={() => navigate('/auth')}
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[10px] font-bold shrink-0 hover:bg-amber-500/20 transition-colors"
-                            title="Sign in for higher STRAB limits"
+                            title="Sign in for higher Sasha limits"
                         >
                             <Sparkles size={12} />
                             {guestAiRemaining > 0 ? `${guestAiRemaining}/${GUEST_AI_LIMIT} guest` : 'Sign in'}
@@ -401,12 +401,12 @@ export default function StrabHome() {
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <span className="font-black text-sm tracking-tight">STRAB</span>
+                            <span className="font-black text-sm tracking-tight">Sasha</span>
                             <span className="text-[10px] font-bold uppercase tracking-widest text-white/20 px-1.5 py-0.5 bg-white/[0.04] rounded-md border border-white/[0.06]">AI</span>
                         </div>
                         <p className="text-[10px] text-white/25 leading-none mt-0.5 hidden sm:block">Strategy hub — new canvases from scratch</p>
                     </div>
-                    {/* STRAB branding badge — replaces the old provider toggle */}
+                    {/* Sasha branding badge — replaces the old provider toggle */}
                     <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-white/30 text-[10px] font-bold mr-2 shrink-0">
                         <Sparkles size={10} className="text-primary/60" />
                         GPT-4 &amp; Claude
@@ -445,7 +445,7 @@ export default function StrabHome() {
                           What are we building?
                         </h1>
                         <p className="text-white/40 text-sm md:text-base text-center max-w-md mb-3 leading-relaxed">
-                          Describe a project, strategy, or workflow — STRAB will create the entire canvas with ideas, connections, and a writing outline automatically.
+                          Describe a project, strategy, or workflow — Sasha will create the entire canvas with ideas, connections, and a writing outline automatically.
                         </p>
                         <div className="flex items-center gap-2 mb-10">
                             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-white/[0.04] border-white/10 text-white/30">
@@ -597,7 +597,7 @@ export default function StrabHome() {
                                 placeholder={isEmpty ? 'Describe what you want to build…' : 'Ask anything or create a new canvas…'}
                                 className="flex-1 bg-transparent text-[15px] text-white outline-none resize-none placeholder-white/20 leading-relaxed min-h-[28px] max-h-[120px] py-1"
                                 rows={1}
-                                aria-label="Message STRAB"
+                                aria-label="Message Sasha"
                             />
                             <button
                                 onClick={handleSend}
@@ -612,7 +612,7 @@ export default function StrabHome() {
                             </button>
                         </div>
                         <p className="text-center text-[10px] text-white/20 mt-2 max-w-md mx-auto leading-relaxed">
-                            <span className="text-primary/80 font-semibold">Strategy hub</span> — new workspaces here. Existing projects: <span className="text-white/35">Dashboard → Project STRAB</span> on the card.
+                            <span className="text-primary/80 font-semibold">Strategy hub</span> — new workspaces here. Existing projects: <span className="text-white/35">Dashboard → Project Sasha</span> on the card.
                         </p>
                     </div>
                 </div>
