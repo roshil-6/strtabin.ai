@@ -276,7 +276,7 @@ export default function Dashboard() {
         if (!text) return 0;
         return text.trim().split(/\s+/).filter(Boolean).length;
     }
-    // Filter canvases: only show projects with content (user or STRAB created)
+    // Filter canvases: only show projects with content (user or Sasha created)
     // Exclude empty placeholders (no name, no nodes, no todos, no writing)
     const hasContent = (p: CanvasData) => {
         const name = (p.title || p.name || '').trim();
@@ -680,7 +680,7 @@ export default function Dashboard() {
                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                                 >
                                     <Bot size={18} className="text-[var(--text-dim)] shrink-0" />
-                                    <span className="font-bold text-sm text-left">Built-in STRAB</span>
+                                    <span className="font-bold text-sm text-left">Built-in Sasha</span>
                                 </button>}
                                 <button
                                     type="button"
@@ -995,7 +995,7 @@ export default function Dashboard() {
                                         <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                                             <BarChart2 size={26} className="text-emerald-400 group-hover:text-emerald-300" />
                                         </div>
-                                        <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">STRAB AI Reports</h3>
+                                        <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Sasha AI Reports</h3>
                                         <p className="text-sm text-white/45 leading-relaxed font-medium">
                                             Generate comprehensive analysis, gap identification, and actionable recommendations for any project.
                                         </p>

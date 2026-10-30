@@ -327,7 +327,7 @@ export default function StrabView() {
 
     // Update page title
     useEffect(() => {
-        document.title = `Project STRAB — ${resolvedName} | Stratabin`;
+        document.title = `Project Sasha — ${resolvedName} | Stratabin`;
     }, [resolvedName]);
 
     // Kick off background server warm-up (non-blocking — UI is never gated on this)
@@ -350,7 +350,7 @@ export default function StrabView() {
             const hasAnyContent = nodeCount > 0 || todoCount > 0 || wordCount > 0 || (c?.codeFiles?.length || 0) > 0 || Boolean(c?.timelineContent?.trim());
 
             const parts: string[] = [
-                `I am STRAB. Let's build ${name}.`
+                `I am Sasha. Let's build ${name}.`
             ];
 
             if (!hasAnyContent) {
@@ -478,7 +478,7 @@ export default function StrabView() {
                         }
                         const msg = (err as Error)?.message?.includes('503')
                             ? 'Server waking up — please try again in a moment.'
-                            : 'STRAB is unreachable. Please try again.';
+                            : 'Sasha is unreachable. Please try again.';
                         toast.error(msg);
                     } finally {
                         setIsLoading(false);
@@ -587,7 +587,7 @@ export default function StrabView() {
             }
             const msg = (err as Error)?.message?.includes('503')
                 ? 'Server waking up — please try again in a moment.'
-                : 'STRAB is unreachable. Please try again.';
+                : 'Sasha is unreachable. Please try again.';
             toast.error(msg);
             updateLastChatMessage(id!, "I'm having trouble connecting right now. Please try again in a moment.");
         } finally {
@@ -715,7 +715,7 @@ export default function StrabView() {
                     </div>
                     <div className="min-w-0">
                         <h1 className="font-bold text-[13px] leading-tight">
-                            STRAB <span className="text-white/35 font-semibold text-[10px]">Project</span>
+                            Sasha <span className="text-white/35 font-semibold text-[10px]">Project</span>
                         </h1>
                         <p className="text-[9px] text-white/25 leading-none mt-0.5 truncate hidden sm:block" title="Chat, reports & follow-up">
                             Chat &amp; reports · {resolvedName}
@@ -729,7 +729,7 @@ export default function StrabView() {
                             type="button"
                             onClick={() => navigate('/auth')}
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[10px] md:text-[11px] font-bold hover:bg-amber-500/20 transition-colors"
-                            title="Sign in for higher STRAB limits"
+                            title="Sign in for higher Sasha limits"
                         >
                             <Sparkles size={12} />
                             {guestAiRemaining > 0 ? `${guestAiRemaining}/${GUEST_AI_LIMIT} guest` : 'Sign in'}
@@ -928,7 +928,7 @@ export default function StrabView() {
                                     onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSend()}
                                     placeholder="Ask about this project, reports, or next steps…"
                                     className="w-full bg-white/[0.04] border border-white/[0.06] rounded-2xl py-3.5 md:py-3.5 pl-4 pr-14 md:pr-12 text-base md:text-base text-white focus:border-primary/30 focus:bg-white/[0.06] outline-none transition-all placeholder-white/15 min-h-[48px] touch-manipulation"
-                                    aria-label="Message STRAB for this project"
+                                    aria-label="Message Sasha for this project"
                                 />
                                 <button
                                     onClick={handleSend}
@@ -1110,7 +1110,7 @@ export default function StrabView() {
                             {canvas.nodes.length === 0 && (
                                 <div className="bg-primary/[0.06] border border-primary/20 p-5 rounded-2xl">
                                     <div className="text-[10px] font-semibold uppercase tracking-widest text-primary/80 mb-3">Start from blank</div>
-                                    <p className="text-[11px] text-white/45 mb-3">Project STRAB can still expand <strong className="text-white/55">this</strong> canvas (ideas, links, writing, tasks). For an all-new strategy workspace, use <strong className="text-white/55">Dashboard → STRAB (New strategy)</strong>.</p>
+                                    <p className="text-[11px] text-white/45 mb-3">Project Sasha can still expand <strong className="text-white/55">this</strong> canvas (ideas, links, writing, tasks). For an all-new strategy workspace, use <strong className="text-white/55">Dashboard → Sasha (New strategy)</strong>.</p>
                                     <div className="grid grid-cols-1 gap-2">
                                         {EMPTY_CANVAS_BUILD_PROMPTS.map(({ label, icon }) => (
                                             <button

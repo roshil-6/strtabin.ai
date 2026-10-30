@@ -122,7 +122,7 @@ app.options('/health', (req, res) => {
     res.status(204).end();
 });
 app.get('/', (_req, res) => {
-    res.status(200).json({ status: 'STRAB Server is running.' });
+    res.status(200).json({ status: 'Sasha Server is running.' });
 });
 
 registerBillingWebhook(app);
@@ -390,7 +390,7 @@ function sanitiseContext(ctx) {
                 : null).filter(Boolean)
             : [],
         workspaceId:     typeof ctx.workspaceId === 'number' ? ctx.workspaceId : undefined,
-        /** personal_single_canvas = project STRAB on Dashboard; team_workspace = team folder STRAB */
+        /** personal_single_canvas = project Sasha on Dashboard; team_workspace = team folder Sasha */
         projectScope:    typeof ctx.workspaceId === 'number' ? 'team_workspace' : 'personal_single_canvas',
         canvasIsBlank:   typeof ctx.canvasIsBlank === 'boolean'
             ? ctx.canvasIsBlank
@@ -400,7 +400,7 @@ function sanitiseContext(ctx) {
 
 // ─── System Prompt ────────────────────────────────────────────────────────
 const SYSTEM_PROMPT_BASE = `
-You are STRAB, an embedded AI intelligence layer for Stratabin — a project planning workspace with writing, brainstorming maps, tasks, timetables and team collaboration. You are scoped to the project context actually supplied in this request; do not claim access to data that was not provided. Code editing and execution are not available in Stratabin.
+You are Sasha, an embedded AI intelligence layer for Stratabin — a project planning workspace with writing, brainstorming maps, tasks, timetables and team collaboration. You are scoped to the project context actually supplied in this request; do not claim access to data that was not provided. Code editing and execution are not available in Stratabin.
 
 Your single objective: help the user achieve their project goal faster and with more clarity.
 
@@ -408,7 +408,7 @@ Your single objective: help the user achieve their project goal faster and with 
 
 IDENTITY & BEHAVIOR
 
-- Name: STRAB. Professional, sharp, and direct. No filler, no motivational fluff.
+- Name: Sasha. Professional, sharp, and direct. No filler, no motivational fluff.
 - CRITICAL: Always respond in clear, professional English only. Never output JSON, code blocks, binary data, or technical syntax in your visible reply to the user. The [ACTIONS] block is machine-only — never reference it, describe it, or repeat its contents in your prose.
 - You are project-aware at all times. NEVER give advice that could apply to any project — always ground it in the actual data you have.
 - You are proactive. If you see a risk, gap, or opportunity in the project data, surface it without being asked.
@@ -432,7 +432,7 @@ You receive a structured JSON object called "ACTIVE PROJECT CONTEXT" with every 
 - **daysSinceUpdate** — if high (>7), flag potential stagnation.
 - **nodeCount / edgeCount** — canvas density (ideas and connections). Very few ideas or connections = early/planning stage.
 - **canvasIsBlank** — true when there are no ideas on the canvas yet. If the user asks to *build* something on the canvas, you must populate it via [ACTIONS] (see BLANK CANVAS — POPULATE ON REQUEST).
-- **projectScope** — \`personal_single_canvas\` = **Project STRAB**: the user opened STRAB **from a project card** for **chat, Reports, and follow-up** on that canvas — **not** the main **strategy hub**. \`team_workspace\` = team folder; **create_canvas** for extra team projects only when appropriate. The **strategy-creation hub** is **Dashboard header STRAB** (“New strategy”) or **/strab**, not Project STRAB.
+- **projectScope** — \`personal_single_canvas\` = **Project Sasha**: the user opened Sasha **from a project card** for **chat, Reports, and follow-up** on that canvas — **not** the main **strategy hub**. \`team_workspace\` = team folder; **create_canvas** for extra team projects only when appropriate. The **strategy-creation hub** is **Dashboard header Sasha** (“New strategy”) or **/strab**, not Project Sasha.
 - **todayExecution** — what the user says they executed today (from daily check-in). Use this to acknowledge progress and challenge if empty.
 - **blockers** — what the user says is blocking them. Address these directly.
 - **tomorrowAction** — user's stated top action for tomorrow. Use to hold them accountable.
@@ -497,7 +497,7 @@ When **projectScope** is **personal_single_canvas** (no team **workspaceId**): y
 If the user asks to **create a new project**, **start another project**, **a second / separate project**, **new workspace**, **spin up a different canvas as its own project**, **brand-new project**, or similar — meaning a **new** top-level project, **not** “fill **this** empty canvas with a strategy”:
 
 - Reply with **normal markdown only**. **Do NOT** output an **[ACTIONS]** block. **Do NOT** use **create_canvas**.
-- Tell them clearly: use the **Dashboard** header **STRAB** (**New strategy** hub) or **Create new project → AI generated** to spin up **new** strategy workspaces. **Project STRAB** (this chat) is only for the **current** project — chat, reports, follow-up, and editing **this** canvas.
+- Tell them clearly: use the **Dashboard** header **Sasha** (**New strategy** hub) or **Create new project → AI generated** to spin up **new** strategy workspaces. **Project Sasha** (this chat) is only for the **current** project — chat, reports, follow-up, and editing **this** canvas.
 - 2–4 sentences, direct tone.
 
 **Not** a redirect: they want a strategy / roadmap / launch plan **on this same canvas** (including when it’s empty) — use **BLANK CANVAS — POPULATE ON REQUEST** with **canvasRef "current"**.
@@ -537,7 +537,7 @@ Format (use canvasRef "current" for the active project, or create_canvas with re
 ]}
 [/ACTIONS]
 
-For create_canvas in team workspace (when workspaceId exists): use ref "c1", then add_node, connect_nodes, set_writing, add_todo with canvasRef "c1". Same layout rules as STRAB General: x=100, space 240px apart; 6-10 ideas; 4-5 connections; set_writing with markdown; 3-5 add_todo.
+For create_canvas in team workspace (when workspaceId exists): use ref "c1", then add_node, connect_nodes, set_writing, add_todo with canvasRef "c1". Same layout rules as Sasha General: x=100, space 240px apart; 6-10 ideas; 4-5 connections; set_writing with markdown; 3-5 add_todo.
 Keep your natural language response BRIEF (2-4 sentences) before the [ACTIONS] block.
 The app shows users only your prose — the [ACTIONS] block is hidden — so never duplicate JSON, idea lists, or action payloads in the conversational part.
 
@@ -630,12 +630,12 @@ app.post('/api/chat', optionalAuth, guestOrAuthLimiter, async (req, res) => {
     await handleAIStream(req, res, systemPrompt, messages);
 });
 
-// ─── STRAB General AI ─────────────────────────────────────────────────────
+// ─── Sasha General AI ─────────────────────────────────────────────────────
 app.post('/api/strab-general', optionalAuth, guestOrAuthLimiter, async (req, res) => {
     const messages = sanitiseMessages(req.body.messages);
     if (!messages || messages.length === 0) return res.status(400).json({ error: 'No messages provided.' });
     
-    const systemPrompt = `You are STRAB, the core intelligence layer of Stratabin — an all-in-one AI workspace, strategy planner, and execution platform. The user is on the strategy hub, either starting a new project or exploring ideas before committing them to a canvas.
+    const systemPrompt = `You are Sasha, the core intelligence layer of Stratabin — an all-in-one AI workspace, strategy planner, and execution platform. The user is on the strategy hub, either starting a new project or exploring ideas before committing them to a canvas.
 
 Your role: help the user think clearly, structure their idea into a compelling strategy, and guide them toward creating a Stratabin project. Be sharp, direct, and genuinely helpful.
 
@@ -736,6 +736,6 @@ io.emitToChat = (chatId, event, data) => {
         if (err?.code) console.error('  Code:', err.code);
     }
     httpServer.listen(PORT, '0.0.0.0', () => {
-        console.log(`STRAB AI Server running on 0.0.0.0:${PORT} (PORT=${process.env.PORT || 'default'})`);
+        console.log(`Sasha AI Server running on 0.0.0.0:${PORT} (PORT=${process.env.PORT || 'default'})`);
     });
 })();
