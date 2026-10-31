@@ -200,3 +200,13 @@
 @media(max-width:760px){.assistant-settings-view.assistant-panel>header{padding:20px 16px 12px}.assistant-settings-view.assistant-panel .assistant-tabs{padding:0 16px;gap:22px}.assistant-settings-view .assistant-scroll{padding:20px 16px 32px}.assistant-view-chat.assistant-panel>footer{padding:12px 16px calc(16px + env(safe-area-inset-bottom))}.assistant-panel .sasha-setting-section{padding:20px 0 24px}}
 
 .sasha-credit-note{font-size:12px;line-height:1.6;color:var(--text-muted);margin:0 0 10px}.agent-dock .sasha-voice-credit-note{font-size:11px;line-height:1.6;margin:8px 0;color:#b7c5d9}
+
+/* Write directly in the conversation column, without a separate footer panel. */
+.assistant-view-chat .sasha-inline-compose{width:100%;max-width:960px;margin:32px auto 12px;padding:0;background:transparent;border:0;min-width:0}
+.assistant-panel .sasha-inline-compose .assistant-compose{font-size:13px}
+.assistant-settings-view.assistant-panel .sasha-inline-compose textarea{background:transparent;border:0;border-bottom:1px solid var(--border-strong);border-radius:0;box-shadow:none;min-height:100px;max-height:240px;padding:14px 0;font-size:16px;line-height:1.7;resize:vertical}
+.assistant-settings-view.assistant-panel .sasha-inline-compose textarea:focus-visible{outline:0;border-bottom-color:var(--primary);box-shadow:0 1px 0 var(--primary)}
+.sasha-inline-compose .sasha-credit-note{font-size:11px;line-height:1.6;max-width:720px;margin-bottom:20px}
+.sasha-inline-compose .assistant-compose-tools{margin-top:14px;gap:10px}
+.assistant-panel .sasha-inline-compose .voice-panel{position:fixed;top:50%;bottom:auto;left:50%;right:auto;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 32px));max-height:70dvh}
+@media(max-width:760px){.assistant-view-chat .sasha-inline-compose{margin-top:24px;margin-bottom:24px}.sasha-inline-compose .assistant-compose-tools{gap:8px}}
