@@ -1,3 +1,4 @@
+import { useAccountTransition } from '../store/useAccountTransition';
 import { dashboardDestination } from '../lib/dashboardDestination';
 import CompactProjectCard from './CompactProjectCard';
 import LavenderDotBackground from './LavenderDotBackground';
@@ -807,7 +808,7 @@ export default function Dashboard() {
                                         <User size={16} />
                                     </button>
                                     <button
-                                        onClick={() => signOut({ redirectUrl: '/' })}
+                                        onClick={async () => { useAccountTransition.setState({ signingOut: true }); try { await signOut({ redirectUrl: '/' }); } catch { useAccountTransition.setState({ signingOut: false }); toast.error('Could not sign out. Please try again.'); } }}
                                         className="rounded-lg p-2 text-[var(--text-dim)] transition-colors hover:bg-red-500/10 hover:text-red-500"
                                         title="Sign Out"
                                     >
