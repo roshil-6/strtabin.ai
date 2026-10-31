@@ -4,20 +4,20 @@ import { useNavigate } from 'react-router-dom';
 import { serverWarmup } from '../services/serverWarmup';
 import { isGuestModeEnabled } from '../constants';
 
-export default function AuthGate({ children }: { children: React.ReactNode }) {
+export default function AuthGate({ children, requireSignIn = false }: { children: React.ReactNode; requireSignIn?: boolean }) {
     const { isLoaded, isSignedIn } = useAuth();
     const navigate = useNavigate();
 
-    const allowWithoutSignIn = isGuestModeEnabled();
+    const allowWithoutSignIn = !requireSignIn && isGuestModeEnabled();
 
     useEffect(() => {
         if (!isLoaded) return;
-        if (isSignedIn || isGuestModeEnabled()) {
+        if (isSignedIn || (!requireSignIn && isGuestModeEnabled())) {
             serverWarmup.start();
             return;
         }
         navigate('/auth', { replace: true });
-    }, [isLoaded, isSignedIn, navigate]);
+    }, [isLoaded, isSignedIn, navigate, requireSignIn]);
 
     if (!isLoaded) {
         return (
