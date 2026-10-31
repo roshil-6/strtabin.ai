@@ -259,11 +259,11 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 </article>)}</div>
                 {busy && <p role="status">Thinking with Gemini 3.8 Flash…</p>}
                 {error && <p role="alert" className="assistant-error">{error}</p>}<div ref={end} />
-            </div>
-            {tab === 'chat' && <footer><p className="sasha-credit-note">10 chat credits per day · 1 credit per submitted request. Refills at midnight UTC (5:30 AM India). Approving proposed actions uses no extra credit.</p><label className="assistant-compose">Your request<textarea rows={2} maxLength={3000} disabled={busy || applying} value={draft} placeholder="Ask about your project…" onChange={event => setDraft(event.target.value)} /></label>
+            {tab === 'chat' && <div className="sasha-inline-compose"><p className="sasha-credit-note">10 chat credits per day · 1 credit per submitted request. Refills at midnight UTC (5:30 AM India). Approving proposed actions uses no extra credit.</p><label className="assistant-compose">Your request<textarea rows={2} maxLength={3000} disabled={busy || applying} value={draft} placeholder="Ask about your project…" onChange={event => setDraft(event.target.value)} /></label>
                 <div className="assistant-compose-tools">{!busy && !applying && !voiceActive && !wakeActive && <VoiceTyping destination="your request" onInsert={text => setDraft(previous => `${previous} ${text}`.trim().slice(0, 3000))} />}<button onClick={() => window.speechSynthesis?.cancel()} aria-label="Stop speaking"><Square size={16} /></button><label><input type="checkbox" checked={readAloud} onChange={event => setReadAloud(event.target.checked)} />Speak replies</label>{busy ? <button onClick={() => request.current?.abort()}>Stop request</button> : <button className="assistant-send" disabled={!draft.trim() || !ready || applying} onClick={() => void send()}><Send size={17} />Ask</button>}</div>
 
-            </footer>}
+            </div>}
+            </div>
         </section>}
     </>;
 }
