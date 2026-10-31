@@ -172,3 +172,31 @@
 .assistant-reminder-list .assistant-empty{padding:48px 20px;border:1px dashed var(--border-strong);border-radius:14px;color:var(--text-muted)}
 @media(max-width:900px){.sasha-workspace .assistant-reminder-layout{grid-template-columns:1fr}.sasha-workspace.assistant-view-chat .assistant-welcome>div{grid-template-columns:1fr}.assistant-view-chat .assistant-welcome{margin:16px auto}}
 @media(max-width:760px){.assistant-view-chat .assistant-scroll,.assistant-view-reminders .assistant-scroll{padding:18px 16px}.assistant-view-chat.assistant-panel>footer{padding:12px 16px calc(14px + env(safe-area-inset-bottom))}.assistant-view-chat .sasha-context>button{font-size:12px}.assistant-panel .assistant-schedule form{padding:18px}.assistant-reminder-layout{gap:20px}}
+
+/* One continuous assistant workspace: section dividers replace nested cards. */
+.sasha-workspace.assistant-panel{width:100%;max-width:none;height:100dvh;margin:0;border:0;border-radius:0;box-shadow:none}
+.assistant-settings-view.assistant-panel>header{background:transparent;border-bottom:0;border-radius:0;padding:24px 32px 12px}
+.assistant-settings-view.assistant-panel>header h2{font-size:24px;line-height:1.3;margin-top:4px}
+.assistant-settings-view.assistant-panel .assistant-tabs{flex-shrink:0;gap:24px;padding:0 32px;background:transparent;border-bottom:1px solid var(--border);overflow-x:auto}
+.assistant-settings-view.assistant-panel .assistant-tabs button{flex:0 0 auto;min-height:48px;padding:12px 0;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--text-muted);white-space:nowrap}
+.assistant-settings-view.assistant-panel .assistant-tabs button[aria-pressed=true]{color:var(--primary);border-bottom-color:var(--primary);background:transparent}
+.assistant-settings-view.assistant-panel .assistant-tabs button:hover:not(:disabled){background:transparent;color:var(--text)}
+.assistant-settings-view .assistant-scroll{padding:28px 32px 40px}
+.sasha-workspace .sasha-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:56px;row-gap:0;max-width:1200px;margin:0 auto}
+.assistant-panel .sasha-setting-section{padding:24px 0 28px;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent}
+.assistant-panel .sasha-setting-section h3{font-size:16px;margin-bottom:10px}
+.assistant-panel .sasha-setting-toggle{border-top:0;padding-top:0;margin-top:20px}
+.assistant-panel .sasha-upgrade-compact{padding:12px 0 18px;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent;margin-bottom:20px}
+.assistant-view-chat .assistant-message{background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:20px 0;margin:0}
+.assistant-view-chat .assistant-message.user{background:transparent;margin-left:0;padding-left:18px;border-left:2px solid var(--primary)}
+.assistant-view-chat .assistant-welcome button{border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent;padding:16px 0}
+.assistant-view-chat.assistant-panel>footer{background:transparent;border-radius:0;padding:16px 32px 24px}
+.assistant-panel .assistant-push-status{background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:0 0 24px;margin-bottom:24px}
+.assistant-panel .assistant-schedule form{background:transparent;border:0;border-radius:0;padding:0}
+.assistant-reminder-layout{gap:40px}
+.assistant-panel .assistant-reminder-card{background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:20px 0;margin:0}
+.assistant-reminder-list .assistant-empty{border:0;background:transparent;border-radius:0}
+@media(max-width:900px){.sasha-workspace .sasha-settings-grid{grid-template-columns:1fr}.assistant-reminder-layout{gap:32px}}
+@media(max-width:760px){.assistant-settings-view.assistant-panel>header{padding:20px 16px 12px}.assistant-settings-view.assistant-panel .assistant-tabs{padding:0 16px;gap:22px}.assistant-settings-view .assistant-scroll{padding:20px 16px 32px}.assistant-view-chat.assistant-panel>footer{padding:12px 16px calc(16px + env(safe-area-inset-bottom))}.assistant-panel .sasha-setting-section{padding:20px 0 24px}}
+
+.sasha-credit-note{font-size:12px;line-height:1.6;color:var(--text-muted);margin:0 0 10px}.agent-dock .sasha-voice-credit-note{font-size:11px;line-height:1.6;margin:8px 0;color:#b7c5d9}

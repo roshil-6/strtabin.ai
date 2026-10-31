@@ -129,7 +129,7 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
             {expanded ? <AssistantPresence state={state} level={level} paused={!motionEnabled || hidden} /> : <><span className="agent-three-dots" aria-hidden="true"><i /><i /><i /></span><span>{state === 'idle' ? name : label}</span></>}
         </button>
         {expanded && <button className="agent-rename-hint" title="Change the name of the AI according to your choice" onClick={() => openSection('settings')}>(change AI name)</button>}
-        {expanded && <><strong className="agent-name">{name}</strong><span className="agent-status" role="status">{label}</span>
+        {expanded && <><strong className="agent-name">{name}</strong><small className="sasha-voice-credit-note">10 sessions daily · 1 credit per start · up to 3 min. Refills 00:00 UTC / 5:30 AM India.</small><span className="agent-status" role="status">{label}</span>
         <div className="agent-quick-controls">
             {state !== 'idle' && <button disabled={state === 'connecting'} aria-label={state === 'muted' ? 'Unmute microphone' : 'Mute microphone'} onClick={() => controllerRef.current?.setMuted(state !== 'muted')}>{state === 'muted' ? <MicOff size={16} /> : <Mic size={16} />}</button>}
             <button aria-label="Agent options" aria-expanded={menu} onClick={() => setMenu(value => !value)}><MoreHorizontal size={19} /></button>
