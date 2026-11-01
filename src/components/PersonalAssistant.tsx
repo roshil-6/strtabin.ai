@@ -1,9 +1,10 @@
 import AssistantProjectPicker from './AssistantProjectPicker';
+import MarkdownRenderer from './MarkdownRenderer';
 import useModalStore from '../store/useModalStore';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bot, X, Send, Volume2, Square, Check, ArrowUpRight } from 'lucide-react';
+import { Bot, X, Send, Volume2, VolumeX, Square, Check, ArrowUpRight, Sparkles, Maximize2, RotateCcw } from 'lucide-react';
 import useStore from '../store/useStore';
 import { useTimetables } from '../store/useTimetables';
 import { buildProjectCapsule } from '../lib/projectCapsule';
@@ -63,6 +64,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     const launcher = useRef<HTMLButtonElement>(null);
     const heading = useRef<HTMLButtonElement>(null);
     const panel = useRef<HTMLElement>(null);
+    const composerRef = useRef<HTMLTextAreaElement>(null);
     useEffect(() => {try {localStorage.setItem(`sasha-name:${userId}`,name);} catch {/* Name remains usable for this session. */}},[name,userId]);
     const projects = cloudProjects.map(project => ({id:`proj_${project.id}`,name:project.title}));
     const loader = useProjectLoader(projectId || undefined);
@@ -212,6 +214,8 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         finally { actionLock.current = false; setApplying(false); }
     };
 
+    const agentLabel = name.trim() || 'Sasha';
+
     return <>
         <AssistantLiveVoice key={provider} provider={provider} name={name.trim() || 'Agent'} model={voiceModel} motionEnabled={motionEnabled}
             hidden={open && !fullPage} ready={ready} disabled={busy || applying}
@@ -232,13 +236,49 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
             }
         }}>
-            <header><div><span className="assistant-eyebrow">{name.trim() || 'Sasha'} · PRO</span><h2>{tab === 'settings' ? 'Agent settings' : tab === 'chat' ? 'Conversation' : 'Reminders'}</h2></div><button ref={heading} aria-label="Back to agent" onClick={close}><X size={20} /></button></header>
-            <nav className="assistant-tabs" aria-label="Agent sections">{(['settings', 'chat', 'reminders'] as const).map(item => <button key={item} aria-pressed={tab === item} disabled={busy || applying} onClick={() => setTab(item)}>{item === 'chat' ? 'Conversation' : item === 'settings' ? 'Settings' : 'Reminders'}</button>)}</nav>
             <div className="assistant-scroll">
-                {!access && !accessError && <p role="status">Checking your Sasha access…</p>}
-                {accessError && <div role="alert" className="assistant-error">{accessError}<button onClick={() => setAccessAttempt(value => value+1)}>Retry</button></div>}
-                {tab !== 'reminders' && access && !access.pro && <div className="sasha-upgrade sasha-upgrade-compact"><Bot size={28}/><h3>Your workspace, with an assistant.</h3><p>Sasha Pro can brief your projects, brainstorm ideas, and prepare tasks and flow maps. No personal API key needed.</p><button onClick={() => navigate('/billing')}>View Pro plan</button><button onClick={() => navigate('/ai')}>Use your own AI with a capsule</button></div>}
+                <div className="assistant-topbar">
+                    <div className="assistant-brand">
+                        <span className="assistant-brand-icon" aria-hidden="true"><Sparkles size={15} /></span>
+                        <strong>{agentLabel}</strong>
+                        <span className="assistant-pro-pill">PRO</span>
+                    </div>
+                    <nav className="assistant-tabs" aria-label="Agent sections">
+                        {(['chat', 'reminders', 'settings'] as const).map(item => (
+                            <button key={item} type="button" aria-pressed={tab === item} disabled={busy || applying} onClick={() => setTab(item)}>
+                                {item === 'chat' ? 'Chat' : item === 'settings' ? 'Settings' : 'Reminders'}
+                            </button>
+                        ))}
+                    </nav>
+                    <div className="assistant-topbar-actions">
+                        {!fullPage && (
+                            <button type="button" className="assistant-icon-btn" title="Open full workspace" aria-label="Open Sasha workspace" onClick={() => { setOpen(false); navigate('/sasha'); }}>
+                                <Maximize2 size={16} />
+                            </button>
+                        )}
+                        <button ref={heading} type="button" className="assistant-icon-btn" aria-label="Back to agent" onClick={close}>
+                            <X size={18} />
+                        </button>
+                    </div>
+                </div>
+
+                {!access && !accessError && <p role="status" className="assistant-status-banner">Checking your Sasha access…</p>}
+                {accessError && <div role="alert" className="assistant-error">{accessError}<button type="button" onClick={() => setAccessAttempt(value => value+1)}>Retry</button></div>}
+                {tab !== 'reminders' && access && !access.pro && (
+                    <div className="sasha-upgrade sasha-upgrade-compact">
+                        <Bot size={22}/>
+                        <div>
+                            <h3>Unlock {agentLabel} Pro</h3>
+                            <p>Brief your projects, brainstorm ideas, and generate tasks and flow maps with zero setup.</p>
+                        </div>
+                        <div className="sasha-upgrade-actions">
+                            <button type="button" className="assistant-primary-btn" onClick={() => navigate('/billing')}>View Pro plan</button>
+                            <button type="button" onClick={() => navigate('/ai')}>Use AI capsules</button>
+                        </div>
+                    </div>
+                )}
                 {tab !== 'reminders' && access?.pro && !access.configured && <p role="alert" className="assistant-error">Sasha is waiting for the backend connection to be configured.</p>}
+
                 {tab === 'settings' && <div className="sasha-settings-grid">
                     <section className="sasha-setting-section"><h3>Your assistant</h3><p>Make Sasha your own. Your name preference saves automatically.</p>
                         <label htmlFor="sasha-agent-name">Assistant name</label><input id="sasha-agent-name" value={name} maxLength={40} disabled={busy || voiceActive} onChange={event => setName(event.target.value)} />
@@ -250,20 +290,247 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                         <details><summary>What project information is shared?</summary><p>Your selected project context is sent to Google when you ask Sasha. Attachments are excluded. Changes to your project require your review.</p></details>
                     </section>
                     <section className="sasha-setting-section"><h3>Your daily allowance</h3><div className="sasha-usage-grid"><div><strong>10</strong><span>Chat messages</span></div><div><strong>10</strong><span>Voice sessions</span></div></div><p>Up to 3 minutes per voice session. Both allowances refill daily at midnight UTC (5:30 AM in India).</p><small>Credits are reserved when a request or session starts; failed provider attempts may still count. Unused credits do not carry over.</small></section>
-                    <section className="sasha-setting-section"><h3>Conversation</h3><p>Clear the messages in this session. Your projects and saved work stay in place.</p><button disabled={applying || busy} onClick={async()=>{if(await useModalStore.getState().confirm('Clear this conversation? Your projects will stay saved.'))reset();}}>Clear conversation</button><button onClick={()=>setTab('chat')}>Back to conversation<ArrowUpRight size={15}/></button></section>
+                    <section className="sasha-setting-section"><h3>Conversation</h3><p>Clear the messages in this session. Your projects and saved work stay in place.</p><button type="button" disabled={applying || busy} onClick={async()=>{if(await useModalStore.getState().confirm('Clear this conversation? Your projects will stay saved.'))reset();}}>Clear conversation</button><button type="button" onClick={()=>setTab('chat')}>Back to conversation<ArrowUpRight size={15}/></button></section>
                 </div>}
-                {tab === 'chat' && <div className="sasha-context"><AssistantProjectPicker projects={projects} value={projectId} disabled={busy || applying || voiceActive} onChange={id => { reset(); setProjectId(id); }} />{loader.error && <p role="alert">{loader.error}<button onClick={loader.retry}>Retry project</button></p>}<button onClick={() => navigate('/ai')}>Your own AI & capsules<ArrowUpRight size={15}/></button>{!fullPage && <button onClick={() => {setOpen(false);navigate('/sasha');}}>Open Sasha workspace<ArrowUpRight size={15}/></button>}</div>}
-                {tab === 'reminders' && <AssistantReminders projectId={projectId} />}
-                {tab === 'chat' && !messages.length && <div className="assistant-welcome"><Bot size={28} /><h3>A clearer view of your day.</h3><p>Start with an idea, create a project, or ask for a briefing. Review tasks and connected maps before adding them to your workspace.</p><div>{['Create a project called My next idea.', 'Brief me on this project and suggest the next steps.', 'Brainstorm a flow map for this project.'].map(prompt => <button key={prompt} disabled={busy || voiceActive} onClick={() => setDraft(prompt)}>{prompt}<ArrowUpRight size={15} /></button>)}</div></div>}
-                <div hidden={tab !== 'chat'} className="assistant-messages" role="log" aria-live="polite">{messages.map(message => <article key={message.id} className={`assistant-message ${message.role}`}><strong>{message.role === 'user' ? 'You' : name || 'Assistant'}</strong><p>{message.text}</p>{message.role === 'assistant' && <button aria-label="Read reply aloud" disabled={voiceActive || wakeActive} onClick={() => speak(message.text)}><Volume2 size={15} />Read aloud</button>}
-                    {!!message.actions?.length && <div className="assistant-actions"><strong>{message.applied ? 'Reviewed' : 'Review proposed actions'}</strong>{message.actions.map((action, index) => <p key={index}>{action.type.replaceAll('_', ' ')}: {action.type === 'complete_task' ? canvases[message.projectId || '']?.todos?.find(task => task.id === action.taskId)?.text || 'Task no longer available' : action.type === 'create_flow' ? 'Connected idea map' : action.text || canvases[message.projectId || '']?.name} {action.type === 'create_flow' && <span className="sasha-flow-preview">{action.text.split('\n').filter(Boolean).map((label,i) => <span key={i}>{i > 0 ? '↳ ' : ''}{label}</span>)}</span>} {action.date} {action.time} {action.type === 'add_reminder' ? `· ${action.repeat || 'once'} · ${Intl.DateTimeFormat().resolvedOptions().timeZone}` : ''}</p>)}<button disabled={!ready || message.applied || busy || applying} onClick={() => void apply(message)}><Check size={16} />{message.applied ? 'Applied once' : 'Apply these actions'}</button>{message.applied && message.undo && <button disabled={applying || busy} onClick={() => void apply(message, true)}>Undo changes</button>}{!message.applied && <button disabled={applying} onClick={() => setMessages(previous => previous.map(item => item.id === message.id ? { ...item, actions: [] } : item))}>Dismiss</button>}</div>}
-                </article>)}</div>
-                {busy && <p role="status">Thinking with Gemini 3.8 Flash…</p>}
-                {error && <p role="alert" className="assistant-error">{error}</p>}<div ref={end} />
-            {tab === 'chat' && <div className="sasha-inline-compose"><p className="sasha-credit-note">10 chat credits per day · 1 credit per submitted request. Refills at midnight UTC (5:30 AM India). Approving proposed actions uses no extra credit.</p><label className="assistant-compose">Your request<textarea rows={2} maxLength={3000} disabled={busy || applying} value={draft} placeholder="Ask about your project…" onChange={event => setDraft(event.target.value)} /></label>
-                <div className="assistant-compose-tools">{!busy && !applying && !voiceActive && !wakeActive && <VoiceTyping destination="your request" onInsert={text => setDraft(previous => `${previous} ${text}`.trim().slice(0, 3000))} />}<button onClick={() => window.speechSynthesis?.cancel()} aria-label="Stop speaking"><Square size={16} /></button><label><input type="checkbox" checked={readAloud} onChange={event => setReadAloud(event.target.checked)} />Speak replies</label>{busy ? <button onClick={() => request.current?.abort()}>Stop request</button> : <button className="assistant-send" disabled={!draft.trim() || !ready || applying} onClick={() => void send()}><Send size={17} />Ask</button>}</div>
 
-            </div>}
+                {tab === 'reminders' && <AssistantReminders projectId={projectId} />}
+
+                {tab === 'chat' && (
+                    <div className={`assistant-chat-shell ${messages.length ? 'has-messages' : 'is-empty'}`}>
+                        {!messages.length && (
+                            <div className="assistant-welcome">
+                                <div className="assistant-welcome-orb" aria-hidden="true">
+                                    <Sparkles size={24} />
+                                </div>
+                                <h2>How can {agentLabel} help today?</h2>
+                                <p>Start with an idea, create a project, or ask for a briefing. You can review proposed tasks and flow maps before applying them.</p>
+                                <div className="assistant-starter-grid">
+                                    {[
+                                        'Create a project called My next idea.',
+                                        'Brief me on this project and suggest the next steps.',
+                                        'Brainstorm a flow map for this project.',
+                                    ].map(prompt => (
+                                        <button
+                                            key={prompt}
+                                            type="button"
+                                            disabled={busy || voiceActive}
+                                            onClick={() => {
+                                                setDraft(prompt);
+                                                requestAnimationFrame(() => composerRef.current?.focus());
+                                            }}
+                                        >
+                                            <span>{prompt}</span>
+                                            <ArrowUpRight size={15} />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div hidden={!messages.length && !busy} className="assistant-messages" role="log" aria-live="polite">
+                            {messages.map(message => (
+                                <article key={message.id} className={`assistant-message ${message.role}`}>
+                                    {message.role === 'user' ? (
+                                        <div className="assistant-bubble-user">
+                                            <p>{message.text}</p>
+                                        </div>
+                                    ) : (
+                                        <div className="assistant-response">
+                                            <div className="assistant-response-avatar" aria-hidden="true">
+                                                <Sparkles size={14} />
+                                            </div>
+                                            <div className="assistant-response-body">
+                                                <div className="assistant-response-meta">
+                                                    <strong>{agentLabel}</strong>
+                                                    <button
+                                                        type="button"
+                                                        className="assistant-read-btn"
+                                                        aria-label="Read reply aloud"
+                                                        disabled={voiceActive || wakeActive}
+                                                        onClick={() => speak(message.text)}
+                                                    >
+                                                        <Volume2 size={13} />
+                                                        <span>Read aloud</span>
+                                                    </button>
+                                                </div>
+                                                <div className="assistant-response-text">
+                                                    <MarkdownRenderer content={message.text} />
+                                                </div>
+                                                {!!message.actions?.length && (
+                                                    <div className="assistant-actions">
+                                                        <div className="assistant-actions-header">
+                                                            <strong>{message.applied ? 'Reviewed actions' : 'Review proposed actions'}</strong>
+                                                        </div>
+                                                        <div className="assistant-actions-list">
+                                                            {message.actions.map((action, index) => (
+                                                                <div key={index} className="assistant-action-item">
+                                                                    <span className="assistant-action-badge">{action.type.replaceAll('_', ' ')}</span>
+                                                                    <span className="assistant-action-desc">
+                                                                        {action.type === 'complete_task'
+                                                                            ? canvases[message.projectId || '']?.todos?.find(task => task.id === action.taskId)?.text || 'Task no longer available'
+                                                                            : action.type === 'create_flow'
+                                                                                ? 'Connected idea map'
+                                                                                : action.text || canvases[message.projectId || '']?.name}
+                                                                        {action.date ? ` · ${action.date}` : ''}
+                                                                        {action.time ? ` ${action.time}` : ''}
+                                                                        {action.type === 'add_reminder' ? ` · ${action.repeat || 'once'} · ${Intl.DateTimeFormat().resolvedOptions().timeZone}` : ''}
+                                                                    </span>
+                                                                    {action.type === 'create_flow' && (
+                                                                        <span className="sasha-flow-preview">
+                                                                            {action.text.split('\n').filter(Boolean).map((label, i) => (
+                                                                                <span key={i}>{i > 0 ? '↳ ' : ''}{label}</span>
+                                                                            ))}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <div className="assistant-actions-footer">
+                                                            <button
+                                                                type="button"
+                                                                className="assistant-action-apply"
+                                                                disabled={!ready || message.applied || busy || applying}
+                                                                onClick={() => void apply(message)}
+                                                            >
+                                                                <Check size={15} />
+                                                                {message.applied ? 'Applied once' : 'Apply these actions'}
+                                                            </button>
+                                                            {message.applied && message.undo && (
+                                                                <button type="button" disabled={applying || busy} onClick={() => void apply(message, true)}>
+                                                                    <RotateCcw size={14} />Undo changes
+                                                                </button>
+                                                            )}
+                                                            {!message.applied && (
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={applying}
+                                                                    onClick={() => setMessages(previous => previous.map(item => item.id === message.id ? { ...item, actions: [] } : item))}
+                                                                >
+                                                                    Dismiss
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </article>
+                            ))}
+                            {busy && (
+                                <div className="assistant-thinking" role="status">
+                                    <div className="assistant-response-avatar" aria-hidden="true">
+                                        <Sparkles size={14} />
+                                    </div>
+                                    <div className="assistant-thinking-dots" aria-hidden="true">
+                                        <span /><span /><span />
+                                    </div>
+                                    <span>Thinking…</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {error && <p role="alert" className="assistant-error">{error}</p>}
+                        <div ref={end} />
+
+                        <div className="sasha-inline-compose">
+                            {loader.error && (
+                                <div role="alert" className="assistant-error assistant-loader-error">
+                                    <span>{loader.error}</span>
+                                    <button type="button" onClick={loader.retry}>Retry project</button>
+                                </div>
+                            )}
+                            <div className="assistant-composer-box">
+                                <textarea
+                                    ref={composerRef}
+                                    rows={2}
+                                    maxLength={3000}
+                                    disabled={busy || applying}
+                                    value={draft}
+                                    aria-label="Your request"
+                                    placeholder={`Message ${agentLabel}…`}
+                                    onChange={event => setDraft(event.target.value)}
+                                    onKeyDown={event => {
+                                        if (event.key === 'Enter' && !event.shiftKey) {
+                                            event.preventDefault();
+                                            void send();
+                                        }
+                                    }}
+                                />
+                                <div className="assistant-compose-tools">
+                                    <div className="assistant-compose-left">
+                                        <AssistantProjectPicker
+                                            projects={projects}
+                                            value={projectId}
+                                            disabled={busy || applying || voiceActive}
+                                            onChange={id => { reset(); setProjectId(id); }}
+                                        />
+                                        {!busy && !applying && !voiceActive && !wakeActive && (
+                                            <VoiceTyping
+                                                destination="your request"
+                                                onInsert={text => setDraft(previous => `${previous} ${text}`.trim().slice(0, 3000))}
+                                            />
+                                        )}
+                                        <button
+                                            type="button"
+                                            className={`assistant-tool-pill ${readAloud ? 'active' : ''}`}
+                                            aria-pressed={readAloud}
+                                            title={readAloud ? 'Speak replies is on (click to turn off)' : 'Speak replies aloud'}
+                                            onClick={() => {
+                                                if (readAloud) window.speechSynthesis?.cancel();
+                                                setReadAloud(value => !value);
+                                            }}
+                                        >
+                                            {readAloud ? <Volume2 size={15} /> : <VolumeX size={15} />}
+                                            <span>Speak replies</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="assistant-tool-pill"
+                                            onClick={() => navigate('/ai')}
+                                        >
+                                            <span>AI capsules</span>
+                                            <ArrowUpRight size={13} />
+                                        </button>
+                                    </div>
+                                    <div className="assistant-compose-right">
+                                        {!!messages.length && !busy && (
+                                            <button
+                                                type="button"
+                                                className="assistant-tool-pill"
+                                                disabled={applying}
+                                                onClick={async () => {
+                                                    if (await useModalStore.getState().confirm('Clear this conversation? Your projects will stay saved.')) reset();
+                                                }}
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                        {busy ? (
+                                            <button type="button" className="assistant-stop-btn" onClick={() => request.current?.abort()}>
+                                                <Square size={13} />
+                                                <span>Stop</span>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="assistant-send"
+                                                aria-label="Send message"
+                                                disabled={!draft.trim() || !ready || applying}
+                                                onClick={() => void send()}
+                                            >
+                                                <Send size={15} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="sasha-credit-note">
+                                10 chat credits/day · 1 credit per request · Resets 00:00 UTC (5:30 AM India)
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
         </section>}
     </>;
