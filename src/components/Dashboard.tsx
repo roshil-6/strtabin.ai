@@ -11,7 +11,7 @@ import useModalStore from '../store/useModalStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, FileText, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, BookOpen } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, BookOpen, ChevronDown, Hourglass, Archive } from 'lucide-react';
 
 const DASHBOARD_GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
@@ -62,6 +62,7 @@ export default function Dashboard() {
     const [showMoveMenu, setShowMoveMenu] = useState<string | null>(null);
     const [showDuplicateMenu, setShowDuplicateMenu] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [workspacesExpanded, setWorkspacesExpanded] = useState(true);
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState('');
     const [showCredentialsModal, setShowCredentialsModal] = useState(false);
@@ -106,8 +107,6 @@ export default function Dashboard() {
         const id = createCanvas();
         navigate(`/strategy/${id}`);
     };
-
-
 
     const handleSetCredentials = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -314,9 +313,9 @@ export default function Dashboard() {
         pinnedProjects.length > 0 || currentProjects.length > 0 ? sortedDisplayOther : sortedDisplayRegular;
 
     const tabs = [
-        { id: 'strategy', label: 'Projects', icon: FileText, color: 'text-primary' },
+        { id: 'strategy', label: 'Projects', icon: Folder, color: 'text-primary' },
         { id: 'todo', label: 'Tasks', icon: ListTodo, color: 'text-orange-400' },
-        { id: 'timeline', label: 'Timeline', icon: Clock, color: 'text-orange-400' },
+        { id: 'timeline', label: 'Timeline', icon: Hourglass, color: 'text-orange-400' },
         { id: 'calendar', label: 'Calendar', icon: Calendar, color: 'text-white' },
         { id: 'planner', label: 'Weekly plan', icon: CheckCircle2, color: 'text-orange-500' },
         { id: 'reports', label: 'Reports', icon: BarChart2, color: 'text-emerald-500' },
@@ -324,10 +323,6 @@ export default function Dashboard() {
         /** Opens /strab/:id — chat, reports & follow-up (not the main-hub strategy builder) */
         { id: 'strab', label: 'Project AI', title: 'Use your own ChatGPT, Claude, or Gemini account', icon: Bot, color: 'text-orange-500' },
     ];
-
-
-
-
 
     /** Per-card: focus, priority, stuck (user flags); Done from tasks (read-only). */
     function projectQuickActionsRow(p: CanvasData) {
@@ -337,7 +332,7 @@ export default function Dashboard() {
         const allDone = tc > 0 && done === tc;
         return (
             <div
-                className="flex flex-wrap items-center gap-1.5 mb-2 md:mb-3"
+                className="flex flex-wrap items-center gap-1.5 mb-3"
                 onClick={(e) => e.stopPropagation()}
                 role="group"
                 aria-label="Project focus, priority, and stuck"
@@ -348,7 +343,7 @@ export default function Dashboard() {
                     className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide border transition-colors ${
                         p.isCurrent
                             ? 'border-amber-400/50 bg-amber-500/15 text-amber-200'
-                            : 'border-white/[0.12] bg-white/[0.03] text-white/50 hover:text-white/85 hover:border-white/20'
+                            : 'border-[var(--border)] bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)]'
                     }`}
                     title={p.isCurrent ? 'Remove current focus' : 'Set as current focus (sorts to top with sort option)'}
                 >
@@ -361,7 +356,7 @@ export default function Dashboard() {
                     className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide border transition-colors ${
                         p.isPinned
                             ? 'border-rose-400/45 bg-rose-500/15 text-rose-200'
-                            : 'border-white/[0.12] bg-white/[0.03] text-white/50 hover:text-white/85 hover:border-white/20'
+                            : 'border-[var(--border)] bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)]'
                     }`}
                     title={p.isPinned ? 'Remove high priority' : 'High priority (pinned)'}
                 >
@@ -374,7 +369,7 @@ export default function Dashboard() {
                     className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide border transition-colors ${
                         p.isStuck
                             ? 'border-orange-400/55 bg-orange-500/20 text-orange-200'
-                            : 'border-white/[0.12] bg-white/[0.03] text-white/50 hover:text-white/85 hover:border-white/20'
+                            : 'border-[var(--border)] bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)]'
                     }`}
                     title={p.isStuck ? 'Clear stuck / blocked flag' : 'Mark as stuck or blocked'}
                 >
@@ -404,15 +399,15 @@ export default function Dashboard() {
         return (
             <>
                 {/* Mobile: compact list-style cards */}
-                <div className="md:hidden flex flex-col gap-2">
+                <div className="md:hidden flex flex-col gap-3">
                     {items.map(p => renderMobileCard(p))}
                 </div>
                 {variant === 'pinned-hero' ? (
-                    <div className="hidden md:flex flex-col gap-4">
+                    <div className="hidden md:grid grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
                         {items.map(p => renderPinnedHeroCard(p))}
                     </div>
                 ) : (
-                    <div className="hidden md:grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="hidden md:grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
                         {items.map(p => renderProjectCard(p))}
                     </div>
                 )}
@@ -546,17 +541,17 @@ export default function Dashboard() {
             {/* Folder Sidebar */}
             <aside
                 className={`fixed inset-y-0 left-0 z-50 flex h-full max-h-[100dvh] w-[280px] min-h-0 shrink-0 flex-col transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-                style={{ background: 'var(--bg-panel)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', borderRight: '1px solid rgba(255,255,255,0.05)' }}
+                style={{ background: 'var(--bg-panel)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', borderRight: '1px solid var(--border)' }}
             >
-                <div className="shrink-0 border-b border-[var(--border)] p-3 md:px-6 md:pt-5 md:pb-4">
+                <div className="shrink-0 border-b border-[var(--border)] p-4 md:px-6 md:pt-5 md:pb-4">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 md:gap-3">
-                            <div className="w-8 h-8 md:w-10 md:h-10 bg-transparent rounded-lg md:rounded-xl flex items-center justify-center overflow-hidden  shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 md:w-10 md:h-10 bg-transparent rounded-xl flex items-center justify-center overflow-hidden shrink-0">
                                 <img src="/stratabin-icon.svg" alt="Logo" className="w-full h-full object-contain" />
                             </div>
                             <div>
-                                <h1 className="text-lg md:text-3xl font-semibold tracking-tighter leading-none text-[var(--text)]">Stratabin<span className="text-primary">.</span></h1>
-                                <p className="text-[8px] md:text-[10px] text-[var(--text-dim)] uppercase tracking-[0.2em] mt-0.5 font-bold hidden md:block">Professional Workspace</p>
+                                <h1 className="text-lg md:text-xl font-bold tracking-tight leading-none text-[var(--text)]">Stratabin</h1>
+                                <p className="text-[9px] text-[var(--text-dim)] uppercase tracking-[0.18em] mt-1 font-semibold">Professional Workspace</p>
                             </div>
                         </div>
                         <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-[var(--text-muted)] hover:text-[var(--text)] active:scale-95 transition-all rounded-xl">
@@ -565,29 +560,43 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto custom-scrollbar px-3 py-2 md:px-6 md:py-3">
+                <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto custom-scrollbar px-3 py-3 md:px-5 md:py-4">
                     <div className="space-y-1">
-                        <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)] mb-4 px-3">Workspaces</h2>
+                        {/* Workspaces Section */}
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setWorkspacesExpanded(v => !v)}
+                                className="w-full flex items-center justify-between px-3 mb-2.5 text-[10px] uppercase font-bold tracking-[0.16em] text-[var(--text-dim)] hover:text-[var(--text-muted)] transition-colors"
+                            >
+                                <span>Workspaces</span>
+                                <ChevronDown size={14} className={`transition-transform duration-200 ${workspacesExpanded ? '' : '-rotate-90'}`} />
+                            </button>
 
-                        <button
-                            onClick={() => { setActiveFolder(null); setIsSidebarOpen(false); }}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group border border-transparent ${activeFolderId === null
-                                ? 'bg-[var(--input-bg)] text-[var(--text)] border-[var(--border)]'
-                                : 'text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]'
-                                }`}
-                        >
-                            <Layout size={18} className={activeFolderId === null ? 'text-[var(--text)]' : 'text-[var(--text-dim)] group-hover:text-[var(--text)]'} />
-                            <span className="font-bold text-sm text-left">General Projects</span>
-                        </button>
+                            {workspacesExpanded && (
+                                <button
+                                    onClick={() => { setActiveFolder(null); setIsSidebarOpen(false); }}
+                                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all group border ${activeFolderId === null
+                                        ? 'bg-[var(--accent-soft)] text-[var(--text)] border-[var(--primary)]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
+                                        : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]'
+                                        }`}
+                                >
+                                    <Folder size={17} className={activeFolderId === null ? 'text-[var(--primary)]' : 'text-[var(--text-dim)] group-hover:text-[var(--text)]'} />
+                                    <span className="font-semibold text-sm text-left">General Projects</span>
+                                </button>
+                            )}
+                        </div>
 
-                        <div className="pt-6 pb-2">
-                            <div className="flex items-center justify-between px-3 mb-4">
-                                <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)]">Custom Folders</h2>
+                        {/* Custom Folders Section */}
+                        <div className="pt-5 pb-1">
+                            <div className="flex items-center justify-between px-3 mb-2.5">
+                                <h2 className="text-[10px] uppercase font-bold tracking-[0.16em] text-[var(--text-dim)]">Custom Folders</h2>
                                 <button
                                     onClick={() => setShowFolderModal(true)}
                                     className="p-1 hover:bg-[var(--input-bg)] rounded-lg text-[var(--text-dim)] hover:text-[var(--text)] transition-all"
+                                    title="Create folder"
                                 >
-                                    <FolderPlus size={16} />
+                                    <Plus size={15} />
                                 </button>
                             </div>
 
@@ -596,13 +605,13 @@ export default function Dashboard() {
                                     <button
                                         key={folder.id}
                                         onClick={() => { setActiveFolder(folder.id); setIsSidebarOpen(false); }}
-                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group border border-transparent ${activeFolderId === folder.id
-                                            ? 'bg-[var(--input-bg)] text-[var(--text)] border-[var(--border)]'
-                                            : 'text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]'
+                                        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all group border ${activeFolderId === folder.id
+                                            ? 'bg-[var(--accent-soft)] text-[var(--text)] border-[var(--primary)]/40'
+                                            : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]'
                                             }`}
                                     >
-                                        <Folder size={18} className={activeFolderId === folder.id ? 'text-[var(--text)] fill-[var(--input-bg)]' : 'text-[var(--text-dim)] group-hover:text-[var(--text)]'} />
-                                        <span className="font-bold text-sm truncate flex-1 text-left">{folder.name}</span>
+                                        <Folder size={17} className={activeFolderId === folder.id ? 'text-[var(--primary)]' : 'text-[var(--text-dim)] group-hover:text-[var(--text)]'} />
+                                        <span className="font-semibold text-sm truncate flex-1 text-left">{folder.name}</span>
                                         <div className="flex opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={(e) => {
@@ -628,28 +637,29 @@ export default function Dashboard() {
                                 ))}
 
                                 {Object.keys(folders).length === 0 && (
-                                    <p className="px-3 py-4 text-[11px] text-white/10 italic">No folders created yet.</p>
+                                    <p className="px-3 py-1.5 text-xs text-[var(--text-dim)] italic">No folders created yet.</p>
                                 )}
                             </div>
                         </div>
 
-                        <div className="pt-6 pb-2">
-                            <div className="flex items-center justify-between px-3 mb-4">
-                                <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)]">Team Workspaces</h2>
+                        {/* Team Workspaces Section */}
+                        <div className="pt-5 pb-1">
+                            <div className="flex items-center justify-between px-3 mb-2.5">
+                                <h2 className="text-[10px] uppercase font-bold tracking-[0.16em] text-[var(--text-dim)]">Team Workspaces</h2>
                                 <div className="flex gap-1">
                                     <button
                                         onClick={() => setShowJoinWorkspaceModal(true)}
                                         className="p-1 hover:bg-[var(--input-bg)] rounded-lg text-[var(--text-dim)] hover:text-[var(--text)] transition-all"
                                         title="Join workspace by ID"
                                     >
-                                        <LogIn size={16} />
+                                        <LogIn size={15} />
                                     </button>
                                     <button
                                         onClick={() => setShowCreateWorkspaceModal(true)}
                                         className="p-1 hover:bg-[var(--input-bg)] rounded-lg text-[var(--text-dim)] hover:text-[var(--text)] transition-all"
                                         title="Create workspace"
                                     >
-                                        <FolderPlus size={16} />
+                                        <Plus size={15} />
                                     </button>
                                 </div>
                             </div>
@@ -658,54 +668,86 @@ export default function Dashboard() {
                                     <button
                                         key={ws.id}
                                         onClick={() => { navigate(`/workspace/${ws.id}`); setIsSidebarOpen(false); }}
-                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                        className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                                     >
-                                        <Users size={18} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
-                                        <span className="font-bold text-sm truncate flex-1 text-left">{ws.name}</span>
+                                        <Users size={17} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
+                                        <span className="font-semibold text-sm truncate flex-1 text-left">{ws.name}</span>
                                     </button>
                                 ))}
                                 {teamWorkspaces.length === 0 && (
-                                    <p className="px-3 py-4 text-[11px] text-white/10 italic">No workspaces yet.</p>
+                                    <p className="px-3 py-1.5 text-xs text-[var(--text-dim)] italic">No workspaces yet.</p>
                                 )}
                             </div>
                         </div>
 
-                        <div className="pt-6 pb-2">
-                            <button type="button" onClick={() => { navigate('/billing'); setIsSidebarOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 mb-5 rounded-xl border border-primary/25 text-primary hover:bg-[var(--input-bg)]"><Star size={18} /><span className="font-bold text-sm text-left">Plans & billing</span></button>
-                            <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)] mb-4 px-3">Tools</h2>
-                            <div className="space-y-1">
-                                <button type="button" onClick={() => { navigate('/ai'); setIsSidebarOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"><Bot size={18} /><span className="font-bold text-sm text-left">Your AI & capsules</span></button><button type="button" onClick={() => {navigate('/sasha');setIsSidebarOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--text-muted)] hover:bg-[var(--input-bg)]"><Bot size={18}/><span className="font-bold text-sm">Sasha AI · Pro</span></button>
-                                {BUILT_IN_AI_ENABLED && <button
+                        {/* Plans & Billing + Tools Section */}
+                        <div className="pt-5 pb-2">
+                            <button
+                                type="button"
+                                onClick={() => { navigate('/billing'); setIsSidebarOpen(false); }}
+                                className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 mb-6 rounded-xl border border-[var(--primary)]/35 bg-[var(--accent-soft)]/60 hover:bg-[var(--accent-soft)] transition-all"
+                            >
+                                <span className="flex items-center gap-3 text-[var(--text)]">
+                                    <Star size={17} className="text-[var(--primary)] shrink-0" />
+                                    <span className="font-semibold text-sm text-left">Plans & billing</span>
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[var(--primary)]/20 text-[var(--primary)] border border-[var(--primary)]/30">
+                                    PRO
+                                </span>
+                            </button>
+
+                            <h2 className="text-[10px] uppercase font-bold tracking-[0.16em] text-[var(--text-dim)] mb-2.5 px-3">Tools</h2>
+                            <div className="space-y-0.5">
+                                <button
                                     type="button"
-                                    onClick={() => { navigate('/strab'); setIsSidebarOpen(false); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                    onClick={() => { navigate('/ai'); setIsSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                                 >
-                                    <Bot size={18} className="text-[var(--text-dim)] shrink-0" />
-                                    <span className="font-bold text-sm text-left">Built-in Sasha</span>
-                                </button>}
+                                    <Archive size={17} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-semibold text-sm text-left">Your AI & capsules</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { navigate('/sasha'); setIsSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                >
+                                    <Sparkles size={17} className="text-[var(--primary)] shrink-0" />
+                                    <span className="font-semibold text-sm text-left text-[var(--text)]">Sasha AI - Pro</span>
+                                    <span className="ml-auto w-2 h-2 rounded-full bg-[var(--primary)] shadow-[0_0_8px_var(--primary)] shrink-0" />
+                                </button>
+                                {BUILT_IN_AI_ENABLED && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { navigate('/strab'); setIsSidebarOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                    >
+                                        <Bot size={17} className="text-[var(--text-dim)] shrink-0" />
+                                        <span className="font-semibold text-sm text-left">Built-in Sasha</span>
+                                    </button>
+                                )}
                                 <button
                                     type="button"
                                     onClick={() => { navigate('/reports'); setIsSidebarOpen(false); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                                 >
-                                    <BarChart2 size={18} className="text-[var(--text-dim)] shrink-0" />
-                                    <span className="font-bold text-sm text-left">Reports</span>
+                                    <BarChart2 size={17} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-semibold text-sm text-left">Reports</span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => { setActiveTab('monitor'); setTabKey(k => k + 1); setIsSidebarOpen(false); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                                 >
-                                    <Activity size={18} className="text-[var(--text-dim)] shrink-0" />
-                                    <span className="font-bold text-sm text-left">Monitor</span>
+                                    <Activity size={17} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-semibold text-sm text-left">Monitor</span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => { navigate('/calendar'); setIsSidebarOpen(false); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                                 >
-                                    <Calendar size={18} className="text-[var(--text-dim)] shrink-0" />
-                                    <span className="font-bold text-sm text-left">Calendar</span>
+                                    <Calendar size={17} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-semibold text-sm text-left">Calendar</span>
                                 </button>
                                 <button
                                     type="button"
@@ -723,47 +765,47 @@ export default function Dashboard() {
                                         setIsSidebarOpen(false);
                                         toast.success('Select two projects to merge');
                                     }}
-                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all border border-transparent ${selectionMode && activeTab === 'strategy'
+                                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all border border-transparent ${selectionMode && activeTab === 'strategy'
                                         ? 'bg-[var(--input-bg)] text-[var(--text)] border-[var(--border)]'
                                         : 'text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]'
                                         }`}
                                 >
-                                    <GitMerge size={18} className="text-[var(--text-dim)] shrink-0" />
-                                    <span className="font-bold text-sm text-left">{selectionMode && activeTab === 'strategy' ? 'Cancel merge' : 'Merge projects'}</span>
+                                    <GitMerge size={17} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-semibold text-sm text-left">{selectionMode && activeTab === 'strategy' ? 'Cancel merge' : 'Merge projects'}</span>
                                 </button>
                             </div>
                         </div>
 
-                        <div className="pt-4 space-y-1">
+                        <div className="pt-3 space-y-0.5 border-t border-[var(--border)]">
                             <button
                                 onClick={() => { navigate(`/profile/${myUsername || user?.username || user?.firstName || 'me'}`); setIsSidebarOpen(false); }}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                             >
-                                <User size={18} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
-                                <span className="font-bold text-sm text-left">Profile</span>
+                                <User size={17} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
+                                <span className="font-semibold text-sm text-left">Profile</span>
                             </button>
                             <button
                                 onClick={() => { navigate('/community'); setIsSidebarOpen(false); }}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                             >
-                                <Network size={18} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
-                                <span className="font-bold text-sm text-left">Community</span>
+                                <Network size={17} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
+                                <span className="font-semibold text-sm text-left">Community</span>
                             </button>
                             <a
                                 href={DASHBOARD_GUIDE_URL}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => setIsSidebarOpen(false)}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                             >
-                                <BookOpen size={18} className="text-[var(--text-dim)] group-hover:text-[var(--text)] shrink-0" />
-                                <span className="font-bold text-sm text-left">How to use</span>
+                                <BookOpen size={17} className="text-[var(--text-dim)] group-hover:text-[var(--text)] shrink-0" />
+                                <span className="font-semibold text-sm text-left">How to use</span>
                                 <span className="ml-auto text-[10px] font-bold text-white/25 uppercase tracking-wider">↗</span>
                             </a>
                         </div>
 
-                        <div className="pt-4 mt-4 border-t border-[var(--border)]">
-                            <h2 className="text-[10px] uppercase font-semibold tracking-[0.2em] text-[var(--text-muted)] mb-3 px-3">Theme</h2>
+                        <div className="pt-4 mt-3 border-t border-[var(--border)]">
+                            <h2 className="text-[10px] uppercase font-bold tracking-[0.16em] text-[var(--text-dim)] mb-2.5 px-3">Theme</h2>
                             <div className="px-3 flex justify-start">
                                 <ThemeToggle compact />
                             </div>
@@ -822,8 +864,9 @@ export default function Dashboard() {
             </aside>
 
             {/* Main Content Area */}
-            <main className="dashboard-main min-h-0 flex-1 overflow-y-auto custom-scrollbar relative" style={{ background: 'var(--bg-page)', backgroundImage: 'none' }}><LavenderDotBackground />
-                <div className="max-w-7xl mx-auto px-5 pt-5 pb-[max(6rem,env(safe-area-inset-bottom,0px)+4rem)] md:px-10 md:pt-10 md:pb-10">
+            <main className="dashboard-main min-h-0 flex-1 overflow-y-auto custom-scrollbar relative" style={{ background: 'var(--bg-page)', backgroundImage: 'none' }}>
+                <LavenderDotBackground />
+                <div className="max-w-7xl mx-auto px-5 pt-5 pb-[max(6rem,env(safe-area-inset-bottom,0px)+4rem)] md:px-10 md:pt-8 md:pb-10">
                     {/* Invitations banner */}
                     {invitations.length > 0 && (
                         <div className="mb-4 p-4 note-box rounded-xl flex flex-wrap items-center justify-between gap-3">
@@ -856,8 +899,8 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    {/* Header — breathing room, clearer hierarchy */}
-                    <header className="dashboard-header mb-5 md:mb-7">
+                    {/* Header */}
+                    <header className="dashboard-header mb-5 md:mb-6">
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
@@ -866,55 +909,56 @@ export default function Dashboard() {
                                 <Menu size={16} />
                             </button>
                             <div className="flex-1 min-w-0">
-                                <h2 className="text-xl md:text-3xl font-semibold text-white leading-tight truncate tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', letterSpacing: '-0.02em' }}>
+                                <h2 className="text-2xl md:text-4xl font-bold text-[var(--text)] leading-tight truncate tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', letterSpacing: '-0.025em' }}>
                                     {activeFolder ? activeFolder.name : 'Projects'}
                                 </h2>
-                                <p className="text-[10px] text-white/30 uppercase font-bold tracking-wider hidden sm:block mt-0.5">
-                                    {activeFolder ? 'Folder' : 'Your ideas, plans, and next steps'}
+                                <p className="text-xs md:text-sm text-[var(--text-muted)] hidden sm:block mt-1 font-normal">
+                                    {activeFolder ? 'Workspace folder' : 'Your ideas, plans, and next steps'}
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
-
                                 <button
                                     type="button"
                                     onClick={handleCreate}
-                                    className="hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-black font-semibold text-xs uppercase tracking-widest hover:bg-violet-400 active:scale-95 transition-all shrink-0 shadow-[0_4px_16px_rgba(169,154,233,0.35)]"
+                                    className="dashboard-new-project-btn hidden md:inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm active:scale-95 transition-all shrink-0"
                                 >
-                                    <Plus size={16} strokeWidth={3} />
+                                    <Plus size={16} strokeWidth={2.5} />
                                     New project
                                 </button>
 
                                 <button
                                     onClick={handleCreate}
-                                    className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-black font-semibold active:scale-95 transition-all shrink-0 shadow-[0_4px_12px_rgba(169,154,233,0.3)]"
+                                    className="dashboard-new-project-btn md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-white font-semibold active:scale-95 transition-all shrink-0"
                                 >
-                                    <Plus size={18} strokeWidth={3} />
+                                    <Plus size={18} strokeWidth={2.5} />
                                 </button>
-
                             </div>
                         </div>
                     </header>
 
-                    {/* Navigation Tabs — more space between */}
-                    <div className="dashboard-tabs flex items-center gap-2 md:gap-4 mb-4 md:mb-6 border-b border-white/[0.05] pb-4 overflow-x-auto custom-scrollbar-hide">
-                        <button onClick={() => navigate('/timetable')} className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-[var(--text-muted)] hover:text-primary hover:bg-primary/10"><Clock size={18}/><span className="font-bold text-sm">Timetable</span></button>
+                    {/* Navigation Tabs */}
+                    <div className="dashboard-tabs flex items-center gap-2 md:gap-4 mb-6 md:mb-8 border-b border-[var(--border)] overflow-x-auto custom-scrollbar-hide">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/timetable')}
+                            className="group flex items-center gap-2.5 py-3 px-3 relative transition-all shrink-0 text-[var(--text-muted)] hover:text-[var(--text)]"
+                        >
+                            <Clock size={15} className="shrink-0" />
+                            <span className="text-xs md:text-sm font-medium truncate">Timetable</span>
+                        </button>
                         {tabs.map(tab => (
-                            
-                                <button
+                            <button
                                 key={tab.id}
                                 type="button"
                                 aria-pressed={activeTab === tab.id}
                                 title={'title' in tab && tab.title ? tab.title : undefined}
                                 onClick={() => { if (tab.id === 'strab') { navigate('/ai'); return; } setActiveTab(tab.id as 'strategy' | 'todo' | 'timeline' | 'calendar' | 'planner' | 'strab' | 'reports' | 'monitor'); setTabKey(k => k + 1); }}
-                                className={`group flex items-center gap-2 md:gap-3 py-3 px-3 md:px-0 md:pb-4 relative transition-all min-w-[48px] md:min-w-max justify-center md:justify-start shrink-0 ${
-                                    activeTab === tab.id ? 'dashboard-tab-active text-white font-bold' : 'text-white/30 hover:text-white/65'
+                                className={`group flex items-center gap-2.5 py-3 px-3 relative transition-all shrink-0 ${
+                                    activeTab === tab.id ? 'dashboard-tab-active text-[var(--primary)] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
                                 }`}
                             >
-                                <tab.icon size={16} className="shrink-0 md:w-[14px] md:h-[14px]" />
-                                <span className="text-xs font-medium truncate">{tab.label}</span>
-                                {activeTab === tab.id && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" style={{ background: 'var(--primary)', boxShadow: '0 0 8px rgba(169,154,233,0.7)' }} />
-                                )}
+                                <tab.icon size={15} className="shrink-0" />
+                                <span className="text-xs md:text-sm font-medium truncate">{tab.label}</span>
                             </button>
                         ))}
                     </div>
@@ -1007,10 +1051,9 @@ export default function Dashboard() {
                                 </p>
                             </div>
 
-                            <div className="hidden md:flex items-center gap-3 mb-4 px-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">Projects</h2>
-                                <div className="flex-1 h-px bg-white/5 ml-2" />
+                            <div className="flex items-center gap-2.5 mb-5 px-1">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                                <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Projects</h2>
                             </div>
                             {renderProjectCardGrid({ items: filteredCanvases })}
                         </div>
@@ -1165,15 +1208,14 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            <div className="hidden md:flex items-center gap-3 mb-4 px-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-                                <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--text-muted)]">Projects</h2>
-                                <div className="flex-1 h-px bg-[var(--border)] ml-2" />
+                            <div className="flex items-center gap-2.5 mb-5 px-1">
+                                <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+                                <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Projects</h2>
                             </div>
                             {renderProjectCardGrid({ items: filteredCanvases })}
                         </div>
                     ) : (
-                        <div key={tabKey} className="space-y-4 md:space-y-14 tab-fade-in">
+                        <div key={tabKey} className="space-y-6 md:space-y-12 tab-fade-in">
                             {selectionMode && (
                                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8">
                                     <div className="dashboard-option-card bg-gradient-to-br from-[#1a1a1a] to-[#141414] border border-orange-500/30 rounded-3xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(169,154,233,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] flex flex-wrap items-center gap-3 md:gap-6 backdrop-blur-xl max-w-[calc(100vw-2rem)]">
@@ -1199,13 +1241,12 @@ export default function Dashboard() {
                                 </div>
                             )}
 
-                            {/* Pinned Projects — wide hero cards on desktop */}
+                            {/* Pinned Projects */}
                             {sortedDisplayPinned.length > 0 && (
                                 <section>
-                                    <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]" />
-                                        <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">Pinned projects</h2>
-                                        <div className="flex-1 h-px bg-white/5 ml-2" />
+                                    <div className="flex items-center gap-2.5 mb-5 px-1">
+                                        <div className="w-2 h-2 rounded-full bg-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]" />
+                                        <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Pinned projects</h2>
                                     </div>
                                     {renderProjectCardGrid({ items: sortedDisplayPinned, variant: "pinned-hero" })}
                                 </section>
@@ -1214,10 +1255,9 @@ export default function Dashboard() {
                             {/* Current Projects */}
                             {sortedDisplayCurrent.length > 0 && (
                                 <section>
-                                    <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                                        <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">Current focus</h2>
-                                        <div className="flex-1 h-px bg-white/5 ml-2" />
+                                    <div className="flex items-center gap-2.5 mb-5 px-1">
+                                        <div className="w-2 h-2 rounded-full bg-amber-400" />
+                                        <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Current focus</h2>
                                     </div>
                                     {renderProjectCardGrid({ items: sortedDisplayCurrent })}
                                 </section>
@@ -1226,10 +1266,9 @@ export default function Dashboard() {
                             {/* Merged Projects */}
                             {sortedDisplayMerged.length > 0 && (
                                 <section>
-                                    <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                                        <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">Merged</h2>
-                                        <div className="flex-1 h-px bg-white/5 ml-2" />
+                                    <div className="flex items-center gap-2.5 mb-5 px-1">
+                                        <div className="w-2 h-2 rounded-full bg-orange-400" />
+                                        <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Merged</h2>
                                     </div>
                                     {renderProjectCardGrid({ items: sortedDisplayMerged })}
                                 </section>
@@ -1237,12 +1276,11 @@ export default function Dashboard() {
 
                             {/* Start your project / All Projects */}
                             <section>
-                                <div className="hidden md:flex items-center gap-3 mb-4 md:mb-6 px-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                    <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">
+                                <div className="flex items-center gap-2.5 mb-5 px-1">
+                                    <div className="w-2 h-2 rounded-full bg-[var(--primary)] shadow-[0_0_8px_var(--primary)]" />
+                                    <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
                                         {pinnedProjects.length > 0 || currentProjects.length > 0 || mergedProjects.length > 0 ? 'All projects' : 'Start your project'}
                                     </h2>
-                                    <div className="flex-1 h-px bg-white/5 ml-2" />
                                 </div>
                                 {mainGridProjects.length > 0 ? (
                                     renderProjectCardGrid({ items: mainGridProjects })
@@ -1251,7 +1289,7 @@ export default function Dashboard() {
                                     {isFirstLoad && Object.keys(canvases).length === 0 && (
                                         <div className="col-span-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
                                             {[...Array(3)].map((_, i) => (
-                                                <div key={i} className="h-40 rounded-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                                                <div key={i} className="h-56 rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
                                             ))}
                                         </div>
                                     )}
@@ -1390,220 +1428,131 @@ export default function Dashboard() {
         const completionRate = todoCount > 0 ? Math.round((completedTodoCount / todoCount) * 100) : 0;
         const wc = countWords(p.writingContent);
         const previewText = (p.writingContent || '').replace(/\s+/g, ' ').trim();
-        const hasContent = wordCount > 0 || todoCount > 0 || wc > 0 || (p.nodes?.length ?? 0) > 0 || Boolean(p.codeFiles?.some(file => file.content.trim())) || Boolean(p.timelineContent?.trim());
+        const hasProjectContent = wordCount > 0 || todoCount > 0 || wc > 0 || (p.nodes?.length ?? 0) > 0 || Boolean(p.codeFiles?.some(file => file.content.trim())) || Boolean(p.timelineContent?.trim());
         const nextTodoLine = p.todos?.find((t) => !t.completed)?.text?.trim();
+        const projectTitle = (p.title || p.name || '').trim() || 'Untitled';
+        const isBrainIcon = /ai|study|research|agent|model|bot|sasha|strategy|analysis/i.test(projectTitle) || p.projectType === 'notes';
 
         return (
             <CompactProjectCard
                 key={p.id}
-                name={(p.title || p.name || '').trim() || 'Untitled'}
-                status={p.isStuck ? 'Blocked' : todoCount > 0 && completedTodoCount === todoCount ? 'Complete' : p.isCurrent || hasContent ? 'In progress' : 'Not started'}
+                name={projectTitle}
+                status={p.isStuck ? 'Blocked' : todoCount > 0 && completedTodoCount === todoCount ? 'Complete' : p.isCurrent || hasProjectContent ? 'In progress' : 'Not started'}
                 onOpen={destination ? () => navigate(destination.path) : undefined}
                 openLabel={destination?.label}
-                description={nextTodoLine || (previewText ? previewText.slice(0, 120) : undefined)}
+                description={previewText ? previewText.slice(0, 180) : nextTodoLine}
                 taskCount={todoCount}
+                completedTaskCount={completedTodoCount}
                 progress={completionRate}
-                tone={isMerged ? 'amber' : p.isCurrent ? 'green' : p.projectType === 'notes' ? 'blue' : 'violet'}
+                tone={isMerged ? 'amber' : p.isCurrent ? 'green' : isBrainIcon ? 'blue' : 'violet'}
+                iconType={isBrainIcon ? 'brain' : 'folder'}
                 lockedOpen={renamingId === p.id || showMoveMenu === p.id || showDuplicateMenu === p.id}
                 selectionMode={selectionMode}
                 selected={isSelected}
                 onSelect={event => handleSelect(event, p.id)}
-                className={`dashboard-project-card group relative rounded-2xl md:rounded-[1.25rem] border transition-all duration-300   overflow-visible flex flex-col
-                    ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20 shadow-[0_8px_40px_rgba(218,119,86,0.14)]' : 'border-[var(--border)]'}
+                className={`dashboard-project-card group relative rounded-2xl border transition-all duration-300 overflow-visible flex flex-col
+                    ${isSelected ? 'dashboard-card--selected border-primary/50 ring-2 ring-primary/20 shadow-[0_8px_40px_rgba(178,153,246,0.18)]' : 'border-[var(--border)]'}
                     ${selectionMode && !isSelected && selectedIds.length >= 2 ? 'opacity-40' : 'opacity-100'}
                 `}
             >
                 <div className="compact-card-content flex flex-col">
-                    {/* Card Actions */}
+                    {/* Card Actions + Quick Flags */}
                     {!selectionMode && (
-                        <div className="compact-card-tools">
-                            <div className="relative">
-                                <button onClick={(e) => { e.stopPropagation(); setShowDuplicateMenu(showDuplicateMenu === p.id ? null : p.id); setShowMoveMenu(null); }}
-                                    className={`p-1.5 rounded-lg transition-colors ${showDuplicateMenu === p.id ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title="Duplicate">
-                                    <Copy size={14} />
-                                </button>
-                                {showDuplicateMenu === p.id && (
-                                    <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] max-h-[min(280px,60vh)] overflow-y-auto bg-[var(--bg-panel)] backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100] animate-in slide-in-from-top-2 duration-200">
-                                        <p className="px-4 py-2 text-[10px] uppercase font-semibold tracking-widest text-primary border-b border-white/[0.04] mb-1 sticky top-0 bg-[var(--bg-panel)] backdrop-blur-xl">Duplicate to...</p>
-                                        <button onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, null); setShowDuplicateMenu(null); toast.success('Duplicated to General Projects'); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-white/60 hover:text-white"><Layout size={14} /> General Projects</button>
-                                        <button onClick={(e) => { e.stopPropagation(); handleDuplicateToFreshFolder(p.id); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-primary"><FolderPlus size={14} /> New Fresh Folder...</button>
-                                        {Object.values(folders).map(f => (<button key={f.id} onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, f.id); setShowDuplicateMenu(null); toast.success(`Duplicated to ${f.name}`); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-white/60 hover:text-white"><Folder size={14} /> {f.name}</button>))}
-                                    </div>
-                                )}
+                        <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+                            {projectQuickActionsRow(p)}
+                            <div className="compact-card-tools !mb-0 ml-auto">
+                                <div className="relative">
+                                    <button onClick={(e) => { e.stopPropagation(); setShowDuplicateMenu(showDuplicateMenu === p.id ? null : p.id); setShowMoveMenu(null); }}
+                                        className={`p-1.5 rounded-lg transition-colors ${showDuplicateMenu === p.id ? 'text-primary bg-white/10' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]'}`} title="Duplicate">
+                                        <Copy size={14} />
+                                    </button>
+                                    {showDuplicateMenu === p.id && (
+                                        <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] max-h-[min(280px,60vh)] overflow-y-auto bg-[var(--bg-panel)] backdrop-blur-xl border border-[var(--border-strong)] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100] animate-in slide-in-from-top-2 duration-200">
+                                            <p className="px-4 py-2 text-[10px] uppercase font-semibold tracking-widest text-primary border-b border-[var(--border)] mb-1 sticky top-0 bg-[var(--bg-panel)] backdrop-blur-xl">Duplicate to...</p>
+                                            <button onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, null); setShowDuplicateMenu(null); toast.success('Duplicated to General Projects'); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-[var(--input-bg)] flex items-center gap-3 text-[var(--text-muted)] hover:text-[var(--text)]"><Layout size={14} /> General Projects</button>
+                                            <button onClick={(e) => { e.stopPropagation(); handleDuplicateToFreshFolder(p.id); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-[var(--input-bg)] flex items-center gap-3 text-primary"><FolderPlus size={14} /> New Fresh Folder...</button>
+                                            {Object.values(folders).map(f => (<button key={f.id} onClick={(e) => { e.stopPropagation(); duplicateCanvas(p.id, f.id); setShowDuplicateMenu(null); toast.success(`Duplicated to ${f.name}`); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-[var(--input-bg)] flex items-center gap-3 text-[var(--text-muted)] hover:text-[var(--text)]"><Folder size={14} /> {f.name}</button>))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="relative">
+                                    <button onClick={(e) => { e.stopPropagation(); setShowMoveMenu(showMoveMenu === p.id ? null : p.id); setShowDuplicateMenu(null); }}
+                                        className={`p-1.5 rounded-lg transition-colors ${showMoveMenu === p.id ? 'text-primary bg-white/10' : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]'}`} title="Move">
+                                        <Folders size={14} />
+                                    </button>
+                                    {showMoveMenu === p.id && (
+                                        <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] max-h-[min(280px,60vh)] overflow-y-auto bg-[var(--bg-panel)] backdrop-blur-xl border border-[var(--border-strong)] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100] animate-in slide-in-from-top-2 duration-200">
+                                            <p className="px-4 py-2 text-[10px] uppercase font-semibold tracking-widest text-[var(--text-dim)] border-b border-[var(--border)] mb-1 sticky top-0 bg-[var(--bg-panel)] backdrop-blur-xl">Move to...</p>
+                                            <button onClick={(e) => { e.stopPropagation(); handleMoveToFolder(p.id, null); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-[var(--input-bg)] flex items-center gap-3 ${p.folderId === null ? 'text-primary' : 'text-[var(--text-muted)]'}`}><Layout size={14} /> General Projects</button>
+                                            <button onClick={(e) => { e.stopPropagation(); handleMoveToFreshFolder(p.id); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-[var(--input-bg)] flex items-center gap-3 text-primary"><FolderPlus size={14} /> New Fresh Folder...</button>
+                                            {Object.values(folders).map(f => (<button key={f.id} onClick={(e) => { e.stopPropagation(); handleMoveToFolder(p.id, f.id); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-[var(--input-bg)] flex items-center gap-3 ${p.folderId === f.id ? 'text-primary' : 'text-[var(--text-muted)]'}`}><Folder size={14} /> {f.name}</button>))}
+                                        </div>
+                                    )}
+                                </div>
+                                <button onClick={(e) => handleStartRename(e, p.id, p.name || p.title || '')} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-primary hover:bg-[var(--input-bg)] transition-colors" title="Rename"><Pencil size={14} /></button>
+                                <button onClick={(e) => handleDelete(e, p.id)} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete"><Trash2 size={14} /></button>
                             </div>
-                            <div className="relative">
-                                <button onClick={(e) => { e.stopPropagation(); setShowMoveMenu(showMoveMenu === p.id ? null : p.id); setShowDuplicateMenu(null); }}
-                                    className={`p-1.5 rounded-lg transition-colors ${showMoveMenu === p.id ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title="Move">
-                                    <Folders size={14} />
-                                </button>
-                                {showMoveMenu === p.id && (
-                                    <div className="absolute top-full right-0 mt-2 w-52 md:w-56 max-w-[calc(100vw-2rem)] max-h-[min(280px,60vh)] overflow-y-auto bg-[var(--bg-panel)] backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_12px_48px_rgba(0,0,0,0.6)] py-2 z-[100] animate-in slide-in-from-top-2 duration-200">
-                                        <p className="px-4 py-2 text-[10px] uppercase font-semibold tracking-widest text-white/30 border-b border-white/[0.04] mb-1 sticky top-0 bg-[var(--bg-panel)] backdrop-blur-xl">Move to...</p>
-                                        <button onClick={(e) => { e.stopPropagation(); handleMoveToFolder(p.id, null); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 ${p.folderId === null ? 'text-primary' : 'text-white/60'}`}><Layout size={14} /> General Projects</button>
-                                        <button onClick={(e) => { e.stopPropagation(); handleMoveToFreshFolder(p.id); }} className="w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 text-primary"><FolderPlus size={14} /> New Fresh Folder...</button>
-                                        {Object.values(folders).map(f => (<button key={f.id} onClick={(e) => { e.stopPropagation(); handleMoveToFolder(p.id, f.id); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-white/5 flex items-center gap-3 ${p.folderId === f.id ? 'text-primary' : 'text-white/60'}`}><Folder size={14} /> {f.name}</button>))}
-                                    </div>
-                                )}
-                            </div>
-                            <button onClick={(e) => handleToggleCurrent(e, p.id)} className={`p-1.5 rounded-lg transition-colors ${p.isCurrent ? 'text-yellow-400 bg-yellow-500/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title={p.isCurrent ? 'Remove from Current' : 'Mark as Current'}><Zap size={14} fill={p.isCurrent ? 'currentColor' : 'none'} /></button>
-                            <button onClick={(e) => handleTogglePin(e, p.id)} className={`p-1.5 rounded-lg transition-colors ${p.isPinned ? 'text-primary bg-white/10' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title={p.isPinned ? 'Unpin' : 'Pin'}><Star size={14} fill={p.isPinned ? 'currentColor' : 'none'} /></button>
-                            <button onClick={(e) => handleToggleStuck(e, p.id)} className={`p-1.5 rounded-lg transition-colors ${p.isStuck ? 'text-orange-400 bg-orange-500/15' : 'text-white/25 hover:text-white hover:bg-white/8'}`} title={p.isStuck ? 'Clear stuck' : 'Mark stuck'}><Flame size={14} /></button>
-                            <button onClick={(e) => handleStartRename(e, p.id, p.name || p.title || '')} className="p-1.5 rounded-lg text-white/25 hover:text-primary hover:bg-white/8 transition-colors" title="Rename"><Pencil size={14} /></button>
-                            <button onClick={(e) => handleDelete(e, p.id)} className="p-1.5 rounded-lg text-white/25 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete"><Trash2 size={14} /></button>
                         </div>
                     )}
 
-                    {/* Title */}
+                    {/* Rename Input */}
                     {renamingId === p.id ? (
                         <input autoFocus type="text" value={renameValue}
                             onChange={e => setRenameValue(e.target.value.slice(0, 80))}
                             onBlur={() => handleRenameCommit(p.id)}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleRenameCommit(p.id); } if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); } }}
                             onClick={e => e.stopPropagation()}
-                            className="text-base md:text-lg font-bold text-white mb-3 w-full bg-transparent border-b border-orange-500/40 outline-none pb-0.5 placeholder-white/20"
+                            className="text-base font-bold text-[var(--text)] mb-3 w-full bg-transparent border-b border-[var(--primary)] outline-none pb-1 placeholder-[var(--text-dim)]"
                             placeholder="Project name..." aria-label="Rename project"
                         />
                     ) : null}
 
-                    {projectQuickActionsRow(p)}
-
-                    {(nextTodoLine || previewText) && (
-                        <p className="text-[11px] text-zinc-400 line-clamp-2 mb-2 md:mb-3 leading-relaxed">
-                            <span className="text-teal-500/90 font-bold">Next: </span>
-                            {nextTodoLine || previewText.slice(0, 120) || 'Add tasks or notes'}
-                        </p>
-                    )}
-
-                    {/* Stats row — hide on mobile, show on md+ */}
-                    <div className="hidden md:flex items-center gap-3 mb-3 flex-wrap">
-                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-white/40">
-                            <Clock size={11} className="text-primary/90" />
-                            {timeAgo(p.updatedAt)}
+                    {/* Compact metadata summary inside expanded drawer */}
+                    <div className="flex items-center justify-between gap-3 mb-3 text-xs text-[var(--text-muted)]">
+                        <span className="flex items-center gap-1.5">
+                            <Clock size={12} className="text-[var(--primary)]" />
+                            Updated {timeAgo(p.updatedAt)}
                         </span>
-                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-white/40">
-                            <Target size={11} className="text-primary/90" />
-                            {todoCount > 0 ? `${completionRate}%` : '0 tasks'}
-                        </span>
-                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-white/40">
-                            <PenTool size={11} className="text-primary/90" />
-                            {wc}w
-                        </span>
-                    </div>
-
-                    {/* Tasks + Structure — desktop: visible; mobile: compact row */}
-                    <div className="grid grid-cols-2 md:grid-cols-2 gap-2 mb-3">
-                        <div className="project-card-stat-box rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 md:py-2.5">
-                            <div className="flex items-center justify-between mb-1 md:mb-1.5">
-                                <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-primary">Tasks</span>
-                                <span className="text-[11px] font-bold text-white/70">{todoCount > 0 ? `${completedTodoCount}/${todoCount}` : '—'}</span>
-                            </div>
-                            <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${completionRate}%`, background: completionRate === 100 ? '#10b981' : 'var(--primary)' }} />
-                            </div>
-                        </div>
-                        <div className="project-card-stat-box rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 md:py-2.5">
-                            <div className="flex items-center justify-between mb-1 md:mb-1.5">
-                                <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-primary">Writing</span>
-                                <span className="text-[11px] font-bold text-white/70">{wordCount} word{wordCount !== 1 ? 's' : ''}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-[11px] font-semibold text-white/30">
-                                <span className="inline-flex items-center gap-1 truncate"><ListTodo size={10} className="text-primary/80 shrink-0" />{todoCount} tasks</span>
-                                <span className="inline-flex items-center gap-1 shrink-0"><FileText size={10} className="text-primary/80" />{wc}w</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Project brief — desktop + mobile */}
-                    <div className="project-card-stat-box rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2 md:py-2.5 mb-4 min-h-[60px] md:min-h-[70px]">
-                        <p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-primary mb-1 md:mb-1.5">Project brief</p>
-                        <p className="text-[12px] leading-relaxed text-white/35 line-clamp-3">
-                            {previewText || 'Add your core idea, goals, and execution notes to turn this into a full strategy card.'}
-                        </p>
-                    </div>
-
-                    {/* Mobile: compact stat (shown only when Tasks/Structure would be too tall) — now redundant, kept as fallback */}
-                    <div className="hidden items-center gap-2 mb-2 text-[10px] text-zinc-400 font-medium">
-                        {todoCount > 0 && <span>{completionRate}% done</span>}
-                        {wordCount > 0 && <span>• {wordCount} word{wordCount !== 1 ? 's' : ''}</span>}
-                        {wc > 0 && <span>• {wc}w</span>}
-                    </div>
-
-                    {!hasContent && (
-                        <div className="hidden md:block mb-4 rounded-lg border border-dashed border-primary/30 px-2.5 py-2 text-[10px] font-semibold text-zinc-500">
-                            Start by adding ideas, tasks, or notes to enrich this project.
-                        </div>
-                    )}
-
-                    <div className="hidden md:flex items-center gap-3 mb-4 flex-wrap">
-                        {wordCount > 0 && (
-                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary/70" />
-                                {wordCount} word{wordCount !== 1 ? 's' : ''}
-                            </span>
-                        )}
-                        {todoCount > 0 && (
-                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
-                                <CheckSquare size={10} className="text-primary/80" />
-                                {todoCount} task{todoCount !== 1 ? 's' : ''}
-                            </span>
-                        )}
-                        {wc > 0 && (
-                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
-                                <FileText size={10} className="text-primary/80" />
-                                {wc}w
-                            </span>
-                        )}
-                        {isMerged && (
-                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400">
-                                <Layers size={10} className="text-primary/80" />
-                                {p.mergedCanvasIds?.length ?? 0} canvases
-                            </span>
-                        )}
-                    </div>
-
-                    {/* Footer — dual CTAs (mock-style) */}
-                    <div className="mt-auto pt-3 border-t border-white/[0.06] flex flex-col gap-3">
-                        {!selectionMode && (
-                            <div className="flex items-stretch gap-2">
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/project/${p.id}`);
-                                    }}
-                                    className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold uppercase tracking-wide border border-primary/40 text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
-                                >
-                                    View All Details
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/strategy/${p.id}`);
-                                    }}
-                                    className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold uppercase tracking-wide border border-white/10 text-white/80 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
-                                >
-                                    Open Project
-                                </button>
-                            </div>
-                        )}
-                        <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] text-zinc-500 font-medium truncate">
-                                {p.folderId ? (folders[p.folderId]?.name || 'Workspace project') : 'General project'}
-                            </span>
-                            {selectionMode && (
-                                <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-teal-400">
-                                    {isSelected ? 'Tap to deselect' : 'Tap to select'}
-                                    <ArrowRight size={11} />
+                        <span className="flex items-center gap-3">
+                            <span>{wordCount} word{wordCount !== 1 ? 's' : ''}</span>
+                            {isMerged && (
+                                <span className="flex items-center gap-1">
+                                    <Layers size={12} className="text-[var(--primary)]" />
+                                    {p.mergedCanvasIds?.length ?? 0} canvases
                                 </span>
                             )}
-                        </div>
+                        </span>
                     </div>
+
+                    {/* Dual CTAs */}
+                    {!selectionMode && (
+                        <div className="flex items-stretch gap-2.5">
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/project/${p.id}`);
+                                }}
+                                className="flex-1 py-2.5 rounded-xl text-xs font-semibold border border-[var(--primary)]/40 text-[var(--primary)] bg-[var(--accent-soft)] hover:opacity-90 transition-all"
+                            >
+                                View All Details
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/strategy/${p.id}`);
+                                }}
+                                className="flex-1 py-2.5 rounded-xl text-xs font-semibold border border-[var(--border-strong)] text-[var(--text)] bg-[var(--input-bg)] hover:bg-[var(--bg-muted)] transition-all"
+                            >
+                                Open Project
+                            </button>
+                        </div>
+                    )}
                 </div>
             </CompactProjectCard>
         );
     }
 
     function renderPinnedHeroCard(p: CanvasData) { return renderProjectCard(p); }
-
 }
