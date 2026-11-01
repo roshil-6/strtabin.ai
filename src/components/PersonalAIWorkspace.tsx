@@ -3,7 +3,7 @@ import { useTimetables } from '../store/useTimetables';
 import LavenderDotBackground from './LavenderDotBackground';
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, Copy, Download, FileText, Upload, Archive, RotateCcw, Maximize2, Minimize2, X } from 'lucide-react';
+import { ArrowUpRight, Check, Copy, Download, FileText, Upload, Archive, RotateCcw, Maximize2, Minimize2, X, Folder, ChevronDown, Search, ArrowLeft, Activity } from 'lucide-react';
 import useStore from '../store/useStore';
 import MarkdownRenderer from './MarkdownRenderer';
 import { buildProjectAiPackage, DEFAULT_SECTIONS, REPORT_CONTENT_LIMIT, REPORT_LIMIT, type PackageSections, type ReportProvider, type ExternalAiReport } from '../lib/projectAiPackage';
@@ -62,8 +62,41 @@ function Workspace() {
     const [editingReport, setEditingReport] = useState<string | null>(typeof draft.editingReport === 'string' ? draft.editingReport : null);
     const [showArchived, setShowArchived] = useState(false);
     const [undoSave, setUndoSave] = useState<ReportUndo | null>(null);
+    const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+    const [projectSearch, setProjectSearch] = useState('');
+    const projectDropdownRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => { document.title = `Use my AI — ${project?.name || 'Project'} | Stratabin`; }, [project?.name]);
     useEffect(() => { try { sessionStorage.setItem(`${currentAccount()}:${draftKey}`,  JSON.stringify({ provider, instruction, reportTitle, reportContent, editingReport })); } catch { /* The editor remains usable when storage is unavailable. */ } }, [draftKey, provider, instruction, reportTitle, reportContent, editingReport]);
+
+    useEffect(() => {
+        const handlePointer = (event: PointerEvent) => {
+            if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+                setProjectMenuOpen(false);
+            }
+        };
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setProjectMenuOpen(false);
+        };
+        document.addEventListener('pointerdown', handlePointer);
+        document.addEventListener('keydown', handleKey);
+        return () => {
+            document.removeEventListener('pointerdown', handlePointer);
+            document.removeEventListener('keydown', handleKey);
+        };
+    }, []);
+
+    const projectList = useMemo(() => Object.values(availableProjects).map(item => ({
+        id: item.id,
+        name: item.name || item.title || 'Untitled project',
+    })), [availableProjects]);
+
+    const filteredProjects = useMemo(() => projectList.filter(p =>
+        p.name.toLowerCase().includes(projectSearch.trim().toLowerCase())
+    ), [projectList, projectSearch]);
+
+    const activeProjectName = projectList.find(p => p.id === id)?.name || project?.name || project?.title || 'Choose project…';
+
     const fileInput = useRef<HTMLInputElement>(null);
     const timetables = useTimetables(state => state.tables);
     const packageText = useMemo(() => fullCapsule && project ? buildProjectCapsule(project, { projectCalendarEvents: calendars, writingPinnedCalendarEventKeys: pins, timelines, diagrams, dailyExecutionLogs: logs, timetables }, instruction) : buildProjectAiPackage(project || {}, sections, instruction), [project, sections, instruction, fullCapsule, calendars, pins, timelines, diagrams, logs, timetables]);
@@ -96,7 +129,73 @@ function Workspace() {
         <LavenderDotBackground />
         {copyPulse !== null && <aside key={copyPulse} className="ai-capsule-pop" role="status" aria-live="polite"><button className="ai-capsule-pop-close" aria-label="Dismiss capsule confirmation" onClick={() => { if (copyTimer.current) clearTimeout(copyTimer.current); setCopyPulse(null); }}><X size={16} /></button><div className="ai-capsule-art" aria-hidden="true"><span className="ai-capsule-orbit" /><span className="ai-capsule-pill"><span /><span /></span><span className="ai-capsule-check"><Check size={18} strokeWidth={3} /></span></div><strong>Capsule copied</strong><p>Your project is ready to paste into {selectedProvider.name}.</p></aside>}
         <div className="personal-ai-inner">
-            <div className="ai-workspace-projectbar"><button onClick={() => navigate('/ai')}>All projects<ArrowUpRight size={15} /></button><label htmlFor="ai-project-select">Working on<select id="ai-project-select" value={id} onChange={event => navigate(`/ai/${event.target.value}`)}>{Object.values(availableProjects).map(item => <option key={item.id} value={item.id}>{item.name || item.title || 'Untitled project'}</option>)}</select></label></div><header className="personal-ai-heading"><div><span className="ai-eyebrow">AI WORKSPACE</span><h1>Work with your AI.</h1><p>Bring your project to your preferred AI, then keep the useful ideas here.</p></div></header>
+            <div className="ai-workspace-projectbar">
+                <div className="ai-workspace-projectbar-nav">
+                    <button type="button" className="ai-back-btn" onClick={() => navigate('/ai')}>
+                        <ArrowLeft size={16} />
+                        <span>All projects</span>
+                    </button>
+                    <button type="button" className="ai-nav-pill" onClick={() => navigate('/dashboard?tab=monitor')} title="Open project execution monitor">
+                        <Activity size={14} />
+                        <span>Monitor</span>
+                    </button>
+                </div>
+
+                <div className="ai-project-selector" ref={projectDropdownRef}>
+                    <span className="ai-project-selector-label">Working on</span>
+                    <button
+                        type="button"
+                        id="ai-project-select"
+                        className="ai-project-selector-trigger"
+                        aria-haspopup="listbox"
+                        aria-expanded={projectMenuOpen}
+                        onClick={() => { setProjectMenuOpen(prev => !prev); setProjectSearch(''); }}
+                    >
+                        <Folder size={15} className="ai-project-selector-icon" />
+                        <span className="ai-project-selector-title">{activeProjectName}</span>
+                        <ChevronDown size={14} className={`ai-project-selector-chevron ${projectMenuOpen ? 'open' : ''}`} />
+                    </button>
+
+                    {projectMenuOpen && (
+                        <div className="ai-project-selector-dropdown" role="listbox">
+                            <div className="ai-project-selector-search">
+                                <Search size={14} />
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    placeholder="Search projects…"
+                                    value={projectSearch}
+                                    onChange={e => setProjectSearch(e.target.value)}
+                                />
+                            </div>
+                            <div className="ai-project-selector-items custom-scrollbar">
+                                {filteredProjects.map(item => (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        role="option"
+                                        aria-selected={item.id === id}
+                                        className={`ai-project-selector-item ${item.id === id ? 'selected' : ''}`}
+                                        onClick={() => {
+                                            setProjectMenuOpen(false);
+                                            if (item.id !== id) navigate(`/ai/${item.id}`);
+                                        }}
+                                    >
+                                        <Folder size={14} />
+                                        <span>{item.name}</span>
+                                        {item.id === id && <Check size={14} className="ai-project-selector-check" />}
+                                    </button>
+                                ))}
+                                {!filteredProjects.length && (
+                                    <p className="ai-project-selector-empty">No projects match</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <header className="personal-ai-heading"><div><span className="ai-eyebrow">AI WORKSPACE</span><h1>Work with your AI.</h1><p>Bring your project to your preferred AI, then keep the useful ideas here.</p></div></header>
             <nav className="ai-workspace-tabs" aria-label="AI workspace"><button aria-current={tab === 'prepare' ? 'page' : undefined} onClick={() => { setTab('prepare'); if (provider === 'other') setProvider('chatgpt'); setMessage(''); }}>Prepare context</button><button aria-current={tab === 'reports' ? 'page' : undefined} onClick={() => { setTab('reports'); setMessage(''); }}>Saved reports <span>{reports.filter(report => !report.archived).length}</span></button></nav>
             {message && <div className="ai-notice" role="status"><span>{message}</span>{undoSave && tab === 'reports' && <button onClick={() => { const next = applyReportUndo(useStore.getState().canvases[id]?.externalAiReports || [], undoSave); if (!next) { setMessage('This report changed since the save. Undo is unavailable to protect the newer changes.'); setUndoSave(null); return; } if (updateReports(next)) { setUndoSave({ ...undoSave, undone: !undoSave.undone }); setSelectedReport(null); setMessage(undoSave.undone ? 'Report save restored.' : 'Report save undone.'); } }}>{undoSave.undone ? 'Redo save' : 'Undo save'}</button>}</div>}
             {tab === 'prepare' ? <>

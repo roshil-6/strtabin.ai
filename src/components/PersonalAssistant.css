@@ -1426,6 +1426,37 @@
   cursor: pointer;
 }
 
+.agent-quick-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.agent-quick-links button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  min-height: 26px;
+  border-radius: 999px;
+  border: 1px solid #354154;
+  background: #202a39;
+  color: #dce5f6;
+  font-size: 11px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.agent-quick-links button:hover {
+  background: #283446;
+  border-color: #50617a;
+  color: #fff;
+}
+
 .agent-dock > small,
 .agent-dock .sasha-voice-credit-note {
   font-size: 10.5px;

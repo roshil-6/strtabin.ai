@@ -4,7 +4,7 @@ import useModalStore from '../store/useModalStore';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bot, X, Send, Volume2, VolumeX, Square, Check, ArrowUpRight, Sparkles, Maximize2, RotateCcw } from 'lucide-react';
+import { Bot, X, Send, Volume2, VolumeX, Square, Check, ArrowUpRight, Sparkles, Maximize2, RotateCcw, Activity, BarChart2 } from 'lucide-react';
 import useStore from '../store/useStore';
 import { useTimetables } from '../store/useTimetables';
 import { buildProjectCapsule } from '../lib/projectCapsule';
@@ -218,7 +218,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
 
     return <>
         <AssistantLiveVoice key={provider} provider={provider} name={name.trim() || 'Agent'} model={voiceModel} motionEnabled={motionEnabled}
-            hidden={open && !fullPage} ready={ready} disabled={busy || applying}
+            hidden={open && !fullPage} ready={ready} disabled={busy || applying} projectId={projectId}
             launcherRef={launcher} context={buildContext} controllerRef={voice} onActive={setVoiceActive} onWakeActive={setWakeActive}
             onOpen={section => { voice.current?.stop(); setTab(section); setOpen(true); }}
             onTranscript={(role, text) => { if (text.trim()) setMessages(previous => [...previous, { id: crypto.randomUUID(), role, text }]); }}
@@ -309,6 +309,8 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                                         'Create a project called My next idea.',
                                         'Brief me on this project and suggest the next steps.',
                                         'Brainstorm a flow map for this project.',
+                                        "Check my project monitor and today's execution progress.",
+                                        'Review my saved project reports and key recommendations.',
                                     ].map(prompt => (
                                         <button
                                             key={prompt}
@@ -483,6 +485,24 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                                         >
                                             {readAloud ? <Volume2 size={15} /> : <VolumeX size={15} />}
                                             <span>Speak replies</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="assistant-tool-pill"
+                                            title="Open project & workspace execution monitor"
+                                            onClick={() => navigate('/dashboard?tab=monitor')}
+                                        >
+                                            <Activity size={14} />
+                                            <span>Monitor</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="assistant-tool-pill"
+                                            title="Open AI reports for this project"
+                                            onClick={() => navigate(projectId ? `/ai/${encodeURIComponent(projectId)}?tab=reports` : '/reports')}
+                                        >
+                                            <BarChart2 size={14} />
+                                            <span>Reports</span>
                                         </button>
                                         <button
                                             type="button"
