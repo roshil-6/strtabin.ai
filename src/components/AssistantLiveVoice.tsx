@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { Mic, MicOff, Settings2, MessageSquare, Bell, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mic, MicOff, Settings2, MessageSquare, Bell, MoreHorizontal, ChevronDown, Activity, BarChart2 } from 'lucide-react';
 import { LiveVoiceClient, type VoiceState } from '../lib/liveVoiceClient';
 import type { VoiceProposal } from '../lib/voiceProtocol';
 import { API_BASE_URL } from '../constants';
 import AssistantPresence from './AssistantPresence';
 import { WakeWordListener, type WakeRecognition, type WakeStatus } from '../lib/wakeWord';
 
-export default function AssistantLiveVoice({ provider, name, context, onTranscript, onProposal, onActive, onWakeActive, controllerRef, model, motionEnabled, hidden, ready, disabled, onOpen, launcherRef }: {
+export default function AssistantLiveVoice({ provider, name, context, onTranscript, onProposal, onActive, onWakeActive, controllerRef, model, motionEnabled, hidden, ready, disabled, onOpen, launcherRef, projectId }: {
     onWakeActive: (active:boolean) => void;
     model: string; motionEnabled: boolean; hidden: boolean; ready: boolean; disabled: boolean;
     onOpen: (section: 'settings' | 'chat' | 'reminders') => void;
@@ -16,8 +17,10 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
     onTranscript: (role: 'user' | 'assistant', text: string) => void;
     onProposal: (proposal: VoiceProposal) => void; onActive: (active: boolean) => void;
     controllerRef: React.MutableRefObject<LiveVoiceClient | null>;
+    projectId?: string;
 }) {
     const { getToken } = useAuth();
+    const navigate = useNavigate();
     const [state, setState] = useState<VoiceState>('idle');
     const [level, setLevel] = useState(0);
     const [error, setError] = useState('');
@@ -113,10 +116,12 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
         if (event.key === 'Escape') { setMenu(false); setExpanded(false); stopWake(); controllerRef.current?.stop(); launcherRef.current?.focus(); }
     }}>
         {menu && <div className="agent-options" ref={menuRef} role="group" aria-label="Agent options">
-            <button onClick={() => openSection('settings')}><Settings2 size={17} />Settings</button>
-            <button onClick={() => openSection('chat')}><MessageSquare size={17} />Conversation</button>
-            <button onClick={() => openSection('reminders')}><Bell size={17} />Reminders</button>
-            <button onClick={() => { setMenu(false); launcherRef.current?.focus(); }}>Close options</button>
+            <button type="button" onClick={() => openSection('settings')}><Settings2 size={17} />Settings</button>
+            <button type="button" onClick={() => openSection('chat')}><MessageSquare size={17} />Conversation</button>
+            <button type="button" onClick={() => openSection('reminders')}><Bell size={17} />Reminders</button>
+            <button type="button" onClick={() => { stopWake(); setMenu(false); navigate('/dashboard?tab=monitor'); }}><Activity size={17} />Monitor work</button>
+            <button type="button" onClick={() => { stopWake(); setMenu(false); navigate(projectId ? `/ai/${encodeURIComponent(projectId)}?tab=reports` : '/reports'); }}><BarChart2 size={17} />Project reports</button>
+            <button type="button" onClick={() => { setMenu(false); launcherRef.current?.focus(); }}>Close options</button>
         </div>}
         <button ref={launcherRef} className={`${expanded ? 'agent-orb' : 'agent-pill'} ${state}`} disabled={disabled} aria-label={`${name}: ${!expanded ? 'expand voice agent' : state === 'idle' ? 'start conversation' : 'end conversation'}. Hold for options.`} aria-describedby={expanded ? 'agent-gesture-hint' : undefined}
             onClick={tap} onContextMenu={event => { event.preventDefault(); clearHold(); held.current = true; setMenu(true); }}
@@ -133,6 +138,16 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
         <div className="agent-quick-controls">
             {state !== 'idle' && <button disabled={state === 'connecting'} aria-label={state === 'muted' ? 'Unmute microphone' : 'Mute microphone'} onClick={() => controllerRef.current?.setMuted(state !== 'muted')}>{state === 'muted' ? <MicOff size={16} /> : <Mic size={16} />}</button>}
             <button aria-label="Agent options" aria-expanded={menu} onClick={() => setMenu(value => !value)}><MoreHorizontal size={19} /></button>
+        </div>
+        <div className="agent-quick-links">
+            <button type="button" onClick={() => { stopWake(); controllerRef.current?.stop(); navigate('/dashboard?tab=monitor'); }} title="Open project monitor">
+                <Activity size={12} />
+                <span>Monitor</span>
+            </button>
+            <button type="button" onClick={() => { stopWake(); controllerRef.current?.stop(); navigate(projectId ? `/ai/${encodeURIComponent(projectId)}?tab=reports` : '/reports'); }} title="Open project reports">
+                <BarChart2 size={12} />
+                <span>Reports</span>
+            </button>
         </div>
         <button aria-label="Minimise agent" onClick={() => { controllerRef.current?.stop(); setMenu(false); setExpanded(false); }}><ChevronDown size={16} /></button>
         <small id="agent-gesture-hint">{state === 'idle' ? 'Hold for options' : 'Tap circle to end'}</small></>}
