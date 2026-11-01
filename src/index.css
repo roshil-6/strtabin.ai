@@ -852,8 +852,8 @@ a {
 [data-theme="light"]{--primary:#8517cc;--accent-soft:rgba(133,23,204,.09)}
 [data-theme="dark"] :is(.text-white\/80,.text-white\/70){color:var(--text-secondary)!important}
 [data-theme="dark"] :is(.text-white\/60,.text-white\/50,.text-white\/40){color:var(--text-muted)!important}
-.dashboard-shell .dashboard-project-card {border-radius:11px!important}
-.dashboard-shell .dashboard-header h2 {font-size:30px;line-height:1.25;font-weight:500;letter-spacing:-.025em}
+.dashboard-shell .dashboard-project-card {border-radius:18px!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)} [data-theme="dark"] .dashboard-shell .dashboard-project-card {background:linear-gradient(145deg,rgba(24,31,42,.86),rgba(16,21,29,.92))!important} .dashboard-shell .dashboard-header .dashboard-new-project-btn {background:var(--primary)!important;color:#0d1118!important;border:1px solid color-mix(in srgb,var(--primary) 80%,#fff)!important;font-weight:700!important;box-shadow:0 4px 18px color-mix(in srgb,var(--primary) 30%,transparent)!important} [data-theme="light"] .dashboard-shell .dashboard-header .dashboard-new-project-btn {color:#fff!important}
+.dashboard-shell .dashboard-header h2 {font-size:32px;line-height:1.2;font-weight:700;letter-spacing:-.025em}
 .dashboard-shell .dashboard-tabs {gap:12px!important;border-bottom:1px solid var(--border)!important;padding-bottom:0!important}
 .dashboard-shell .dashboard-tabs button {width:auto;flex-shrink:0;white-space:nowrap;border-radius:0;padding:13px 12px!important;border-bottom:2px solid transparent}
 .dashboard-shell .dashboard-tabs button[aria-pressed="true"] {background:transparent;border-bottom-color:var(--primary)}
