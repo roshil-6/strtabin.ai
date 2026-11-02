@@ -85,6 +85,12 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         return () => {cancelled = true;};
     },[getToken,accessAttempt]);
 
+    useEffect(() => {
+        if ((open || fullPage) && access && !access.pro) {
+            setAccessAttempt(v => v + 1);
+        }
+    }, [open, fullPage]);
+
     useEffect(() => { alive.current = true; return () => { alive.current = false; request.current?.abort(); window.speechSynthesis?.cancel(); }; }, []);
     const previouslyOpen = useRef(open);
     useEffect(() => { if (open) heading.current?.focus(); else if (previouslyOpen.current) launcher.current?.focus(); previouslyOpen.current = open; }, [open]);

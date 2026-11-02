@@ -1554,6 +1554,12 @@
   font-size: 12px;
 }
 
+.agent-dock.expanded .agent-error {
+  position: static;
+  width: 100%;
+  margin-top: 10px;
+}
+
 /* ── Responsive Adjustments ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .sasha-workspace .sasha-settings-grid,

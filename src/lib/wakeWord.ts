@@ -13,7 +13,8 @@ export function wakeRequest(transcript:string, name:string): string | null {
     const names = [...new Set(['Sasha',name.trim()].filter(Boolean))];
     for (const value of names) {
         const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g,'\\s+');
-        const match = new RegExp(`^hey[\\s,]+${escaped}(?=$|[\\s,.!?;:])[,\\s.!?;:]*`, 'iu').exec(normalized);
+        const namePattern = escaped.toLowerCase() === 'sasha' ? '(?:sasha|shasha|sascha|sacha|sasa)' : escaped;
+        const match = new RegExp(`^(?:hey|hi|ok|okay)[\\s,]+${namePattern}(?=$|[\\s,.!?;:])[,\\s.!?;:]*`, 'iu').exec(normalized);
         if (match) return normalized.slice(match[0].length).trim().slice(0,3000);
     }
     return null;
@@ -33,7 +34,8 @@ export class WakeWordListener {
     constructor(makeRecognition:()=>WakeRecognition, name:string, callbacks:{onState:(state:WakeStatus)=>void;onWake:(request:string)=>void;onError:(message:string)=>void}) {
         this.name=name;this.callbacks=callbacks;
         this.recognition=makeRecognition();
-        this.recognition.lang='en-US';this.recognition.continuous=true;this.recognition.interimResults=false;
+        const navLang = typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US';
+        this.recognition.lang=navLang;this.recognition.continuous=true;this.recognition.interimResults=false;
         this.recognition.onstart=()=>{if(!this.stopped)this.callbacks.onState('listening');};
         this.recognition.onresult=event=>{
             if(this.stopped||this.request!==null)return;
