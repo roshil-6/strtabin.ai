@@ -83,13 +83,18 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
     useEffect(() => { startRef.current = start; });
     const enableWake = async () => {
         if (wakeStatus !== 'off') { stopWake(); return; }
-        if (!ready || disabled || controllerRef.current) return;
+        if (!ready) { setError('Sasha requires an active Pro subscription and backend configuration.'); return; }
+        if (disabled || controllerRef.current) return;
         const speechWindow = window as unknown as { SpeechRecognition?:new()=>WakeRecognition; webkitSpeechRecognition?:new()=>WakeRecognition };
         const Recognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
         if (!Recognition || !window.isSecureContext) { setError('Wake listening is unavailable in this browser. Use tap to talk.'); return; }
         stopWake(); setError(''); window.speechSynthesis?.cancel();
         let audio:AudioContext;
-        try { audio = new AudioContext({sampleRate:16000}); preparedAudio.current=audio; setWakeStatus('starting'); wakeCallback.current(true); await audio.resume(); }
+        try {
+            try { audio = new AudioContext({sampleRate:16000}); }
+            catch { audio = new AudioContext(); }
+            preparedAudio.current=audio; setWakeStatus('starting'); wakeCallback.current(true); await audio.resume();
+        }
         catch { stopWake(); setError('Could not prepare microphone audio. Try tap to talk.'); return; }
         if (preparedAudio.current !== audio) return;
         const listener = new WakeWordListener(() => new Recognition(), name, {
@@ -98,7 +103,10 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
             onWake: request => {
                 const prepared = preparedAudio.current; preparedAudio.current = null;
                 wake.current = null; wakeCallback.current(false); setExpanded(true);
-                startRef.current(request, prepared || undefined);
+                // Allow Windows / browser audio driver a 150ms buffer to release the mic handle
+                setTimeout(() => {
+                    startRef.current(request, prepared || undefined);
+                }, 150);
             },
         });
         wake.current=listener; listener.start();
@@ -152,7 +160,7 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
         <button aria-label="Minimise agent" onClick={() => { controllerRef.current?.stop(); setMenu(false); setExpanded(false); }}><ChevronDown size={16} /></button>
         <small id="agent-gesture-hint">{state === 'idle' ? 'Hold for options' : 'Tap circle to end'}</small></>}
         {(expanded || menu || wakeStatus !== 'off') && <div className="agent-wake-control">
-            <button disabled={!ready || disabled || state !== 'idle'} aria-pressed={wakeStatus !== 'off'} onClick={() => void enableWake()}>{wakeStatus === 'off' ? 'Enable “Hey Sasha”' : 'Stop wake listening'}</button>
+            <button disabled={disabled || state !== 'idle'} aria-pressed={wakeStatus !== 'off'} onClick={() => void enableWake()}>{wakeStatus === 'off' ? 'Enable “Hey Sasha”' : 'Stop wake listening'}</button>
             <span role="status">{wakeStatus === 'listening' ? 'Listening for “Hey Sasha”' : wakeStatus === 'starting' ? 'Starting wake listener…' : ''}</span>
             {(expanded || menu) && <small>One conversation per activation, in this tab. Browser speech recognition may process audio online. You can also say “Hey {name}”.</small>}
         </div>}
