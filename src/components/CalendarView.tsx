@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar, Trash2, Bot, Clock, CheckCircle2, Circle, Layout, Bell, BellOff, ArrowLeft, Sparkles, Target, CalendarDays, ListChecks, Sun, Sunset, Moon, Zap } from 'lucide-react';
 import useStore from '../store/useStore';
+import ExecutionLogForm from './ExecutionLogForm';
 
 import { NotificationManager } from '../services/NotificationManager';
 
@@ -17,7 +18,7 @@ export default function CalendarView() {
 
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { calendarEvents, projectCalendarEvents, addCalendarEvent, removeCalendarEvent, toggleCalendarEvent, dailyExecutionLogs, setDailyExecutionLog } = useStore();
+    const { calendarEvents, projectCalendarEvents, addCalendarEvent, removeCalendarEvent, toggleCalendarEvent } = useStore();
     const activeCalendarEvents = id ? (projectCalendarEvents[id] || {}) : calendarEvents;
     const viewMode: 'month' | 'week' = searchParams.get('mode') === 'week' ? 'week' : 'month';
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -450,44 +451,7 @@ export default function CalendarView() {
                                         <Zap size={14} className="text-primary" />
                                         <span className="text-[10px] font-semibold uppercase tracking-widest text-primary/80">Daily Check-in</span>
                                     </div>
-                                    {(() => {
-                                        const logKey = id ? `${todayKey}_${id}` : todayKey;
-                                        const log = dailyExecutionLogs[logKey];
-                                        return (
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
-                                                <div>
-                                                    <label className="text-[9px] font-semibold uppercase tracking-wider text-white/40 block mb-1">What did I execute today?</label>
-                                                    <input
-                                                        type="text"
-                                                        value={log?.executed ?? ''}
-                                                        onChange={(e) => setDailyExecutionLog(todayKey, { executed: e.target.value, blocking: log?.blocking ?? '', tomorrowAction: log?.tomorrowAction ?? '' }, id)}
-                                                        placeholder="e.g. Finished draft, called 3 leads"
-                                                        className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white placeholder-white/20 outline-none focus:border-primary/30"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] font-semibold uppercase tracking-wider text-white/40 block mb-1">What&apos;s blocking me?</label>
-                                                    <input
-                                                        type="text"
-                                                        value={log?.blocking ?? ''}
-                                                        onChange={(e) => setDailyExecutionLog(todayKey, { executed: log?.executed ?? '', blocking: e.target.value, tomorrowAction: log?.tomorrowAction ?? '' }, id)}
-                                                        placeholder="e.g. Waiting on design"
-                                                        className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white placeholder-white/20 outline-none focus:border-primary/30"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] font-semibold uppercase tracking-wider text-white/40 block mb-1">Top action for tomorrow</label>
-                                                    <input
-                                                        type="text"
-                                                        value={log?.tomorrowAction ?? ''}
-                                                        onChange={(e) => setDailyExecutionLog(todayKey, { executed: log?.executed ?? '', blocking: log?.blocking ?? '', tomorrowAction: e.target.value }, id)}
-                                                        placeholder="e.g. Ship v1 to beta"
-                                                        className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white placeholder-white/20 outline-none focus:border-primary/30"
-                                                    />
-                                                </div>
-                                            </div>
-                                        );
-                                    })()}
+                                    <ExecutionLogForm dateKey={todayKey} todayKey={todayKey} strategyId={id} />
                                 </div>
                             )}
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-white/[0.05] overflow-y-auto md:overflow-hidden custom-scrollbar">
