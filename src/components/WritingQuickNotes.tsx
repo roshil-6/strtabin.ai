@@ -13,7 +13,7 @@ export default function WritingQuickNotes({ canvasId, pageId }: { canvasId: stri
     const board = useRef<HTMLDivElement>(null);
     const drag = useRef<{ id: string; x: number; y: number; left: number; top: number; width: number } | null>(null);
     const [position, setPosition] = useState<{ id: string; x: number; y: number } | null>(null);
-    // Measured card heights keep the board exactly as tall as its notes, so no empty gap appears below them.
+    // Measured card heights let new notes stack below existing ones without overlapping.
     const cardRefs = useRef(new Map<string, HTMLElement>());
     const [heights, setHeights] = useState<Record<string, number>>({});
     useLayoutEffect(() => {
@@ -42,15 +42,15 @@ export default function WritingQuickNotes({ canvasId, pageId }: { canvasId: stri
         const current = store.canvases[canvasId]?.writingPages || [];
         if (current.length >= 100) return;
         const id = crypto.randomUUID();
-        // Stack the new note directly below the existing ones instead of overlapping or leaving a gap.
-        const bottom = notes.reduce((max, note) => Math.max(max, (note.noteY || 0) + noteHeight(note) + NOTE_GAP), 0);
-        store.setWritingPages(canvasId, [...current, { id, parentId: pageId, kind: 'scene', quickNote: true, title: 'Quick note', content: '', noteX: 0, noteY: Math.min(1200, bottom) }]);
+        // New notes spawn on the right edge, stacked below any notes already parked there.
+        const bottom = notes.filter(note => (note.noteX || 0) > .5).reduce((max, note) => Math.max(max, (note.noteY || 0) + noteHeight(note) + NOTE_GAP), 0);
+        store.setWritingPages(canvasId, [...current, { id, parentId: pageId, kind: 'scene', quickNote: true, title: 'Quick note', content: '', noteX: 1, noteY: Math.min(1200, bottom) }]);
         setExpanded(id);
     };
-    const boardHeight = notes.length ? Math.max(...notes.map(note => (position?.id === note.id ? position.y : note.noteY || 0) + noteHeight(note))) + 4 : 0;
     return <section className="writing-quick-notes" aria-label="Quick notes">
-        <div className="quick-notes-heading"><span>Quick notes</span><button onClick={add} disabled={(pages?.length || 0) >= 100}><Plus size={15} />Add note</button></div>
-        {notes.length > 0 && <><small>Drag the handle to move a note. Click a card to write.</small><div ref={board} className="quick-notes-board" style={{ height: boardHeight }}>
+        <div className="quick-notes-heading"><span>Quick notes{notes.length > 0 && <small>Drag the handle to move a note. Click a card to write.</small>}</span><button onClick={add} disabled={(pages?.length || 0) >= 100}><Plus size={15} />Add note</button></div>
+        {/* Zero-height overlay: notes float over the document so the writing below never shifts. */}
+        {notes.length > 0 && <div ref={board} className="quick-notes-board">
             {notes.map(note => {
                 const open = expanded === note.id;
                 const x = position?.id === note.id ? position.x : note.noteX || 0;
@@ -73,6 +73,6 @@ export default function WritingQuickNotes({ canvasId, pageId }: { canvasId: stri
                     {open ? <><input aria-label="Quick note title" value={note.title} maxLength={200} onChange={event => update(note.id, { title: event.target.value })}/><textarea autoFocus aria-label="Quick note text" placeholder="Write a quick thought…" value={note.content} maxLength={10000} rows={Math.min(7, Math.max(3, note.content.split('\n').length))} onChange={event => update(note.id, { content: event.target.value })}/></> : <button className="quick-note-preview" onClick={() => setExpanded(note.id)} aria-expanded={false}><strong>{note.title || 'Quick note'}</strong><span>{note.content || 'Click to write…'}</span></button>}
                 </article>;
             })}
-        </div></>}
+        </div>}
     </section>;
 }

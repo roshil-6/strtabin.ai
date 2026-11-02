@@ -21,6 +21,17 @@ function applySnapshot(data:Snapshot) {
     const safe=Object.fromEntries(Object.keys(initial).map(key=>[key,data.workspace[key] ?? initial[key]]));
     useStore.setState(safe); useTimetables.setState({tables:data.tables});
 }
+// Key-order independent fingerprint, so identical content from another device never counts as a conflict.
+function stable(value:unknown):string {
+    if(Array.isArray(value))return `[${value.map(stable).join(',')}]`;
+    if(value&&typeof value==='object')return `{${Object.keys(value).sort().filter(key=>(value as Record<string,unknown>)[key]!==undefined).map(key=>`${JSON.stringify(key)}:${stable((value as Record<string,unknown>)[key])}`).join(',')}}`;
+    return JSON.stringify(value)??'null';
+}
+function fingerprint(data:Snapshot) {
+    const text=stable(data);let hash=2166136261;
+    for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
+    return `${text.length}:${(hash>>>0).toString(36)}`;
+}
 function exportCopy(value:unknown, filename:string) {
     const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));
     const link=document.createElement('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -57,10 +68,11 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
         let stopped=false, timer:ReturnType<typeof setTimeout>|undefined, running=false;
         const abort=new AbortController();
         const unsubs:Array<()=>void>=[];
-        let revision=0, dirty=false;
+        // base = fingerprint of the copy last synced with the cloud; lets us tell real edits from no-op saves.
+        let revision=0, dirty=false, base='';
         const metaKey=accountKey(owner,'cloud-meta');
         const active=()=>!stopped&&currentAccount()===owner;
-        const meta=()=>localStorage.setItem(metaKey,JSON.stringify({revision,dirty}));
+        const meta=()=>localStorage.setItem(metaKey,JSON.stringify({revision,dirty,base}));
         const request=async(method='GET',data?:unknown)=>{
             const token=await tokenRef.current();
             if(!active()||!token)throw new Error('Account changed. Reload to continue.');
@@ -73,11 +85,13 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
         };
         const save=async()=>{
             if(!active()||!dirty||running||owner==='guest')return;
-            running=true;const copy=snapshot();const serialized=JSON.stringify(copy);
+            running=true;const copy=snapshot();const serialized=JSON.stringify(copy);const print=fingerprint(copy);
+            // UI-only store updates mark the workspace dirty; skip the upload when nothing synced actually changed.
+            if(print===base){dirty=false;meta();running=false;return;}
             setSaveStatus('Saving your workspace…');
             try {
                 const response=await request('PUT',{revision,snapshot:copy});if(!active())return;
-                revision=response.revision;dirty=JSON.stringify(snapshot())!==serialized;meta();
+                revision=response.revision;base=print;dirty=JSON.stringify(snapshot())!==serialized;meta();
                 setSaveStatus(dirty?'Saving your workspace…':'Saved to your account');
                 if(dirty)timer=setTimeout(()=>void save(),800);
             } catch(error){if(active())setSaveStatus(error instanceof Error?error.message:'Cloud save failed; your local copy is retained.');}
@@ -103,13 +117,20 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
                 setLegacy([STORAGE_KEY,LEGACY_STORAGE_KEY,GUEST_DATA_BACKUP_KEY,'stratabin-timetables-v1'].some(key=>!!localStorage.getItem(key)));
                 if(owner!=='guest') {
                     const previous=JSON.parse(localStorage.getItem(metaKey)||'{}');
-                    revision=Number(previous.revision)||0;dirty=previous.dirty===true;
+                    revision=Number(previous.revision)||0;dirty=previous.dirty===true;base=typeof previous.base==='string'?previous.base:'';
                     const cloud=await request();if(!active())return;
-                    if(dirty&&cloud.revision!==revision&&cloud.snapshot) {
-                        setConflict({local:snapshot(),cloud:cloud.snapshot,revision:cloud.revision});
-                        setResult({owner,ready:false,error:'This account has different changes on another device. Export this device’s copy before loading the cloud copy.'});return;
+                    const local=fingerprint(snapshot()), remote=cloud.snapshot?fingerprint(cloud.snapshot):'';
+                    if(dirty&&cloud.snapshot) {
+                        // Only a true conflict when both copies changed since the last sync and they differ.
+                        if(local===remote||local===base)dirty=false;
+                        else if(remote===base||cloud.revision===revision)dirty=true;
+                        else {
+                            setConflict({local:snapshot(),cloud:cloud.snapshot,revision:cloud.revision});
+                            setResult({owner,ready:false,error:'This account was edited on another device while this device also had unsaved changes. Choose which copy to keep.'});return;
+                        }
                     }
-                    if(cloud.snapshot&&!dirty)applySnapshot(cloud.snapshot);
+                    if(cloud.snapshot&&!dirty){applySnapshot(cloud.snapshot);base=remote;}
+                    else if(!cloud.snapshot&&!dirty)base=local;
                     revision=cloud.revision;meta();
                 }
                 unsubs.push(useStore.subscribe(changed),useTimetables.subscribe(changed));
@@ -122,11 +143,26 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
         return ()=>{stopped=true;abort.abort();clearTimeout(timer);unsubs.forEach(unsub=>unsub());window.removeEventListener('beforeunload',beforeUnload);window.removeEventListener('online',online);};
     },[owner]);
     if(signingOut||!owner||result.owner!==owner)return <div className="theme-page min-h-screen grid place-items-center" role="status" aria-label="Switching account"><span className="h-6 w-6 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] motion-safe:animate-spin" /></div>;
-    if(!result.ready)return <main className="theme-page min-h-screen flex items-center justify-center p-8"><div className="max-w-xl space-y-4" role="status"><p>{result.owner===owner&&result.error?result.error:'Opening your private workspace…'}</p>{result.owner===owner&&result.error&&<><button onClick={()=>window.location.reload()}>Retry</button><button onClick={()=>void signOut({redirectUrl:'/auth'})}>Sign out</button></>}{conflict&&result.owner===owner&&<><button onClick={()=>exportCopy(conflict.local,'stratabin-device-backup.json')}>Export this device’s copy</button><button onClick={()=>{
-        localStorage.setItem(accountKey(owner,'conflict-backup'),JSON.stringify(conflict.local));
-        localStorage.setItem(accountKey(owner,'cloud-meta'),JSON.stringify({revision:conflict.revision,dirty:false}));
-        window.location.reload();
-    }}>Keep backup and load cloud copy</button></>}</div></main>;
+    if(!result.ready) {
+        const failed=result.owner===owner&&!!result.error;
+        const button='rounded-lg border border-[var(--border)] px-4 py-2 text-sm hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]';
+        return <main className="theme-page min-h-screen flex items-center justify-center p-8"><div className="max-w-xl space-y-5" role="status">
+            <p>{failed?result.error:'Opening your private workspace…'}</p>
+            {conflict&&failed&&<div className="flex flex-wrap gap-2">
+                <button className={button} onClick={()=>exportCopy(conflict.local,'stratabin-device-backup.json')}>Export this device’s copy</button>
+                <button className={button} onClick={()=>{
+                    localStorage.setItem(accountKey(owner,'cloud-meta'),JSON.stringify({revision:conflict.revision,dirty:true,base:fingerprint(conflict.cloud)}));
+                    window.location.reload();
+                }}>Keep this device’s copy</button>
+                <button className={`${button} border-[var(--primary)] text-[var(--primary)]`} onClick={()=>{
+                    localStorage.setItem(accountKey(owner,'conflict-backup'),JSON.stringify(conflict.local));
+                    localStorage.setItem(accountKey(owner,'cloud-meta'),JSON.stringify({revision:conflict.revision,dirty:false}));
+                    window.location.reload();
+                }}>Keep backup and load cloud copy</button>
+            </div>}
+            {failed&&<div className="flex flex-wrap gap-2 text-sm text-[var(--text-muted)]"><button className={button} onClick={()=>window.location.reload()}>Retry</button><button className={button} onClick={()=>void signOut({redirectUrl:'/auth'})}>Sign out</button></div>}
+        </div></main>;
+    }
     return <>{children}{!publicPage&&showNotice&&<aside className="fixed right-3 top-3 z-[95] max-w-[min(24rem,calc(100vw-1.5rem))] max-h-[60dvh] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-panel)] p-3 pr-12 text-xs shadow-lg" aria-label="Account storage"><button type="button" aria-label="Dismiss account storage notice" title="Dismiss notice" className="absolute right-1 top-1 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]" onClick={()=>{setNoticeDismissed(true);setDismissedError(saveError);}}><X size={18}/></button><p role="status">{saveStatus}</p>{saveError&&<button onClick={()=>retry.current()}>Retry cloud save</button>}{legacy&&<details><summary>Older local work is preserved separately</summary><p>This backup may contain another account’s work from this device. It is not assigned to your account. Export it before recovery.</p><button onClick={async()=>{
         if(Object.keys(useStore.getState().canvases).length||useTimetables.getState().tables.length){toast.error('Recovery is available only into an empty workspace, to avoid overwriting your projects. Export the backup first.');return;}
         if(!await useModalStore.getState().confirm('Only recover this data if it belongs to you. Add the unassigned local work to the account currently signed in?'))return;
