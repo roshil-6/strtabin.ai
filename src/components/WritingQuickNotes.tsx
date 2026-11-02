@@ -1,8 +1,10 @@
 import useModalStore from '../store/useModalStore';
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Plus, GripHorizontal, ChevronDown, Trash2 } from 'lucide-react';
 import useStore from '../store/useStore';
 import type { WritingPage } from '../lib/writingPages';
+
+const NOTE_GAP = 12;
 
 export default function WritingQuickNotes({ canvasId, pageId }: { canvasId: string; pageId: string }) {
     const pages = useStore(state => state.canvases[canvasId]?.writingPages);
@@ -11,6 +13,26 @@ export default function WritingQuickNotes({ canvasId, pageId }: { canvasId: stri
     const board = useRef<HTMLDivElement>(null);
     const drag = useRef<{ id: string; x: number; y: number; left: number; top: number; width: number } | null>(null);
     const [position, setPosition] = useState<{ id: string; x: number; y: number } | null>(null);
+    // Measured card heights keep the board exactly as tall as its notes, so no empty gap appears below them.
+    const cardRefs = useRef(new Map<string, HTMLElement>());
+    const [heights, setHeights] = useState<Record<string, number>>({});
+    useLayoutEffect(() => {
+        if (typeof ResizeObserver === 'undefined') return;
+        const observer = new ResizeObserver(entries => {
+            setHeights(previous => {
+                let changed = false; const next = { ...previous };
+                for (const entry of entries) {
+                    const element = entry.target as HTMLElement;
+                    const id = element.dataset.noteId; const height = Math.ceil(element.offsetHeight);
+                    if (id && next[id] !== height) { next[id] = height; changed = true; }
+                }
+                return changed ? next : previous;
+            });
+        });
+        cardRefs.current.forEach(element => observer.observe(element));
+        return () => observer.disconnect();
+    });
+    const noteHeight = (note: WritingPage) => heights[note.id] ?? (expanded === note.id ? 260 : 110);
     const update = (id: string, patch: Partial<WritingPage>) => {
         const store = useStore.getState();
         store.setWritingPages(canvasId, (store.canvases[canvasId]?.writingPages || []).map(page => page.id === id ? { ...page, ...patch } : page));
@@ -20,17 +42,20 @@ export default function WritingQuickNotes({ canvasId, pageId }: { canvasId: stri
         const current = store.canvases[canvasId]?.writingPages || [];
         if (current.length >= 100) return;
         const id = crypto.randomUUID();
-        store.setWritingPages(canvasId, [...current, { id, parentId: pageId, kind: 'scene', quickNote: true, title: 'Quick note', content: '', noteX: 0, noteY: Math.min(1200, notes.length * 36) }]);
+        // Stack the new note directly below the existing ones instead of overlapping or leaving a gap.
+        const bottom = notes.reduce((max, note) => Math.max(max, (note.noteY || 0) + noteHeight(note) + NOTE_GAP), 0);
+        store.setWritingPages(canvasId, [...current, { id, parentId: pageId, kind: 'scene', quickNote: true, title: 'Quick note', content: '', noteX: 0, noteY: Math.min(1200, bottom) }]);
         setExpanded(id);
     };
+    const boardHeight = notes.length ? Math.max(...notes.map(note => (position?.id === note.id ? position.y : note.noteY || 0) + noteHeight(note))) + 4 : 0;
     return <section className="writing-quick-notes" aria-label="Quick notes">
         <div className="quick-notes-heading"><span>Quick notes</span><button onClick={add} disabled={(pages?.length || 0) >= 100}><Plus size={15} />Add note</button></div>
-        {notes.length > 0 && <><small>Drag the handle to move a note. Click a card to write.</small><div ref={board} className="quick-notes-board" style={{ height: Math.max(280, ...notes.map(note => (position?.id === note.id ? position.y : note.noteY || 0) + (expanded === note.id ? 290 : 130))) }}>
+        {notes.length > 0 && <><small>Drag the handle to move a note. Click a card to write.</small><div ref={board} className="quick-notes-board" style={{ height: boardHeight }}>
             {notes.map(note => {
                 const open = expanded === note.id;
                 const x = position?.id === note.id ? position.x : note.noteX || 0;
                 const y = position?.id === note.id ? position.y : note.noteY || 0;
-                return <article key={note.id} className={`quick-note ${open ? 'is-open' : ''}`} style={{ left: `${x * 100}%`, transform: `translateX(-${x * 100}%)`, top: y, zIndex: open || position?.id === note.id ? 2 : 1 }}>
+                return <article key={note.id} data-note-id={note.id} ref={element => { if (element) cardRefs.current.set(note.id, element); else cardRefs.current.delete(note.id); }} className={`quick-note ${open ? 'is-open' : ''}`} style={{ left: `${x * 100}%`, transform: `translateX(-${x * 100}%)`, top: y, zIndex: open || position?.id === note.id ? 2 : 1 }}>
                     <div className="quick-note-controls"><button aria-label="Move note" title="Drag to move; use arrow keys for smaller moves" className="quick-note-handle" onKeyDown={event => {
                         if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
                         event.preventDefault();update(note.id, { noteX: Math.max(0, Math.min(1, x + (event.key === 'ArrowLeft' ? -.05 : event.key === 'ArrowRight' ? .05 : 0))), noteY: Math.max(0, Math.min(1200, y + (event.key === 'ArrowUp' ? -20 : event.key === 'ArrowDown' ? 20 : 0))) });

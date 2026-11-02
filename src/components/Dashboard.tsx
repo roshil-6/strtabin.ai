@@ -1,6 +1,7 @@
 import { useAccountTransition } from '../store/useAccountTransition';
 import { dashboardDestination } from '../lib/dashboardDestination';
 import CompactProjectCard from './CompactProjectCard';
+import ExecutionLogForm from './ExecutionLogForm';
 import LavenderDotBackground from './LavenderDotBackground';
 import { localDateKey } from '../lib/localDate';
 import { BUILT_IN_AI_ENABLED } from '../lib/featureFlags';
@@ -27,7 +28,7 @@ export default function Dashboard() {
         canvases, createCanvas, deleteCanvas, togglePinCanvas, toggleStuckCanvas, toggleCurrentProject,
         mergeCanvases, folders, activeFolderId, createFolder, deleteFolder,
         setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName,
-        dailyExecutionLogs, setDailyExecutionLog,
+        dailyExecutionLogs,
     } = useStore(useShallow(state => ({
         canvases: state.canvases,
         createCanvas: state.createCanvas,
@@ -45,7 +46,6 @@ export default function Dashboard() {
         duplicateCanvas: state.duplicateCanvas,
         updateCanvasName: state.updateCanvasName,
         dailyExecutionLogs: state.dailyExecutionLogs,
-        setDailyExecutionLog: state.setDailyExecutionLog,
     })));
 
     const { signOut } = useClerk();
@@ -1072,8 +1072,6 @@ export default function Dashboard() {
                                 const dateLogs = Object.entries(dailyExecutionLogs || {})
                                     .filter(([k]) => k.startsWith(dateKey))
                                     .map(([k, v]) => ({ canvasId: k === dateKey ? null : k.replace(`${dateKey}_`, ''), ...v }));
-                                const rawGlobal = dateLogs.find(l => !l.canvasId);
-                                const globalLog = { executed: rawGlobal?.executed ?? '', blocking: rawGlobal?.blocking ?? '', tomorrowAction: rawGlobal?.tomorrowAction ?? '' };
                                 const projectLogs = dateLogs.filter(l => l.canvasId);
                                 const datesWithLogs = [...new Set(Object.keys(dailyExecutionLogs || {}).map(k => k.split('_')[0]).filter(Boolean))].sort().reverse().slice(0, 10);
                                 return (
@@ -1119,39 +1117,7 @@ export default function Dashboard() {
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4">
-                                            <div>
-                                                <label className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)] block mb-1.5">Executed</label>
-                                                <input
-                                                    type="text"
-                                                    value={globalLog.executed ?? ''}
-                                                    onChange={(e) => setDailyExecutionLog(dateKey, { executed: e.target.value, blocking: globalLog.blocking, tomorrowAction: globalLog.tomorrowAction })}
-                                                    placeholder="e.g. Finished draft, called 3 leads"
-                                                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-primary/30 transition-colors"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] font-semibold uppercase tracking-wider text-amber-600 block mb-1.5">What&apos;s blocking me?</label>
-                                                <input
-                                                    type="text"
-                                                    value={globalLog.blocking ?? ''}
-                                                    onChange={(e) => setDailyExecutionLog(dateKey, { executed: globalLog.executed, blocking: e.target.value, tomorrowAction: globalLog.tomorrowAction })}
-                                                    placeholder="e.g. Waiting on design"
-                                                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-amber-500/30 transition-colors"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] font-semibold uppercase tracking-wider text-emerald-600 block mb-1.5">Top action for tomorrow</label>
-                                                <input
-                                                    type="text"
-                                                    value={globalLog.tomorrowAction ?? ''}
-                                                    onChange={(e) => setDailyExecutionLog(dateKey, { executed: globalLog.executed, blocking: globalLog.blocking, tomorrowAction: e.target.value })}
-                                                    placeholder="e.g. Ship v1 to beta"
-                                                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none focus:border-emerald-500/30 transition-colors"
-                                                />
-                                            </div>
-                                        </div>
-                                        <p className="text-[10px] text-[var(--text-muted)] mb-2">Recording for <strong>{dateKey === todayKey ? 'today' : dateKey}</strong></p>
+                                        <ExecutionLogForm dateKey={dateKey} todayKey={todayKey} />
                                         {projectLogs.filter(l => (l.executed || '').trim() || (l.blocking || '').trim() || (l.tomorrowAction || '').trim()).length > 0 && (
                                             <div className="space-y-2 pt-2 border-t border-[var(--border)]">
                                                 <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">By project</p>
