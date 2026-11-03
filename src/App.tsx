@@ -53,7 +53,7 @@ function App() {
     <PushAccountGuard />
     <UserSyncOnLoad />
     <ProjectSync />
-    <Suspense fallback={<div role="status" className="min-h-[100dvh] theme-page flex items-center justify-center text-[var(--text-muted)]">Opening workspace…</div>}>
+    <Suspense fallback={<div role="status" aria-label="Opening workspace" className="min-h-[100dvh] theme-page flex items-center justify-center"><span className="h-6 w-6 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] motion-safe:animate-spin" /></div>}>
     <PersonalAssistant />
     <Routes>
       <Route path="/" element={<LandingPage />} />

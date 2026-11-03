@@ -145,10 +145,12 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
     if(signingOut||!owner||result.owner!==owner)return <div className="theme-page min-h-screen grid place-items-center" role="status" aria-label="Switching account"><span className="h-6 w-6 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] motion-safe:animate-spin" /></div>;
     if(!result.ready) {
         const failed=result.owner===owner&&!!result.error;
+        // A spinner (not text) while loading, so no message flashes on a normal fast open.
+        if(!failed)return <div className="theme-page min-h-screen grid place-items-center" role="status" aria-label="Opening your private workspace"><span className="h-6 w-6 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] motion-safe:animate-spin" /></div>;
         const button='rounded-lg border border-[var(--border)] px-4 py-2 text-sm hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]';
         return <main className="theme-page min-h-screen flex items-center justify-center p-8"><div className="max-w-xl space-y-5" role="status">
-            <p>{failed?result.error:'Opening your private workspace…'}</p>
-            {conflict&&failed&&<div className="flex flex-wrap gap-2">
+            <p>{result.error}</p>
+            {conflict&&<div className="flex flex-wrap gap-2">
                 <button className={button} onClick={()=>exportCopy(conflict.local,'stratabin-device-backup.json')}>Export this device’s copy</button>
                 <button className={button} onClick={()=>{
                     localStorage.setItem(accountKey(owner,'cloud-meta'),JSON.stringify({revision:conflict.revision,dirty:true,base:fingerprint(conflict.cloud)}));
@@ -160,7 +162,7 @@ export default function AccountWorkspace({children}:{children:ReactNode}) {
                     window.location.reload();
                 }}>Keep backup and load cloud copy</button>
             </div>}
-            {failed&&<div className="flex flex-wrap gap-2 text-sm text-[var(--text-muted)]"><button className={button} onClick={()=>window.location.reload()}>Retry</button><button className={button} onClick={()=>void signOut({redirectUrl:'/auth'})}>Sign out</button></div>}
+            <div className="flex flex-wrap gap-2 text-sm text-[var(--text-muted)]"><button className={button} onClick={()=>window.location.reload()}>Retry</button><button className={button} onClick={()=>void signOut({redirectUrl:'/auth'})}>Sign out</button></div>
         </div></main>;
     }
     return <>{children}{!publicPage&&showNotice&&<aside className="fixed right-3 top-3 z-[95] max-w-[min(24rem,calc(100vw-1.5rem))] max-h-[60dvh] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-panel)] p-3 pr-12 text-xs shadow-lg" aria-label="Account storage"><button type="button" aria-label="Dismiss account storage notice" title="Dismiss notice" className="absolute right-1 top-1 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]" onClick={()=>{setNoticeDismissed(true);setDismissedError(saveError);}}><X size={18}/></button><p role="status">{saveStatus}</p>{saveError&&<button onClick={()=>retry.current()}>Retry cloud save</button>}{legacy&&<details><summary>Older local work is preserved separately</summary><p>This backup may contain another account’s work from this device. It is not assigned to your account. Export it before recovery.</p><button onClick={async()=>{

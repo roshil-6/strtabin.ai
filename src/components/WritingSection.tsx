@@ -74,7 +74,8 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
         <WritingPageTree pages={pages.filter(page => !page.quickNote)} activeId={selected} rootTitle={canvas?.name || canvas?.title || 'Main page'} select={selectPage} add={parent => create(parent)} />
         <div className="writing-page-editor">
             <div className="manuscript-toolbar"><div role="group" aria-label="Writing view"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Section board</button></div><button disabled={pages.length >= 100} onClick={() => create(ROOT_PAGE)}>+ Add page</button><span>{pages.length} / 100 items</span></div>
-            <nav className="writing-breadcrumbs" aria-label="Page path"><button onClick={() => selectPage(ROOT_PAGE)}>{canvas?.name || canvas?.title || 'Main page'}</button>{pageAncestors(pages, selected).map(page => <span key={page.id}><span aria-hidden="true">/</span><button aria-current={page.id === selected ? 'page' : undefined} onClick={() => selectPage(page.id)}>{page.title || 'Untitled page'}</button></span>)}</nav>
+            {/* At the main page the path is just the project name, already shown as the title. */}
+            {selected !== ROOT_PAGE && <nav className="writing-breadcrumbs" aria-label="Page path"><button onClick={() => selectPage(ROOT_PAGE)}>{canvas?.name || canvas?.title || 'Main page'}</button>{pageAncestors(pages, selected).map(page => <span key={page.id}><span aria-hidden="true">/</span><button aria-current={page.id === selected ? 'page' : undefined} onClick={() => selectPage(page.id)}>{page.title || 'Untitled page'}</button></span>)}</nav>}
             {view === 'cards' && <form className="manuscript-create" onSubmit={event => { event.preventDefault(); create(selected, newTitle.trim() || `Untitled ${writingKindLabel(kind)}`, [], kind); setNewTitle(''); }}><label>Type<select value={kind} onChange={event => setKind(event.target.value as NonNullable<WritingPage['kind']>)}><option value="part">Part</option><option value="section">Section</option><option value="scene">Note</option></select></label><label>Title<input value={newTitle} maxLength={200} placeholder={`New ${writingKindLabel(kind)} in ${current?.title || 'main page'}`} onChange={event => setNewTitle(event.target.value)} /></label><button type="submit" disabled={pages.length >= 100}>Add {writingKindLabel(kind)}</button></form>}
             {current && <details className="manuscript-organise"><summary>Organise this {writingKindLabel(current.kind)}</summary><label>Type<select value={current.kind || 'page'} onChange={event => save(pages.map(page => page.id === selected ? { ...page, kind: event.target.value as WritingPage['kind'] } : page))}>{['part', 'section', 'scene', 'page'].map(value => <option key={value} value={value}>{writingKindLabel(value as WritingPage['kind'])}</option>)}</select></label><label>Move into<select value={current.parentId} onChange={event => reparent(event.target.value)}><option value={ROOT_PAGE}>Main page</option>{pages.filter(page => page.id !== selected && !pageAncestors(pages, page.id).some(ancestor => ancestor.id === selected)).map(page => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label></details>}
             <div className={`manuscript-workspace ${view} ${openNote && view === 'cards' ? 'with-note-editor' : ''}`}>
@@ -307,20 +308,14 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
     }, [content, contentA, contentB, isSplitMode]);
 
     const wc = [writingPlainText(content), ...(isSplitMode ? [headingA, contentA, headingB, contentB] : [])].join(' ').trim().split(/\s+/).filter(Boolean).length;
-    const projectName = canvas?.name || canvas?.title || 'Untitled';
 
     return (
         <div className="writing-surface h-full w-full flex flex-col relative" style={{ background: 'var(--bg-page)' }}>
             {/* Toolbar — NotebookLM-style: minimal, content-first */}
-            <div className="writing-toolbar min-h-12 flex flex-wrap items-center px-4 md:px-8 gap-2 z-20" style={{ background: 'var(--bg-page)', borderBottom: '1px solid var(--border)' }}>
-                <div className="flex items-center gap-2 mr-auto min-w-0">
-                    <FileText size={14} className="text-[var(--text-muted)] shrink-0" />
-                    <span className="text-sm font-medium text-[var(--text-secondary)] truncate max-w-[140px] md:max-w-[220px]" title={projectName}>{projectName}</span>
-                    {wc > 0 && (
-                        <span className="hidden sm:flex text-[10px] text-[var(--text-dim)] font-medium">
-                            {wc} words
-                        </span>
-                    )}
+            <div className="writing-toolbar min-h-11 flex flex-wrap items-center px-4 md:px-8 gap-2 z-20" style={{ background: 'var(--bg-page)', borderBottom: '1px solid var(--border)' }}>
+                {/* Title already shows the page name; keep only the word count so the toolbar fits one row. */}
+                <div className="flex items-center mr-auto min-w-0">
+                    {wc > 0 && <span className="text-[11px] text-[var(--text-dim)] font-medium whitespace-nowrap">{wc} words</span>}
                 </div>
 
                 <div className="flex items-center gap-0.5">
