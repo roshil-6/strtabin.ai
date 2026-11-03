@@ -4,7 +4,7 @@
 
 Set `GEMINI_API_KEY` on the Node backend service. Never use a `VITE_` variable or put this secret in Vercel/frontend code. Deploy the code as well as the variable. Database initialization creates `assistant_usage` on PostgreSQL and SQLite.
 
-Sasha uses server-selected `gemini-3.8-flash` for chat and `gemini-3.8-live` for live audio. Custom keys, providers and model overrides from the browser are rejected. There is no automatic fallback. The owner explicitly approved moving to currently available Flash models after Google rejected generation with 2.5 for this new key.
+Sasha uses server-selected `gemini-3.5-flash-lite` for chat and `gemini-3.8-live` for live audio. Custom keys, providers and model overrides from the browser are rejected. There is no automatic fallback. On the free tier the owner chose the lowest-cost text model: `gemini-3.8-flash` repeatedly returned 503 (high demand), while `gemini-3.5-flash-lite` answered in about 1–2 s with valid action proposals (tested 2026-11-03). Voice stays on `gemini-3.8-live` by the owner's choice; it passed live speech and action-proposal tests the same day. No 3.5 model supports spoken conversation (`gemini-3.5-transcribe-live` rejects audio replies).
 
 ## Pro access
 

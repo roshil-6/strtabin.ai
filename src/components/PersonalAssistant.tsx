@@ -42,7 +42,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     const voice = useRef<LiveVoiceClient | null>(null);
     const [name, setName] = useState(() => {try {return localStorage.getItem(`sasha-name:${userId}`)?.slice(0,40) || 'Sasha';} catch {return 'Sasha';}});
     const provider = 'gemini';
-    const model = 'gemini-3.8-flash';
+    const model = 'gemini-3.5-flash-lite';
     const voiceModel = 'gemini-3.8-live';
     const [motionEnabled, setMotionEnabled] = useState(true);
     const [access, setAccess] = useState<{pro:boolean;configured:boolean} | null>(null);
