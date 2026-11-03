@@ -76,3 +76,8 @@ test('playback is buffered in order and interruption clears every queued source'
     assert.equal(client.sources.size,0);
     assert.equal(states.at(-1),'listening');
 });
+
+test('CSP lets the browser open the Gemini Live websocket', () => {
+    const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+    assert.match(html, /connect-src[^;]*wss:\/\/generativelanguage\.googleapis\.com/);
+});
