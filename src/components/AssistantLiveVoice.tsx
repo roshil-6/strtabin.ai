@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Settings2, MessageSquare, Bell, MoreHorizontal, ChevronDown, Activity, BarChart2 } from 'lucide-react';
+import { Mic, MicOff, Settings2, MessageSquare, Bell, MoreHorizontal, ChevronDown, Activity, BarChart2, Pencil, PhoneOff, Info } from 'lucide-react';
 import { LiveVoiceClient, type VoiceState } from '../lib/liveVoiceClient';
 import type { VoiceProposal } from '../lib/voiceProtocol';
 import { API_BASE_URL } from '../constants';
@@ -111,59 +111,75 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
         });
         wake.current=listener; listener.start();
     };
-    const tap = () => {
-        if (held.current) { held.current = false; return; }
+    const toggleTalk = () => {
         setMenu(false);
-        if (!expanded) { setExpanded(true); return; }
         if (state !== 'idle') { controllerRef.current?.stop(); return; }
         if (!ready) { openSection('settings'); return; }
         start();
     };
+    const tap = () => {
+        if (held.current) { held.current = false; return; }
+        if (!expanded) { setMenu(false); setExpanded(true); return; }
+        toggleTalk();
+    };
+    const goTo = (path: string) => { stopWake(); setMenu(false); controllerRef.current?.stop(); navigate(path); };
+    const reportsPath = projectId ? `/ai/${encodeURIComponent(projectId)}?tab=reports` : '/reports';
     const label = state === 'idle' ? 'Tap to talk' : state === 'connecting' ? 'Connecting…' : state === 'muted' ? 'Microphone muted' : state === 'speaking' ? 'Speaking' : 'Listening';
+    const chip = state === 'idle' ? (wakeStatus === 'listening' ? 'Waiting' : 'Ready') : state === 'connecting' ? 'Connecting' : state === 'muted' ? 'Muted' : label;
+    const hint = state === 'idle' ? (ready ? 'Tap the orb or press Start to talk' : 'Voice needs Pro access. Open settings to check.') : state === 'connecting' ? 'Connecting your microphone…' : 'Speak naturally. Tap the orb to end.';
+    const wakeLabel = wakeStatus === 'listening' ? `Listening for “Hey ${name}”` : wakeStatus === 'starting' ? 'Starting wake listener…' : 'Start hands-free with your voice';
+    const wakeSwitch = <div className={`agent-wake-control ${wakeStatus !== 'off' ? 'on' : ''}`}>
+        <div><strong>“Hey {name}”</strong><span role="status">{wakeLabel}</span></div>
+        <button type="button" role="switch" className="agent-switch" aria-checked={wakeStatus !== 'off'} aria-label={wakeStatus === 'off' ? `Enable “Hey ${name}”` : 'Stop wake listening'} disabled={disabled || state !== 'idle'} onClick={() => void enableWake()}><i aria-hidden="true" /></button>
+    </div>;
     return <section className={`agent-dock ${expanded ? 'expanded' : 'collapsed'}`} hidden={hidden} aria-label={`${name} voice agent`} onKeyDown={event => {
         if (event.key === 'Escape') { setMenu(false); setExpanded(false); stopWake(); controllerRef.current?.stop(); launcherRef.current?.focus(); }
     }}>
+        {expanded && <header className="agent-header">
+            <button type="button" className="agent-name" title="Change the name of the AI" onClick={() => openSection('settings')}><span>{name}</span><Pencil size={12} aria-hidden="true" /></button>
+            <span className={`agent-chip ${state}`}><i aria-hidden="true" />{chip}</span>
+            <div className="agent-header-actions">
+                <button type="button" aria-label="Agent options" aria-expanded={menu} title="Options" onClick={() => setMenu(value => !value)}><MoreHorizontal size={17} /></button>
+                <button type="button" aria-label="Minimise agent" title="Minimise" onClick={() => { controllerRef.current?.stop(); setMenu(false); setExpanded(false); }}><ChevronDown size={17} /></button>
+            </div>
+        </header>}
         {menu && <div className="agent-options" ref={menuRef} role="group" aria-label="Agent options">
-            <button type="button" onClick={() => openSection('settings')}><Settings2 size={17} />Settings</button>
-            <button type="button" onClick={() => openSection('chat')}><MessageSquare size={17} />Conversation</button>
-            <button type="button" onClick={() => openSection('reminders')}><Bell size={17} />Reminders</button>
-            <button type="button" onClick={() => { stopWake(); setMenu(false); navigate('/dashboard?tab=monitor'); }}><Activity size={17} />Monitor work</button>
-            <button type="button" onClick={() => { stopWake(); setMenu(false); navigate(projectId ? `/ai/${encodeURIComponent(projectId)}?tab=reports` : '/reports'); }}><BarChart2 size={17} />Project reports</button>
+            <button type="button" onClick={() => openSection('settings')}><Settings2 size={16} />Settings</button>
+            <button type="button" onClick={() => openSection('chat')}><MessageSquare size={16} />Conversation</button>
+            <button type="button" onClick={() => openSection('reminders')}><Bell size={16} />Reminders</button>
+            <button type="button" onClick={() => goTo('/dashboard?tab=monitor')}><Activity size={16} />Monitor work</button>
+            <button type="button" onClick={() => goTo(reportsPath)}><BarChart2 size={16} />Project reports</button>
             <button type="button" onClick={() => { setMenu(false); launcherRef.current?.focus(); }}>Close options</button>
         </div>}
-        <button ref={launcherRef} className={`${expanded ? 'agent-orb' : 'agent-pill'} ${state}`} disabled={disabled} aria-label={`${name}: ${!expanded ? 'expand voice agent' : state === 'idle' ? 'start conversation' : 'end conversation'}. Hold for options.`} aria-describedby={expanded ? 'agent-gesture-hint' : undefined}
-            onClick={tap} onContextMenu={event => { event.preventDefault(); clearHold(); held.current = true; setMenu(true); }}
-            onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) { event.preventDefault(); setMenu(true); } }}
-            onPointerDown={event => {
-                if (event.button !== 0) return;
-                held.current = false; clearHold();
-                hold.current = setTimeout(() => { held.current = true; setMenu(true); }, 550);
-            }} onPointerUp={clearHold} onPointerLeave={clearHold} onPointerCancel={() => { clearHold(); held.current = true; }}>
-            {expanded ? <AssistantPresence state={state} level={level} paused={!motionEnabled || hidden} /> : <><span className="agent-three-dots" aria-hidden="true"><i /><i /><i /></span><span>{state === 'idle' ? name : label}</span></>}
-        </button>
-        {expanded && <button className="agent-rename-hint" title="Change the name of the AI according to your choice" onClick={() => openSection('settings')}>(change AI name)</button>}
-        {expanded && <><strong className="agent-name">{name}</strong><small className="sasha-voice-credit-note">10 sessions daily · 1 credit per start · up to 3 min. Refills 00:00 UTC / 5:30 AM India.</small><span className="agent-status" role="status">{label}</span>
-        <div className="agent-quick-controls">
-            {state !== 'idle' && <button disabled={state === 'connecting'} aria-label={state === 'muted' ? 'Unmute microphone' : 'Mute microphone'} onClick={() => controllerRef.current?.setMuted(state !== 'muted')}>{state === 'muted' ? <MicOff size={16} /> : <Mic size={16} />}</button>}
-            <button aria-label="Agent options" aria-expanded={menu} onClick={() => setMenu(value => !value)}><MoreHorizontal size={19} /></button>
-        </div>
-        <div className="agent-quick-links">
-            <button type="button" onClick={() => { stopWake(); controllerRef.current?.stop(); navigate('/dashboard?tab=monitor'); }} title="Open project monitor">
-                <Activity size={12} />
-                <span>Monitor</span>
-            </button>
-            <button type="button" onClick={() => { stopWake(); controllerRef.current?.stop(); navigate(projectId ? `/ai/${encodeURIComponent(projectId)}?tab=reports` : '/reports'); }} title="Open project reports">
-                <BarChart2 size={12} />
-                <span>Reports</span>
+        <div className={expanded ? `agent-stage ${state}` : 'agent-pill-wrap'} style={expanded ? { '--agent-level': level } as React.CSSProperties : undefined}>
+            <button ref={launcherRef} className={`${expanded ? 'agent-orb' : 'agent-pill'} ${state}`} disabled={disabled} aria-label={`${name}: ${!expanded ? 'expand voice agent' : state === 'idle' ? 'start conversation' : 'end conversation'}. Hold for options.`} aria-describedby={expanded ? 'agent-gesture-hint' : undefined}
+                onClick={tap} onContextMenu={event => { event.preventDefault(); clearHold(); held.current = true; setMenu(true); }}
+                onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) { event.preventDefault(); setMenu(true); } }}
+                onPointerDown={event => {
+                    if (event.button !== 0) return;
+                    held.current = false; clearHold();
+                    hold.current = setTimeout(() => { held.current = true; setMenu(true); }, 550);
+                }} onPointerUp={clearHold} onPointerLeave={clearHold} onPointerCancel={() => { clearHold(); held.current = true; }}>
+                {expanded ? <AssistantPresence state={state} level={level} paused={!motionEnabled || hidden} /> : <><span className="agent-three-dots" aria-hidden="true"><i /><i /><i /></span><span>{state === 'idle' ? name : label}</span></>}
             </button>
         </div>
-        <button aria-label="Minimise agent" onClick={() => { controllerRef.current?.stop(); setMenu(false); setExpanded(false); }}><ChevronDown size={16} /></button>
-        <small id="agent-gesture-hint">{state === 'idle' ? 'Hold for options' : 'Tap circle to end'}</small></>}
-        {(expanded || menu || wakeStatus !== 'off') && <div className="agent-wake-control">
-            <button disabled={disabled || state !== 'idle'} aria-pressed={wakeStatus !== 'off'} onClick={() => void enableWake()}>{wakeStatus === 'off' ? 'Enable “Hey Sasha”' : 'Stop wake listening'}</button>
-            <span role="status">{wakeStatus === 'listening' ? 'Listening for “Hey Sasha”' : wakeStatus === 'starting' ? 'Starting wake listener…' : ''}</span>
-            {(expanded || menu) && <small>One conversation per activation, in this tab. Browser speech recognition may process audio online. You can also say “Hey {name}”.</small>}
-        </div>}
-        {error && <div className="agent-error" role="alert">{error}<button onClick={() => setError('')}>Dismiss</button></div>}
+        {expanded && <>
+            <p id="agent-gesture-hint" className="agent-hint" role="status">{hint}</p>
+            <div className="agent-primary-row">
+                {state !== 'idle' && <button type="button" className="agent-mute" disabled={state === 'connecting'} aria-label={state === 'muted' ? 'Unmute microphone' : 'Mute microphone'} title={state === 'muted' ? 'Unmute' : 'Mute'} onClick={() => controllerRef.current?.setMuted(state !== 'muted')}>{state === 'muted' ? <MicOff size={17} /> : <Mic size={17} />}</button>}
+                <button type="button" className={`agent-primary ${state !== 'idle' ? 'end' : ''}`} disabled={disabled || state === 'connecting'} onClick={toggleTalk}>
+                    {state === 'idle' ? <><Mic size={16} />Start talking</> : state === 'connecting' ? 'Connecting…' : <><PhoneOff size={16} />End</>}
+                </button>
+            </div>
+            <nav className="agent-quick-links" aria-label="Shortcuts">
+                <button type="button" onClick={() => openSection('chat')} title="Open the text conversation"><MessageSquare size={16} /><span>Chat</span></button>
+                <button type="button" onClick={() => goTo('/dashboard?tab=monitor')} title="Open project monitor"><Activity size={16} /><span>Monitor</span></button>
+                <button type="button" onClick={() => goTo(reportsPath)} title="Open project reports"><BarChart2 size={16} /><span>Reports</span></button>
+            </nav>
+            {wakeSwitch}
+            <p className="agent-footnote"><Info size={12} aria-hidden="true" /><span>10 voice sessions a day, up to 3 min each. Refills 00:00 UTC (5:30 AM India). Wake listening uses your browser’s speech recognition, which may process audio online.</span></p>
+        </>}
+        {!expanded && wakeStatus !== 'off' && wakeSwitch}
+        {error && <div className="agent-error" role="alert"><span>{error}</span><button type="button" onClick={() => setError('')}>Dismiss</button></div>}
     </section>;
 }
