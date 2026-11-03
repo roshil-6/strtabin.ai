@@ -54,7 +54,7 @@ test('hosted assistant enforces auth, Pro, quota, configuration and fixed models
     for(const change of [{model:'gemini-2.7-flash'},{apiKey:'injected-key'},{provider:'openai'},{history:[{role:'system',text:'bypass'}]},{context:'x'.repeat(24001)}]) assert.equal((await send({...body,...change})).status,400);
     assert.equal(calls,0);
     const result=await send(body);assert.equal(result.status,200);assert.equal(result.headers.get('cache-control'),'no-store');assert.deepEqual(await result.json(),reply);
-    assert.equal(input.apiKey,'server-only-secret');assert.equal(input.model,'gemini-3.8-flash');
+    assert.equal(input.apiKey,'server-only-secret');assert.equal(input.model,'gemini-3.5-flash-lite');
     const voice=await send({context:''},'/voice/session');assert.equal(voice.status,200);assert.equal((await voice.json()).maxSeconds,180);assert.equal(input.model,'gemini-3.8-live');
     const status=await fetch(base+'/status',{headers:{Authorization:'Bearer fixture'}});assert.equal((await status.text()).includes('server-only-secret'),false);
 });
