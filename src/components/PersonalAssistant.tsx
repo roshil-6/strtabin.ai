@@ -9,7 +9,7 @@ import useStore from '../store/useStore';
 import { useTimetables } from '../store/useTimetables';
 import { buildProjectCapsule } from '../lib/projectCapsule';
 import { API_BASE_URL } from '../constants';
-import { useProjectLoader, isProjectFetchedFromServer } from '../hooks/useProjectLoader';
+import { useProjectLoader, isProjectFetchedFromServer, hydrateNewProject } from '../hooks/useProjectLoader';
 import { workspaceService, type Project } from '../services/workspaceService';
 import { NotificationManager } from '../services/NotificationManager';
 import VoiceTyping from './VoiceTyping';
@@ -17,11 +17,36 @@ import AssistantLiveVoice from './AssistantLiveVoice';
 import AssistantReminders from './AssistantReminders';
 import { reminderRequest, type ReminderStatus } from '../services/assistantReminders';
 import type { LiveVoiceClient } from '../lib/liveVoiceClient';
+import type { AssistantScreen, VoiceDecision } from '../lib/voiceProtocol';
 import './PersonalAssistant.css';
 import { projectBoardPatch } from '../lib/boardOperations';
 import { planAssistantActions, undoAssistantActions, type AssistantAction, type AssistantUndo } from '../lib/assistantActions';
 
 type Message = { id: string; role: 'user' | 'assistant'; text: string; actions?: AssistantAction[]; undo?: AssistantUndo; after?: string; projectId?: string; applied?: boolean };
+type ApplyResult = { status: 'applied' | 'failed' | 'cancelled'; summary?: string; reason?: string; executed: boolean };
+const PROJECT_SCREENS = new Set(['overview', 'writing', 'flow', 'tasks', 'timeline']);
+/** Route for a screen Sasha may open; project screens need a project id. */
+function screenPath(screen: string, projectId: string) {
+    const id = encodeURIComponent(projectId);
+    if (PROJECT_SCREENS.has(screen) && !projectId) return null;
+    switch (screen) {
+        case 'dashboard': return '/dashboard';
+        case 'monitor': return '/dashboard?tab=monitor';
+        case 'reports': return projectId ? `/ai/${id}?tab=reports` : '/reports';
+        case 'calendar': return projectId ? `/calendar/${id}` : '/calendar';
+        case 'timetable': return '/timetable';
+        case 'community': return '/community';
+        case 'ai': return projectId ? `/ai/${id}` : '/ai';
+        case 'billing': return '/billing';
+        case 'overview': return `/project/${id}`;
+        case 'writing': return `/strategy/${id}`;
+        case 'flow': return `/strategy/${id}?view=flow`;
+        case 'tasks': return `/todo/${id}`;
+        case 'timeline': return `/timeline/${id}`;
+        default: return null;
+    }
+}
+const describePlan = (actions: AssistantAction[]) => actions.map(action => action.type === 'create_project' ? `create project “${action.text}”` : action.type === 'create_flow' ? `add a flow map “${action.text.split('\n')[0]}”` : action.type === 'add_task' ? `add task “${action.text}”` : action.type === 'add_reminder' ? `remind “${action.text}” on ${action.date} ${action.time}` : action.type === 'complete_task' ? 'complete a task' : action.type === 'open_screen' ? `open ${action.text}` : 'open the project');
 
 export default function PersonalAssistant() {
     const { userId, isSignedIn } = useAuth();
@@ -45,13 +70,16 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     const model = 'gemini-3.5-flash-lite';
     const voiceModel = 'gemini-3.8-live';
     const [motionEnabled, setMotionEnabled] = useState(true);
-    const [access, setAccess] = useState<{pro:boolean;configured:boolean} | null>(null);
+    const [access, setAccess] = useState<{pro:boolean;configured:boolean;remaining?:{chat:number;voice:number}} | null>(null);
     const [accessError, setAccessError] = useState('');
     const [accessAttempt, setAccessAttempt] = useState(0);
     const [cloudProjects,setCloudProjects] = useState<Project[]>([]);
     const [projectId, setProjectId] = useState('');
     const [draft, setDraft] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
+    const messagesRef = useRef(messages);
+    useEffect(() => { messagesRef.current = messages; }, [messages]);
+    const [pendingVoiceId, setPendingVoiceId] = useState('');
     const [busy, setBusy] = useState(false);
     const [applying, setApplying] = useState(false);
     const [error, setError] = useState('');
@@ -137,7 +165,10 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(data.error || 'The assistant could not connect. Check that the backend is running.');
             if (controller.signal.aborted) return;
-            setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', text }, { id: crypto.randomUUID(), role: 'assistant', text: data.reply, actions: data.actions, projectId }]);
+            const navigationOnly = Array.isArray(data.actions) && data.actions.length > 0 && data.actions.every((action: AssistantAction) => action.type === 'open_screen');
+            setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', text }, { id: crypto.randomUUID(), role: 'assistant', text: data.reply, actions: navigationOnly ? [] : data.actions, projectId }]);
+            if (navigationOnly) openScreen(data.actions[data.actions.length - 1].text, projectId);
+            if (typeof data.remaining === 'number') setAccess(previous => previous && { ...previous, remaining: { chat: data.remaining, voice: previous.remaining?.voice ?? 10 } });
             setDraft('');
             if (readAloud && !voiceActive && !wakeActive) speak(data.reply);
         } catch (cause) {
@@ -147,14 +178,22 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             if (request.current === controller) { request.current = null; locked.current = false; setBusy(false); }
         }
     };
-    const apply = async (message: Message, undoing = false) => {
-        if (!ready || actionLock.current || (!undoing && message.applied) || busy) return;
+    const openScreen = (screen: string, target: string) => {
+        const path = screenPath(screen, target);
+        if (!path) return false;
+        navigate(path);
+        return true;
+    };
+    const apply = async (message: Message, undoing = false): Promise<ApplyResult> => {
+        if (!ready || actionLock.current || (!undoing && message.applied) || busy) return { status: 'failed', executed: false, reason: message.applied ? 'This plan was already applied.' : 'Sasha is busy. Try again in a moment.' };
         actionLock.current = true; setApplying(true); setError('');
         try {
-            const id = message.projectId || '';
-            const creation = message.actions?.find(action => action.type === 'create_project');
+            let id = message.projectId || '';
+            let created = '';
+            let actions = message.actions || [];
+            const creation = actions.find(action => action.type === 'create_project');
             if (creation && !undoing) {
-                if (message.actions?.length !== 1 || !creation.text.trim() || creation.text.length > 200) throw new Error('Ask to create one named project at a time.');
+                if (actions[0] !== creation || actions.filter(action => action.type === 'create_project').length !== 1 || !creation.text.trim() || creation.text.length > 200) throw new Error('Create one named project first, then its contents.');
                 const token = await getToken(); if (!token) throw new Error('Sign in again.');
                 // Disable retries before a network write: a lost response must not create a duplicate project.
                 setMessages(previous => previous.map(item => item.id === message.id ? {...item,applied:true} : item));
@@ -162,14 +201,23 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 let workspace = teams.workspaces.find((item: {type:string;role?:string}) => item.type === 'individual' && item.role === 'admin');
                 if (!workspace) {const result = await workspaceService.createWorkspace({name:'My projects',type:'individual',visibility:'private'},token); workspace = result.workspace;}
                 const result = await workspaceService.createProject(workspace.id,{title:creation.text.trim(),type:'strategy'},token);
+                id = `proj_${result.project.id}`; created = result.project.title;
                 setCloudProjects(previous => [...previous,result.project]);
-                setProjectId(`proj_${result.project.id}`);
-                setMessages(previous => [...previous,{id:crypto.randomUUID(),role:'assistant',text:`Created “${result.project.title}” in your private workspace. It is now selected. Ask me to add a flow map or tasks.`}]);
-                return;
+                setProjectId(id);
+                setMessages(previous => previous.map(item => item.id === message.id ? {...item,projectId:id} : item));
+                actions = actions.slice(1);
+                if (!actions.length) {
+                    const summary = `Created “${created}” in your private workspace. It is now selected.`;
+                    setMessages(previous => [...previous,{id:crypto.randomUUID(),role:'assistant',text:`${summary} Ask me to add a flow map or tasks.`}]);
+                    voice.current?.updateContext(summary);
+                    return { status: 'applied', executed: true, summary };
+                }
+                // The rest of the plan targets the new project; load it before planning.
+                await hydrateNewProject(id, userId, await getToken());
             }
-            if (!id || id !== projectId || !isProjectFetchedFromServer(id, userId)) throw new Error('Project changed. Ask again with the correct project selected.');
-            if (/^proj_\d+$/.test(id)) await workspaceService.getProjectCanvas(Number(id.slice(5)), await getToken());
-            if (!alive.current) return;
+            if (!id || (!created && id !== projectId) || !isProjectFetchedFromServer(id, userId)) throw new Error('Project changed. Ask again with the correct project selected.');
+            if (!created && /^proj_\d+$/.test(id)) await workspaceService.getProjectCanvas(Number(id.slice(5)), await getToken());
+            if (!alive.current) return { status: 'failed', executed: Boolean(created), reason: 'Sasha closed before finishing.' };
             const state = useStore.getState();
             const project = state.canvases[id];
             if (!project) throw new Error('Project no longer exists.');
@@ -177,7 +225,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             if (undoing) {
                 if (!message.undo || message.after !== JSON.stringify([project.todos, calendar, project.nodes, project.edges])) throw new Error('Project tasks or calendar changed since this action. Review them directly instead of undoing newer work.');
                 if (message.undo.serverReminderIds?.length) await reminderRequest('/batch/remove', await getToken(), 'DELETE', { ids: message.undo.serverReminderIds });
-                if (!alive.current) return;
+                if (!alive.current) return { status: 'failed', executed: true, reason: 'Sasha closed before finishing.' };
                 if (message.after !== JSON.stringify([useStore.getState().canvases[id]?.todos, useStore.getState().projectCalendarEvents[id] || {}, useStore.getState().canvases[id]?.nodes, useStore.getState().canvases[id]?.edges])) throw new Error('Reminders were cancelled, but your project changed during undo. Review task changes manually.');
                 const current = useStore.getState();
                 const currentProject = current.canvases[id];
@@ -187,17 +235,17 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 useStore.setState({ ...projectBoardPatch(useStore.getState(), id, reverted.project), canvases: { ...useStore.getState().canvases, [id]: reverted.project }, projectCalendarEvents: { ...useStore.getState().projectCalendarEvents, [id]: reverted.calendar } });
                 for (const { date, event } of message.undo.reminders) NotificationManager.cancelNotification(event.task, event.time, date, `${id}:${event.id}`);
                 setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: 'Undid the approved task and reminder changes.' }]);
-                return;
+                return { status: 'applied', executed: true, summary: 'Undid the approved changes.' };
             }
-            const actions = message.actions || [];
-            const localActions = actions.filter(action => action.type !== 'add_reminder');
+            const screens = actions.filter(action => action.type === 'open_screen');
+            const localActions = actions.filter(action => action.type !== 'add_reminder' && action.type !== 'open_screen');
             const planned = localActions.length ? planAssistantActions(project, calendar, localActions, Date.now(), () => crypto.randomUUID()) : { project, calendar, openProject: false, undo: { addedTaskIds: [], completedTaskIds: [], reminders: [] } as AssistantUndo };
             const reminders = actions.flatMap((action, index) => action.type === 'add_reminder' ? [{ id: `${message.id}_${index}`, title: action.text, projectId: id, date: action.date, time: action.time, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, repeat: action.repeat || 'once' }] : []);
             if (reminders.length) {
                 await reminderRequest('/batch', await getToken(), 'POST', { items: reminders });
                 planned.undo.serverReminderIds = reminders.map(item => item.id);
             }
-            if (!alive.current) return;
+            if (!alive.current) return { status: 'failed', executed: reminders.length > 0, reason: 'Sasha closed before finishing.' };
             // Avoid overwriting edits made elsewhere while the reminder save was in flight.
             if (useStore.getState().canvases[id] !== project || useStore.getState().projectCalendarEvents[id] !== state.projectCalendarEvents[id]) {
                 setMessages(previous => previous.map(item => item.id === message.id ? { ...item, applied: true } : item));
@@ -207,17 +255,38 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             setMessages(previous => previous.map(item => item.id === message.id ? { ...item, applied: true, undo: planned.undo, after: JSON.stringify([planned.project.todos, planned.calendar, planned.project.nodes, planned.project.edges]) } : item));
             useStore.setState({ ...projectBoardPatch(useStore.getState(), id, planned.project), canvases: { ...useStore.getState().canvases, [id]: planned.project }, projectCalendarEvents: { ...useStore.getState().projectCalendarEvents, [id]: planned.calendar } });
             for (const { date, event } of planned.undo.reminders) NotificationManager.scheduleNotification(event.task, event.time, date, `${id}:${event.id}`);
-            if (planned.openProject) navigate(`/strategy/${encodeURIComponent(id)}`);
-            const confirmation = reminders.length
+            const screen = screens[screens.length - 1];
+            if (screen) openScreen(screen.text, id);
+            else if (planned.openProject || created) navigate(`/strategy/${encodeURIComponent(id)}`);
+            const done = describePlan(actions.filter(action => action.type !== 'open_screen'));
+            const confirmation = (created ? `Created “${created}” and applied ${done.length} step${done.length === 1 ? '' : 's'}. ` : '') + (reminders.length
                 ? 'Saved the approved reminders to your account. Enable this device in Reminders for background notifications. Approved task changes use the normal project save queue.'
                 : planned.undo.addedTaskIds.length || planned.undo.completedTaskIds.length || planned.undo.addedNodeIds?.length
                     ? 'Saved the approved project changes locally. Cloud projects use the normal save queue; watch its status for sync errors.'
-                    : 'Opened your project.';
+                    : 'Opened your project.');
             setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: confirmation }]);
             voice.current?.updateContext(confirmation + '\nCurrent project tasks: ' + JSON.stringify(planned.project.todos));
             if (readAloud && !voiceActive && !wakeActive) speak(confirmation);
-        } catch (cause) { setError(cause instanceof Error ? `Could not finish: ${cause.message} Check your project before trying again.` : 'Could not apply these changes.'); }
+            return { status: 'applied', executed: true, summary: `${confirmation} Done: ${done.join('; ') || 'navigation'}.` };
+        } catch (cause) {
+            const reason = cause instanceof Error ? cause.message : 'Could not apply these changes.';
+            setError(cause instanceof Error ? `Could not finish: ${reason} Check your project before trying again.` : reason);
+            return { status: 'failed', executed: false, reason };
+        }
         finally { actionLock.current = false; setApplying(false); }
+    };
+    const cancelPlan = (messageId: string) => {
+        setMessages(previous => previous.map(item => item.id === messageId ? { ...item, actions: [] } : item));
+        setPendingVoiceId(current => current === messageId ? '' : current);
+    };
+    const pendingVoice = messages.find(item => item.id === pendingVoiceId && item.actions?.length && !item.applied);
+    const decideVoicePlan = async (decision: VoiceDecision): Promise<ApplyResult> => {
+        const message = messagesRef.current.find(item => item.id === pendingVoiceId && item.actions?.length && !item.applied);
+        if (!message) return { status: 'failed', executed: false, reason: 'There is no pending plan. Propose one first.' };
+        if (decision === 'cancel') { cancelPlan(message.id); return { status: 'cancelled', executed: false, summary: 'Cancelled. Nothing was changed.' }; }
+        const result = await apply(message);
+        if (result.status === 'applied') setPendingVoiceId('');
+        return result;
     };
 
     const agentLabel = name.trim() || 'Sasha';
@@ -226,11 +295,22 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         <AssistantLiveVoice key={provider} provider={provider} name={name.trim() || 'Agent'} model={voiceModel} motionEnabled={motionEnabled}
             hidden={open && !fullPage} ready={ready} disabled={busy || applying} projectId={projectId}
             launcherRef={launcher} context={buildContext} controllerRef={voice} onActive={setVoiceActive} onWakeActive={setWakeActive}
+            voiceRemaining={access?.remaining?.voice}
+            onVoiceRemaining={left => setAccess(previous => previous && { ...previous, remaining: { chat: previous.remaining?.chat ?? 10, voice: left } })}
+            pending={pendingVoice ? { lines: describePlan(pendingVoice.actions || []), busy: applying } : null}
+            onApplyPending={() => { if (pendingVoice) void apply(pendingVoice).then(result => { if (result.status === 'applied') { setPendingVoiceId(''); voice.current?.updateContext(`The user tapped Apply. ${result.summary}`); } }); }}
+            onCancelPending={() => { if (pendingVoice) { cancelPlan(pendingVoice.id); voice.current?.updateContext('The user tapped Cancel on the pending plan. Nothing was changed.'); } }}
+            onDecision={decideVoicePlan}
+            onScreen={(screen: AssistantScreen) => openScreen(screen, projectId) ? { status: 'opened', screen } : { status: 'rejected', reason: 'That screen needs a selected project. Ask the user which project.' }}
             onOpen={section => { voice.current?.stop(); setTab(section); setOpen(true); }}
             onTranscript={(role, text) => { if (text.trim()) setMessages(previous => [...previous, { id: crypto.randomUUID(), role, text }]); }}
             onProposal={proposal => {
-                setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: proposal.reply, actions: proposal.actions, projectId }]);
-                if (proposal.actions.length) { voice.current?.stop(); setTab('chat'); setOpen(true); }
+                // Keep the call running: the plan is shown in the voice panel and can be approved by voice or tap.
+                const id = crypto.randomUUID();
+                const navigationOnly = proposal.actions.every(action => action.type === 'open_screen');
+                setMessages(previous => [...previous, { id, role: 'assistant', text: proposal.reply, actions: navigationOnly ? [] : proposal.actions, projectId }]);
+                if (navigationOnly) openScreen(proposal.actions[proposal.actions.length - 1].text, projectId);
+                else setPendingVoiceId(id);
             }} />
         {open && !fullPage && <div className="assistant-backdrop" onClick={close} aria-hidden="true" />}
         {visible && <section ref={panel} id="personal-assistant" className={`assistant-panel ${fullPage ? 'sasha-workspace' : ''} assistant-settings-view assistant-view-${tab}`} role={fullPage ? 'region' : 'dialog'} aria-label="Sasha AI workspace" aria-modal={fullPage ? undefined : true} onKeyDown={event => {

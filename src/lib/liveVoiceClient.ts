@@ -1,4 +1,6 @@
-import { decodePcm, pcmBase64, parseVoiceProposal, type VoiceProposal } from './voiceProtocol.ts';
+import { decodePcm, pcmBase64, parseVoiceProposal, parseVoiceDecision, parseVoiceScreen, type VoiceProposal, type VoiceDecision, type AssistantScreen } from './voiceProtocol.ts';
+
+type ToolResult = Record<string, unknown>;
 
 export type VoiceState = 'idle' | 'connecting' | 'listening' | 'speaking' | 'muted';
 type Options = {
@@ -10,6 +12,9 @@ type Options = {
     onLevel: (level: number) => void;
     onTranscript: (role: 'user' | 'assistant', text: string) => void;
     onProposal: (proposal: VoiceProposal) => void;
+    /** The user answered the pending plan out loud; resolves with what actually happened. */
+    onDecision?: (decision: VoiceDecision) => Promise<ToolResult>;
+    onScreen?: (screen: AssistantScreen) => ToolResult;
     onError: (message: string) => void;
 };
 
@@ -77,9 +82,11 @@ export class LiveVoiceClient {
                 if (data.type === 'conversation.item.input_audio_transcription.completed') this.options.onTranscript('user', String(data.transcript || '').slice(0, 12000));
                 if (data.type === 'response.output_audio_transcript.done' || data.type === 'response.audio_transcript.done') this.options.onTranscript('assistant', String(data.transcript || '').slice(0, 12000));
                 if (data.type === 'response.function_call_arguments.done') {
-                    const result = this.propose(data.call_id, data.name, JSON.parse(data.arguments));
-                    channel.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: data.call_id, output: JSON.stringify(result) } }));
-                    channel.send(JSON.stringify({ type: 'response.create' }));
+                    void this.handleTool(data.call_id, data.name, JSON.parse(data.arguments)).then(result => {
+                        if (this.stopped || channel.readyState !== 'open') return;
+                        channel.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: data.call_id, output: JSON.stringify(result) } }));
+                        channel.send(JSON.stringify({ type: 'response.create' }));
+                    });
                 }
             } catch { this.options.onError('A voice event could not be read. No action was applied.'); }
         };
@@ -92,13 +99,25 @@ export class LiveVoiceClient {
         if (this.stopped) return;
         await pc.setRemoteDescription({ type: 'answer', sdp });
     }
-    private propose(id: string, name: string, args: unknown) {
-        if (name !== 'propose_actions' || typeof id !== 'string') return { status: 'rejected', reason: 'Unsupported tool.' };
+    private async handleTool(id: string, name: string, args: unknown): Promise<ToolResult> {
+        if (typeof id !== 'string') return { status: 'rejected', reason: 'Unsupported tool.' };
+        if (name === 'answer_proposal') {
+            try {
+                const decision = parseVoiceDecision(args);
+                if (!this.options.onDecision) return { status: 'rejected', reason: 'Voice approval is unavailable; ask the user to tap Apply.' };
+                return await this.options.onDecision(decision);
+            } catch (error) { return { status: 'failed', executed: false, reason: error instanceof Error ? error.message : 'Could not apply the plan.' }; }
+        }
+        if (name === 'open_screen') {
+            try { return this.options.onScreen ? this.options.onScreen(parseVoiceScreen(args)) : { status: 'rejected', reason: 'Navigation is unavailable.' }; }
+            catch { return { status: 'rejected', reason: 'Unknown screen; name one of the listed screens.' }; }
+        }
+        if (name !== 'propose_actions') return { status: 'rejected', reason: 'Unsupported tool.' };
         if (this.calls.has(id)) return { status: 'awaiting_user_approval', executed: false };
         try {
             const proposal = parseVoiceProposal(args);
             this.calls.add(id); this.options.onProposal(proposal);
-            return { status: 'awaiting_user_approval', executed: false, instruction: 'Ask the user to review the action card and click Apply. Nothing has been saved yet.' };
+            return { status: 'awaiting_user_approval', executed: false, instruction: 'Briefly describe the plan and ask whether to apply it. Nothing has been saved yet. The user can answer by voice or tap Apply.' };
         } catch { return { status: 'rejected', executed: false, reason: 'Invalid proposal; clarify the request.' }; }
     }
     private async startGemini(token: string, setup: object) {
@@ -140,8 +159,11 @@ export class LiveVoiceClient {
                 for (const role of ['user', 'assistant'] as const) { if (this.transcript[role]) this.options.onTranscript(role, this.transcript[role]); this.transcript[role] = ''; }
             }
             if (data.toolCall?.functionCalls) {
-                const functionResponses = data.toolCall.functionCalls.map((call: { id: string; name: string; args: unknown }) => ({ id: call.id, name: call.name, response: this.propose(call.id, call.name, call.args) }));
-                socket.send(JSON.stringify({ toolResponse: { functionResponses } }));
+                // Resolve off the message chain: applying a plan can take seconds and must not stall audio.
+                const calls = data.toolCall.functionCalls as { id: string; name: string; args: unknown }[];
+                void Promise.all(calls.map(async call => ({ id: call.id, name: call.name, response: await this.handleTool(call.id, call.name, call.args) }))).then(functionResponses => {
+                    if (!this.stopped && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ toolResponse: { functionResponses } }));
+                });
             }
             if (data.goAway) this.options.onError('This voice session will end shortly. Reconnect after it ends.');
         }).catch(() => this.fail('Could not read the voice stream. Reconnect to continue.')); };
