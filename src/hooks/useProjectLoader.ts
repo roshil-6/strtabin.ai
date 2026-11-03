@@ -14,6 +14,26 @@ const inflight = new Map<string, Promise<Record<string, unknown>>>();
 export const isRemoteProject = (id: string) => /^proj_\d+$/.test(id) || id.startsWith('shared_');
 export const isProjectFetchedFromServer = (id: string, userId?: string | null) => !isRemoteProject(id) || fetchedProjects.get(id) === (userId || 'guest');
 
+const canvasFromServer = (data: Record<string, unknown>) => ({
+    name: typeof data.name === 'string' ? data.name : undefined,
+    nodes: (Array.isArray(data.nodes) ? data.nodes : []) as Node[],
+    edges: (Array.isArray(data.edges) ? data.edges : []) as Edge[],
+    writingContent: typeof data.writingContent === 'string' ? data.writingContent : '',
+    writingPages: Array.isArray(data.writingPages) ? data.writingPages as WritingPage[] : [],
+    todos: Array.isArray(data.todos) ? data.todos : [],
+    codeFiles: Array.isArray(data.codeFiles) ? data.codeFiles : [],
+    externalAiReports: Array.isArray(data.externalAiReports) ? sanitizeExternalReports(data.externalAiReports) : undefined,
+    timelineContent: typeof data.timelineContent === 'string' ? data.timelineContent : '',
+});
+
+/** Hydrate a project the assistant just created, so the rest of its plan can apply right away. */
+export async function hydrateNewProject(id: string, userId: string | null | undefined, token: string | null) {
+    if (!/^proj_\d+$/.test(id)) throw new Error('Invalid project.');
+    const data = await workspaceService.getProjectCanvas(Number(id.slice(5)), token);
+    useStore.getState().loadSharedCanvas(id, canvasFromServer(data));
+    fetchedProjects.set(id, userId || 'guest');
+}
+
 export function useProjectLoader(id?: string) {
     const { getToken, userId } = useAuth();
     const [result, setResult] = useState<{ id?: string; userId?: string | null; loading: boolean; error: string | null }>({ loading: true, error: null });
@@ -56,17 +76,7 @@ export function useProjectLoader(id?: string) {
             if (hasLocalDraft) {
                 // Verify access with the GET, but retain unsynced local edits after a reload.
                 useStore.getState().setCurrentCanvas(id);
-            } else useStore.getState().loadSharedCanvas(id, {
-                name: typeof data.name === 'string' ? data.name : undefined,
-                nodes: (Array.isArray(data.nodes) ? data.nodes : []) as Node[],
-                edges: (Array.isArray(data.edges) ? data.edges : []) as Edge[],
-                writingContent: typeof data.writingContent === 'string' ? data.writingContent : '',
-                writingPages: Array.isArray(data.writingPages) ? data.writingPages as WritingPage[] : [],
-                todos: Array.isArray(data.todos) ? data.todos : [],
-                codeFiles: Array.isArray(data.codeFiles) ? data.codeFiles : [],
-                externalAiReports: Array.isArray(data.externalAiReports) ? sanitizeExternalReports(data.externalAiReports) : undefined,
-                timelineContent: typeof data.timelineContent === 'string' ? data.timelineContent : '',
-            });
+            } else useStore.getState().loadSharedCanvas(id, canvasFromServer(data));
             fetchedProjects.set(id, userId || 'guest');
             setResult({ id, userId, loading: false, error: null });
         }).catch(error => {

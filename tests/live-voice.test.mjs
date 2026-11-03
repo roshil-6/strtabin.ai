@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createLiveSession } from '../lib/liveVoice.js';
-import { pcmBase64, decodePcm, parseVoiceProposal } from '../src/lib/voiceProtocol.ts';
+import { pcmBase64, decodePcm, parseVoiceProposal, parseVoiceDecision, parseVoiceScreen } from '../src/lib/voiceProtocol.ts';
 import { LiveVoiceClient } from '../src/lib/liveVoiceClient.ts';
 import { readFileSync } from 'node:fs';
 
@@ -80,4 +80,13 @@ test('playback is buffered in order and interruption clears every queued source'
 test('CSP lets the browser open the Gemini Live websocket', () => {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
     assert.match(html, /connect-src[^;]*wss:\/\/generativelanguage\.googleapis\.com/);
+});
+
+test('voice approval and navigation tools accept only known values', () => {
+    assert.equal(parseVoiceDecision({ decision: 'apply' }), 'apply');
+    assert.equal(parseVoiceDecision({ decision: 'cancel' }), 'cancel');
+    assert.throws(() => parseVoiceDecision({ decision: 'delete everything' }));
+    assert.equal(parseVoiceScreen({ screen: 'calendar' }), 'calendar');
+    assert.throws(() => parseVoiceScreen({ screen: 'https://evil.example' }));
+    assert.throws(() => parseVoiceProposal({ reply: 'Go', actions: [{ type: 'open_screen', text: '/admin', date: '', time: '', taskId: '' }] }));
 });

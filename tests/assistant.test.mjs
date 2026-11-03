@@ -11,7 +11,7 @@ test('assistant rejects unknown actions and invalid dates before any writes', ()
     for (const change of [{ type: 'delete_project' }, { date: '2030-02-30' }, { date: 'tomorrow' }, { time: '24:10' }, { text: '' }]) {
         assert.throws(() => validateReply({ ...reply, actions: [{ ...action, ...change }] }));
     }
-    assert.throws(() => validateReply({ ...reply, actions: Array(6).fill(action) }));
+    assert.throws(() => validateReply({ ...reply, actions: Array(9).fill(action) }));
     assert.throws(() => validateReply({ reply: '', actions: [] }));
 });
 
@@ -59,7 +59,13 @@ test('hosted assistant enforces auth, Pro, quota, configuration and fixed models
     const status=await fetch(base+'/status',{headers:{Authorization:'Bearer fixture'}});assert.equal((await status.text()).includes('server-only-secret'),false);
 });
 
-test('project creation must be proposed separately from edits',()=>{
- assert.throws(()=>validateReply({reply:'Review',actions:[{...action,type:'create_project',text:'New project'},action]}));
+test('one plan can create a project, fill it and open a screen; creation must come first',()=>{
+ const flow={...action,type:'create_flow',text:'Launch\nResearch\nBuild'};
+ const plan=[{...action,type:'create_project',text:'Launch'},flow,action,{...action,type:'open_screen',text:'flow'}];
+ assert.equal(validateReply({reply:'Review',actions:plan}).actions.length,4);
+ assert.throws(()=>validateReply({reply:'Review',actions:[action,{...action,type:'create_project',text:'Late'}]}));
+ assert.throws(()=>validateReply({reply:'Review',actions:[{...action,type:'create_project',text:'A'},{...action,type:'create_project',text:'B'}]}));
+ assert.throws(()=>validateReply({reply:'Review',actions:[{...action,type:'create_project',text:'A'},{...action,type:'complete_task',taskId:'t1'}]}));
+ assert.throws(()=>validateReply({reply:'Review',actions:[{...action,type:'open_screen',text:'settings-admin'}]}));
  assert.equal(validateReply({reply:'Review',actions:[{...action,type:'create_project',text:'New project'}]}).actions[0].type,'create_project');
 });

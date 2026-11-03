@@ -1,11 +1,11 @@
 import type { CanvasData, CalendarEvent } from '../store/useStore';
 
-export type AssistantAction = { type: 'open_project' | 'add_task' | 'complete_task' | 'add_reminder' | 'create_project' | 'create_flow'; text: string; taskId: string; date: string; time: string; repeat?: 'once' | 'daily' | 'weekdays' | 'weekly' };
+export type AssistantAction = { type: 'open_project' | 'add_task' | 'complete_task' | 'add_reminder' | 'create_project' | 'create_flow' | 'open_screen'; text: string; taskId: string; date: string; time: string; repeat?: 'once' | 'daily' | 'weekdays' | 'weekly' };
 export type AssistantUndo = { addedNodeIds?: string[]; addedEdgeIds?: string[]; serverReminderIds?: string[]; addedTaskIds: string[]; completedTaskIds: string[]; reminders: { date: string; event: CalendarEvent }[] };
 
 /** Prepare a complete batch without mutating the store, so invalid later actions cannot partly apply. */
 export function planAssistantActions(project: CanvasData, calendar: Record<string, CalendarEvent[]>, actions: AssistantAction[], now: number, makeId: () => string) {
-    if (!actions.length || actions.length > 5) throw new Error('Invalid action batch.');
+    if (!actions.length || actions.length > 8) throw new Error('Invalid action batch.');
     let nodes = [...(project.nodes || [])];
     let edges = [...(project.edges || [])];
     let todos = [...(project.todos || [])];

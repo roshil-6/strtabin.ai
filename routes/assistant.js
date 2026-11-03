@@ -3,16 +3,19 @@ import rateLimit from 'express-rate-limit';
 import { requireClerkAuth } from '../middleware/requireClerkAuth.js';
 import { askProvider } from '../lib/assistant.js';
 import { createLiveSession } from '../lib/liveVoice.js';
-import { sashaAccess, reserveSashaUsage, SASHA_TEXT_MODEL, SASHA_VOICE_MODEL, SASHA_LIMITS } from '../lib/sashaAccess.js';
+import { sashaAccess, reserveSashaUsage, sashaRemaining, SASHA_TEXT_MODEL, SASHA_VOICE_MODEL, SASHA_LIMITS } from '../lib/sashaAccess.js';
 
-export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = askProvider, live = createLiveSession, access = sashaAccess, reserve = reserveSashaUsage, key = () => process.env.GEMINI_API_KEY?.trim() } = {}) {
+export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = askProvider, live = createLiveSession, access = sashaAccess, reserve = reserveSashaUsage, remaining = sashaRemaining, key = () => process.env.GEMINI_API_KEY?.trim() } = {}) {
     app.get('/api/assistant/projects', auth, async (req,res) => {
         res.set('Cache-Control','no-store');
         try {res.json({projects:await getProfileProjects(req.userId,500)});} catch {res.status(503).json({error:'Could not load your projects.'});}
     });
     app.get('/api/assistant/status', auth, async (req, res) => {
         res.set('Cache-Control', 'no-store');
-        try { res.json({ ...await access(req), limits: SASHA_LIMITS, textModel: SASHA_TEXT_MODEL, voiceModel: SASHA_VOICE_MODEL }); }
+        try {
+            const left = await remaining(req.userId).catch(() => null);
+            res.json({ ...await access(req), limits: SASHA_LIMITS, ...(left ? { remaining: left } : {}), textModel: SASHA_TEXT_MODEL, voiceModel: SASHA_VOICE_MODEL });
+        }
         catch { res.status(503).json({ error: 'Could not check Sasha access. Please retry.' }); }
     });
     for (const kind of ['chat', 'voice']) {
@@ -29,10 +32,12 @@ export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = as
                 if (!status.pro) return res.status(403).json({error:'Sasha is included with Pro. Your own AI capsule workspace is still available.', code:'PRO_REQUIRED'});
                 const apiKey = key();
                 if (!status.configured || !apiKey) return res.status(503).json({error:'Sasha is not configured on the server yet.'});
-                if (!await reserve(req.userId, kind)) return res.status(429).json({error:`Your daily Sasha ${kind === 'chat' ? 'request' : 'voice session'} allowance is used. It resets at midnight UTC. You can still use project capsules.`});
+                const used = await reserve(req.userId, kind);
+                if (!used) return res.status(429).json({error:`Your daily Sasha ${kind === 'chat' ? 'request' : 'voice session'} allowance is used. It resets at midnight UTC. You can still use project capsules.`});
                 const input = {provider:'gemini', apiKey, model, message, context, history, name};
                 const result = kind === 'chat' ? await ask(input) : await live(input);
-                res.json(kind === 'voice' ? {...result,maxSeconds:180} : result);
+                const left = typeof used === 'number' ? { remaining: Math.max(0, SASHA_LIMITS[kind] - used) } : {};
+                res.json(kind === 'voice' ? {...result,maxSeconds:180,...left} : {...result,...left});
             } catch (error) {
                 if (error.name === 'TimeoutError' || [429,503,504].includes(error.status)) return res.status(503).json({error:'Gemini is temporarily busy or took too long. Please try later. No project actions were applied.'});
                 if (error.status === 404) return res.status(503).json({error:'The configured Sasha model is unavailable. Please contact support. No alternate model was used.'});

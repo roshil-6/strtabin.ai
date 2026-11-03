@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Settings2, MessageSquare, Bell, MoreHorizontal, ChevronDown, Activity, BarChart2, Pencil, PhoneOff, Info } from 'lucide-react';
+import { Mic, MicOff, Settings2, MessageSquare, Bell, MoreHorizontal, ChevronDown, Activity, BarChart2, Pencil, PhoneOff, Info, Check, X, Timer } from 'lucide-react';
 import { LiveVoiceClient, type VoiceState } from '../lib/liveVoiceClient';
-import type { VoiceProposal } from '../lib/voiceProtocol';
+import type { VoiceProposal, VoiceDecision, AssistantScreen } from '../lib/voiceProtocol';
+
+const SESSION_LIMIT = 10;
+const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 import { API_BASE_URL } from '../constants';
 import AssistantPresence from './AssistantPresence';
 import { WakeWordListener, type WakeRecognition, type WakeStatus } from '../lib/wakeWord';
 
-export default function AssistantLiveVoice({ provider, name, context, onTranscript, onProposal, onActive, onWakeActive, controllerRef, model, motionEnabled, hidden, ready, disabled, onOpen, launcherRef, projectId }: {
+export default function AssistantLiveVoice({ provider, name, context, onTranscript, onProposal, onActive, onWakeActive, controllerRef, model, motionEnabled, hidden, ready, disabled, onOpen, launcherRef, projectId, voiceRemaining, onVoiceRemaining, pending, onApplyPending, onCancelPending, onDecision, onScreen }: {
     onWakeActive: (active:boolean) => void;
     model: string; motionEnabled: boolean; hidden: boolean; ready: boolean; disabled: boolean;
     onOpen: (section: 'settings' | 'chat' | 'reminders') => void;
@@ -18,6 +21,10 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
     onProposal: (proposal: VoiceProposal) => void; onActive: (active: boolean) => void;
     controllerRef: React.MutableRefObject<LiveVoiceClient | null>;
     projectId?: string;
+    voiceRemaining?: number; onVoiceRemaining: (left: number) => void;
+    pending: { lines: string[]; busy: boolean } | null; onApplyPending: () => void; onCancelPending: () => void;
+    onDecision: (decision: VoiceDecision) => Promise<Record<string, unknown>>;
+    onScreen: (screen: AssistantScreen) => Record<string, unknown>;
 }) {
     const { getToken } = useAuth();
     const navigate = useNavigate();
@@ -27,6 +34,17 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
     const [expanded, setExpanded] = useState(false);
     const [menu, setMenu] = useState(false);
     const [wakeStatus, setWakeStatus] = useState<WakeStatus>('off');
+    // Session countdown: the server caps each voice session; show what is left.
+    const [deadline, setDeadline] = useState(0);
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        if (!deadline) return;
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, [deadline]);
+    const secondsLeft = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : 0;
+    const handlers = useRef({ onDecision, onScreen, onVoiceRemaining });
+    useEffect(() => { handlers.current = { onDecision, onScreen, onVoiceRemaining }; });
     const wake = useRef<WakeWordListener | null>(null);
     const preparedAudio = useRef<AudioContext | null>(null);
     const wakeCallback = useRef(onWakeActive);
@@ -72,10 +90,15 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
                 const response = await fetch(`${API_BASE_URL}/api/assistant/voice/session`, { method: 'POST', signal, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ provider, model: model.trim(), name, context: snapshot }) });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) throw new Error(data.error || 'Could not create a voice session.');
+                if (typeof data.remaining === 'number') handlers.current.onVoiceRemaining(data.remaining);
+                const seconds = Math.min(Number(data.maxSeconds) || 180, 540);
+                setNow(Date.now()); setDeadline(Date.now() + seconds * 1000);
                 return data;
             },
-            onState: next => { setState(next); if (next === 'idle') { controllerRef.current = null; activeCallback.current(false); } },
+            onState: next => { setState(next); if (next === 'idle') { setDeadline(0); controllerRef.current = null; activeCallback.current(false); } },
             onLevel: setLevel, onTranscript, onProposal, onError: setError,
+            onDecision: decision => handlers.current.onDecision(decision),
+            onScreen: screen => handlers.current.onScreen(screen),
         });
         controllerRef.current = client; void client.start();
     };
@@ -165,6 +188,22 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
         </div>
         {expanded && <>
             <p id="agent-gesture-hint" className="agent-hint" role="status">{hint}</p>
+            <div className="agent-usage" aria-label="Voice usage">
+                {deadline > 0 && <span className={`agent-timer ${secondsLeft <= 30 ? 'low' : ''}`} title="Time left in this session"><Timer size={13} aria-hidden="true" />{clock(secondsLeft)} left</span>}
+                {voiceRemaining !== undefined && <span className="agent-sessions" title="Voice sessions left today">
+                    <span className="agent-meter" aria-hidden="true"><i style={{ width: `${Math.min(100, (voiceRemaining / SESSION_LIMIT) * 100)}%` }} /></span>
+                    {voiceRemaining} of {SESSION_LIMIT} sessions left today
+                </span>}
+            </div>
+            {pending && <div className="agent-plan" role="region" aria-label="Pending plan">
+                <strong>Plan ready · {pending.lines.length} step{pending.lines.length === 1 ? '' : 's'}</strong>
+                <ol>{pending.lines.map((line, index) => <li key={index}>{line}</li>)}</ol>
+                <small>Say “yes, apply” or “cancel”, or tap below.</small>
+                <div>
+                    <button type="button" className="agent-plan-apply" disabled={pending.busy} onClick={onApplyPending}><Check size={15} />{pending.busy ? 'Applying…' : 'Apply'}</button>
+                    <button type="button" disabled={pending.busy} onClick={onCancelPending}><X size={15} />Cancel</button>
+                </div>
+            </div>}
             <div className="agent-primary-row">
                 {state !== 'idle' && <button type="button" className="agent-mute" disabled={state === 'connecting'} aria-label={state === 'muted' ? 'Unmute microphone' : 'Mute microphone'} title={state === 'muted' ? 'Unmute' : 'Mute'} onClick={() => controllerRef.current?.setMuted(state !== 'muted')}>{state === 'muted' ? <MicOff size={17} /> : <Mic size={17} />}</button>}
                 <button type="button" className={`agent-primary ${state !== 'idle' ? 'end' : ''}`} disabled={disabled || state === 'connecting'} onClick={toggleTalk}>
@@ -177,7 +216,7 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
                 <button type="button" onClick={() => goTo(reportsPath)} title="Open project reports"><BarChart2 size={16} /><span>Reports</span></button>
             </nav>
             {wakeSwitch}
-            <p className="agent-footnote"><Info size={12} aria-hidden="true" /><span>10 voice sessions a day, up to 3 min each. Refills 00:00 UTC (5:30 AM India). Wake listening uses your browser’s speech recognition, which may process audio online.</span></p>
+            <p className="agent-footnote"><Info size={12} aria-hidden="true" /><span>Each session is up to 3 min and uses 1 of your {SESSION_LIMIT} daily sessions. Refills 00:00 UTC (5:30 AM India). Wake listening uses your browser’s speech recognition, which may process audio online.</span></p>
         </>}
         {!expanded && wakeStatus !== 'off' && wakeSwitch}
         {error && <div className="agent-error" role="alert"><span>{error}</span><button type="button" onClick={() => setError('')}>Dismiss</button></div>}

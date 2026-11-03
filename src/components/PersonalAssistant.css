@@ -1512,6 +1512,126 @@
   text-align: center;
 }
 
+/* Session time and daily allowance */
+.agent-usage {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 10px;
+  margin: -4px 0 12px;
+  font-size: 11.5px;
+  color: var(--agent-muted);
+}
+
+.agent-usage:empty {
+  display: none;
+}
+
+.agent-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(178, 153, 246, 0.14);
+  color: #ddd2ff;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.agent-timer.low {
+  background: rgba(233, 124, 124, 0.16);
+  color: #ffc2c2;
+}
+
+.agent-sessions {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.agent-meter {
+  width: 46px;
+  height: 5px;
+  border-radius: 999px;
+  background: #2c3646;
+  overflow: hidden;
+}
+
+.agent-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--agent-accent);
+}
+
+/* Pending plan, approvable by voice or tap */
+.agent-plan {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid rgba(178, 153, 246, 0.45);
+  border-radius: 14px;
+  background: rgba(178, 153, 246, 0.08);
+  text-align: left;
+}
+
+.agent-plan strong {
+  font-size: 13px;
+}
+
+.agent-plan ol {
+  margin: 6px 0 8px;
+  padding-left: 18px;
+  display: grid;
+  gap: 3px;
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: #d5deec;
+  overflow-wrap: anywhere;
+}
+
+.agent-plan small {
+  display: block;
+  font-size: 11px;
+  color: var(--agent-muted);
+}
+
+.agent-plan > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.agent-plan button {
+  flex: 1;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--agent-line);
+  border-radius: 10px;
+  background: var(--agent-raised);
+  color: var(--agent-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.agent-plan .agent-plan-apply {
+  border: 0;
+  background: linear-gradient(135deg, #b9a2fb, var(--agent-accent-strong));
+  color: #15111f;
+}
+
+.agent-plan button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 /* Primary call-to-action */
 .agent-primary-row {
   width: 100%;
