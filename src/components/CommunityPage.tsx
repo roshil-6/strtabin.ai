@@ -45,6 +45,7 @@ import './CommunityPage.css';
 import { Pill as Capsule, FolderKanban, ListChecks, FileText, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import useStore from '../store/useStore';
+import { listedProjects } from '../lib/projectVisibility';
 import { workspaceService, type FeedItem } from '../services/workspaceService';
 import { chatService, type Chat, type Message, type ChatUser } from '../services/chatService';
 import { API_BASE_URL } from '../constants';
@@ -111,7 +112,7 @@ export default function CommunityPage() {
   const [myProjects, setMyProjects] = useState<ProjectItem[]>([]);
   const canvases = useStore((s) => s.canvases);
   const storeCanvases = useMemo(
-    () => Object.values(canvases).map((c) => ({ id: c.id, title: c.name || 'Untitled', canvas_id: c.id, isCanvas: true } as ProjectItem)),
+    () => listedProjects(canvases).map((c) => ({ id: c.id, title: c.name || 'Untitled', canvas_id: c.id, isCanvas: true } as ProjectItem)),
     [canvases]
   );
   const allShareable = useMemo(() => [...storeCanvases, ...myProjects], [storeCanvases, myProjects]);

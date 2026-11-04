@@ -241,6 +241,10 @@ export const workspaceService = {
     );
   },
 
+  async deleteProject(projectId: number, token: string | null) {
+    return fetchWithAuth(`/api/projects/${projectId}`, { method: 'DELETE' }, token);
+  },
+
   async getProjectCanvas(projectId: number, token: string | null) {
     return projectCanvasInflight.run(token, projectId, async () => {
       const delays = [0, 1500, 4000, 8000];

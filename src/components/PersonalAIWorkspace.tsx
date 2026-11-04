@@ -5,6 +5,7 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Check, Copy, Download, FileText, Upload, Archive, RotateCcw, Maximize2, Minimize2, X, Folder, ChevronDown, Search, ArrowLeft, Activity } from 'lucide-react';
 import useStore from '../store/useStore';
+import { isListedProject } from '../lib/projectVisibility';
 import MarkdownRenderer from './MarkdownRenderer';
 import { buildProjectAiPackage, DEFAULT_SECTIONS, REPORT_CONTENT_LIMIT, REPORT_LIMIT, type PackageSections, type ReportProvider, type ExternalAiReport } from '../lib/projectAiPackage';
 import './PersonalAIWorkspace.css';
@@ -86,10 +87,11 @@ function Workspace() {
         };
     }, []);
 
-    const projectList = useMemo(() => Object.values(availableProjects).map(item => ({
+    // Keep the open project selectable even while it is still an empty placeholder.
+    const projectList = useMemo(() => Object.values(availableProjects).filter(item => item.id === id || isListedProject(item)).map(item => ({
         id: item.id,
         name: item.name || item.title || 'Untitled project',
-    })), [availableProjects]);
+    })), [availableProjects, id]);
 
     const filteredProjects = useMemo(() => projectList.filter(p =>
         p.name.toLowerCase().includes(projectSearch.trim().toLowerCase())

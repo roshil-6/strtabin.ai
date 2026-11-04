@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import { isListedProject } from '../lib/projectVisibility';
 import { useShallow } from 'zustand/react/shallow';
 import { ArrowLeft, BarChart2, Layout } from 'lucide-react';
 
@@ -11,7 +12,7 @@ export default function ReportsSelectPage() {
     })));
 
     const filteredCanvases = Object.values(canvases).filter(
-        p => (p.folderId || null) === activeFolderId
+        p => (p.folderId || null) === activeFolderId && isListedProject(p)
     );
 
     return (
