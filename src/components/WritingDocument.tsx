@@ -1,9 +1,10 @@
 import { useLayoutEffect, useRef, type RefObject } from 'react';
 import { Plus } from 'lucide-react';
 import { readWritingBlocks, writeWritingBlocks } from '../lib/writingBranches';
+import MarkdownRenderer from './MarkdownRenderer';
 
-export default function WritingDocument({ value, onChange, fontSize, readOnly, inputRef }: {
-    value: string; onChange: (value: string) => void; fontSize: number; readOnly: boolean; inputRef: RefObject<HTMLTextAreaElement>;
+export default function WritingDocument({ value, onChange, fontSize, readOnly, inputRef, preview = false }: {
+    value: string; onChange: (value: string) => void; fontSize: number; readOnly: boolean; inputRef: RefObject<HTMLTextAreaElement>; preview?: boolean;
 }) {
     const documentRef = useRef<HTMLDivElement>(null);
     useLayoutEffect(() => {
@@ -25,8 +26,14 @@ export default function WritingDocument({ value, onChange, fontSize, readOnly, i
         });
         observer.observe(element);
         return () => observer.disconnect();
-    }, [value, fontSize]);
+    }, [value, fontSize, preview]);
     const blocks = readWritingBlocks(value);
+    if (preview) return <div className="writing-document-preview" style={{ fontSize }} aria-label="Formatted preview">
+        {value.trim() ? blocks.map((block, index) => 'text' in block
+            ? (block.text.trim() ? <MarkdownRenderer key={index} content={block.text} /> : null)
+            : <ul key={index} className="writing-preview-branch">{block.nodes.map((node, nodeIndex) => <li key={nodeIndex} className={nodeIndex === 0 ? 'is-topic' : ''} style={{ marginLeft: `${node.depth * 24}px` }}>{node.label}</li>)}</ul>)
+            : <p className="writing-preview-empty">Nothing to preview yet.</p>}
+    </div>;
     return <div ref={documentRef} className="writing-document-blocks" style={{ fontSize }}>
         {blocks.map((block, index) => 'text' in block ? <textarea key={index}
             ref={index === 0 ? inputRef : undefined} aria-label={index === 0 ? 'Document content' : `Writing after branch ${index}`}
