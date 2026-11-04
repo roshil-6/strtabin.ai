@@ -269,6 +269,14 @@ export async function getProject(id) {
     return qGet('SELECT * FROM projects WHERE id = ?', [id]);
 }
 
+/** Delete a project; its saved canvas and reports cascade, logs keep their history without the link. */
+export async function deleteProject(id) {
+    // Reminders store the client canvas id, so they are not covered by a foreign key.
+    await qRun('DELETE FROM assistant_reminders WHERE project_id = ?', [`proj_${id}`]);
+    const result = await qRun('DELETE FROM projects WHERE id = ?', [id]);
+    return result.changes > 0;
+}
+
 export async function getProjectWithAssignee(id) {
     return qGet(
         `

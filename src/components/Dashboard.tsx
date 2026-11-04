@@ -17,6 +17,7 @@ import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, 
 const DASHBOARD_GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
 import type { CanvasData } from '../store/useStore';
+import { isListedProject } from '../lib/projectVisibility';
 import { API_BASE_URL, clearGuestMode } from '../constants';
 import { useAuth } from '@clerk/clerk-react';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
@@ -174,15 +175,34 @@ export default function Dashboard() {
         toggleStuckCanvas(id);
     };
 
+    // Cloud projects must be deleted on the server first, or they return on the next sync.
+    const removeProject = async (canvasId: string) => {
+        const remote = /^proj_(\d+)$/.exec(canvasId);
+        if (remote) {
+            try {
+                await workspaceService.deleteProject(Number(remote[1]), await getToken());
+            } catch (err) {
+                const message = err instanceof Error ? err.message : '';
+                // Already deleted elsewhere: only the local copy is left to clear.
+                if (!/\(404\)$/.test(message)) {
+                    toast.error(message.replace(/\s*\(\d+\)$/, '') || 'Could not delete this project. Try again.');
+                    return;
+                }
+            }
+        }
+        deleteCanvas(canvasId);
+        toast.success('Project deleted');
+    };
+
     const handleDelete = (e: React.MouseEvent, canvasId: string) => {
         e.stopPropagation();
         toast((t) => (
             <div className="flex flex-col gap-3">
                 <p className="text-sm font-bold">Delete this project?</p>
-                <p className="text-xs text-white/50">This action cannot be undone.</p>
+                <p className="text-xs text-white/50">{/^proj_\d+$/.test(canvasId) ? 'It will be deleted for everyone in its workspace. This cannot be undone.' : 'This action cannot be undone.'}</p>
                 <div className="flex gap-2">
                     <button
-                        onClick={() => { deleteCanvas(canvasId); toast.dismiss(t.id); }}
+                        onClick={() => { toast.dismiss(t.id); void removeProject(canvasId); }}
                         className="flex-1 py-1.5 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 transition-all"
                     >
                         Delete
@@ -278,17 +298,9 @@ export default function Dashboard() {
     }
     // Filter canvases: only show projects with content (user or Sasha created)
     // Exclude empty placeholders (no name, no nodes, no todos, no writing)
-    const hasContent = (p: CanvasData) => {
-        const name = (p.title || p.name || '').trim();
-        const hasName = name && !/^untitled(\s+project)?$/i.test(name);
-        const hasNodes = (p.nodes?.length ?? 0) > 0;
-        const hasTodos = (p.todos?.length ?? 0) > 0;
-        const hasWriting = ((p.writingContent || '').trim().length ?? 0) > 0;
-        return hasName || hasNodes || hasTodos || hasWriting;
-    };
     const filteredCanvases = Object.values(canvases)
         .filter(p => (p.folderId || null) === activeFolderId)
-        .filter(hasContent);
+        .filter(isListedProject);
 
     // Use filteredCanvases for categorization
     const pinnedProjects = filteredCanvases.filter(p => p.isPinned);

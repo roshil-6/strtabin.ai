@@ -25,6 +25,7 @@ import {
     getProject,
     getProjectWithAssignee,
     getProjectsForWorkspace,
+    deleteProject,
     updateProject,
     logActivity,
     logExecution,
@@ -549,6 +550,36 @@ export function registerWorkspaceRoutes(app, clerkClient) {
         } catch (err) {
             console.error('Update project error:', err);
             return res.status(500).json({ error: 'Failed to update project.' });
+        }
+    });
+
+    // DELETE /api/projects/:id — permanently delete a project (workspace owner or admin)
+    app.delete('/api/projects/:id', requireAuthMiddleware, async (req, res) => {
+        try {
+            const id = parseInt(req.params.id, 10);
+            if (isNaN(id)) return res.status(400).json({ error: 'Invalid project ID.' });
+
+            const project = await getProject(id);
+            if (!project) return res.status(404).json({ error: 'Project not found.' });
+
+            if (!(await hasWorkspaceAccess(req.userId, project.workspace_id, 'admin'))) {
+                return res.status(403).json({ error: 'Only a workspace admin can delete this project.' });
+            }
+
+            await deleteProject(id);
+            // The project row is gone, so keep only its title in the activity entry.
+            await logActivity({
+                userId: req.userId,
+                workspaceId: project.workspace_id,
+                action: 'deleted_project',
+                entityType: 'project',
+                entityId: String(id),
+                metadata: { title: project.title },
+            });
+            return res.json({ deleted: true, id });
+        } catch (err) {
+            console.error('Delete project error:', err);
+            return res.status(500).json({ error: 'Failed to delete project.' });
         }
     });
 
