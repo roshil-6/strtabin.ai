@@ -1,5 +1,7 @@
 import WritingQuickNotes from './WritingQuickNotes';
 import WritingDocument from './WritingDocument';
+import WritingFormatBar from './WritingFormatBar';
+import { formatTextarea, shortcutFormat } from '../lib/markdownFormat';
 import { writeWritingBlocks, writingPlainText } from '../lib/writingBranches';
 import WritingPageTree from './WritingPageTree';
 import { writingKindLabel, appendWritingBranch, moveWritingPage, pageAncestors, ROOT_PAGE } from '../lib/writingPages';
@@ -116,6 +118,9 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
     const textareaARef = useRef<HTMLTextAreaElement>(null);
     const textareaBRef = useRef<HTMLTextAreaElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    // The writing box the formatting toolbar acts on: the last one focused, else the main document.
+    const activeTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const [preview, setPreview] = useState(false);
 
     // Branch state
     const [showBranchModal, setShowBranchModal] = useState(false);
@@ -314,8 +319,13 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
             {/* Toolbar — NotebookLM-style: minimal, content-first */}
             <div className="writing-toolbar min-h-11 flex flex-wrap items-center px-4 md:px-8 gap-2 z-20" style={{ background: 'var(--bg-page)', borderBottom: '1px solid var(--border)' }}>
                 {/* Title already shows the page name; keep only the word count so the toolbar fits one row. */}
-                <div className="flex items-center mr-auto min-w-0">
+                <div className="flex items-center min-w-0">
                     {wc > 0 && <span className="text-[11px] text-[var(--text-dim)] font-medium whitespace-nowrap">{wc} words</span>}
+                </div>
+
+                <div className="mr-auto">
+                    <WritingFormatBar preview={preview} onTogglePreview={() => setPreview(value => !value)} disabled={isMobile && !mobileEditMode}
+                        target={() => (activeTextareaRef.current?.isConnected ? activeTextareaRef.current : null) || textareaRef.current} />
                 </div>
 
                 <div className="flex items-center gap-0.5">
@@ -372,7 +382,16 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
             </div>
 
             {/* Content Area */}
-            <div ref={scrollContainerRef} className="writing-scroll-area flex-1 overflow-y-auto custom-scrollbar">
+            <div ref={scrollContainerRef} className="writing-scroll-area flex-1 overflow-y-auto custom-scrollbar"
+                onFocus={event => { if (event.target instanceof HTMLTextAreaElement && !event.target.closest('.writing-quick-notes')) activeTextareaRef.current = event.target; }}
+                onKeyDown={event => {
+                    const textarea = event.target;
+                    if (!(textarea instanceof HTMLTextAreaElement) || textarea.readOnly || textarea.closest('.writing-quick-notes')) return;
+                    const format = shortcutFormat(event);
+                    if (!format) return;
+                    event.preventDefault();
+                    formatTextarea(textarea, format);
+                }}>
                 <div className="writing-document w-full mb-24 relative group">
                     
                     {(() => {
@@ -439,7 +458,7 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                     {previewDoc && <Suspense fallback={<p role="status">Opening viewer…</p>}><WritingAttachmentPreview key={previewDoc.url} doc={previewDoc} close={closePreview} /></Suspense>}
 
                     {/* Main Writing Textarea — no outline */}
-                    <WritingDocument value={content} onChange={handleContentChange} inputRef={textareaRef}
+                    <WritingDocument value={content} onChange={handleContentChange} inputRef={textareaRef} preview={preview}
                         fontSize={fontSize} readOnly={isMobile && !mobileEditMode} />
 
                     {/* Two-Column Split Section — NotebookLM-style collapsible */}

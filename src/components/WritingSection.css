@@ -141,3 +141,13 @@
 .studio-split-divider:hover::after,.studio-split-divider:focus-visible::after{background:var(--primary);height:56px}
 .studio-split-divider:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
 @media(max-width:1180px){.studio-split-pane .writing-page-tree{display:none}}
+
+/* ── Formatted preview ─────────────────────────────────────────────────── */
+.writing-document-preview{color:var(--text);line-height:1.8;min-height:5rem;overflow-wrap:anywhere}
+.writing-document-preview p{margin-bottom:.9em}
+.writing-document-preview h1{font-size:1.6em}.writing-document-preview h2{font-size:1.3em}.writing-document-preview h3{font-size:1.1em}
+.writing-preview-branch{list-style:none;margin:16px 0;padding:12px 16px;border-left:2px solid var(--primary);background:var(--accent-soft);border-radius:0 10px 10px 0}
+.writing-preview-branch li{padding:2px 0;color:var(--text-secondary)}
+.writing-preview-branch li.is-topic{font-weight:650;color:var(--text)}
+.writing-preview-empty{color:var(--text-dim)}
+@media(max-width:767px){.writing-format-bar button{min-width:36px;min-height:36px}}
