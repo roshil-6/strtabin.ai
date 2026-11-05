@@ -5,14 +5,15 @@ import ExecutionLogForm from './ExecutionLogForm';
 import LavenderDotBackground from './LavenderDotBackground';
 import { localDateKey } from '../lib/localDate';
 import { BUILT_IN_AI_ENABLED } from '../lib/featureFlags';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import useModalStore from '../store/useModalStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, BookOpen, ChevronDown, Hourglass, Archive } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, BookOpen, ChevronDown, Hourglass, Archive, FileDown } from 'lucide-react';
+const ExportPdfDialog = lazy(() => import('./ExportPdfDialog'));
 
 const DASHBOARD_GUIDE_URL = 'https://guide.stratabin.com/';
 import ThemeToggle from './ThemeToggle';
@@ -65,6 +66,7 @@ export default function Dashboard() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [workspacesExpanded, setWorkspacesExpanded] = useState(true);
     const [renamingId, setRenamingId] = useState<string | null>(null);
+    const [exportId, setExportId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState('');
     const [showCredentialsModal, setShowCredentialsModal] = useState(false);
     const [credentialsUsername, setCredentialsUsername] = useState('');
@@ -431,6 +433,7 @@ export default function Dashboard() {
 
     return (
         <div className="dashboard-shell theme-page flex h-[100dvh] min-h-0 font-sans overflow-hidden relative" style={{ background: 'var(--bg-page)' }}>
+            {exportId && <Suspense fallback={null}><ExportPdfDialog key={exportId} canvasId={exportId} close={() => setExportId(null)} /></Suspense>}
             {/* Join Workspace Modal */}
             {showJoinWorkspaceModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1467,6 +1470,7 @@ export default function Dashboard() {
                                         </div>
                                     )}
                                 </div>
+                                <button onClick={(e) => { e.stopPropagation(); setExportId(p.id); }} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-primary hover:bg-[var(--input-bg)] transition-colors" title="Export PDF" aria-label={`Export ${projectTitle} as PDF`}><FileDown size={14} /></button>
                                 <button onClick={(e) => handleStartRename(e, p.id, p.name || p.title || '')} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-primary hover:bg-[var(--input-bg)] transition-colors" title="Rename"><Pencil size={14} /></button>
                                 <button onClick={(e) => handleDelete(e, p.id)} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete"><Trash2 size={14} /></button>
                             </div>

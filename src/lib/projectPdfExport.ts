@@ -1,4 +1,4 @@
-import { markdownToHtml } from './richText.ts';
+import { markdownToHtml, HIGHLIGHT_COLORS } from './richText.ts';
 import { readWritingBlocks, type BranchNode } from './writingBranches.ts';
 import { ROOT_PAGE, type WritingPage } from './writingPages.ts';
 
@@ -157,6 +157,7 @@ h1,h2,h3,h4,h5{page-break-after:avoid;break-after:avoid}
 blockquote{margin:8px 0;padding:4px 0 4px 12px;border-left:3px solid #f97316;color:#57606a;font-style:italic;background:#fff7ed}
 ul,ol{padding-left:22px;margin:6px 0}
 mark{background:#fde68a;color:inherit;padding:0 2px;border-radius:2px}
+${Object.entries(HIGHLIGHT_COLORS).map(([name, value]) => `mark[data-color=${name}]{background:${value.print}}`).join('')}
 code{font-family:Consolas,ui-monospace,monospace;font-size:9pt;background:#f3f4f6;padding:1px 4px;border-radius:4px}
 pre{font-family:Consolas,ui-monospace,monospace;font-size:9pt;background:#f6f8fa;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;white-space:pre-wrap;page-break-inside:avoid}
 a{color:#c2410c}
