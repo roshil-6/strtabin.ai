@@ -48,3 +48,12 @@ test('highlight colours round-trip and default to yellow', async () => {
     assert.equal(highlightColorFromCss('transparent'), null);
     assert.equal(markdownPlainText('==[purple]royal== and ==gold=='), 'royal and gold');
 });
+
+test('card previews and word counts ignore formatting, highlight colours and split markers', async () => {
+    const { writingPreview, writingWordCount } = await import('../src/lib/writingBranches.ts');
+    assert.equal(writingPreview('hi my name is ==[purple]roshil=='), 'hi my name is roshil');
+    assert.equal(writingWordCount('hi my name is ==[purple]roshil=='), 5);
+    assert.equal(writingPreview('# Plan\n- **ship** it\n<<<SPLIT_SECTION_START>>>\n<<<HEADING_A:Pros>>>\nfast\n<<<SPLIT_SECTION_SEP>>>\n<<<HEADING_B:Cons>>>\nrisky\n<<<SPLIT_SECTION_END>>>'), 'Plan ship it Pros fast Cons risky');
+    assert.equal(writingPreview('a\n```stratabin-branch\n[{"label":"Topic","depth":0},{"label":"Idea","depth":1}]\n```\nb'), 'a Topic Idea b');
+    assert.equal(writingWordCount(undefined), 0);
+});

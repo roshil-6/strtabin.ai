@@ -20,6 +20,16 @@ export function writeWritingBlocks(blocks: WritingBlock[]): string {
     return blocks.map(block => 'text' in block ? block.text : '```stratabin-branch\n' + JSON.stringify(block.nodes) + '\n```').join('');
 }
 
+/** Readable text of stored writing: no Markdown symbols, highlight colours, branch JSON or split-column markers. */
 export function writingPlainText(value:string):string {
-    return readWritingBlocks(value).map(block => 'text' in block ? markdownPlainText(block.text) : block.nodes.map(node=>node.label).join(' ')).join(' ');
+    const text = (value || '').replace(/<<<HEADING_[AB]:(.*?)>>>/g, ' $1 ').replace(/<<<[A-Z_]+(?::[^>]*)?>>>/g, ' ');
+    return readWritingBlocks(text).map(block => 'text' in block ? markdownPlainText(block.text) : block.nodes.map(node=>node.label).join(' ')).join(' ');
+}
+/** One-line preview of stored writing for cards and lists. */
+export function writingPreview(value:string, length = 180):string {
+    return writingPlainText(value).replace(/[\s]+/g, ' ').trim().slice(0, length);
+}
+/** Word count of stored writing, ignoring formatting markup. */
+export function writingWordCount(value?:string):number {
+    return writingPlainText(value || '').split(/[\s]+/).filter(Boolean).length;
 }

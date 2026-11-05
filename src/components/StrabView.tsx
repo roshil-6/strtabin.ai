@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams, useLocation } from 'react-rout
 import { useAuth, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import useStore from '../store/useStore';
+import { writingWordCount as countWritingWords } from '../lib/writingBranches';
 
 import MarkdownRenderer from './MarkdownRenderer';
 import useModalStore from '../store/useModalStore';
@@ -261,9 +262,7 @@ export default function StrabView() {
             ? formattedWriting.substring(0, 6000) + (formattedWriting.length > 6000 ? '\n...[content truncated]' : '')
             : null;
 
-        const writingWordCount = rawWriting
-            ? rawWriting.trim().split(/\s+/).filter(Boolean).length
-            : 0;
+        const writingWordCount = countWritingWords(rawWriting);
 
         const completedTodos = todos.filter(t => t.completed);
         const pendingTodos = todos.filter(t => !t.completed);
@@ -346,7 +345,7 @@ export default function StrabView() {
             const edgeCount = c?.edges?.length || 0;
             const todoCount = c?.todos?.length || 0;
             const completedCount = c?.todos?.filter(t => t.completed).length || 0;
-            const wordCount = c?.writingContent?.trim().split(/\s+/).filter(Boolean).length || 0;
+            const wordCount = countWritingWords(c?.writingContent);
             const hasAnyContent = nodeCount > 0 || todoCount > 0 || wordCount > 0 || (c?.codeFiles?.length || 0) > 0 || Boolean(c?.timelineContent?.trim());
 
             const parts: string[] = [
@@ -643,8 +642,7 @@ export default function StrabView() {
     const completedTasks = canvas?.todos?.filter(t => t.completed).length || 0;
     const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     const incompleteCount = totalTasks - completedTasks;
-    const writingWordCount = canvas?.writingContent
-        ? canvas.writingContent.trim().split(/\s+/).filter(Boolean).length : 0;
+    const writingWords = countWritingWords(canvas?.writingContent);
     const daysSinceUpdate = Math.floor((Date.now() - (canvas?.updatedAt || Date.now())) / (1000 * 60 * 60 * 24));
     const hasTimeline = !!(canvas?.timelineContent?.trim());
     const projectStage = canvas?.nodes?.length === 0 ? 'Empty'
@@ -968,7 +966,7 @@ export default function StrabView() {
                                 </div>
                                 <div className="bg-[#151515] border border-white/5 p-4 rounded-2xl">
                                     <div className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">Writing</div>
-                                    <div className="text-lg font-bold text-white">{writingWordCount.toLocaleString()}</div>
+                                    <div className="text-lg font-bold text-white">{writingWords.toLocaleString()}</div>
                                     <div className="text-[11px] text-white/30 mt-1">words written</div>
                                 </div>
                                 <div className="bg-[#151515] border border-white/5 p-4 rounded-2xl">
@@ -985,7 +983,7 @@ export default function StrabView() {
                                     {[
                                         { label: 'Ideas', ok: canvas.nodes.length > 0, value: `${canvas.nodes.length} ideas` },
                                         { label: 'Tasks', ok: totalTasks > 0, value: totalTasks > 0 ? `${incompleteCount} pending` : 'None added' },
-                                        { label: 'Writing', ok: writingWordCount > 50, value: writingWordCount > 0 ? `${writingWordCount} words` : 'Empty' },
+                                        { label: 'Writing', ok: writingWords > 50, value: writingWords > 0 ? `${writingWords} words` : 'Empty' },
                                         { label: 'Timeline', ok: hasTimeline, value: hasTimeline ? 'Defined' : 'Not set' },
                                         { label: 'Connections', ok: canvas.edges.length > 0, value: `${canvas.edges.length} edges` },
                                         { label: 'Attachments', ok: (canvas.attachments?.length || 0) > 0, value: canvas.attachments?.length ? `${canvas.attachments.length} files` : 'None' },

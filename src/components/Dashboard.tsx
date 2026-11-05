@@ -18,6 +18,7 @@ const ExportPdfDialog = lazy(() => import('./ExportPdfDialog'));
 import ThemeToggle from './ThemeToggle';
 import type { CanvasData } from '../store/useStore';
 import { isListedProject } from '../lib/projectVisibility';
+import { writingPreview, writingWordCount } from '../lib/writingBranches';
 import { API_BASE_URL, clearGuestMode } from '../constants';
 import { useAuth } from '@clerk/clerk-react';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
@@ -292,10 +293,6 @@ export default function Dashboard() {
         if (d < 86_400_000) return `${Math.floor(d / 3_600_000)}h ago`;
         if (d < 604_800_000) return `${Math.floor(d / 86_400_000)}d ago`;
         return new Date(ts).toLocaleDateString('en', { month: 'short', day: 'numeric' });
-    }
-    function countWords(text?: string) {
-        if (!text) return 0;
-        return text.trim().split(/\s+/).filter(Boolean).length;
     }
     // Filter canvases: only show projects with content (user or Sasha created)
     // Exclude empty placeholders (no name, no nodes, no todos, no writing)
@@ -1391,12 +1388,12 @@ export default function Dashboard() {
         const destination = dashboardDestination(activeTab, p.id);
         const isSelected = selectedIds.includes(p.id);
         const isMerged = !!p.mergedCanvasIds;
-        const wordCount = (p.writingContent || '').trim().split(/\s+/).filter(Boolean).length;
+        const wordCount = writingWordCount(p.writingContent);
         const todoCount = p.todos?.length ?? 0;
         const completedTodoCount = p.todos?.filter(todo => todo.completed).length ?? 0;
         const completionRate = todoCount > 0 ? Math.round((completedTodoCount / todoCount) * 100) : 0;
-        const wc = countWords(p.writingContent);
-        const previewText = (p.writingContent || '').replace(/\s+/g, ' ').trim();
+        const wc = wordCount;
+        const previewText = writingPreview(p.writingContent || '');
         const hasProjectContent = wordCount > 0 || todoCount > 0 || wc > 0 || (p.nodes?.length ?? 0) > 0 || Boolean(p.codeFiles?.some(file => file.content.trim())) || Boolean(p.timelineContent?.trim());
         const nextTodoLine = p.todos?.find((t) => !t.completed)?.text?.trim();
         const projectTitle = (p.title || p.name || '').trim() || 'Untitled';
