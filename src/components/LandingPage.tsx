@@ -1,4 +1,4 @@
-import { publicFeatures, publicFaqs } from '../content/publicContent';
+import { publicFeatures, publicFaqs, publicPages, topicPaths } from '../content/publicContent';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
@@ -125,7 +125,7 @@ export default function LandingPage() {
 
                     <h1 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tighter leading-[1.1] mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 break-words">
                         Unscatter your ideas. <br />
-                        <span className="text-white/40">Notes, tasks, and AI.</span>
+                        <span className="text-white/40">Docs, tasks and AI in one workspace.</span>
                     </h1>
 
                     <p className="text-base md:text-xl text-white/40 max-w-2xl mx-auto mb-6 leading-relaxed font-medium px-2">
@@ -222,13 +222,18 @@ export default function LandingPage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {publicFeatures.map((feat, i) => (
+                        {publicFeatures.filter(feature => feature.highlight).map((feat, i) => (
                             <div key={i} className="group p-5 md:p-7 bg-white/[0.02] border border-white/[0.04] rounded-2xl hover:border-primary/20 hover:bg-white/[0.03] transition-all duration-300">
                                 <Sparkles size={22} className="text-primary mb-4 group-hover:scale-110 transition-transform" />
                                 <h3 className="text-sm md:text-base font-black text-white mb-2">{feat.title}</h3>
                                 <p className="text-white/30 text-xs md:text-sm leading-relaxed">{feat.desc}</p>
                             </div>
                         ))}
+                    </div>
+                    <div className="text-center mt-10">
+                        <Link to="/features" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-primary/40 text-primary text-sm font-bold hover:bg-primary/10 transition-all">
+                            See all {publicFeatures.length} features <ArrowRight size={15} />
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -302,9 +307,11 @@ export default function LandingPage() {
                         </div>
                         <span className="text-sm font-black tracking-tighter text-white">Stratabin<span className="text-primary">.</span></span>
                     </div>
-                    <p className="text-[11px] text-white/15 text-center md:text-left">
-                        AI workspace and strategy planner for ideas. Notes, tasks, your AI, and team workspaces.
-                    </p>
+                    <nav aria-label="Footer" className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs">
+                        <Link to="/features" className="text-white/40 hover:text-primary transition-colors">Features</Link>
+                        {topicPaths.map(path => <Link key={path} to={path} className="text-white/40 hover:text-primary transition-colors">{publicPages[path].label}</Link>)}
+                        <a href="#pricing" className="text-white/40 hover:text-primary transition-colors">Pricing</a>
+                    </nav>
                     <p className="text-[11px] text-white/10">&copy; {new Date().getFullYear()} Stratabin. All rights reserved.</p>
                 </div>
             </footer>

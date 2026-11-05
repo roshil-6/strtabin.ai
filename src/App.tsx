@@ -1,4 +1,5 @@
 import PageMetadata from './components/PageMetadata';
+import { topicPaths } from './content/publicContent';
 import AccountWorkspace from './components/AccountWorkspace';
 import { BUILT_IN_AI_ENABLED } from './lib/featureFlags';
 import { lazy, Suspense } from 'react';
@@ -21,6 +22,7 @@ const CalendarView = lazy(() => import('./components/CalendarView'));
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const AuthPage = lazy(() => import('./components/AuthPage'));
 const FeaturesPage = lazy(() => import('./components/FeaturesPage'));
+const TopicPage = lazy(() => import('./components/TopicPage'));
 const ReportsSelectPage = lazy(() => import('./components/ReportsSelectPage'));
 const WorkspacePage = lazy(() => import('./components/WorkspacePage'));
 const JoinWorkspacePage = lazy(() => import('./components/JoinWorkspacePage'));
@@ -60,6 +62,7 @@ function App() {
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/auth/sign-up" element={<AuthPage />} />
       <Route path="/features" element={<FeaturesPage />} />
+      {topicPaths.map(path => <Route key={path} path={path} element={<TopicPage />} />)}
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
       <Route path="/dashboard" element={<AuthGate><Dashboard /></AuthGate>} />
       <Route path="/billing" element={<AuthGate><BillingPage /></AuthGate>} />

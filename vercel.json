@@ -9,6 +9,18 @@
       "destination": "/features/index.html"
     },
     {
+      "source": "/docs-workspace",
+      "destination": "/docs-workspace/index.html"
+    },
+    {
+      "source": "/team-workspace",
+      "destination": "/team-workspace/index.html"
+    },
+    {
+      "source": "/ai-workspace",
+      "destination": "/ai-workspace/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/app.html"
     }

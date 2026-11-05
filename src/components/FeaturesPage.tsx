@@ -1,11 +1,13 @@
-import { publicFeatures, publicFaqs, publicPages, featureAvailabilityNotice } from '../content/publicContent';
+import { publicFeatures, publicFaqs, publicPages, featureAvailabilityNotice, featureCategories, topicPaths, type FeatureCategory } from '../content/publicContent';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileText, Network, CheckSquare, Bot, Users, LayoutGrid } from 'lucide-react';
+
+const CATEGORY_ICONS: Record<FeatureCategory, typeof FileText> = { 'Docs & writing': FileText, 'Visual thinking': Network, 'Planning & progress': CheckSquare, 'AI assistance': Bot, 'Teamwork': Users, 'Workspace & access': LayoutGrid };
+const slug = (category: string) => category.toLowerCase().replace(/[^a-z]+/g, '-');
 import HexagonBackground from './HexagonBackground';
 import ThemeToggle from './ThemeToggle';
 
 export default function FeaturesPage() {
-    const features = publicFeatures;
 
     return (
         <div className="min-h-[100dvh] theme-page font-sans selection:bg-white/20 relative overflow-x-hidden">
@@ -52,26 +54,41 @@ export default function FeaturesPage() {
                         {featureAvailabilityNotice}
                     </aside>
 
-                    <section className="space-y-12">
-                        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--text)]">
-                            Everything you need to plan and execute
-                        </h2>
-                        <p className="text-[var(--text-muted)] leading-relaxed">
-                            Keep your planning and daily work together. Write long-form strategies, branch ideas into visual flowcharts, merge projects, and get AI-powered insights — all in one place.
-                        </p>
+                    <nav aria-label="Feature categories" className="mb-12 flex flex-wrap gap-2">
+                        {featureCategories.map(category => <a key={category} href={`#${slug(category)}`} className="px-3.5 py-2 rounded-xl border border-[var(--border-strong)] text-sm text-[var(--text-secondary)] hover:text-primary hover:border-primary transition-colors">{category}</a>)}
+                    </nav>
 
-                        <div className="grid gap-5 md:gap-6">
-                            {features.map((feat, i) => (
-                                <article key={i} className="pro-surface-card p-6 md:p-8">
-                                    <div className="w-11 h-11 rounded-xl bg-[var(--accent-soft)] border border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] flex items-center justify-center mb-4">
-                                        <Sparkles size={22} className="text-primary" />
-                                    </div>
-                                    <h3 className="text-lg md:text-xl font-semibold text-[var(--text)] mb-2 tracking-tight">{feat.title}</h3>
-                                    <p className="text-[var(--text-muted)] text-sm md:text-base leading-relaxed">{feat.desc}</p>
-                                </article>
-                            ))}
-                        </div>
-                    </section>
+                    <p className="text-[var(--text-muted)] leading-relaxed mb-12">
+                        {publicFeatures.length} features across docs, visual thinking, planning, AI and teamwork — everything Stratabin can do today, in one workspace.
+                    </p>
+
+                    <div className="space-y-16">
+                        {featureCategories.map(category => {
+                            const Icon = CATEGORY_ICONS[category];
+                            return <section key={category} id={slug(category)} aria-labelledby={`${slug(category)}-heading`} className="scroll-mt-28">
+                                <h2 id={`${slug(category)}-heading`} className="flex items-center gap-3 text-2xl md:text-3xl font-bold tracking-tight text-[var(--text)] mb-6">
+                                    <span className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] border border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] flex items-center justify-center"><Icon size={20} className="text-primary" /></span>
+                                    {category}
+                                </h2>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    {publicFeatures.filter(feature => feature.category === category).map(feature => (
+                                        <article key={feature.title} className="pro-surface-card p-5 md:p-6">
+                                            <h3 className="text-base md:text-lg font-semibold text-[var(--text)] mb-2 tracking-tight">{feature.title}</h3>
+                                            <p className="text-[var(--text-muted)] text-sm leading-relaxed">{feature.desc}</p>
+                                        </article>
+                                    ))}
+                                </div>
+                            </section>;
+                        })}
+                    </div>
+
+                    <nav className="mt-16 grid gap-4 md:grid-cols-3" aria-label="Stratabin use cases">
+                        {topicPaths.map(path => <Link key={path} to={path} className="pro-surface-card p-5 group">
+                            <strong className="block text-[var(--text)] mb-1">{publicPages[path].label}</strong>
+                            <span className="block text-sm text-[var(--text-muted)] leading-relaxed mb-3">{publicPages[path].heading}</span>
+                            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">Learn more <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
+                        </Link>)}
+                    </nav>
 
                     <section className="mt-20 pro-step-card p-8 md:p-12">
                         <h2 className="text-2xl font-bold tracking-tight mb-6 text-[var(--text)]">How Stratabin works: idea to execution</h2>
