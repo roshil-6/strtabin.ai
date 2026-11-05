@@ -1,18 +1,19 @@
 import WritingQuickNotes from './WritingQuickNotes';
 import WritingDocument from './WritingDocument';
 import WritingFormatBar from './WritingFormatBar';
-import { formatTextarea, shortcutFormat } from '../lib/markdownFormat';
+import RichTextBlock from './RichTextBlock';
 import { writeWritingBlocks, writingPlainText } from '../lib/writingBranches';
 import WritingPageTree from './WritingPageTree';
 import { writingKindLabel, appendWritingBranch, moveWritingPage, pageAncestors, ROOT_PAGE } from '../lib/writingPages';
 import type { WritingPage } from '../lib/writingPages';
 import { generateId } from '../utils/uuid';
 import toast from 'react-hot-toast';
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import VoiceTyping from './VoiceTyping';
 const WritingAttachmentPreview = lazy(() => import('./WritingAttachmentPreview'));
+const ExportPdfDialog = lazy(() => import('./ExportPdfDialog'));
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard } from 'lucide-react';
+import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard, FileDown, Plus, GripHorizontal } from 'lucide-react';
 import './WritingSection.css';
 
 interface WritingSectionProps {
@@ -32,6 +33,7 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
     const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
     const [kind, setKind] = useState<NonNullable<WritingPage['kind']>>('scene');
     const [newTitle, setNewTitle] = useState('');
+    const [exportOpen, setExportOpen] = useState(false);
     const pages = canvas?.writingPages || [];
     const openNote = pages.find(page => page.id === openNoteId);
     const current = pages.find(page => page.id === activeId);
@@ -61,7 +63,7 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
             <button className="scene-box-summary" aria-pressed={openNoteId === page.id} aria-controls={openNote ? 'note-side-editor' : undefined} onClick={() => setOpenNoteId(page.id)}>
                 <span className="scene-box-label">{writingKindLabel(page.kind)}</span><strong>{page.title || 'Untitled'}</strong><ChevronDown size={18} />
                 {<p>{writingPlainText(page.content).slice(0, 220) || 'Open in the side editor…'}</p>}
-                <small>{children.length ? `${children.length} nested sections · ` : ''}{openNoteId === page.id ? 'Editing on the right' : 'Open editor'}</small>
+                <small>{children.length ? `${children.length} nested sections · ` : ''}{openNoteId === page.id ? 'Editing now' : 'Open editor'}</small>
             </button>
             {children.length > 0 && <button className="note-children-toggle" aria-expanded={expanded} aria-controls={detailsId} onClick={() => setExpandedCards(previous => { const next = new Set(previous); if (next.has(page.id)) next.delete(page.id); else next.add(page.id); return next; })}>{expanded ? 'Hide' : 'Show'} nested sections</button>}
             <div id={detailsId} hidden={!expanded} className="scene-box-body">
@@ -75,16 +77,50 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
     return <div className="writing-project">
         <WritingPageTree pages={pages.filter(page => !page.quickNote)} activeId={selected} rootTitle={canvas?.name || canvas?.title || 'Main page'} select={selectPage} add={parent => create(parent)} />
         <div className="writing-page-editor">
-            <div className="manuscript-toolbar"><div role="group" aria-label="Writing view"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Section board</button></div><button disabled={pages.length >= 100} onClick={() => create(ROOT_PAGE)}>+ Add page</button><span>{pages.length} / 100 items</span></div>
+            <div className="manuscript-toolbar"><div role="group" aria-label="Writing view"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Section board</button></div><button className="manuscript-add-page" disabled={pages.length >= 100} onClick={() => create(ROOT_PAGE)}>+ Add page</button><span className="manuscript-count">{pages.length} / 100 items</span><button className="manuscript-export" onClick={() => setExportOpen(true)} title="Export this project as a PDF"><FileDown size={15} /><span>Export PDF</span></button></div>
+            {exportOpen && <Suspense fallback={null}><ExportPdfDialog canvasId={canvasId} close={() => setExportOpen(false)} /></Suspense>}
             {/* At the main page the path is just the project name, already shown as the title. */}
             {selected !== ROOT_PAGE && <nav className="writing-breadcrumbs" aria-label="Page path"><button onClick={() => selectPage(ROOT_PAGE)}>{canvas?.name || canvas?.title || 'Main page'}</button>{pageAncestors(pages, selected).map(page => <span key={page.id}><span aria-hidden="true">/</span><button aria-current={page.id === selected ? 'page' : undefined} onClick={() => selectPage(page.id)}>{page.title || 'Untitled page'}</button></span>)}</nav>}
-            {view === 'cards' && <form className="manuscript-create" onSubmit={event => { event.preventDefault(); create(selected, newTitle.trim() || `Untitled ${writingKindLabel(kind)}`, [], kind); setNewTitle(''); }}><label>Type<select value={kind} onChange={event => setKind(event.target.value as NonNullable<WritingPage['kind']>)}><option value="part">Part</option><option value="section">Section</option><option value="scene">Note</option></select></label><label>Title<input value={newTitle} maxLength={200} placeholder={`New ${writingKindLabel(kind)} in ${current?.title || 'main page'}`} onChange={event => setNewTitle(event.target.value)} /></label><button type="submit" disabled={pages.length >= 100}>Add {writingKindLabel(kind)}</button></form>}
             {current && <details className="manuscript-organise"><summary>Organise this {writingKindLabel(current.kind)}</summary><label>Type<select value={current.kind || 'page'} onChange={event => save(pages.map(page => page.id === selected ? { ...page, kind: event.target.value as WritingPage['kind'] } : page))}>{['part', 'section', 'scene', 'page'].map(value => <option key={value} value={value}>{writingKindLabel(value as WritingPage['kind'])}</option>)}</select></label><label>Move into<select value={current.parentId} onChange={event => reparent(event.target.value)}><option value={ROOT_PAGE}>Main page</option>{pages.filter(page => page.id !== selected && !pageAncestors(pages, page.id).some(ancestor => ancestor.id === selected)).map(page => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label></details>}
             <div className={`manuscript-workspace ${view} ${openNote && view === 'cards' ? 'with-note-editor' : ''}`}>
-                {view === 'cards' ? <><section className="manuscript-board expandable-scene-board" aria-label="Expandable section cards"><header><h3>{current?.title || 'Project sections'}</h3><p>Click a card to open its writing on the right. Your board stays in place.</p></header><div className="scene-box-grid">{(current && current.kind && current.kind !== 'page' ? [current] : pages.filter(page => page.parentId === selected)).map(page => renderCard(page))}</div>{!pages.length && <p className="manuscript-empty">Add your first part, section or note above. Its writing opens in the side editor.</p>}</section>{openNote && <section id="note-side-editor" className="note-side-editor" aria-label={`Editing ${openNote.title || 'Untitled'}`}><header><div><FileText size={16} /><strong>{openNote.title || 'Untitled'}</strong><small>{writingKindLabel(openNote.kind)}</small></div><button aria-label="Close note editor" onClick={() => setOpenNoteId(null)}><X size={18} /></button></header><WritingEditor key={openNote.id} canvasId={canvasId} pageId={openNote.id} /><div className="scene-box-add"><span>Add inside this {writingKindLabel(openNote.kind)}</span>{(['part', 'section', 'scene'] as const).map(type => <button key={type} disabled={pages.length >= 100} onClick={() => create(openNote.id, `Untitled ${writingKindLabel(type)}`, [], type)}>+ {writingKindLabel(type)}</button>)}</div></section>}</> : <WritingEditor key={selected} canvasId={canvasId} pageId={selected} /> }
+                {view === 'cards' ? <><section className="manuscript-board expandable-scene-board" aria-label="Expandable section cards"><header><div><h3>{current?.title || 'Project sections'}</h3><p>Click a card to open its writing in a floating editor.</p></div><form className="manuscript-create" onSubmit={event => { event.preventDefault(); create(selected, newTitle.trim() || `Untitled ${writingKindLabel(kind)}`, [], kind); setNewTitle(''); }}><select aria-label="Type" value={kind} onChange={event => setKind(event.target.value as NonNullable<WritingPage['kind']>)}><option value="part">Part</option><option value="section">Section</option><option value="scene">Note</option></select><input aria-label="Title" value={newTitle} maxLength={200} placeholder={`New ${writingKindLabel(kind)} title…`} onChange={event => setNewTitle(event.target.value)} /><button type="submit" disabled={pages.length >= 100}><Plus size={14} />Add</button></form></header><div className="scene-box-grid">{(current && current.kind && current.kind !== 'page' ? [current] : pages.filter(page => page.parentId === selected)).map(page => renderCard(page))}</div>{!pages.length && <p className="manuscript-empty">Add your first part, section or note above. Its writing opens in a floating editor.</p>}</section>{openNote && <FloatingNoteEditor key={openNote.id} title={openNote.title || 'Untitled'} kindLabel={writingKindLabel(openNote.kind)} close={() => setOpenNoteId(null)}
+                    actions={(['part', 'section', 'scene'] as const).map(type => <button key={type} disabled={pages.length >= 100} title={`Add a ${writingKindLabel(type)} inside this ${writingKindLabel(openNote.kind)}`} onClick={() => create(openNote.id, `Untitled ${writingKindLabel(type)}`, [], type)}>+ {writingKindLabel(type)}</button>)}>
+                    <WritingEditor canvasId={canvasId} pageId={openNote.id} />
+                </FloatingNoteEditor>}</> : <WritingEditor key={selected} canvasId={canvasId} pageId={selected} /> }
             </div>
         </div>
     </div>;
+}
+
+/** A note's writing opens in a panel floating over the board; drag its header to move it. */
+function FloatingNoteEditor({ title, kindLabel, close, actions, children }: { title: string; kindLabel: string; close: () => void; actions: React.ReactNode; children: React.ReactNode }) {
+    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const drag = useRef<{ x: number; y: number; startX: number; startY: number } | null>(null);
+    const panel = useRef<HTMLElement>(null);
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !(event.target instanceof HTMLElement && event.target.closest('.rich-editor'))) close(); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [close]);
+    const move = (clientX: number, clientY: number) => {
+        const start = drag.current; const element = panel.current; const parent = element?.offsetParent as HTMLElement | null;
+        if (!start || !element || !parent) return;
+        const base = { left: element.offsetLeft - offset.x, top: element.offsetTop - offset.y };
+        // Keep at least the header on screen.
+        const x = Math.min(parent.clientWidth - base.left - 120, Math.max(-base.left, start.x + clientX - start.startX));
+        const y = Math.min(parent.clientHeight - base.top - 56, Math.max(-base.top, start.y + clientY - start.startY));
+        setOffset({ x, y });
+    };
+    return <section ref={panel} id="note-side-editor" className="note-side-editor is-floating" aria-label={`Editing ${title}`} style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
+        <header onPointerDown={event => { if ((event.target as HTMLElement).closest('button')) return; drag.current = { x: offset.x, y: offset.y, startX: event.clientX, startY: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId); }}
+            onPointerMove={event => { if (drag.current) move(event.clientX, event.clientY); }}
+            onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }} onDoubleClick={() => setOffset({ x: 0, y: 0 })}>
+            <div><GripHorizontal size={15} className="note-drag-handle" aria-hidden="true" /><FileText size={16} /><strong>{title}</strong><small>{kindLabel}</small></div>
+            <div className="note-side-actions" aria-label={`Add inside this ${kindLabel}`}>{actions}</div>
+            <button aria-label="Close note editor" title="Close (Esc)" onClick={close}><X size={18} /></button>
+        </header>
+        {children}
+    </section>;
 }
 
 function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: string }) {
@@ -114,12 +150,12 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
     const [headingB, setHeadingB] = useState('Heading B');
     const imageInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const textareaARef = useRef<HTMLTextAreaElement>(null);
-    const textareaBRef = useRef<HTMLTextAreaElement>(null);
+    const textareaRef = useRef<HTMLDivElement>(null);
+    const textareaARef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     // The writing box the formatting toolbar acts on: the last one focused, else the main document.
-    const activeTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const activeEditorRef = useRef<HTMLElement | null>(null);
+    const formatTarget = useCallback(() => (activeEditorRef.current?.isConnected ? activeEditorRef.current : null) || textareaRef.current, []);
     const [preview, setPreview] = useState(false);
 
     // Branch state
@@ -288,30 +324,6 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
         setBranchItems(['', '', '', '', '', '']);
     };
 
-    // Auto-resize textareas — saves/restores scroll position to prevent jump-to-top on Enter
-    useEffect(() => {
-        const scrollEl = scrollContainerRef.current;
-        const savedScrollTop = scrollEl?.scrollTop ?? 0;
-
-        const resize = (ref: React.RefObject<HTMLTextAreaElement>) => {
-            const el = ref.current;
-            if (!el) return;
-            el.style.height = 'auto';
-            el.style.height = Math.max(500, el.scrollHeight) + 'px';
-        };
-
-        resize(textareaRef);
-        if (isSplitMode) {
-            resize(textareaARef);
-            resize(textareaBRef);
-        } else {
-            resize(textareaRef);
-        }
-
-        // Restore scroll position synchronously after height is applied
-        if (scrollEl) scrollEl.scrollTop = savedScrollTop;
-    }, [content, contentA, contentB, isSplitMode]);
-
     const wc = [writingPlainText(content), ...(isSplitMode ? [headingA, contentA, headingB, contentB] : [])].join(' ').trim().split(/\s+/).filter(Boolean).length;
 
     return (
@@ -325,7 +337,7 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
 
                 <div className="mr-auto">
                     <WritingFormatBar preview={preview} onTogglePreview={() => setPreview(value => !value)} disabled={isMobile && !mobileEditMode}
-                        target={() => (activeTextareaRef.current?.isConnected ? activeTextareaRef.current : null) || textareaRef.current} />
+                        target={formatTarget} />
                 </div>
 
                 <div className="flex items-center gap-0.5">
@@ -383,15 +395,7 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
 
             {/* Content Area */}
             <div ref={scrollContainerRef} className="writing-scroll-area flex-1 overflow-y-auto custom-scrollbar"
-                onFocus={event => { if (event.target instanceof HTMLTextAreaElement && !event.target.closest('.writing-quick-notes')) activeTextareaRef.current = event.target; }}
-                onKeyDown={event => {
-                    const textarea = event.target;
-                    if (!(textarea instanceof HTMLTextAreaElement) || textarea.readOnly || textarea.closest('.writing-quick-notes')) return;
-                    const format = shortcutFormat(event);
-                    if (!format) return;
-                    event.preventDefault();
-                    formatTextarea(textarea, format);
-                }}>
+                onFocus={event => { if (event.target instanceof HTMLElement && event.target.classList.contains('rich-editor')) activeEditorRef.current = event.target; }}>
                 <div className="writing-document w-full mb-24 relative group">
                     
                     {(() => {
@@ -491,16 +495,10 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                                         className="bg-transparent text-base font-black text-primary placeholder-primary/30 outline-none uppercase tracking-wider"
                                     />
                                     <div className="h-px bg-[var(--input-bg)] w-8" />
-                                    <textarea
-                                        ref={textareaARef} aria-label="Column A content"
-                                        value={contentA}
-                                        onChange={(e) => handleSplitContentChange('A', e.target.value)}
-                                        placeholder="Write part A here..."
-                                        className="w-full bg-transparent text-[var(--text-secondary)] leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none min-h-[120px] transition-all duration-200"
-                                        style={{ fontSize: `${fontSize}px` }}
-                                        spellCheck={true}
-                                        readOnly={isMobile && !mobileEditMode}
-                                    />
+                                    <RichTextBlock editorRef={textareaARef} label="Column A content" value={contentA}
+                                        onChange={value => handleSplitContentChange('A', value)} placeholder="Write part A here..."
+                                        className="writing-split-editor text-[var(--text-secondary)] leading-relaxed min-h-[120px]"
+                                        style={{ fontSize: `${fontSize}px` }} readOnly={isMobile && !mobileEditMode} />
                                 </div>
 
                                 {/* Column B */}
@@ -513,16 +511,10 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                                         className="bg-transparent text-base font-black text-primary placeholder-primary/30 outline-none uppercase tracking-wider"
                                     />
                                     <div className="h-px bg-[var(--input-bg)] w-8" />
-                                    <textarea
-                                        ref={textareaBRef} aria-label="Column B content"
-                                        value={contentB}
-                                        onChange={(e) => handleSplitContentChange('B', e.target.value)}
-                                        placeholder="Write part B here..."
-                                        className="w-full bg-transparent text-[var(--text-secondary)] leading-relaxed outline-none ring-0 border-0 focus:ring-0 resize-none min-h-[120px] transition-all duration-200"
-                                        style={{ fontSize: `${fontSize}px` }}
-                                        spellCheck={true}
-                                        readOnly={isMobile && !mobileEditMode}
-                                    />
+                                    <RichTextBlock label="Column B content" value={contentB}
+                                        onChange={value => handleSplitContentChange('B', value)} placeholder="Write part B here..."
+                                        className="writing-split-editor text-[var(--text-secondary)] leading-relaxed min-h-[120px]"
+                                        style={{ fontSize: `${fontSize}px` }} readOnly={isMobile && !mobileEditMode} />
                                 </div>
                             </div>
                         </div>
