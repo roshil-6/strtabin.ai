@@ -37,3 +37,14 @@ test('saving writing blocks keeps formatting Markdown intact', async () => {
     assert.equal(writeWritingBlocks(readWritingBlocks(value)), value);
     assert.equal(writingPlainText(value), 'bold and mark\nitem');
 });
+
+test('highlight colours round-trip and default to yellow', async () => {
+    const { highlightColorFromCss } = await import('../src/lib/richText.ts');
+    assert.equal(inlineToHtml('==plain== ==[green]go== ==[nope]x=='), '<mark>plain</mark> <mark data-color="green">go</mark> <mark>[nope]x</mark>');
+    const mark = (color, text) => ({ ...el('MARK', text), getAttribute: name => name === 'data-color' ? color : null });
+    assert.equal(htmlToMarkdown(el('DIV', el('DIV', mark('blue', 'sky'), ' ', mark(null, 'sun'), ' ', mark('yellow', 'lemon')))), '==[blue]sky== ==sun== ==lemon==');
+    const span = (background, text) => ({ ...el('SPAN', text), style: { backgroundColor: background } });
+    assert.equal(htmlToMarkdown(el('DIV', el('DIV', span('rgba(236, 72, 153, 0.34)', 'rose'), span('rgba(0, 0, 0, 0)', ' none')))), '==[pink]rose== none');
+    assert.equal(highlightColorFromCss('transparent'), null);
+    assert.equal(markdownPlainText('==[purple]royal== and ==gold=='), 'royal and gold');
+});

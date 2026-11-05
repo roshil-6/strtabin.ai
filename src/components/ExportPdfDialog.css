@@ -1,0 +1,35 @@
+/* ── Export to PDF dialog ──────────────────────────────────────────────── */
+.export-pdf-backdrop{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
+.export-pdf-dialog{width:min(520px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:20px;border:1px solid var(--border-strong);border-radius:16px;background:var(--bg-panel);color:var(--text);box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.export-pdf-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.export-pdf-dialog header>div{display:flex;align-items:center;gap:10px;color:var(--primary)}
+.export-pdf-dialog h2{font-size:17px;font-weight:650;color:var(--text)}
+.export-pdf-dialog header button{padding:6px;border-radius:8px;color:var(--text-muted)}
+.export-pdf-dialog header button:hover{color:var(--text);background:var(--input-bg)}
+.export-pdf-intro{margin:6px 0 14px;font-size:13px;color:var(--text-muted)}
+.export-pdf-all{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;color:var(--text-muted)}
+.export-pdf-all button{color:var(--primary);font-weight:600;padding:4px 0}
+.export-pdf-dialog fieldset{display:grid;gap:8px;border:0;padding:0;margin:0}
+.export-pdf-option{position:relative;display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--border-strong);border-radius:12px;cursor:pointer;transition:border-color .15s,background .15s}
+.export-pdf-option:hover{border-color:var(--text-muted)}
+.export-pdf-option[data-checked=true]{border-color:var(--primary);background:var(--accent-soft)}
+.export-pdf-option input{position:absolute;opacity:0;pointer-events:none}
+.export-pdf-option:has(input:focus-visible){outline:2px solid var(--primary);outline-offset:2px}
+.export-pdf-check{flex:0 0 18px;height:18px;margin-top:2px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border-strong);border-radius:5px;color:#000}
+.export-pdf-option[data-checked=true] .export-pdf-check{background:var(--primary);border-color:var(--primary)}
+.export-pdf-text{display:grid;gap:2px;min-width:0}
+.export-pdf-text strong{font-size:14px;font-weight:600}
+.export-pdf-text small{font-size:12px;color:var(--text-muted);line-height:1.5}
+.export-pdf-text em{font-style:normal;font-size:11px;color:var(--text-secondary);margin-top:2px}
+.export-pdf-dialog footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.export-pdf-dialog footer small{flex:1 1 200px;font-size:11.5px;color:var(--text-muted);line-height:1.5}
+.export-pdf-dialog footer>div{display:flex;gap:8px;margin-left:auto}
+.export-pdf-dialog footer button{padding:9px 14px;border-radius:9px;font-size:13px;border:1px solid var(--border-strong);color:var(--text-secondary)}
+.export-pdf-dialog footer button.primary{display:inline-flex;align-items:center;gap:6px;background:var(--primary);border-color:var(--primary);color:#000;font-weight:600}
+.export-pdf-dialog footer button:disabled{opacity:.45;cursor:not-allowed}
+.export-pdf-dialog button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.export-pdf-loading{padding:28px 0;text-align:center;font-size:13px;color:var(--text-muted)}
+.export-pdf-error{padding:16px 0;font-size:13px;color:#f87171}
+.export-pdf-dialog:focus{outline:none}
+.export-pdf-dialog h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px}
+.export-pdf-error button{margin-left:8px;color:var(--primary);text-decoration:underline}

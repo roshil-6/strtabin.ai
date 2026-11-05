@@ -4,6 +4,34 @@
  * plain editor keeps its line breaks exactly.
  */
 
+/** Highlight colours: `editor` is drawn over the dark app theme, `print` on white paper. Yellow is the default (`==text==`). */
+export const HIGHLIGHT_COLORS = {
+    yellow: { label: 'Yellow', editor: 'rgba(250, 204, 21, 0.38)', print: '#fde68a' },
+    green: { label: 'Green', editor: 'rgba(34, 197, 94, 0.34)', print: '#bbf7d0' },
+    blue: { label: 'Blue', editor: 'rgba(59, 130, 246, 0.36)', print: '#bfdbfe' },
+    pink: { label: 'Pink', editor: 'rgba(236, 72, 153, 0.34)', print: '#fbcfe8' },
+    orange: { label: 'Orange', editor: 'rgba(249, 115, 22, 0.36)', print: '#fed7aa' },
+    purple: { label: 'Purple', editor: 'rgba(168, 85, 247, 0.36)', print: '#e9d5ff' },
+} as const;
+export type HighlightColor = keyof typeof HIGHLIGHT_COLORS;
+export const isHighlightColor = (value: unknown): value is HighlightColor => typeof value === 'string' && Object.hasOwn(HIGHLIGHT_COLORS, value);
+const COLOR_PREFIX = /^\[(yellow|green|blue|pink|orange|purple)\]/;
+
+/** The palette colour closest to a CSS background (from the browser's highlight command), or null when there is none. */
+export function highlightColorFromCss(background: string): HighlightColor | null {
+    const match = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+))?/.exec(background || '');
+    if (!match || (match[4] !== undefined && Number(match[4]) === 0)) return null;
+    const [r, g, b] = [match[1], match[2], match[3]].map(Number);
+    let best: HighlightColor = 'yellow';
+    let distance = Infinity;
+    for (const [name, value] of Object.entries(HIGHLIGHT_COLORS)) {
+        const [pr, pg, pb] = value.editor.match(/\d+/g)!.map(Number);
+        const d = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
+        if (d < distance) { distance = d; best = name as HighlightColor; }
+    }
+    return best;
+}
+
 const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const safeUrl = (url: string) => /^(https?:|mailto:|#|\/)/i.test(url.trim()) ? url.trim() : '';
 
@@ -33,7 +61,19 @@ export function inlineToHtml(text: string): string {
             index = close + marker.length;
             return true;
         };
-        if (pair('**', 'strong') || pair('==', 'mark') || pair('~~', 's') || pair('*', 'em')) continue;
+        if (text.startsWith('==', index)) {
+            // ==text== is yellow; ==[green]text== picks another palette colour.
+            const close = text.indexOf('==', index + 3);
+            const body = close === -1 ? '' : text.slice(index + 2, close);
+            const color = COLOR_PREFIX.exec(body)?.[1] as HighlightColor | undefined;
+            const inner = color ? body.slice(color.length + 2) : body;
+            if (inner.trim() && !/^\s|\s$/.test(inner)) {
+                out += `<mark${color && color !== 'yellow' ? ` data-color="${color}"` : ''}>${inlineToHtml(inner)}</mark>`;
+                index = close + 2;
+                continue;
+            }
+        }
+        if (pair('**', 'strong') || pair('~~', 's') || pair('*', 'em')) continue;
         // `_` only counts at word edges so snake_case words stay plain.
         if (char === '_' && !/\w/.test(text[index - 1] || '')) {
             const close = text.indexOf('_', index + 2);
@@ -92,26 +132,27 @@ function inlineMarkdown(node: RichNode): string {
     if (node.nodeType !== 1) return '';
     if (node.nodeName === 'BR') return '\n';
     const inner = Array.from(node.childNodes).map(inlineMarkdown).join('');
-    const wrap = (marker: string) => {
-        if (!inner.trim() || inner.includes('\n')) return inner;
-        const lead = inner.match(/^\s*/)![0];
-        const trail = inner.match(/\s*$/)![0];
-        return lead + marker + inner.trim() + marker + trail;
+    const wrap = (marker: string, closing = marker, content = inner) => {
+        if (!content.trim() || content.includes('\n')) return content;
+        const lead = content.match(/^\s*/)![0];
+        const trail = content.match(/\s*$/)![0];
+        return lead + marker + content.trim() + closing + trail;
     };
+    const highlight = (color: HighlightColor | null, content: string) => wrap(color && color !== 'yellow' ? `==[${color}]` : '==', '==', content);
     switch (node.nodeName) {
         case 'B': case 'STRONG': return wrap('**');
         case 'I': case 'EM': return wrap('_');
-        case 'MARK': return wrap('==');
+        case 'MARK': { const color = node.getAttribute?.('data-color'); return highlight(isHighlightColor(color) ? color : null, inner); }
         case 'S': case 'STRIKE': case 'DEL': return wrap('~~');
         case 'CODE': { const text = (node.textContent || '').replace(/`/g, ''); return text ? '`' + text + '`' : ''; }
         case 'A': { const href = node.getAttribute?.('href') || ''; return href && inner.trim() ? `[${inner}](${href})` : inner; }
         case 'SPAN': {
             const bold = /^(bold|[6-9]00)$/.test(node.style?.fontWeight || '');
             const italic = node.style?.fontStyle === 'italic';
-            const background = (node.style?.backgroundColor || '').replace(/\s/g, '');
-            const highlighted = !!background && background !== 'transparent' && !/^rgba\(\d+,\d+,\d+,0\)$/.test(background);
+            const color = highlightColorFromCss(node.style?.backgroundColor || '');
+            const highlighted = !!color;
             let text = inner;
-            if (highlighted) text = wrap('==');
+            if (highlighted) text = highlight(color, inner);
             if (italic) text = highlighted ? `_${text}_` : wrap('_');
             if (bold) text = italic || highlighted ? `**${text}**` : wrap('**');
             return text;
@@ -168,6 +209,6 @@ export function htmlToMarkdown(root: RichNode): string {
 
 /** Plain text of stored Markdown, for summaries and word counts. */
 export function markdownPlainText(markdown: string): string {
-    return markdown.replace(/^```.*$/gm, '').replace(/^(#{1,6} |> ?|\s*[-*+] |\s*\d+[.)] )/gm, '')
+    return markdown.replace(/^```.*$/gm, '').replace(/==\[(?:yellow|green|blue|pink|orange|purple)\]/g, '==').replace(/^(#{1,6} |> ?|\s*[-*+] |\s*\d+[.)] )/gm, '')
         .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/(\*\*|==|~~|`)/g, '').replace(/(^|\W)[_*](\S[^_*]*?\S|\S)[_*](?=\W|$)/g, '$1$2').replace(/\\([\\*_`=[\]#>~.)+-])/g, '$1');
 }

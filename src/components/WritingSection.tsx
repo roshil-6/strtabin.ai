@@ -11,9 +11,8 @@ import toast from 'react-hot-toast';
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import VoiceTyping from './VoiceTyping';
 const WritingAttachmentPreview = lazy(() => import('./WritingAttachmentPreview'));
-const ExportPdfDialog = lazy(() => import('./ExportPdfDialog'));
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard, FileDown, Plus, GripHorizontal } from 'lucide-react';
+import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard, Plus, GripHorizontal } from 'lucide-react';
 import './WritingSection.css';
 
 interface WritingSectionProps {
@@ -33,7 +32,6 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
     const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
     const [kind, setKind] = useState<NonNullable<WritingPage['kind']>>('scene');
     const [newTitle, setNewTitle] = useState('');
-    const [exportOpen, setExportOpen] = useState(false);
     const pages = canvas?.writingPages || [];
     const openNote = pages.find(page => page.id === openNoteId);
     const current = pages.find(page => page.id === activeId);
@@ -77,8 +75,7 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
     return <div className="writing-project">
         <WritingPageTree pages={pages.filter(page => !page.quickNote)} activeId={selected} rootTitle={canvas?.name || canvas?.title || 'Main page'} select={selectPage} add={parent => create(parent)} />
         <div className="writing-page-editor">
-            <div className="manuscript-toolbar"><div role="group" aria-label="Writing view"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Section board</button></div><button className="manuscript-add-page" disabled={pages.length >= 100} onClick={() => create(ROOT_PAGE)}>+ Add page</button><span className="manuscript-count">{pages.length} / 100 items</span><button className="manuscript-export" onClick={() => setExportOpen(true)} title="Export this project as a PDF"><FileDown size={15} /><span>Export PDF</span></button></div>
-            {exportOpen && <Suspense fallback={null}><ExportPdfDialog canvasId={canvasId} close={() => setExportOpen(false)} /></Suspense>}
+            <div className="manuscript-toolbar"><div role="group" aria-label="Writing view"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Section board</button></div><button className="manuscript-add-page" disabled={pages.length >= 100} onClick={() => create(ROOT_PAGE)}>+ Add page</button><span className="manuscript-count">{pages.length} / 100 items</span></div>
             {/* At the main page the path is just the project name, already shown as the title. */}
             {selected !== ROOT_PAGE && <nav className="writing-breadcrumbs" aria-label="Page path"><button onClick={() => selectPage(ROOT_PAGE)}>{canvas?.name || canvas?.title || 'Main page'}</button>{pageAncestors(pages, selected).map(page => <span key={page.id}><span aria-hidden="true">/</span><button aria-current={page.id === selected ? 'page' : undefined} onClick={() => selectPage(page.id)}>{page.title || 'Untitled page'}</button></span>)}</nav>}
             {current && <details className="manuscript-organise"><summary>Organise this {writingKindLabel(current.kind)}</summary><label>Type<select value={current.kind || 'page'} onChange={event => save(pages.map(page => page.id === selected ? { ...page, kind: event.target.value as WritingPage['kind'] } : page))}>{['part', 'section', 'scene', 'page'].map(value => <option key={value} value={value}>{writingKindLabel(value as WritingPage['kind'])}</option>)}</select></label><label>Move into<select value={current.parentId} onChange={event => reparent(event.target.value)}><option value={ROOT_PAGE}>Main page</option>{pages.filter(page => page.id !== selected && !pageAncestors(pages, page.id).some(ancestor => ancestor.id === selected)).map(page => <option value={page.id} key={page.id}>{page.title}</option>)}</select></label></details>}

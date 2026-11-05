@@ -1,8 +1,24 @@
-import { htmlToMarkdown, markdownToHtml } from './richText.ts';
+import { htmlToMarkdown, markdownToHtml, HIGHLIGHT_COLORS, highlightColorFromCss, isHighlightColor, type HighlightColor } from './richText.ts';
 import type { MarkdownFormat } from './markdownFormat.ts';
 
 export type RichFormat = MarkdownFormat | 'highlight' | 'numbered';
-export const HIGHLIGHT_COLOR = 'rgba(250, 204, 21, 0.38)';
+const COLOR_KEY = 'stratabin-highlight-color';
+/** The highlight colour the toolbar button and Ctrl+Shift+X apply (last one picked). */
+export function preferredHighlight(): HighlightColor {
+    try { const saved = localStorage.getItem(COLOR_KEY); if (isHighlightColor(saved)) return saved; } catch { /* default */ }
+    return 'yellow';
+}
+export function setPreferredHighlight(color: HighlightColor) {
+    try { localStorage.setItem(COLOR_KEY, color); } catch { /* only remembered for this visit */ }
+}
+
+/** Highlight colour at the caret or selection, or null when the text is not highlighted. */
+export function highlightAt(editor: HTMLElement): HighlightColor | null {
+    if (!selectionIn(editor)) return null;
+    const mark = closestInEditor(editor, ['MARK']);
+    if (mark) { const color = mark.getAttribute('data-color'); return isHighlightColor(color) ? color : 'yellow'; }
+    return highlightColorFromCss(String(document.queryCommandValue('hiliteColor') || ''));
+}
 
 const ZERO_WIDTH = new RegExp(String.fromCharCode(8203), 'g');
 const exec = (command: string, value?: string) => document.execCommand(command, false, value);
@@ -57,7 +73,7 @@ function selectWordIfCollapsed(selection: Selection) {
 const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** Apply a toolbar format to the current selection in a rich-text editor. */
-export function applyRichFormat(editor: HTMLElement, format: RichFormat) {
+export function applyRichFormat(editor: HTMLElement, format: RichFormat, color: HighlightColor | 'none' = preferredHighlight()) {
     if (editor.getAttribute('contenteditable') !== 'true') return;
     ensureSelection(editor);
     exec('styleWithCSS', 'false');
@@ -78,13 +94,21 @@ export function applyRichFormat(editor: HTMLElement, format: RichFormat) {
             break;
         }
         case 'highlight': {
+            const current = highlightAt(editor);
+            // The same colour again (or "none") removes the highlight; another colour recolours it.
+            const remove = color === 'none' || current === color;
             const mark = closestInEditor(editor, ['MARK']);
-            if (mark) { unwrap(mark); notifyInput(editor); break; }
+            if (mark) {
+                if (remove) unwrap(mark);
+                else if (color === 'yellow') mark.removeAttribute('data-color');
+                else mark.setAttribute('data-color', color);
+                notifyInput(editor);
+                break;
+            }
             const selection = window.getSelection()!;
             selectWordIfCollapsed(selection);
             if (selection.isCollapsed) break;
-            const highlighted = /rgba?\((?!0, 0, 0, 0)/.test(String(document.queryCommandValue('hiliteColor') || '')) && document.queryCommandValue('hiliteColor') !== 'transparent';
-            exec('hiliteColor', highlighted ? 'transparent' : HIGHLIGHT_COLOR);
+            exec('hiliteColor', remove ? 'transparent' : HIGHLIGHT_COLORS[color as HighlightColor].editor);
             break;
         }
         case 'code': {
@@ -134,8 +158,7 @@ export function activeRichFormats(editor: HTMLElement): Set<RichFormat> {
     if (closestInEditor(editor, ['OL'])) active.add('numbered');
     if (closestInEditor(editor, ['CODE', 'PRE'])) active.add('code');
     if (closestInEditor(editor, ['A'])) active.add('link');
-    const color = String(document.queryCommandValue('hiliteColor') || '');
-    if (closestInEditor(editor, ['MARK']) || (color && color !== 'transparent' && !/rgba\(0, 0, 0, 0\)/.test(color) && color !== 'rgb(0, 0, 0)')) active.add('highlight');
+    if (highlightAt(editor)) active.add('highlight');
     return active;
 }
 
