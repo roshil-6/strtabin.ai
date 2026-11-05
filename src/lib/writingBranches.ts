@@ -1,3 +1,4 @@
+import { markdownPlainText } from './richText.ts';
 export type BranchNode = { label: string; depth: number };
 export type WritingBlock = { text: string } | { nodes: BranchNode[] };
 const pattern = /```stratabin-branch\n([^]*?)\n```/g;
@@ -20,5 +21,5 @@ export function writeWritingBlocks(blocks: WritingBlock[]): string {
 }
 
 export function writingPlainText(value:string):string {
-    return readWritingBlocks(value).map(block => 'text' in block ? block.text : block.nodes.map(node=>node.label).join(' ')).join(' ');
+    return readWritingBlocks(value).map(block => 'text' in block ? markdownPlainText(block.text) : block.nodes.map(node=>node.label).join(' ')).join(' ');
 }
