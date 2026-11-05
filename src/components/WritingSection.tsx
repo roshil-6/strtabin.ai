@@ -105,7 +105,8 @@ function FloatingNoteEditor({ title, kindLabel, close, actions, children }: { ti
         const base = { left: element.offsetLeft - offset.x, top: element.offsetTop - offset.y };
         // Keep at least the header on screen.
         const x = Math.min(parent.clientWidth - base.left - 120, Math.max(-base.left, start.x + clientX - start.startX));
-        const y = Math.min(parent.clientHeight - base.top - 56, Math.max(-base.top, start.y + clientY - start.startY));
+        // Keep the whole panel inside the board so its writing area never ends up off-screen.
+        const y = Math.min(Math.max(0, parent.clientHeight - base.top - element.offsetHeight), Math.max(-base.top, start.y + clientY - start.startY));
         setOffset({ x, y });
     };
     return <section ref={panel} id="note-side-editor" className="note-side-editor is-floating" aria-label={`Editing ${title}`} style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
@@ -321,7 +322,7 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
         setBranchItems(['', '', '', '', '', '']);
     };
 
-    const wc = [writingPlainText(content), ...(isSplitMode ? [headingA, contentA, headingB, contentB] : [])].join(' ').trim().split(/\s+/).filter(Boolean).length;
+    const wc = [writingPlainText(content), ...(isSplitMode ? [headingA, writingPlainText(contentA), headingB, writingPlainText(contentB)] : [])].join(' ').trim().split(/\s+/).filter(Boolean).length;
 
     return (
         <div className="writing-surface h-full w-full flex flex-col relative" style={{ background: 'var(--bg-page)' }}>

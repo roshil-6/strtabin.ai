@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import useStore from '../store/useStore';
+import { writingWordCount } from '../lib/writingBranches';
 
 import { FileText, CheckSquare, LineChart, Bot, Layout, Activity, Zap, Sparkles, Network } from 'lucide-react';
 
@@ -23,7 +24,7 @@ export default function ProjectOverview() {
 
     const todoCount = project.todos?.length || 0;
     const completedTodos = project.todos?.filter((t: { completed: boolean }) => t.completed).length || 0;
-    const wordCount = (project.writingContent || '').trim().split(/\s+/).filter(Boolean).length;
+    const wordCount = writingWordCount(project.writingContent);
     const completionRate = todoCount > 0 ? Math.round((completedTodos / todoCount) * 100) : 0;
 
     const tools = [
