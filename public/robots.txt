@@ -1,4 +1,19 @@
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /strategy/
+Disallow: /project/
+Disallow: /todo/
+Disallow: /timeline/
+Disallow: /calendar
+Disallow: /timetable
+Disallow: /workspace/
+Disallow: /join/
+Disallow: /ai$
+Disallow: /ai/
+Disallow: /strab
+Disallow: /sasha
+Disallow: /billing
+Disallow: /sso-callback
 
 Sitemap: https://www.stratabin.com/sitemap.xml
