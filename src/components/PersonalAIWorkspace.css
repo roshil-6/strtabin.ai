@@ -240,3 +240,10 @@ button.ai-generate-action:disabled{opacity:.55;cursor:not-allowed}
 .ai-spin{animation:ai-spin 1s linear infinite}
 @keyframes ai-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.ai-spin{animation-duration:3s}}
+.ai-composer-modes{display:flex;gap:6px;padding:4px;margin-bottom:22px;border:1px solid var(--border-strong);border-radius:12px;background:var(--input-bg)}
+.ai-composer-modes button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:8px 12px;border-radius:9px;font-size:14px;font-weight:500;color:var(--text-muted)}
+.ai-composer-modes button[aria-selected=true]{background:var(--bg-panel);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ai-inapp-inline textarea{width:100%;padding:13px;border:1px solid var(--border-strong);border-radius:9px;background:var(--input-bg);color:var(--text);font-size:14px;line-height:1.6;resize:vertical}
+.ai-inapp-inline .ai-prompt-chips{margin-top:10px}
+.ai-inapp-input{width:100%;padding:11px 13px;border:1px solid var(--border-strong);border-radius:9px;background:var(--input-bg);color:var(--text);font-size:14px}
+@media (max-width:600px){.ai-composer-modes{flex-direction:column}}
