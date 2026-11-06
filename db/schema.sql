@@ -267,3 +267,13 @@ CREATE TABLE IF NOT EXISTS personal_workspaces (
     revision INTEGER NOT NULL DEFAULT 0,
     snapshot TEXT NOT NULL
 );
+
+-- Reports saved from AI assistants (MCP) for personal projects, waiting for the web app to file them.
+CREATE TABLE IF NOT EXISTS mcp_report_inbox (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    canvas_id TEXT NOT NULL,
+    report TEXT NOT NULL,
+    created_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_mcp_report_inbox_user ON mcp_report_inbox(user_id, canvas_id);

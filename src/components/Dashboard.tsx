@@ -12,7 +12,7 @@ import useModalStore from '../store/useModalStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronDown, Hourglass, Archive, FileDown } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronDown, Hourglass, Archive, FileDown, PlugZap } from 'lucide-react';
 const ExportPdfDialog = lazy(() => import('./ExportPdfDialog'));
 
 import ThemeToggle from './ThemeToggle';
@@ -801,6 +801,13 @@ export default function Dashboard() {
                             >
                                 <Network size={17} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
                                 <span className="font-semibold text-sm text-left">Community</span>
+                            </button>
+                            <button
+                                onClick={() => { navigate('/connect-ai'); setIsSidebarOpen(false); }}
+                                className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl transition-all group text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                            >
+                                <PlugZap size={17} className="text-[var(--text-dim)] group-hover:text-[var(--text)]" />
+                                <span className="font-semibold text-sm text-left">Connect your AI</span>
                             </button>
                         </div>
 

@@ -5,6 +5,7 @@ import { BUILT_IN_AI_ENABLED } from './lib/featureFlags';
 import { lazy, Suspense } from 'react';
 import ProjectPage from './components/ProjectPage';
 import ProjectSync from './components/ProjectSync';
+import McpInboxSync from './components/McpInboxSync';
 import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 const PersonalAssistant = lazy(() => import('./components/PersonalAssistant'));
@@ -23,6 +24,7 @@ const LandingPage = lazy(() => import('./components/LandingPage'));
 const AuthPage = lazy(() => import('./components/AuthPage'));
 const FeaturesPage = lazy(() => import('./components/FeaturesPage'));
 const TopicPage = lazy(() => import('./components/TopicPage'));
+const ConnectAIPage = lazy(() => import('./components/ConnectAIPage'));
 const ReportsSelectPage = lazy(() => import('./components/ReportsSelectPage'));
 const WorkspacePage = lazy(() => import('./components/WorkspacePage'));
 const JoinWorkspacePage = lazy(() => import('./components/JoinWorkspacePage'));
@@ -55,6 +57,7 @@ function App() {
     <PushAccountGuard />
     <UserSyncOnLoad />
     <ProjectSync />
+    <McpInboxSync />
     <Suspense fallback={<div role="status" aria-label="Opening workspace" className="min-h-[100dvh] theme-page flex items-center justify-center"><span className="h-6 w-6 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] motion-safe:animate-spin" /></div>}>
     <PersonalAssistant />
     <Routes>
@@ -63,6 +66,7 @@ function App() {
       <Route path="/auth/sign-up" element={<AuthPage />} />
       <Route path="/features" element={<FeaturesPage />} />
       {topicPaths.map(path => <Route key={path} path={path} element={<TopicPage />} />)}
+      <Route path="/connect-ai" element={<ConnectAIPage />} />
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
       <Route path="/dashboard" element={<AuthGate><Dashboard /></AuthGate>} />
       <Route path="/billing" element={<AuthGate><BillingPage /></AuthGate>} />

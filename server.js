@@ -1,4 +1,5 @@
 import { registerPersonalWorkspaceRoutes } from './routes/personalWorkspace.js';
+import { registerMcpRoutes, registerMcpInboxRoutes } from './routes/mcp.js';
 import express from 'express';
 import { registerReminderRoutes } from './routes/reminders.js';
 import { startReminderWorker } from './lib/reminders.js';
@@ -81,6 +82,9 @@ function isAllowedOrigin(origin) {
         return false;
     } catch { return false; }
 }
+
+// ─── MCP connector (Claude, ChatGPT, Gemini): open CORS + its own OAuth checks, so it sits before the app CORS ─
+registerMcpRoutes(app);
 
 // ─── CORS first — required for browser fetch() from www.stratabin.com to /health & APIs ─
 // (Render health checks send no Origin; cors allows that via !origin below.)
@@ -663,6 +667,7 @@ registerWorkspaceRoutes(app, clerk);
 registerChatRoutes(app, clerk);
 registerBillingRoutes(app);
 registerPersonalWorkspaceRoutes(app);
+registerMcpInboxRoutes(app);
 registerAssistantRoutes(app);
 registerReminderRoutes(app);
 
