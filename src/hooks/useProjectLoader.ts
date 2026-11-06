@@ -29,9 +29,19 @@ const canvasFromServer = (data: Record<string, unknown>) => ({
 /** Hydrate a project the assistant just created, so the rest of its plan can apply right away. */
 export async function hydrateNewProject(id: string, userId: string | null | undefined, token: string | null) {
     if (!/^proj_\d+$/.test(id)) throw new Error('Invalid project.');
-    const data = await workspaceService.getProjectCanvas(Number(id.slice(5)), token);
+    const owner = userId || 'guest';
+    // Share the request with a loader that may already be fetching this project, so only one copy lands.
+    const requestKey = `${owner}:${id}`;
+    let request = inflight.get(requestKey);
+    if (!request) {
+        request = workspaceService.getProjectCanvas(Number(id.slice(5)), token);
+        inflight.set(requestKey, request);
+        void request.finally(() => inflight.delete(requestKey)).catch(() => {});
+    }
+    const data = await request;
+    if (fetchedProjects.get(id) === owner && useStore.getState().canvases[id]) return;
     useStore.getState().loadSharedCanvas(id, canvasFromServer(data));
-    fetchedProjects.set(id, userId || 'guest');
+    fetchedProjects.set(id, owner);
 }
 
 export function useProjectLoader(id?: string) {
@@ -73,7 +83,11 @@ export function useProjectLoader(id?: string) {
         }
         void request.then(data => {
             if (cancelled) return;
-            if (hasLocalDraft) {
+            // Another loader (e.g. Sasha creating this project) finished first and may already have
+            // applied changes on top; replacing it with this older server copy would erase them.
+            if (fetchedProjects.get(id) === (userId || 'guest') && useStore.getState().canvases[id]) {
+                useStore.getState().setCurrentCanvas(id);
+            } else if (hasLocalDraft) {
                 // Verify access with the GET, but retain unsynced local edits after a reload.
                 useStore.getState().setCurrentCanvas(id);
             } else useStore.getState().loadSharedCanvas(id, canvasFromServer(data));
