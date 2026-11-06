@@ -135,6 +135,7 @@ registerBillingWebhook(app);
 // Register early so req.body is available in all JSON route handlers
 app.use((req, res, next) => {
     if ((req.path === '/api/assistant/chat' || req.path === '/api/assistant/voice/session')) return express.json({ limit: '160kb' })(req, res, next);
+    if (req.path === '/api/assistant/report') return express.json({ limit: '600kb' })(req, res, next);
     // Canvas share needs larger limit for nodes/edges payload
     if (req.path === '/api/canvas/share' || req.path.match(/^\/api\/projects\/\d+\/canvas$/)) return express.json({ limit: '2mb' })(req, res, next);
     if (req.path === '/api/personal-workspace') return express.json({ limit: '9mb' })(req, res, next);

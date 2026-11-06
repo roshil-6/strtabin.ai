@@ -1,6 +1,6 @@
 export type PackageSections = { writing: boolean; board: boolean; tasks: boolean; timeline: boolean; goals: boolean; code: boolean };
 export const DEFAULT_SECTIONS: PackageSections = { writing: true, board: true, tasks: true, timeline: true, goals: true, code: false };
-export type ReportProvider = 'chatgpt' | 'claude' | 'gemini' | 'other';
+export type ReportProvider = 'chatgpt' | 'claude' | 'gemini' | 'stratabin' | 'other';
 export type ExternalAiReport = { id: string; title: string; content: string; provider: ReportProvider; createdAt: number; updatedAt: number; archived?: boolean };
 export const REPORT_LIMIT = 30;
 export const REPORT_CONTENT_LIMIT = 40000;
@@ -32,7 +32,7 @@ export function buildProjectAiPackage(project: ProjectContext, sections: Package
 }
 export function sanitizeExternalReports(value: unknown): ExternalAiReport[] {
     if (!Array.isArray(value)) return [];
-    const providers = new Set(['chatgpt', 'claude', 'gemini', 'other']);
+    const providers = new Set(['chatgpt', 'claude', 'gemini', 'stratabin', 'other']);
     return value.slice(0, REPORT_LIMIT).flatMap(item => {
         if (!item || typeof item !== 'object' || typeof item.id !== 'string' || typeof item.content !== 'string' || !item.content.trim()) return [];
         return [{ id: item.id.slice(0, 80), title: text(item.title).trim().slice(0, 160) || 'AI report', content: item.content.slice(0, REPORT_CONTENT_LIMIT), provider: providers.has(item.provider) ? item.provider : 'other', createdAt: Number.isFinite(item.createdAt) ? item.createdAt : 0, updatedAt: Number.isFinite(item.updatedAt) ? item.updatedAt : 0, archived: item.archived === true }];

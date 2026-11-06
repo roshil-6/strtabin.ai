@@ -222,3 +222,21 @@
 @media(prefers-reduced-motion:reduce){.ai-project-card{transition:none}.ai-project-card:hover{transform:none}}
 .ai-connect-link{margin-top:14px;font-size:13px;font-weight:600;color:var(--primary);text-align:left}
 .ai-connect-link:hover{text-decoration:underline}
+
+/* Four choices: three external AIs plus Stratabin AI generated in-app. */
+.ai-provider-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.ai-provider-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.provider-stratabin{border-radius:10px;background:var(--accent-soft);color:var(--primary)}
+.ai-inapp-panel label{display:block;margin:18px 0 8px;font-size:13px;font-weight:500;color:var(--text-secondary)}
+.ai-inapp-panel input{width:100%;padding:11px 13px;border:1px solid var(--border-strong);border-radius:9px;background:var(--input-bg);color:var(--text);font-size:14px}
+.ai-inapp-panel .ai-generate-action{width:100%;margin-top:16px}
+.ai-inapp-panel .ai-field-help{margin-top:10px;font-size:13px}
+.ai-inapp-panel .ai-field-help a{color:var(--primary);text-decoration:underline}
+.ai-inapp-panel .ai-handoff-note{margin-top:18px}
+.ai-credit-meter{height:6px;margin-top:16px;border-radius:99px;background:var(--border-strong);overflow:hidden}
+.ai-credit-meter span{display:block;height:100%;border-radius:inherit;background:var(--primary);transition:width .3s}
+button.ai-generate-action{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:12px 15px;border-radius:9px;font-size:14px;font-weight:600;background:var(--primary);color:#191623;border:1px solid var(--primary)}
+button.ai-generate-action:disabled{opacity:.55;cursor:not-allowed}
+.ai-spin{animation:ai-spin 1s linear infinite}
+@keyframes ai-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.ai-spin{animation-duration:3s}}

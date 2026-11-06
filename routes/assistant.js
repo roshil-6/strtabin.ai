@@ -1,11 +1,11 @@
 import { getProfileProjects } from '../db/models.js';
 import rateLimit from 'express-rate-limit';
 import { requireClerkAuth } from '../middleware/requireClerkAuth.js';
-import { askProvider } from '../lib/assistant.js';
+import { askProvider, generateReport, REPORT_CONTEXT_LIMIT } from '../lib/assistant.js';
 import { createLiveSession } from '../lib/liveVoice.js';
 import { sashaAccess, reserveSashaUsage, sashaRemaining, SASHA_TEXT_MODEL, SASHA_VOICE_MODEL, SASHA_LIMITS } from '../lib/sashaAccess.js';
 
-export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = askProvider, live = createLiveSession, access = sashaAccess, reserve = reserveSashaUsage, remaining = sashaRemaining, key = () => process.env.GEMINI_API_KEY?.trim() } = {}) {
+export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = askProvider, report = generateReport, reportsPerMinute = 5, live = createLiveSession, access = sashaAccess, reserve = reserveSashaUsage, remaining = sashaRemaining, key = () => process.env.GEMINI_API_KEY?.trim() } = {}) {
     app.get('/api/assistant/projects', auth, async (req,res) => {
         res.set('Cache-Control','no-store');
         try {res.json({projects:await getProfileProjects(req.userId,500)});} catch {res.status(503).json({error:'Could not load your projects.'});}
@@ -45,4 +45,25 @@ export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = as
             }
         });
     }
+    // In-app project reports share the daily Sasha chat allowance: one report uses one request.
+    app.post('/api/assistant/report', auth, rateLimit({windowMs:60000, limit:reportsPerMinute, standardHeaders:true, legacyHeaders:false}), async (req, res) => {
+        res.set('Cache-Control', 'no-store');
+        const { instruction, context, name = '' } = req.body || {};
+        if (req.body?.model || req.body?.apiKey || req.body?.provider) return res.status(400).json({error:'Reports use the managed Gemini connection. Custom keys and models are not accepted.'});
+        if (typeof instruction !== 'string' || !instruction.trim() || instruction.length > 5000) return res.status(400).json({error:'Describe the report you want in up to 5,000 characters.'});
+        if (typeof context !== 'string' || !context.trim() || context.length > REPORT_CONTEXT_LIMIT || typeof name !== 'string' || name.length > 40) return res.status(400).json({error:'This project is too large for one report. Turn off some sections (such as code files) and try again.', code:'CONTEXT_TOO_LARGE'});
+        try {
+            const status = await access(req);
+            if (!status.pro) return res.status(403).json({error:'In-app reports are included with Pro. You can still copy your project to your own AI.', code:'PRO_REQUIRED'});
+            const apiKey = key();
+            if (!status.configured || !apiKey) return res.status(503).json({error:'In-app reports are not configured on the server yet.'});
+            const used = await reserve(req.userId, 'chat');
+            if (!used) return res.status(429).json({error:'Your daily Sasha allowance is used. It resets at midnight UTC. You can still copy your project to your own AI.', code:'LIMIT_REACHED'});
+            const result = await report({ apiKey, model: SASHA_TEXT_MODEL, instruction: instruction.trim(), context, name });
+            res.json({ ...result, ...(typeof used === 'number' ? { remaining: Math.max(0, SASHA_LIMITS.chat - used) } : {}) });
+        } catch (error) {
+            if (error.name === 'TimeoutError' || [429,503,504].includes(error.status)) return res.status(503).json({error:'Gemini is busy or took too long. Please try again shortly.'});
+            res.status(502).json({error:'The report could not be generated. Please try again later.'});
+        }
+    });
 }
