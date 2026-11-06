@@ -257,6 +257,8 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             for (const { date, event } of planned.undo.reminders) NotificationManager.scheduleNotification(event.task, event.time, date, `${id}:${event.id}`);
             const screen = screens[screens.length - 1];
             if (screen) openScreen(screen.text, id);
+            // A new project with a flow map lands on the flow, so the result is visible right away.
+            else if (created && actions.some(action => action.type === 'create_flow')) openScreen('flow', id);
             else if (planned.openProject || created) navigate(`/strategy/${encodeURIComponent(id)}`);
             const done = describePlan(actions.filter(action => action.type !== 'open_screen'));
             const confirmation = (created ? `Created “${created}” and applied ${done.length} step${done.length === 1 ? '' : 's'}. ` : '') + (reminders.length

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import { askProvider, validateReply } from '../lib/assistant.js';
+import { askProvider, validateReply, generateReport } from '../lib/assistant.js';
 import { registerAssistantRoutes } from '../routes/assistant.js';
 
 const action = { type: 'add_reminder', text: 'Review launch', taskId: '', date: '2030-03-15', time: '09:00' };
@@ -68,4 +68,35 @@ test('one plan can create a project, fill it and open a screen; creation must co
  assert.throws(()=>validateReply({reply:'Review',actions:[{...action,type:'create_project',text:'A'},{...action,type:'complete_task',taskId:'t1'}]}));
  assert.throws(()=>validateReply({reply:'Review',actions:[{...action,type:'open_screen',text:'settings-admin'}]}));
  assert.equal(validateReply({reply:'Review',actions:[{...action,type:'create_project',text:'New project'}]}).actions[0].type,'create_project');
+});
+
+test('in-app reports use the Sasha allowance, Pro and the fixed model, and return Markdown', async t => {
+    const app = express(); app.use(express.json({ limit: '600kb' }));
+    let pro = true, allowed = 3, calls = 0, input, kind;
+    registerAssistantRoutes(app, { auth: (req, res, next) => req.headers.authorization === 'Bearer fixture' ? (req.userId = 'u1', next()) : res.sendStatus(401),
+        access: async () => ({ pro, configured: true }), reserve: async (_user, value) => { kind = value; return allowed; }, key: () => 'server-only-secret',
+        reportsPerMinute: 100, report: async value => { calls++; input = value; return { content: '# Report\nAll good' }; } });
+    const server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve)); t.after(() => server.close());
+    const send = (body, auth = true) => fetch(`http://127.0.0.1:${server.address().port}/api/assistant/report`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(auth ? { Authorization: 'Bearer fixture' } : {}) }, body: JSON.stringify(body) });
+    const body = { instruction: 'Review risks', context: '# Project' };
+    assert.equal((await send(body, false)).status, 401);
+    for (const change of [{ instruction: '' }, { context: '' }, { context: 'x'.repeat(120001) }, { model: 'other' }, { apiKey: 'k' }]) assert.equal((await send({ ...body, ...change })).status, 400);
+    pro = false; assert.equal((await send(body)).status, 403); pro = true;
+    allowed = 0; assert.equal((await send(body)).status, 429); allowed = 3;
+    assert.equal(calls, 0);
+    const result = await send(body);
+    assert.equal(result.status, 200);
+    assert.deepEqual(await result.json(), { content: '# Report\nAll good', remaining: 7 });
+    assert.equal(kind, 'chat');
+    assert.equal(input.apiKey, 'server-only-secret');
+    assert.equal(input.model, 'gemini-3.5-flash-lite');
+});
+
+test('report generator sends the key only in a header and unwraps a fenced report', async () => {
+    let request;
+    const fetcher = async (url, options) => { request = { url, options }; return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: '```markdown\n# Plan\nNext steps\n```' }] } }] }) }; };
+    assert.deepEqual(await generateReport({ apiKey: 'secret', model: 'm', instruction: 'r', context: 'c' }, fetcher), { content: '# Plan\nNext steps' });
+    assert.equal(request.url.includes('secret') || request.options.body.includes('secret'), false);
+    assert.equal(request.options.redirect, 'error');
+    await assert.rejects(generateReport({ apiKey: 'k', model: 'm', instruction: 'r', context: 'c' }, async () => ({ ok: true, json: async () => ({ candidates: [] }) })), /did not return/);
 });

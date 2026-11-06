@@ -1,4 +1,5 @@
 import { registerPersonalWorkspaceRoutes } from './routes/personalWorkspace.js';
+import { registerMcpRoutes, registerMcpInboxRoutes } from './routes/mcp.js';
 import express from 'express';
 import { registerReminderRoutes } from './routes/reminders.js';
 import { startReminderWorker } from './lib/reminders.js';
@@ -82,6 +83,9 @@ function isAllowedOrigin(origin) {
     } catch { return false; }
 }
 
+// ─── MCP connector (Claude, ChatGPT, Gemini): open CORS + its own OAuth checks, so it sits before the app CORS ─
+registerMcpRoutes(app);
+
 // ─── CORS first — required for browser fetch() from www.stratabin.com to /health & APIs ─
 // (Render health checks send no Origin; cors allows that via !origin below.)
 app.use(cors({
@@ -131,6 +135,7 @@ registerBillingWebhook(app);
 // Register early so req.body is available in all JSON route handlers
 app.use((req, res, next) => {
     if ((req.path === '/api/assistant/chat' || req.path === '/api/assistant/voice/session')) return express.json({ limit: '160kb' })(req, res, next);
+    if (req.path === '/api/assistant/report') return express.json({ limit: '600kb' })(req, res, next);
     // Canvas share needs larger limit for nodes/edges payload
     if (req.path === '/api/canvas/share' || req.path.match(/^\/api\/projects\/\d+\/canvas$/)) return express.json({ limit: '2mb' })(req, res, next);
     if (req.path === '/api/personal-workspace') return express.json({ limit: '9mb' })(req, res, next);
@@ -663,6 +668,7 @@ registerWorkspaceRoutes(app, clerk);
 registerChatRoutes(app, clerk);
 registerBillingRoutes(app);
 registerPersonalWorkspaceRoutes(app);
+registerMcpInboxRoutes(app);
 registerAssistantRoutes(app);
 registerReminderRoutes(app);
 

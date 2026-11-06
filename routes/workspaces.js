@@ -720,7 +720,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const reportInput = externalAiReports === undefined ? previousReports : externalAiReports;
             const safeReports = Array.isArray(reportInput) ? reportInput.slice(0, 30).filter(r => r && typeof r.id === 'string' && typeof r.content === 'string' && r.content.trim()).map(r => ({
                 id: r.id.slice(0, 80), title: typeof r.title === 'string' ? r.title.slice(0, 160) : 'AI report', content: r.content.slice(0, 40000),
-                provider: ['chatgpt', 'claude', 'gemini', 'other'].includes(r.provider) ? r.provider : 'other',
+                provider: ['chatgpt', 'claude', 'gemini', 'stratabin', 'other'].includes(r.provider) ? r.provider : 'other',
                 createdAt: Number.isFinite(r.createdAt) ? r.createdAt : Date.now(), updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : Date.now(), archived: r.archived === true,
             })) : undefined;
             const pageInput = writingPages === undefined && previousCanvas?.data ? JSON.parse(previousCanvas.data).writingPages : writingPages;
