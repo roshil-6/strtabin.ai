@@ -3,6 +3,8 @@ import ts from 'typescript';
 const source=await readFile('src/content/publicContent.ts','utf8');
 const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
 const {publicPages,publicFeatures,publicFaqs,featureCategories,featureAvailabilityNotice,structuredData,SITE_URL,SEO_KEYWORDS,CONTENT_UPDATED,topicPaths}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
+const guideSource=await readFile('src/content/featureGuide.ts','utf8');
+const {guideIntro,guideGroups,guidePlaybooks}=await import('data:text/javascript;base64,'+Buffer.from(ts.transpileModule(guideSource,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText).toString('base64'));
 const escape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const template=await readFile('dist/index.html','utf8');
 const meta=(html,key,value)=>html.replace(new RegExp(`(<meta (?:name|property)="${key}" content=")[^"]*("\\s*/?>)`),`$1${escape(value)}$2`);
@@ -18,6 +20,7 @@ const featureList=features=>featureCategories.map(category=>{
  const items=features.filter(feature=>feature.category===category);
  return items.length?`<section><h2>${escape(category)}</h2>${items.map(feature=>`<article><h3>${escape(feature.title)}</h3><p>${escape(feature.desc)}</p></article>`).join('')}</section>`:'';
 }).join('');
+const guide=()=>`<section><h2>${escape(guideIntro.heading)}</h2>${guideIntro.body.map(p=>`<p>${escape(p)}</p>`).join('')}</section>${guideGroups.map(group=>`<section id="${group.id}"><h2>${escape(group.title)}</h2><p>${escape(group.intro)}</p>${group.tools.map(tool=>`<article id="${tool.id}"><h3>${escape(tool.title)}</h3><p>${escape(tool.what)}</p><h4>How it works</h4><ol>${tool.how.map(step=>`<li>${escape(step)}</li>`).join('')}</ol><p><strong>Example:</strong> ${escape(tool.example)}</p><p>Find it: ${escape(tool.where)}</p></article>`).join('')}</section>`).join('')}<section><h2>Putting it together</h2>${guidePlaybooks.map(play=>`<article><h3>${escape(play.title)}</h3><ol>${play.steps.map(step=>`<li>${escape(step)}</li>`).join('')}</ol></article>`).join('')}</section>`;
 const faqs=`<section><h2>Frequently asked questions</h2>${publicFaqs.map(faq=>`<article><h3>${escape(faq.q)}</h3><p>${escape(faq.a)}</p></article>`).join('')}</section>`;
 
 for(const [path,page] of Object.entries(publicPages)){
@@ -31,7 +34,7 @@ for(const [path,page] of Object.entries(publicPages)){
  const isTopic=topicPaths.includes(path);
  const body=isTopic
   ?`${page.intro?`<p>${escape(page.intro)}</p>`:''}${(page.sections||[]).map(section=>`<section><h2>${escape(section.heading)}</h2><p>${escape(section.body)}</p></section>`).join('')}${featureList(publicFeatures.filter(feature=>page.categories?.includes(feature.category)))}<p><a href="/features">See every Stratabin feature</a></p>`
-  :`${path==='/features'?`<aside aria-label="Feature availability"><h2>Feature availability</h2><p>${escape(featureAvailabilityNotice)}</p></aside>`:''}${featureList(path==='/'?publicFeatures.filter(feature=>feature.highlight):publicFeatures)}${path==='/'?`<p><a href="/features">See all ${publicFeatures.length} features</a></p><section id="pricing"><h2>Free and Pro</h2><p>Start free. Pro is ₹109 per month for up to 12 monthly billing cycles, with Sasha AI usage allowances. General Free project limits are not enforced yet.</p><a href="/billing">Plans and billing</a></section>`:''}${faqs}`;
+  :`${path==='/features'?`<aside aria-label="Feature availability"><h2>Feature availability</h2><p>${escape(featureAvailabilityNotice)}</p></aside>`:''}${path==='/features'?guide():featureList(publicFeatures.filter(feature=>feature.highlight))}${path==='/'?`<p><a href="/features">See all ${publicFeatures.length} features</a></p><section id="pricing"><h2>Free and Pro</h2><p>Start free. Pro is ₹109 per month for up to 12 monthly billing cycles, with Sasha AI usage allowances. General Free project limits are not enforced yet.</p><a href="/billing">Plans and billing</a></section>`:''}${faqs}`;
  const content=`<main style="max-width:1080px;margin:auto;padding:48px 24px;font-family:system-ui;line-height:1.7">${nav}<h1>${escape(page.heading)}</h1><p>${escape(page.description)}</p>${body}<p><a href="/auth">Start free with Stratabin</a></p></main>`;
  html=html.replace('<div id="root"></div>',`<div id="root">${content}</div>`);
  const file=path==='/'?'dist/index.html':`dist${path}/index.html`;
