@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import { askProvider, validateReply, generateReport } from '../lib/assistant.js';
+import { askProvider, validateReply, generateReport, extractReportFromImages } from '../lib/assistant.js';
 import { registerAssistantRoutes } from '../routes/assistant.js';
 
 const action = { type: 'add_reminder', text: 'Review launch', taskId: '', date: '2030-03-15', time: '09:00' };
@@ -99,4 +99,38 @@ test('report generator sends the key only in a header and unwraps a fenced repor
     assert.equal(request.url.includes('secret') || request.options.body.includes('secret'), false);
     assert.equal(request.options.redirect, 'error');
     await assert.rejects(generateReport({ apiKey: 'k', model: 'm', instruction: 'r', context: 'c' }, async () => ({ ok: true, json: async () => ({ candidates: [] }) })), /did not return/);
+});
+
+test('screenshot extraction checks images, Pro and allowance, and returns a titled Markdown report', async t => {
+    const app = express(); app.use(express.json({ limit: '10mb' }));
+    let pro = true, allowed = 2, calls = 0, input, result = { title: 'Launch review', content: '# Launch review\n- Ship' };
+    registerAssistantRoutes(app, { auth: (req, res, next) => req.headers.authorization === 'Bearer fixture' ? (req.userId = 'u1', next()) : res.sendStatus(401),
+        access: async () => ({ pro, configured: true }), reserve: async () => allowed, key: () => 'server-only-secret', reportsPerMinute: 100,
+        extract: async value => { calls++; input = value; return result; } });
+    const server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve)); t.after(() => server.close());
+    const send = (body, auth = true) => fetch(`http://127.0.0.1:${server.address().port}/api/assistant/report/extract`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(auth ? { Authorization: 'Bearer fixture' } : {}) }, body: JSON.stringify(body) });
+    const image = { mimeType: 'image/jpeg', data: 'aGVsbG8=' };
+    assert.equal((await send({ images: [image] }, false)).status, 401);
+    for (const images of [[], Array(7).fill(image), [{ ...image, mimeType: 'image/gif' }], [{ ...image, data: 'not base64!' }], [{ ...image, data: 'a'.repeat(1_500_001) }], 'x']) assert.equal((await send({ images })).status, 400);
+    assert.equal((await send({ images: [image], model: 'x' })).status, 400);
+    pro = false; assert.equal((await send({ images: [image] })).status, 403); pro = true;
+    allowed = 0; assert.equal((await send({ images: [image] })).status, 429); allowed = 2;
+    assert.equal(calls, 0);
+    const ok = await send({ images: [image, { mimeType: 'image/png', data: 'd29ybGQ=' }] });
+    assert.equal(ok.status, 200);
+    assert.deepEqual(await ok.json(), { ...result, remaining: 8 });
+    assert.equal(input.images.length, 2);
+    assert.equal(input.apiKey, 'server-only-secret');
+    result = { title: '', content: '' };
+    assert.equal((await send({ images: [image] })).status, 422);
+});
+
+test('screenshot transcription sends images inline with the key only in a header', async () => {
+    let body, headers;
+    const fetcher = async (_url, options) => { body = JSON.parse(options.body); headers = options.headers; return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: JSON.stringify({ title: 'Plan', content: '# Plan' }) }] } }] }) }; };
+    assert.deepEqual(await extractReportFromImages({ apiKey: 'secret', model: 'm', images: [{ mimeType: 'image/png', data: 'AAAA' }] }, fetcher), { title: 'Plan', content: '# Plan' });
+    assert.equal(body.contents[0].parts[1].inlineData.data, 'AAAA');
+    assert.equal(headers['x-goog-api-key'], 'secret');
+    assert.equal(JSON.stringify(body).includes('secret'), false);
+    await assert.rejects(extractReportFromImages({ apiKey: 'k', model: 'm', images: [] }, async () => ({ ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'nope' }] } }] }) })), /usable/);
 });

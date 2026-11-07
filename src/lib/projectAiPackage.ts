@@ -1,7 +1,11 @@
 export type PackageSections = { writing: boolean; board: boolean; tasks: boolean; timeline: boolean; goals: boolean; code: boolean };
 export const DEFAULT_SECTIONS: PackageSections = { writing: true, board: true, tasks: true, timeline: true, goals: true, code: false };
 export type ReportProvider = 'chatgpt' | 'claude' | 'gemini' | 'stratabin' | 'other';
-export type ExternalAiReport = { id: string; title: string; content: string; provider: ReportProvider; createdAt: number; updatedAt: number; archived?: boolean };
+export type ExternalAiReport = { id: string; title: string; content: string; provider: ReportProvider; createdAt: number; updatedAt: number; archived?: boolean; images?: string[] };
+/** Screenshots kept with a report: compressed data URLs, so they sync with the project like board images. */
+export const REPORT_IMAGE_LIMIT = 6;
+export const REPORT_IMAGE_BYTES = 700_000;
+export const isReportImage = (value: unknown): value is string => typeof value === 'string' && value.length <= REPORT_IMAGE_BYTES && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value);
 export const REPORT_LIMIT = 30;
 export const REPORT_CONTENT_LIMIT = 40000;
 type ProjectContext = {
@@ -34,8 +38,9 @@ export function sanitizeExternalReports(value: unknown): ExternalAiReport[] {
     if (!Array.isArray(value)) return [];
     const providers = new Set(['chatgpt', 'claude', 'gemini', 'stratabin', 'other']);
     return value.slice(0, REPORT_LIMIT).flatMap(item => {
-        if (!item || typeof item !== 'object' || typeof item.id !== 'string' || typeof item.content !== 'string' || !item.content.trim()) return [];
-        return [{ id: item.id.slice(0, 80), title: text(item.title).trim().slice(0, 160) || 'AI report', content: item.content.slice(0, REPORT_CONTENT_LIMIT), provider: providers.has(item.provider) ? item.provider : 'other', createdAt: Number.isFinite(item.createdAt) ? item.createdAt : 0, updatedAt: Number.isFinite(item.updatedAt) ? item.updatedAt : 0, archived: item.archived === true }];
+        const images = Array.isArray(item?.images) ? item.images.filter(isReportImage).slice(0, REPORT_IMAGE_LIMIT) : [];
+        if (!item || typeof item !== 'object' || typeof item.id !== 'string' || typeof item.content !== 'string' || (!item.content.trim() && !images.length)) return [];
+        return [{ ...(images.length ? { images } : {}), id: item.id.slice(0, 80), title: text(item.title).trim().slice(0, 160) || 'AI report', content: item.content.slice(0, REPORT_CONTENT_LIMIT), provider: providers.has(item.provider) ? item.provider : 'other', createdAt: Number.isFinite(item.createdAt) ? item.createdAt : 0, updatedAt: Number.isFinite(item.updatedAt) ? item.updatedAt : 0, archived: item.archived === true }];
     });
 }
 

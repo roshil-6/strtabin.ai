@@ -17,7 +17,7 @@ export type ExportProject = {
     nodes?: FlowNode[]; edges?: FlowEdge[];
     todos?: Array<{ text: string; completed: boolean }>;
     goals?: Array<{ label: string; targetMetric?: string; targetValue?: number; currentValue?: number; unit?: string }>;
-    externalAiReports?: Array<{ title: string; content: string; provider: string; createdAt: number; archived?: boolean }>;
+    externalAiReports?: Array<{ title: string; content: string; provider: string; createdAt: number; archived?: boolean; images?: string[] }>;
 };
 
 const esc = (value: unknown) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -174,7 +174,7 @@ figure.flow{margin:0 0 10px;border:1px solid #e5e7eb;border-radius:10px;padding:
 .edges line{stroke:#6b7280;stroke-width:2}.edge-label{font-size:12px;fill:#374151;text-anchor:middle}
 .nodes rect{stroke:rgba(0,0,0,.18);stroke-width:1}.node-text{width:100%;height:100%;padding:10px;font:14px/1.35 'Segoe UI',system-ui,sans-serif;color:#111827;overflow:hidden;word-break:break-word;white-space:pre-wrap}
 .ideas,.connections{columns:2;column-gap:24px;font-size:9.5pt}.ideas li,.connections li{break-inside:avoid;margin:2px 0}
-.report{margin-bottom:22px}.report-meta{color:#6e7781;font-size:9pt;margin:-4px 0 10px}.report table{font-size:9pt}.report p{margin:0 0 8px}
+.report{margin-bottom:22px}.report-shot{display:block;max-width:100%;margin:0 0 10px;border:1px solid #d0d7de;border-radius:6px;break-inside:auto}.report-meta{color:#6e7781;font-size:9pt;margin:-4px 0 10px}.report table{font-size:9pt}.report p{margin:0 0 8px}
 `;
 
 /** Full printable HTML for the chosen sections. `aiHtml` renders report Markdown (kept outside so this file has no React). */
@@ -188,7 +188,7 @@ export function buildProjectExportHtml(project: ExportProject, sections: ExportS
         if (section.id === 'flow') html = flowSection(project);
         if (section.id === 'ai') {
             const reports = (project.externalAiReports || []).filter(report => !report.archived);
-            html = reports.length ? reports.map(report => `<article class="report"><h3>${esc(report.title)}</h3><p class="report-meta">${esc(report.provider)} · ${esc(new Date(report.createdAt).toLocaleDateString())}</p>${aiHtml(report.content)}</article>`).join('') : '<p class="empty">No saved AI reports yet. Save one from the project’s AI page.</p>';
+            html = reports.length ? reports.map(report => `<article class="report"><h3>${esc(report.title)}</h3><p class="report-meta">${esc(({ chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', stratabin: 'Stratabin AI' } as Record<string, string>)[report.provider] || 'AI')} · ${esc(new Date(report.createdAt).toLocaleDateString())}</p>${(report.images || []).filter(src => /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(src)).map(src => `<img class="report-shot" src="${src}" alt="">`).join('')}${report.content.trim() ? aiHtml(report.content) : ''}</article>`).join('') : '<p class="empty">No saved AI reports yet. Save one from the project’s AI page.</p>';
         }
         return `<section class="part"><h2 class="section-title">${esc(section.label)}</h2><p class="section-sub">${esc(section.description)}</p>${html}</section>`;
     }).join('');
