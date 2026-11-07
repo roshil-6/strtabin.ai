@@ -136,8 +136,11 @@ registerBillingWebhook(app);
 app.use((req, res, next) => {
     if ((req.path === '/api/assistant/chat' || req.path === '/api/assistant/voice/session')) return express.json({ limit: '160kb' })(req, res, next);
     if (req.path === '/api/assistant/report') return express.json({ limit: '600kb' })(req, res, next);
+    if (req.path === '/api/assistant/report/extract') return express.json({ limit: '10mb' })(req, res, next);
     // Canvas share needs larger limit for nodes/edges payload
-    if (req.path === '/api/canvas/share' || req.path.match(/^\/api\/projects\/\d+\/canvas$/)) return express.json({ limit: '2mb' })(req, res, next);
+    if (req.path === '/api/canvas/share') return express.json({ limit: '2mb' })(req, res, next);
+    // Team project canvases can also carry board images and report screenshots.
+    if (req.path.match(/^\/api\/projects\/\d+\/canvas$/)) return express.json({ limit: '9mb' })(req, res, next);
     if (req.path === '/api/personal-workspace') return express.json({ limit: '9mb' })(req, res, next);
     express.json({ limit: '50kb' })(req, res, next);
 });

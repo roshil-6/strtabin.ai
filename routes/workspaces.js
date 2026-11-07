@@ -718,7 +718,9 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 : undefined;
             const previousReports = previousCanvas?.data ? JSON.parse(previousCanvas.data).externalAiReports : undefined;
             const reportInput = externalAiReports === undefined ? previousReports : externalAiReports;
-            const safeReports = Array.isArray(reportInput) ? reportInput.slice(0, 30).filter(r => r && typeof r.id === 'string' && typeof r.content === 'string' && r.content.trim()).map(r => ({
+            const reportImages = r => Array.isArray(r.images) ? r.images.filter(image => typeof image === 'string' && image.length <= 700000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image)).slice(0, 6) : [];
+            const safeReports = Array.isArray(reportInput) ? reportInput.slice(0, 30).filter(r => r && typeof r.id === 'string' && typeof r.content === 'string' && (r.content.trim() || reportImages(r).length)).map(r => ({
+                ...(reportImages(r).length ? { images: reportImages(r) } : {}),
                 id: r.id.slice(0, 80), title: typeof r.title === 'string' ? r.title.slice(0, 160) : 'AI report', content: r.content.slice(0, 40000),
                 provider: ['chatgpt', 'claude', 'gemini', 'stratabin', 'other'].includes(r.provider) ? r.provider : 'other',
                 createdAt: Number.isFinite(r.createdAt) ? r.createdAt : Date.now(), updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : Date.now(), archived: r.archived === true,
