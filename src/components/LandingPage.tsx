@@ -1,4 +1,8 @@
-import { publicFeatures, publicFaqs, publicPages, topicPaths } from '../content/publicContent';
+import { publicFaqs, publicPages, topicPaths } from '../content/publicContent';
+import { guideGroups } from '../content/featureGuide';
+const GUIDE_TOOLS = guideGroups.flatMap(group => group.tools);
+const GUIDE_TOOL_COUNT = GUIDE_TOOLS.length;
+const LANDING_SPOTLIGHT = ['screenshot-to-writing', 'calendar', 'board', 'sasha', 'in-app-reports', 'workspaces'].map(id => GUIDE_TOOLS.find(tool => tool.id === id)!).filter(Boolean);
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
@@ -213,26 +217,33 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* H2 — Key Features with semantic keywords */}
-            <section className="py-16 md:py-24 px-4 md:px-6">
+            {/* H2 — Features: what each tool is and how it works */}
+            <section id="features" className="py-16 md:py-24 px-4 md:px-6 scroll-mt-20">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-12 md:mb-16">
-                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-3">Everything You Need to Plan and Execute</h2>
-                        <p className="text-white/30 text-sm md:text-base">A complete strategy workspace — not just another project management tool.</p>
+                        <p className="text-[11px] md:text-xs font-black uppercase tracking-[0.2em] text-primary mb-3">Features</p>
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-3">One project. Every tool you need to plan and execute.</h2>
+                        <p className="text-white/40 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">Each project gets its own writing, flow board, tasks, calendar, timeline and AI. Here is how the most-used tools work.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {publicFeatures.filter(feature => feature.highlight).map((feat, i) => (
-                            <div key={i} className="group p-5 md:p-7 bg-white/[0.02] border border-white/[0.04] rounded-2xl hover:border-primary/20 hover:bg-white/[0.03] transition-all duration-300">
-                                <Sparkles size={22} className="text-primary mb-4 group-hover:scale-110 transition-transform" />
-                                <h3 className="text-sm md:text-base font-black text-white mb-2">{feat.title}</h3>
-                                <p className="text-white/30 text-xs md:text-sm leading-relaxed">{feat.desc}</p>
-                            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                        {LANDING_SPOTLIGHT.map(tool => (
+                            <article key={tool.id} className="group flex flex-col p-5 md:p-7 bg-white/[0.02] border border-white/[0.06] rounded-2xl hover:border-primary/25 hover:bg-white/[0.03] transition-all duration-300">
+                                <div className="flex items-start justify-between gap-3 mb-2">
+                                    <h3 className="text-base md:text-lg font-black text-white leading-snug">{tool.title}</h3>
+                                    {tool.badge && <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary/15 text-primary border border-primary/30">{tool.badge}</span>}
+                                </div>
+                                <p className="text-white/55 text-sm leading-relaxed mb-4">{tool.what}</p>
+                                <ol className="space-y-2 mb-5">
+                                    {tool.how.slice(0, 3).map((step, index) => <li key={step} className="flex gap-2.5 text-white/40 text-xs md:text-sm leading-relaxed"><span className="shrink-0 w-5 h-5 mt-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-black flex items-center justify-center">{index + 1}</span><span>{step}</span></li>)}
+                                </ol>
+                                <Link to={`/features#${tool.id}`} className="mt-auto inline-flex items-center gap-1.5 text-xs md:text-sm font-bold text-primary hover:text-white transition-colors">See it explained <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></Link>
+                            </article>
                         ))}
                     </div>
                     <div className="text-center mt-10">
                         <Link to="/features" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-primary/40 text-primary text-sm font-bold hover:bg-primary/10 transition-all">
-                            See all {publicFeatures.length} features <ArrowRight size={15} />
+                            Read the full features guide: {GUIDE_TOOL_COUNT} tools explained <ArrowRight size={15} />
                         </Link>
                     </div>
                 </div>

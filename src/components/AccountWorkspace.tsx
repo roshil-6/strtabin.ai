@@ -5,7 +5,8 @@ import useModalStore from '../store/useModalStore';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { useAuth, useClerk } from '@clerk/clerk-react';
-import useStore from '../store/useStore';
+import useStore, { type CanvasData } from '../store/useStore';
+import { isTeamProject, withoutTeamProjects } from '../lib/projectVisibility';
 import { useTimetables } from '../store/useTimetables';
 import { accountKey, currentAccount, selectAccount } from '../lib/accountStorage';
 import { API_BASE_URL, STORAGE_KEY, LEGACY_STORAGE_KEY, GUEST_DATA_BACKUP_KEY } from '../constants';
@@ -13,13 +14,18 @@ import { NotificationManager } from '../services/NotificationManager';
 
 type Snapshot = { workspace:Record<string,unknown>; tables:ReturnType<typeof useTimetables.getState>['tables'] };
 function workspaceData(state=useStore.getState()) {
-    return Object.fromEntries(Object.entries(state).filter(([,value])=>typeof value!=='function'));
+    const data=Object.fromEntries(Object.entries(state).filter(([,value])=>typeof value!=='function'));
+    // Team projects are saved in their team workspace; copying them here made them show up as personal projects.
+    return {...data,canvases:withoutTeamProjects(state.canvases||{})} as Record<string,unknown>;
 }
 function snapshot():Snapshot {return {workspace:workspaceData(),tables:useTimetables.getState().tables};}
 function applySnapshot(data:Snapshot) {
     const initial=workspaceData(useStore.getInitialState());
     const safe=Object.fromEntries(Object.keys(initial).map(key=>[key,data.workspace[key] ?? initial[key]]));
-    useStore.setState(safe); useTimetables.setState({tables:data.tables});
+    // Keep team projects already open on this device (they may hold edits still syncing to the team).
+    const localTeam=Object.fromEntries(Object.entries(useStore.getState().canvases).filter(([,canvas])=>isTeamProject(canvas)));
+    const cloudCanvases=withoutTeamProjects((safe.canvases||{}) as Record<string,CanvasData>);
+    useStore.setState({...safe,canvases:{...cloudCanvases,...localTeam}}); useTimetables.setState({tables:data.tables});
 }
 // Key-order independent fingerprint, so identical content from another device never counts as a conflict.
 function stable(value:unknown):string {

@@ -1,7 +1,7 @@
 export const featureAvailabilityNotice = 'Coding tools are currently unavailable. Stratabin focuses on docs, planning, brainstorming, tasks and teamwork.';
 export const SITE_URL = 'https://www.stratabin.com';
 /** Bump when public page content changes; used for sitemap <lastmod>. */
-export const CONTENT_UPDATED = '2026-11-06';
+export const CONTENT_UPDATED = '2026-11-08';
 
 export type FeatureCategory = 'Docs & writing' | 'Visual thinking' | 'Planning & progress' | 'AI assistance' | 'Teamwork' | 'Workspace & access';
 export type PublicFeature = { title: string; desc: string; category: FeatureCategory; highlight?: boolean };
@@ -10,6 +10,7 @@ export const featureCategories: FeatureCategory[] = ['Docs & writing', 'Visual t
 export const publicFeatures: PublicFeature[] = [
  // Docs & writing
  {category:'Docs & writing',highlight:true,title:'Docs workspace with rich-text writing',desc:'Write project docs, notes and long-form plans with bold, italic, headings, quotes, bulleted and numbered lists, code and links. Formatting shows as you type, with no Markdown symbols on screen.'},
+ {category:'Docs & writing',highlight:true,title:'Screenshot to writing',desc:'Upload screenshots of a Claude, ChatGPT or Gemini chat and Stratabin writes the text into your page, with Stratabin AI keeping headings and lists, or free on-device text recognition. No more retyping reports.'},
  {category:'Docs & writing',title:'Colour highlights',desc:'Highlight key lines in yellow, green, blue, pink, orange or purple. Recolour or remove a highlight in one click; colours carry into PDF exports.'},
  {category:'Docs & writing',highlight:true,title:'Pages, parts, sections and notes',desc:'Organise a project into pages, then structure each one with parts, sections and notes in a project outline. Move items between parents and keep everything inside its project.'},
  {category:'Docs & writing',title:'Section board with floating editor',desc:'See every part, section and note as a card. Open one and its writing appears in a floating, draggable editor over the board, so your overview stays in place.'},
@@ -23,9 +24,9 @@ export const publicFeatures: PublicFeature[] = [
  {category:'Visual thinking',title:'Board templates',desc:'Start from Brainstorm, Retrospective or SWOT templates, then duplicate, rearrange and export your board.'},
  {category:'Visual thinking',title:'Writing and flow side by side',desc:'Open your document and its flow board in a resizable split view to write and map ideas at the same time.'},
  // Planning & progress
- {category:'Planning & progress',highlight:true,title:'Tasks and subtasks',desc:'Add task cards, split work into smaller steps, mark tasks complete, and keep action items beside your writing and plans.'},
+ {category:'Planning & progress',highlight:true,title:'Tasks you can split',desc:'Add task cards, split a big task into smaller actionable ones, mark tasks complete, and keep action items beside your writing and plans.'},
  {category:'Planning & progress',title:'Timelines with phases',desc:'Lay out project phases with timeframes, descriptions and status (planned, in progress, done) to see how the work moves.'},
- {category:'Planning & progress',title:'Calendars and weekly planning',desc:'Schedule project events and deadlines and review your week. Reminder delivery depends on your browser permissions and notification setup.'},
+ {category:'Planning & progress',title:'A calendar for every project',desc:'Every project has its own calendar for deadlines and events, plus an overall calendar and a weekly planner with daily check-ins. Reminder delivery depends on your browser permissions and notification setup.'},
  {category:'Planning & progress',title:'Weekly timetables and breaks',desc:'Create weekly schedules with editable days, time periods and breaks. Add rows and columns, and optionally link a timetable to a project.'},
  {category:'Planning & progress',title:'Daily execution logs',desc:'Record what you did, what is blocking you and tomorrow’s next action, so progress stays visible day by day.'},
  {category:'Planning & progress',title:'Reports and progress tracking',desc:'Keep reports with their projects, monitor task completion and execution, and spot gaps in your plan.'},
@@ -33,6 +34,8 @@ export const publicFeatures: PublicFeature[] = [
  {category:'AI assistance',highlight:true,title:'Sasha AI chat and voice — Pro',desc:'Ask for project briefings, brainstorm ideas, and review proposed projects, tasks and flow maps before applying them. Use hosted AI without supplying an API key, within daily usage allowances.'},
  {category:'AI assistance',title:'Optional “Hey Sasha” voice activation',desc:'Enable wake listening in a supported browser tab and talk with Sasha. Choose your own agent name, interrupt spoken replies, and stop listening at any time. Microphone permission and internet access are required.'},
  {category:'AI assistance',highlight:true,title:'Your own AI with full project context',desc:'Choose project details for a capsule, then copy or download it for ChatGPT, Claude or Gemini. Paste or attach it in your own AI tool and save the response back to your project.'},
+ {category:'AI assistance',title:'Stratabin AI reports — Pro',desc:'Generate a progress summary, risk review or action plan from your project inside Stratabin. Each report uses one Sasha request and is saved to the project.'},
+ {category:'AI assistance',title:'Connect Claude, ChatGPT or Gemini',desc:'Add Stratabin as a connector in your AI app, then ask it to save a report to a project. It can list project names and add reports only.'},
  {category:'AI assistance',title:'Saved AI analysis reports',desc:'Keep AI reports with the project they belong to, edit or archive them, and include them in PDF exports.'},
  // Teamwork
  {category:'Teamwork',highlight:true,title:'Team workspaces and assignments',desc:'Create a shared workspace, invite teammates, assign responsibilities, and manage shared projects with admin and member roles.'},
@@ -64,7 +67,7 @@ export type PublicPage = {
 };
 export const publicPages: Record<string, PublicPage> = {
  '/':{label:'Home',title:'Stratabin — Docs & Project Workspace with Flow Maps, Tasks and AI',description:'Stratabin is a docs and project workspace: write rich docs and notes, brainstorm on visual boards, plan tasks and timelines, work as a team, and export to PDF. Free to start.',heading:'The docs and project workspace for ideas, plans and teams'},
- '/features':{label:'Features',title:'Stratabin Features — Docs, Flow Maps, Tasks, Team Workspaces & AI',description:'Every Stratabin feature: rich-text docs, pages and sections, PDF export, brainstorming boards, tasks, timelines, calendars, team workspaces, chat and Sasha AI.',heading:'Every feature in your docs and project workspace'},
+ '/features':{label:'Features',title:'Stratabin Features — Docs, Flow Maps, Tasks, Team Workspaces & AI',description:'How every Stratabin tool works, step by step: screenshot to writing, docs, flow boards, tasks, project calendars, timelines, timetables, Sasha AI, AI reports, team workspaces and more.',heading:'Every Stratabin tool, explained'},
  '/docs-workspace':{label:'Docs workspace',title:'Docs Workspace — Write, Organise and Export Project Docs | Stratabin',description:'A docs workspace for project notes and long-form writing: rich-text pages, parts, sections and notes, colour highlights, quick notes and PDF export, beside your tasks and flow maps.',heading:'A docs workspace built around your projects',categories:['Docs & writing','Visual thinking'],
   intro:'Stratabin gives every project its own docs space. Write formatted pages, structure them into parts, sections and notes, and keep the plan, tasks and idea maps right next to the writing.',
   sections:[

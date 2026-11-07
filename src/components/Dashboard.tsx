@@ -12,12 +12,12 @@ import useModalStore from '../store/useModalStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronDown, Hourglass, Archive, FileDown, PlugZap } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronDown, Hourglass, Archive, FileDown, PlugZap, BookOpen } from 'lucide-react';
 const ExportPdfDialog = lazy(() => import('./ExportPdfDialog'));
 
 import ThemeToggle from './ThemeToggle';
 import type { CanvasData } from '../store/useStore';
-import { isListedProject } from '../lib/projectVisibility';
+import { isListedProject, isTeamProject, tagTeamProjects } from '../lib/projectVisibility';
 import { writingPreview, writingWordCount } from '../lib/writingBranches';
 import { API_BASE_URL, clearGuestMode } from '../constants';
 import { useAuth } from '@clerk/clerk-react';
@@ -90,7 +90,15 @@ export default function Dashboard() {
     useEffect(() => {
         getToken().then((token) => {
             if (token) {
-                workspaceService.getWorkspaces(token).then((d) => setTeamWorkspaces(d.workspaces || [])).catch(() => {});
+                workspaceService.getWorkspaces(token).then(async (d) => {
+                    setTeamWorkspaces(d.workspaces || []);
+                    // Projects opened before team projects were tagged sit in the personal list; tag them now.
+                    const teams = (d.workspaces || []).filter((ws: Workspace) => ws.type === 'team');
+                    const details = await Promise.all(teams.map((ws: Workspace) => workspaceService.getWorkspace(ws.id, token).catch(() => null)));
+                    const ids = details.flatMap(detail => (detail?.projects || []).map((project: { id: number }) => project.id));
+                    const tagged = tagTeamProjects(useStore.getState().canvases, ids);
+                    if (tagged) useStore.setState({ canvases: tagged });
+                }).catch(() => {});
                 workspaceService.getMe(token).then((d) => {
                     setMyUsername(d.user?.username || null);
                     setInvitations(d.invitations || []);
@@ -298,7 +306,9 @@ export default function Dashboard() {
     // Exclude empty placeholders (no name, no nodes, no todos, no writing)
     const filteredCanvases = Object.values(canvases)
         .filter(p => (p.folderId || null) === activeFolderId)
-        .filter(isListedProject);
+        .filter(isListedProject)
+        // Team projects belong to their team workspace; opening one must not add it to personal projects.
+        .filter(p => !isTeamProject(p));
 
     // Use filteredCanvases for categorization
     const pinnedProjects = filteredCanvases.filter(p => p.isPinned);
@@ -709,6 +719,15 @@ export default function Dashboard() {
 
                             <h2 className="text-[10px] uppercase font-bold tracking-[0.16em] text-[var(--text-dim)] mb-2.5 px-3">Tools</h2>
                             <div className="space-y-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => { navigate('/features'); setIsSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                >
+                                    <BookOpen size={17} className="text-[var(--primary)] shrink-0" />
+                                    <span className="font-semibold text-sm text-left text-[var(--text)]">Features guide</span>
+                                    <span className="ml-auto text-[10px] font-semibold text-[var(--text-dim)]">How it works</span>
+                                </button>
                                 <button
                                     type="button"
                                     onClick={() => { navigate('/ai'); setIsSidebarOpen(false); }}
