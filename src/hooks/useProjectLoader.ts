@@ -24,6 +24,7 @@ const canvasFromServer = (data: Record<string, unknown>) => ({
     codeFiles: Array.isArray(data.codeFiles) ? data.codeFiles : [],
     externalAiReports: Array.isArray(data.externalAiReports) ? sanitizeExternalReports(data.externalAiReports) : undefined,
     timelineContent: typeof data.timelineContent === 'string' ? data.timelineContent : '',
+    workspaceType: data.workspaceType === 'team' || data.workspaceType === 'individual' ? data.workspaceType as 'team' | 'individual' : undefined,
 });
 
 /** Hydrate a project the assistant just created, so the rest of its plan can apply right away. */

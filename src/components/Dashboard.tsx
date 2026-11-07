@@ -17,7 +17,7 @@ const ExportPdfDialog = lazy(() => import('./ExportPdfDialog'));
 
 import ThemeToggle from './ThemeToggle';
 import type { CanvasData } from '../store/useStore';
-import { isListedProject } from '../lib/projectVisibility';
+import { isListedProject, isTeamProject, tagTeamProjects } from '../lib/projectVisibility';
 import { writingPreview, writingWordCount } from '../lib/writingBranches';
 import { API_BASE_URL, clearGuestMode } from '../constants';
 import { useAuth } from '@clerk/clerk-react';
@@ -90,7 +90,15 @@ export default function Dashboard() {
     useEffect(() => {
         getToken().then((token) => {
             if (token) {
-                workspaceService.getWorkspaces(token).then((d) => setTeamWorkspaces(d.workspaces || [])).catch(() => {});
+                workspaceService.getWorkspaces(token).then(async (d) => {
+                    setTeamWorkspaces(d.workspaces || []);
+                    // Projects opened before team projects were tagged sit in the personal list; tag them now.
+                    const teams = (d.workspaces || []).filter((ws: Workspace) => ws.type === 'team');
+                    const details = await Promise.all(teams.map((ws: Workspace) => workspaceService.getWorkspace(ws.id, token).catch(() => null)));
+                    const ids = details.flatMap(detail => (detail?.projects || []).map((project: { id: number }) => project.id));
+                    const tagged = tagTeamProjects(useStore.getState().canvases, ids);
+                    if (tagged) useStore.setState({ canvases: tagged });
+                }).catch(() => {});
                 workspaceService.getMe(token).then((d) => {
                     setMyUsername(d.user?.username || null);
                     setInvitations(d.invitations || []);
@@ -298,7 +306,9 @@ export default function Dashboard() {
     // Exclude empty placeholders (no name, no nodes, no todos, no writing)
     const filteredCanvases = Object.values(canvases)
         .filter(p => (p.folderId || null) === activeFolderId)
-        .filter(isListedProject);
+        .filter(isListedProject)
+        // Team projects belong to their team workspace; opening one must not add it to personal projects.
+        .filter(p => !isTeamProject(p));
 
     // Use filteredCanvases for categorization
     const pinnedProjects = filteredCanvases.filter(p => p.isPinned);

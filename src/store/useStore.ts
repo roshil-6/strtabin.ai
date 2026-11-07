@@ -93,6 +93,8 @@ export type CanvasData = {
     goals?: CanvasGoal[]; // Outcome/metric tracking
     createdAt?: number; // Creation time (for sorting newest first)
     updatedAt: number;
+    /** Server projects only: a team project lives in its team workspace, not in the personal list. */
+    workspaceType?: 'team' | 'individual';
 };
 
 export type BranchData = {
@@ -210,6 +212,7 @@ export type RFState = {
         codeFiles?: Array<{ id: string; name: string; content: string; language: string; updatedAt: number }>;
         externalAiReports?: ExternalAiReport[];
     timelineContent?: string;
+        workspaceType?: 'team' | 'individual';
     }) => void;
     updateCanvasTimeline: (id: string, content: string) => void;
     addCanvasTodo: (id: string, text: string) => void;
@@ -759,6 +762,7 @@ const useStore = create<RFState>()(
                 codeFiles?: Array<{ id: string; name: string; content: string; language: string; updatedAt: number }>;
                 externalAiReports?: ExternalAiReport[];
     timelineContent?: string;
+                workspaceType?: 'team' | 'individual';
             }) => {
                 const now = Date.now();
                 const nodes = Array.isArray(data.nodes) ? data.nodes : [];
@@ -792,6 +796,7 @@ const useStore = create<RFState>()(
                         timelineContent: data.timelineContent ?? prev?.timelineContent,
                         goals: prev?.goals,
                         codeFiles: Array.isArray(data.codeFiles) ? data.codeFiles : (prev?.codeFiles ?? []),
+                        workspaceType: data.workspaceType ?? prev?.workspaceType,
                     };
                     return {
                         canvases: { ...state.canvases, [id]: newCanvas },

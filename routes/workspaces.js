@@ -639,9 +639,11 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 else console.warn('[canvas] GET canvas access denied: userId=', req.userId, 'workspace=', wid);
                 return res.status(403).json({ error: 'Access denied.' });
             }
+            // The client keeps team projects out of the personal project list and personal cloud copy.
+            const workspaceType = (await getWorkspace(wid))?.type === 'team' ? 'team' : 'individual';
             const row = await getProjectCanvas(projectId);
             if (!row) {
-                return res.json({ nodes: [], edges: [], writingContent: '', name: project.title || null, codeFiles: [], timelineContent: '' });
+                return res.json({ nodes: [], edges: [], writingContent: '', name: project.title || null, codeFiles: [], timelineContent: '', workspaceType });
             }
             let data;
             try {
@@ -654,7 +656,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (!savedName || /^\s*$/.test(savedName) || /^untitled(\s+(canvas|project|strategy))?$/i.test(String(savedName).trim())) {
                 data.name = project.title || data.name;
             }
-            return res.json(data);
+            return res.json({ ...data, workspaceType });
         } catch (err) {
             console.error('Get project canvas error:', err);
             return res.status(500).json({ error: 'Failed to load canvas.' });
