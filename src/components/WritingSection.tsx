@@ -11,8 +11,9 @@ import toast from 'react-hot-toast';
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import VoiceTyping from './VoiceTyping';
 const WritingAttachmentPreview = lazy(() => import('./WritingAttachmentPreview'));
+const WritingScreenshotImport = lazy(() => import('./WritingScreenshotImport'));
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard, Plus, GripHorizontal } from 'lucide-react';
+import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard, Plus, GripHorizontal, ScanText } from 'lucide-react';
 import './WritingSection.css';
 
 interface WritingSectionProps {
@@ -155,6 +156,7 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
     const activeEditorRef = useRef<HTMLElement | null>(null);
     const formatTarget = useCallback(() => (activeEditorRef.current?.isConnected ? activeEditorRef.current : null) || textareaRef.current, []);
     const [preview, setPreview] = useState(false);
+    const [showShotImport, setShowShotImport] = useState(false);
 
     // Branch state
     const [showBranchModal, setShowBranchModal] = useState(false);
@@ -355,6 +357,14 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                     >
                         <File size={16} />
                     </button>
+                    <button
+                        onClick={() => setShowShotImport(true)}
+                        className="writing-shot-trigger flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-all"
+                        title="Extract writing from screenshots" aria-label="Extract writing from screenshots" disabled={isMobile && !mobileEditMode}
+                    >
+                        <ScanText size={16} />
+                        <span className="hidden sm:inline">From screenshot</span>
+                    </button>
                     <VoiceTyping onInsert={text => handleContentChange(content + (content.trim() ? '\n\n' : '') + text)} />
                     <input type="file" ref={fileInputRef} className="hidden" accept="*" onChange={handleFileUpload} />
                 </div>
@@ -457,6 +467,9 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                         </div>
                     )}
 
+                    {showShotImport && <Suspense fallback={<p role="status">Opening…</p>}><WritingScreenshotImport close={() => setShowShotImport(false)}
+                        insertText={text => { handleContentChange(content + (content.trim() ? '\n\n' : '') + text); toast.success('Writing added from your screenshots.'); }}
+                        addImages={images => { for (const image of images) addCanvasImage(canvasId, image); toast.success(images.length === 1 ? 'Screenshot added.' : images.length + ' screenshots added.'); }} /></Suspense>}
                     {previewDoc && <Suspense fallback={<p role="status">Opening viewer…</p>}><WritingAttachmentPreview key={previewDoc.url} doc={previewDoc} close={closePreview} /></Suspense>}
 
                     {/* Main Writing Textarea — no outline */}
