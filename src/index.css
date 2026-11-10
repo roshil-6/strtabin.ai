@@ -867,3 +867,108 @@ a {
 .workspace-header .workspace-export+.project-ai-launcher,.workspace-header .workspace-export+.project-ai-button{margin-left:0}
 @media(max-width:1050px) and (min-width:768px){.workspace-header .workspace-export{padding:9px}.workspace-header .workspace-export>span{display:none}}
 @media(max-width:767px){.workspace-header{grid-template-columns:minmax(0,1fr) auto auto}.workspace-header .workspace-export{grid-row:1;grid-column:2;padding:8px 10px;min-height:40px}.workspace-header .workspace-export>span{display:none}.workspace-header .project-ai-launcher,.workspace-header>.project-ai-button{grid-column:3}}
+
+/* Guide and Export sit side by side; only the first pushes right. */
+.workspace-header .workspace-export+.workspace-export{margin-left:0}
+
+/* Writing: phone-only page switcher and the Edit/Done pill. */
+.writing-pages-mobile,.writing-view-mini{display:none}
+.writing-edit-fab{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:40;display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 18px 0 15px;border-radius:999px;font-size:14px;font-weight:650;color:var(--text);background:var(--bg-elevated,var(--bg-panel));border:1px solid var(--border-strong);box-shadow:0 10px 30px rgba(0,0,0,.35);transition:background .2s,color .2s,transform .15s}
+.writing-edit-fab:active{transform:scale(.96)}
+.writing-edit-fab[data-editing="true"]{background:var(--primary);border-color:var(--primary);color:#191722;box-shadow:0 10px 30px color-mix(in srgb,var(--primary) 40%,transparent)}
+
+/* Phone layout for project tools: one compact header, scrollable tabs and toolbars, nothing squeezed or wrapped. */
+@media(max-width:767px){
+  .project-shell .workspace-header{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:0 6px;min-height:0;padding:8px 12px 0;padding-top:calc(8px + env(safe-area-inset-top,0px))}
+  .project-shell .workspace-identity{grid-column:1;grid-row:1;gap:10px;min-width:0;max-width:none}
+  .project-shell .workspace-identity>button{width:36px;height:36px;flex-shrink:0;display:grid;place-items:center;padding:0;border-radius:12px;background:var(--input-bg);color:var(--text)}
+  .project-shell .workspace-identity>div{gap:1px}
+  .project-shell .workspace-identity>div>span{display:none}
+  .project-shell .workspace-project-name{max-width:100%;font-size:16px;font-weight:650;letter-spacing:-.01em}
+  .project-shell .workspace-header .workspace-export{grid-row:1;grid-column:auto;width:36px;height:36px;min-height:36px;padding:0;justify-content:center;border-radius:12px;margin:0}
+  .project-shell .workspace-header .project-ai-launcher,.project-shell .workspace-header>.project-ai-button{grid-row:1;grid-column:auto;margin:0}
+  .project-shell .workspace-header .project-ai-launcher>.project-ai-button{min-height:36px;height:36px;padding:0 11px;gap:6px;border-radius:12px;font-size:13px;font-weight:650}
+  .project-shell .workspace-header nav{grid-row:2;grid-column:1/-1;display:flex;gap:6px;margin:8px -12px 0;padding:0 12px 8px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+  .project-shell .workspace-header nav::-webkit-scrollbar{display:none}
+  .project-shell .workspace-header nav>button{flex:0 0 auto;gap:6px;min-height:32px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:550;border:1px solid var(--border);scroll-snap-align:start}
+  .project-shell .workspace-header nav>button>svg{display:inline-block;width:14px;height:14px}
+  .project-shell .workspace-header nav>button[aria-current="page"]{background:var(--primary);border-color:var(--primary);color:#191722;font-weight:650}
+  .project-shell .workspace-header nav>button:last-child{margin-right:24px}
+
+  .writing-page-tree{max-height:none;padding:8px 12px;overflow:visible}
+  .writing-page-tree>.writing-pages-heading,.writing-page-tree>p{display:none}
+  .writing-pages-mobile{display:flex;align-items:center;gap:6px}
+  .writing-pages-current{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:38px;padding:0 10px;border-radius:11px;background:var(--input-bg);color:var(--primary);text-align:left}
+  .writing-pages-current>span{flex:1;min-width:0;display:flex;flex-direction:column;font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .writing-pages-current>span{display:block}
+  .writing-pages-current>svg:last-child{color:var(--text-muted);transition:transform .2s}
+  .writing-pages-current[aria-expanded="true"]>svg:last-child{transform:rotate(180deg)}
+  .writing-pages-add{width:38px;height:38px;flex-shrink:0;display:grid;place-items:center;border-radius:11px;background:var(--accent-soft);color:var(--primary)}
+  .writing-page-tree>ul{display:none}
+  .writing-page-tree[data-mobile-open="true"]>ul{display:block;max-height:45dvh;overflow-y:auto;margin-top:8px;padding:6px;border:1px solid var(--border);border-radius:13px;background:var(--bg-panel)}
+
+  .manuscript-toolbar{display:none!important}
+  .writing-view-mini{display:flex;flex-shrink:0;gap:2px;padding:3px;border-radius:11px;background:var(--input-bg)}
+  .writing-view-mini>button{min-height:32px;padding:0 10px;border-radius:8px;font-size:12.5px;font-weight:550;color:var(--text-muted)}
+  .writing-view-mini>button[aria-pressed="true"]{background:var(--bg-panel);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .manuscript-toolbar>div[role="group"]{flex:1;gap:2px;padding:3px;border-radius:12px;background:var(--input-bg)}
+  .manuscript-toolbar>div[role="group"]>button{flex:1;min-height:36px;padding:0 10px;border:0;border-radius:9px;font-size:13px;font-weight:550;color:var(--text-muted)}
+  .manuscript-toolbar>div[role="group"]>button[aria-pressed="true"]{background:var(--bg-panel);color:var(--text);border:0;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .manuscript-toolbar>.manuscript-add-page,.manuscript-toolbar>.manuscript-count{display:none}
+
+  .writing-toolbar{flex-wrap:nowrap!important;justify-content:flex-start!important;gap:0!important;min-height:44px;padding:2px 8px!important;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}
+  .writing-toolbar::-webkit-scrollbar{display:none}
+  .writing-toolbar>*{flex-shrink:0}
+  .writing-toolbar>:last-child{padding-right:28px}
+  .writing-toolbar .mr-auto{margin-right:0}
+  .writing-toolbar .writing-format-bar{flex-wrap:nowrap}
+  .writing-toolbar button{border-radius:10px;min-width:38px!important;min-height:38px!important}
+
+  .writing-page-editor .writing-scroll-area{padding-left:20px;padding-right:20px;padding-bottom:84px}
+  .writing-surface .writing-edit-fab{bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+}
+@media(max-width:380px){.project-shell .workspace-header .project-ai-launcher>.project-ai-button>span{display:none}.project-shell .workspace-header .project-ai-launcher>.project-ai-button{width:38px;padding:0;justify-content:center}}
+
+/* Phone polish: one quiet header, underline tabs, and a More menu for secondary actions. */
+.workspace-more{display:none}
+@media(max-width:767px){
+  .project-shell .workspace-header{grid-template-columns:minmax(0,1fr) auto auto;gap:0 8px;background:var(--bg-panel);box-shadow:0 1px 0 var(--border)}
+  .project-shell .workspace-header>.workspace-export{display:none}
+  .project-shell .workspace-identity>button{background:transparent;width:34px;height:34px;margin-left:-6px}
+  .project-shell .workspace-project-name{font-size:17px;font-weight:700;letter-spacing:-.02em}
+  .workspace-more{display:block;position:relative;grid-row:1}
+  .workspace-more>button{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;color:var(--text-muted)}
+  .workspace-more>button[aria-expanded="true"],.workspace-more>button:hover{background:var(--input-bg);color:var(--text)}
+  .workspace-more-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:80;width:236px;padding:6px;border-radius:16px;background:var(--bg-elevated,var(--bg-panel));border:1px solid var(--border-strong);box-shadow:0 18px 50px rgba(0,0,0,.45);animation:tour-in .15s ease}
+  .workspace-more-menu>button{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;text-align:left;color:var(--primary)}
+  .workspace-more-menu>button:hover,.workspace-more-menu>button:focus-visible{background:var(--input-bg)}
+  .workspace-more-menu span{display:flex;flex-direction:column;font-size:14px;font-weight:600;color:var(--text)}
+  .workspace-more-menu small{font-size:12px;font-weight:400;color:var(--text-muted)}
+  .project-shell .workspace-header .project-ai-launcher>.project-ai-button{border-radius:999px;padding:0 13px;background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 26%,transparent),color-mix(in srgb,var(--primary) 12%,transparent));border:1px solid color-mix(in srgb,var(--primary) 35%,transparent)}
+
+  /* Tabs read as one strip with a moving underline, not a row of boxes. */
+  .project-shell .workspace-header nav{gap:2px;margin-top:6px;padding-bottom:0;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent)}
+  .project-shell .workspace-header nav>button{position:relative;min-height:40px;padding:0 12px;border:0;border-radius:0;background:transparent;color:var(--text-muted);font-weight:550}
+  .project-shell .workspace-header nav>button>svg{opacity:.75}
+  .project-shell .workspace-header nav>button:hover{background:transparent;color:var(--text)}
+  .project-shell .workspace-header nav>button[aria-current="page"]{background:transparent;color:var(--text);font-weight:650}
+  .project-shell .workspace-header nav>button[aria-current="page"]>svg{color:var(--primary);opacity:1}
+  .project-shell .workspace-header nav>button[aria-current="page"]::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--primary)}
+
+  /* Page row: quiet surfaces that match the toolbar. */
+  .writing-page-tree{padding:10px 12px;background:var(--bg-page);border-bottom:0}
+  .writing-pages-current{background:transparent;border:1px solid var(--border-strong);min-height:38px}
+  .writing-pages-current>svg:first-child{color:var(--primary)}
+  .writing-pages-add{background:var(--primary);color:#191722;border-radius:11px;box-shadow:0 4px 14px color-mix(in srgb,var(--primary) 30%,transparent)}
+  .writing-view-mini{background:transparent;border:1px solid var(--border-strong)}
+  .writing-view-mini>button[aria-pressed="true"]{background:color-mix(in srgb,var(--primary) 18%,transparent);color:var(--text);box-shadow:none}
+
+  .writing-toolbar{border-top:1px solid var(--border);border-bottom:1px solid var(--border)!important;background:var(--bg-page)!important}
+
+  /* Quick notes: a small labelled line, not a big block. */
+  .writing-quick-notes{margin-bottom:14px}
+  .quick-notes-heading{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+  .quick-notes-heading>button{min-height:32px!important;padding:0 12px!important;font-size:13px!important;border-radius:999px!important;letter-spacing:0;text-transform:none;font-weight:600}
+  .writing-document input[aria-label="Document title"]{font-size:28px!important;margin-bottom:14px!important;margin-top:4px}
+}
+@media(max-width:380px){.project-shell .workspace-header .project-ai-launcher>.project-ai-button{width:36px;padding:0}}

@@ -24,14 +24,19 @@ export default function WritingFormatBar({ target, preview, onTogglePreview, dis
     const [color, setColor] = useState<HighlightColor>(preferredHighlight);
     const [current, setCurrent] = useState<HighlightColor | null>(null);
     const [paletteOpen, setPaletteOpen] = useState(false);
+    // The palette floats at fixed coordinates so a toolbar that scrolls sideways (on phones) cannot clip it.
+    const [palettePlace, setPalettePlace] = useState({ top: 0, left: 0 });
     const palette = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (!paletteOpen) return;
         const close = (event: Event) => { if (!(event.target instanceof Node && palette.current?.contains(event.target))) setPaletteOpen(false); };
         const key = (event: KeyboardEvent) => { if (event.key === 'Escape') setPaletteOpen(false); };
+        const hide = () => setPaletteOpen(false);
         document.addEventListener('pointerdown', close);
         document.addEventListener('keydown', key);
-        return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', key); };
+        window.addEventListener('resize', hide);
+        document.addEventListener('scroll', hide, true);
+        return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', key); window.removeEventListener('resize', hide); document.removeEventListener('scroll', hide, true); };
     }, [paletteOpen]);
     const highlight = (choice: HighlightColor | 'none') => {
         const editor = target();
@@ -53,10 +58,14 @@ export default function WritingFormatBar({ target, preview, onTogglePreview, dis
                 <span className="highlight-icon"><Icon size={15} /><i style={{ background: HIGHLIGHT_COLORS[color].print }} /></span>
             </button>
             <button type="button" disabled={disabled || preview} className={`${button} highlight-more`} aria-label="Choose highlight colour" aria-haspopup="true" aria-expanded={paletteOpen}
-                title="Choose highlight colour" onMouseDown={event => event.preventDefault()} onClick={() => setPaletteOpen(open => !open)}>
+                title="Choose highlight colour" onMouseDown={event => event.preventDefault()} onClick={event => {
+                    const rect = event.currentTarget.closest('.highlight-control')!.getBoundingClientRect();
+                    setPalettePlace({ top: rect.bottom + 6, left: Math.max(8, Math.min(window.innerWidth - 248, rect.left)) });
+                    setPaletteOpen(open => !open);
+                }}>
                 <ChevronDown size={12} />
             </button>
-            {paletteOpen && <div className="highlight-palette" role="group" aria-label="Highlight colours">
+            {paletteOpen && <div className="highlight-palette" role="group" aria-label="Highlight colours" style={{ position: 'fixed', top: palettePlace.top, left: palettePlace.left }}>
                 {(Object.keys(HIGHLIGHT_COLORS) as HighlightColor[]).map(name => <button key={name} type="button" className="highlight-swatch" data-current={current === name}
                     aria-label={`${HIGHLIGHT_COLORS[name].label} highlight`} title={HIGHLIGHT_COLORS[name].label} style={{ background: HIGHLIGHT_COLORS[name].print }}
                     onMouseDown={event => event.preventDefault()} onClick={() => highlight(name)} />)}
