@@ -5,7 +5,14 @@ import { askProvider, generateReport, extractReportFromImages, REPORT_CONTEXT_LI
 import { createLiveSession } from '../lib/liveVoice.js';
 import { sashaAccess, reserveSashaUsage, sashaRemaining, SASHA_TEXT_MODEL, SASHA_VOICE_MODEL, SASHA_LIMITS } from '../lib/sashaAccess.js';
 
-export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = askProvider, report = generateReport, extract = extractReportFromImages, reportsPerMinute = 5, live = createLiveSession, access = sashaAccess, reserve = reserveSashaUsage, remaining = sashaRemaining, key = () => process.env.GEMINI_API_KEY?.trim() } = {}) {
+/**
+ * Per-account burst limits (the daily Sasha allowance is the real cap). Keyed by the signed-in user, not the IP:
+ * behind a proxy every user can share one IP, which made one person's retries block everyone else's Sasha.
+ */
+export const SASHA_BURST = { chat: 12, voice: 5, reports: 5 };
+const perUser = (limit, message) => rateLimit({ windowMs: 60000, limit, standardHeaders: true, legacyHeaders: false, keyGenerator: req => `sasha:${req.userId}`, message: { error: message } });
+
+export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = askProvider, report = generateReport, extract = extractReportFromImages, reportsPerMinute = SASHA_BURST.reports, live = createLiveSession, access = sashaAccess, reserve = reserveSashaUsage, remaining = sashaRemaining, key = () => process.env.GEMINI_API_KEY?.trim() } = {}) {
     app.get('/api/assistant/projects', auth, async (req,res) => {
         res.set('Cache-Control','no-store');
         try {res.json({projects:await getProfileProjects(req.userId,500)});} catch {res.status(503).json({error:'Could not load your projects.'});}
@@ -20,7 +27,7 @@ export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = as
     });
     for (const kind of ['chat', 'voice']) {
         app.post(kind === 'chat' ? '/api/assistant/chat' : '/api/assistant/voice/session', auth,
-            rateLimit({windowMs:60000, limit:kind === 'chat' ? 15 : 3, standardHeaders:true, legacyHeaders:false}), async (req, res) => {
+            perUser(SASHA_BURST[kind], kind === 'chat' ? 'You are sending messages quickly. Wait a few seconds and try again.' : 'Too many voice starts in a minute. Wait a moment, then tap Sasha again.'), async (req, res) => {
             res.set('Cache-Control', 'no-store');
             const { message, context, history = [], name = '' } = req.body || {};
             const model = kind === 'chat' ? SASHA_TEXT_MODEL : SASHA_VOICE_MODEL;
@@ -46,7 +53,7 @@ export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = as
         });
     }
     // In-app project reports share the daily Sasha chat allowance: one report uses one request.
-    app.post('/api/assistant/report', auth, rateLimit({windowMs:60000, limit:reportsPerMinute, standardHeaders:true, legacyHeaders:false}), async (req, res) => {
+    app.post('/api/assistant/report', auth, perUser(reportsPerMinute, 'Too many reports in a minute. Wait a moment and try again.'), async (req, res) => {
         res.set('Cache-Control', 'no-store');
         const { instruction, context, name = '' } = req.body || {};
         if (req.body?.model || req.body?.apiKey || req.body?.provider) return res.status(400).json({error:'Reports use the managed Gemini connection. Custom keys and models are not accepted.'});
@@ -67,7 +74,7 @@ export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = as
         }
     });
     // Reading report screenshots with the managed model also uses one Sasha chat request.
-    app.post('/api/assistant/report/extract', auth, rateLimit({windowMs:60000, limit:reportsPerMinute, standardHeaders:true, legacyHeaders:false}), async (req, res) => {
+    app.post('/api/assistant/report/extract', auth, perUser(reportsPerMinute, 'Too many reports in a minute. Wait a moment and try again.'), async (req, res) => {
         res.set('Cache-Control', 'no-store');
         const { images } = req.body || {};
         if (req.body?.model || req.body?.apiKey || req.body?.provider) return res.status(400).json({error:'Screenshot reading uses the managed Gemini connection. Custom keys and models are not accepted.'});

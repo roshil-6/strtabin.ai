@@ -219,7 +219,9 @@ const mkRedisStore = (prefix) =>
 // Env: RATE_LIMIT_GLOBAL_WINDOW_MS, RATE_LIMIT_GLOBAL_MAX, RATE_LIMIT_GLOBAL_SKIP_CANVAS_POST=1
 // With REDIS_URL: counts are shared across all server instances.
 const GLOBAL_RL_WINDOW_MS = Number(process.env.RATE_LIMIT_GLOBAL_WINDOW_MS || 15 * 60 * 1000);
-const GLOBAL_RL_MAX = Number(process.env.RATE_LIMIT_GLOBAL_MAX || 500);
+// Signed-in users get more room: autosave, team sync polling and Sasha all count. Anonymous traffic (by IP) stays tight.
+const GLOBAL_RL_MAX = Number(process.env.RATE_LIMIT_GLOBAL_MAX || 1500);
+const GLOBAL_RL_GUEST_MAX = Number(process.env.RATE_LIMIT_GLOBAL_GUEST_MAX || 300);
 
 function clerkSubFromBearer(req) {
     const sub = req.clerkVerifiedSub;
@@ -228,7 +230,7 @@ function clerkSubFromBearer(req) {
 
 const globalLimiter = rateLimit({
     windowMs: GLOBAL_RL_WINDOW_MS,
-    max: GLOBAL_RL_MAX,
+    max: (req) => (clerkSubFromBearer(req) ? GLOBAL_RL_MAX : GLOBAL_RL_GUEST_MAX),
     standardHeaders: true,
     legacyHeaders: false,
     store: mkRedisStore('rl:sbx:global'),

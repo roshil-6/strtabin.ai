@@ -12,7 +12,8 @@ import useModalStore from '../store/useModalStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronDown, Hourglass, Archive, FileDown, PlugZap, BookOpen } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronDown, Hourglass, Archive, FileDown, PlugZap, BookOpen, Compass } from 'lucide-react';
+import { useTour, tourSeen } from '../lib/productTour';
 const ExportPdfDialog = lazy(() => import('./ExportPdfDialog'));
 
 import ThemeToggle from './ThemeToggle';
@@ -85,6 +86,12 @@ export default function Dashboard() {
         document.title = 'Dashboard | Stratabin';
         const t = setTimeout(() => setIsFirstLoad(false), 400);
         return () => { clearTimeout(t); document.title = 'Stratabin AI — Strategy Workspace'; };
+    }, []);
+
+    // First visit: show the guided tour once, the way most apps introduce themselves.
+    useEffect(() => {
+        const timer = setTimeout(() => { if (!tourSeen() && !useTour.getState().active) useTour.getState().start(); }, 1200);
+        return () => clearTimeout(timer);
     }, []);
 
     useEffect(() => {
@@ -721,12 +728,20 @@ export default function Dashboard() {
                             <div className="space-y-0.5">
                                 <button
                                     type="button"
+                                    onClick={() => { useTour.getState().start(); setIsSidebarOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                                >
+                                    <Compass size={17} className="text-[var(--primary)] shrink-0" />
+                                    <span className="font-semibold text-sm text-left text-[var(--text)]">Take the tour</span>
+                                    <span className="ml-auto text-[10px] font-semibold text-[var(--text-dim)]">Step by step</span>
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => { navigate('/features'); setIsSidebarOpen(false); }}
                                     className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-[var(--text-muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                                 >
-                                    <BookOpen size={17} className="text-[var(--primary)] shrink-0" />
-                                    <span className="font-semibold text-sm text-left text-[var(--text)]">Features guide</span>
-                                    <span className="ml-auto text-[10px] font-semibold text-[var(--text-dim)]">How it works</span>
+                                    <BookOpen size={17} className="text-[var(--text-dim)] shrink-0" />
+                                    <span className="font-semibold text-sm text-left">Features guide</span>
                                 </button>
                                 <button
                                     type="button"

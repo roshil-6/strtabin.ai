@@ -50,11 +50,26 @@ export class LiveVoiceClient {
             if (this.stopped) return;
             if (this.context.state === 'suspended') throw new Error('Tap Sasha once to allow audio playback in this browser.');
             this.timers.push(setTimeout(() => { if (!this.ready) this.fail('Voice connection timed out. Check microphone permission and try again.'); }, 30000));
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
-            if (this.stopped) { stream.getTracks().forEach(track => track.stop()); return; }
+            // Microphone, server session and audio worklet are independent: start them together
+            // instead of one after another, which made connecting take several seconds longer.
+            const microphone = navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+            // A failure in one must not leave an open microphone behind.
+            let released = false;
+            const release = (stream: MediaStream) => { if (!released) { released = true; stream.getTracks().forEach(track => track.stop()); } };
+            microphone.then(stream => { if (this.stopped) release(stream); }, () => {});
+            // A session uses one of the day's voice sessions, so only request it before the microphone
+            // is ready when permission is already granted (a denied prompt must not cost a session).
+            const granted = await navigator.permissions?.query({ name: 'microphone' as PermissionName }).then(status => status.state === 'granted', () => false) ?? false;
+            if (!granted) await microphone;
+            if (this.stopped) { void microphone.then(release, () => {}); return; }
+            const sessionRequest = this.options.createSession(this.abort.signal);
+            const worklet = this.options.provider === 'openai' ? Promise.resolve() : this.context.audioWorklet.addModule('/assistant-capture.js');
+            sessionRequest.catch(() => {}); worklet.catch(() => {});
+            const stream = await microphone;
+            if (this.stopped) { release(stream); return; }
             this.stream = stream;
             stream.getAudioTracks().forEach(track => track.addEventListener('ended', () => this.fail('Microphone disconnected. Start a new voice session when ready.')));
-            const session = await this.options.createSession(this.abort.signal);
+            const [session] = await Promise.all([sessionRequest, worklet]);
             if (this.stopped) return;
             this.timers.push(setTimeout(() => this.fail('Voice session time is complete. Start a new session to continue.'), Math.min(session.maxSeconds, 540) * 1000));
             if (this.options.provider === 'openai') await this.startOpenAI(session.token);
@@ -121,7 +136,7 @@ export class LiveVoiceClient {
         } catch { return { status: 'rejected', executed: false, reason: 'Invalid proposal; clarify the request.' }; }
     }
     private async startGemini(token: string, setup: object) {
-        await this.context!.audioWorklet.addModule('/assistant-capture.js');
+        // The capture worklet was loaded in start(), alongside the microphone and session requests.
         if (this.stopped) return;
         const socket = new WebSocket(`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=${encodeURIComponent(token)}`);
         this.socket = socket;

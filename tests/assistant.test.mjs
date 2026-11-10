@@ -134,3 +134,22 @@ test('screenshot transcription sends images inline with the key only in a header
     assert.equal(JSON.stringify(body).includes('secret'), false);
     await assert.rejects(extractReportFromImages({ apiKey: 'k', model: 'm', images: [] }, async () => ({ ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'nope' }] } }] }) })), /usable/);
 });
+
+test('Sasha burst limits are per account, so one user cannot block another', async t => {
+    const app = express(); app.use(express.json());
+    // Every request arrives from the same IP, like users behind a shared proxy.
+    registerAssistantRoutes(app, {
+        auth: (req, _res, next) => { req.userId = Number(req.headers['x-user']); next(); },
+        access: async () => ({ pro: true, configured: true }), reserve: async () => 1, key: () => 'test-key',
+        live: async () => ({ token: 't', setup: {}, maxSeconds: 180 }),
+    });
+    const server = app.listen(0); t.after(() => server.close());
+    const url = `http://127.0.0.1:${server.address().port}/api/assistant/voice/session`;
+    const start = user => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user': String(user) }, body: JSON.stringify({ context: '' }) });
+    const { SASHA_BURST } = await import('../routes/assistant.js');
+    for (let i = 0; i < SASHA_BURST.voice; i++) assert.equal((await start(1)).status, 200);
+    const blocked = await start(1);
+    assert.equal(blocked.status, 429);
+    assert.match((await blocked.json()).error, /voice starts/);
+    assert.equal((await start(2)).status, 200, 'another account is not affected');
+});

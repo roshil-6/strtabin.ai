@@ -90,3 +90,22 @@ test('voice approval and navigation tools accept only known values', () => {
     assert.throws(() => parseVoiceScreen({ screen: 'https://evil.example' }));
     assert.throws(() => parseVoiceProposal({ reply: 'Go', actions: [{ type: 'open_screen', text: '/admin', date: '', time: '', taskId: '' }] }));
 });
+
+test('with microphone access already granted, the voice session is requested without waiting for the microphone', async () => {
+    const oldWindow = globalThis.window, oldAudio = globalThis.AudioContext;
+    const oldNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    let resolveMic, requests = 0, stopped = 0;
+    globalThis.window = { isSecureContext: true };
+    globalThis.AudioContext = class { resume() { return Promise.resolve(); } close() { return Promise.resolve(); } audioWorklet = { addModule: () => Promise.resolve() }; };
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { permissions: { query: async () => ({ state: 'granted' }) }, mediaDevices: { getUserMedia: () => new Promise(resolve => { resolveMic = resolve; }) } } });
+    try {
+        const client = new LiveVoiceClient({ provider: 'gemini', createSession: async () => { requests++; return new Promise(() => {}); }, onState: () => {}, onLevel: () => {}, onTranscript: () => {}, onProposal: () => {}, onError: () => {} });
+        const starting = client.start();
+        for (let i = 0; i < 10; i++) await Promise.resolve();
+        assert.equal(requests, 1, 'session requested while the microphone is still opening');
+        client.stop();
+        resolveMic({ getTracks: () => [{ stop: () => stopped++ }], getAudioTracks: () => [] });
+        await starting;
+        assert.equal(stopped, 1, 'the late microphone is released exactly once');
+    } finally { globalThis.window = oldWindow; globalThis.AudioContext = oldAudio; if (oldNavigator) Object.defineProperty(globalThis, 'navigator', oldNavigator); else delete globalThis.navigator; }
+});

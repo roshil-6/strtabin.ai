@@ -446,7 +446,7 @@ export default function CalendarView() {
                             <>
                             {/* Daily Execution Check-in — only when today is in the visible week */}
                             {weekDays.some(d => dateToKey(d) === todayKey) && (
-                                <div className="flex-shrink-0 px-3 md:px-6 py-3 md:py-4 border-b border-white/[0.05] bg-gradient-to-r from-primary/[0.03] to-transparent">
+                                <div data-tour="daily-checkin" className="flex-shrink-0 px-3 md:px-6 py-3 md:py-4 border-b border-white/[0.05] bg-gradient-to-r from-primary/[0.03] to-transparent">
                                     <div className="flex items-center gap-2 mb-3">
                                         <Zap size={14} className="text-primary" />
                                         <span className="text-[10px] font-semibold uppercase tracking-widest text-primary/80">Daily Check-in</span>

@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Calendar, CheckSquare, Clock, CheckCircle2, Bot, Network, BookOpen } from 'lucide-react';
 
 import ThemeToggle from './ThemeToggle';
+import { useTour, tourStepForPath } from '../lib/productTour';
 
 const NAV_ITEMS = [
     {
@@ -193,17 +194,17 @@ export default function Sidebar({ canvasId }: { canvasId?: string }) {
                 );
             })()}
 
-            {/* Features guide: opens at the explanation of the tool you are on. */}
+            {/* Guided tour: starts at the tool you are on. */}
             <button
-                onClick={() => navigate(`/features#${pathname.includes('/todo') ? 'tasks' : pathname.includes('/timeline') ? 'timeline' : search.includes('mode=week') ? 'planner' : pathname.includes('/calendar') ? 'calendar' : pathname.includes('/ai') ? 'own-ai' : 'writing'}`)}
+                onClick={() => useTour.getState().start({ projectId: canvasId, stepId: tourStepForPath(pathname, search) })}
                 className="group relative flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl w-14 transition-all duration-200 active:scale-90 border border-transparent hover:bg-[var(--input-bg)] hover:border-[var(--border)]"
-                aria-label="Features guide: how each tool works"
+                aria-label="Guided tour: how each tool works"
                 title="Features guide"
             >
                 <BookOpen size={18} style={{ color: 'var(--text-muted)' }} />
                 <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>Guide</span>
                 <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 theme-elevated border border-[var(--border)] text-[var(--text)] text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
-                    How this tool works
+                    Show me around
                 </div>
             </button>
 

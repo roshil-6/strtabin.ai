@@ -138,11 +138,14 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         if (!token) throw new Error('Sign in again to connect your assistant.');
         if (!projectId) return `Local time: ${new Date().toString()}\nNo project selected. Brainstorm freely, or propose creating a project. Do not claim to know existing project contents.`;
         if (!cloudProjects.some(project => `proj_${project.id}` === projectId) || !isProjectFetchedFromServer(projectId, userId)) throw new Error('Select an available project first.');
-        if (/^proj_\d+$/.test(projectId)) await workspaceService.getProjectCanvas(Number(projectId.slice(5)), token);
+        // Confirm access to the project and load reminders together; doing them in turn slowed every connect.
+        const [, schedule] = await Promise.all([
+            /^proj_\d+$/.test(projectId) ? workspaceService.getProjectCanvas(Number(projectId.slice(5)), token) : null,
+            reminderRequest('', token) as Promise<ReminderStatus>,
+        ]);
         const state = useStore.getState();
         const project = state.canvases[projectId];
         if (!project) throw new Error('This project is no longer available.');
-        const schedule = await reminderRequest('', token) as ReminderStatus;
         const reminders = schedule.reminders.filter(item => !item.project_id || item.project_id === projectId);
         const context = `Local time: ${new Date().toString()}\nTimezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}\nAccount reminders for this project and personal reminders: ${JSON.stringify(reminders)}\n` + buildProjectCapsule(project, { ...state, timetables: useTimetables.getState().tables }, 'Use this project as reference for the user’s request.');
         if (context.length > 24000) throw new Error('This project exceeds the assistant context limit. Use the AI capsule workspace to export its full context.');
