@@ -13,7 +13,7 @@ import VoiceTyping from './VoiceTyping';
 const WritingAttachmentPreview = lazy(() => import('./WritingAttachmentPreview'));
 const WritingScreenshotImport = lazy(() => import('./WritingScreenshotImport'));
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard, Plus, GripHorizontal, ScanText } from 'lucide-react';
+import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard, Plus, GripHorizontal, ScanText, Check } from 'lucide-react';
 import './WritingSection.css';
 
 interface WritingSectionProps {
@@ -74,7 +74,8 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
         </article>;
     };
     return <div className="writing-project">
-        <WritingPageTree pages={pages.filter(page => !page.quickNote)} activeId={selected} rootTitle={canvas?.name || canvas?.title || 'Main page'} select={selectPage} add={parent => create(parent)} />
+        <WritingPageTree pages={pages.filter(page => !page.quickNote)} activeId={selected} rootTitle={canvas?.name || canvas?.title || 'Main page'} select={selectPage} add={parent => create(parent)}
+            mobileExtra={<div className="writing-view-mini" role="group" aria-label="Writing view on phones"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Board</button></div>} />
         <div className="writing-page-editor">
             <div className="manuscript-toolbar"><div role="group" aria-label="Writing view"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Section board</button></div><button className="manuscript-add-page" disabled={pages.length >= 100} onClick={() => create(ROOT_PAGE)}>+ Add page</button><span className="manuscript-count">{pages.length} / 100 items</span></div>
             {/* At the main page the path is just the project name, already shown as the title. */}
@@ -553,10 +554,11 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                             }, 50);
                         }
                     }}
-                    className={`md:hidden fixed bottom-5 left-4 z-40 p-3.5 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center ${mobileEditMode ? 'bg-primary text-black' : 'bg-[#1a1a1a] text-white border border-[var(--border)]'}`}
-                    aria-label="Toggle keyboard edit mode"
+                    className="writing-edit-fab md:hidden" data-editing={mobileEditMode}
+                    aria-label="Toggle keyboard edit mode" aria-pressed={mobileEditMode}
                 >
-                    <Keyboard size={22} className={mobileEditMode ? 'opacity-100' : 'opacity-70'} />
+                    {mobileEditMode ? <Check size={18} /> : <Keyboard size={18} />}
+                    <span>{mobileEditMode ? 'Done' : 'Edit'}</span>
                 </button>
             )}
 
