@@ -1,3 +1,4 @@
+import { useTour } from './lib/productTour';
 import PageMetadata from './components/PageMetadata';
 import { topicPaths } from './content/publicContent';
 import AccountWorkspace from './components/AccountWorkspace';
@@ -9,6 +10,9 @@ import McpInboxSync from './components/McpInboxSync';
 import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 const PersonalAssistant = lazy(() => import('./components/PersonalAssistant'));
+const ProductTour = lazy(() => import('./components/ProductTour'));
+/** Loads the guided tour only while it is running. */
+function TourHost() { const active = useTour(state => state.active); return active ? <ProductTour /> : null; }
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const BillingPage = lazy(() => import('./components/BillingPage'));
 const Canvas = lazy(() => import('./components/Canvas'));
@@ -60,6 +64,7 @@ function App() {
     <McpInboxSync />
     <Suspense fallback={<div role="status" aria-label="Opening workspace" className="min-h-[100dvh] theme-page flex items-center justify-center"><span className="h-6 w-6 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] motion-safe:animate-spin" /></div>}>
     <PersonalAssistant />
+    <TourHost />
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthPage />} />

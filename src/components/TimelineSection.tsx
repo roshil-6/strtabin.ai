@@ -300,6 +300,7 @@ export default function TimelineSection() {
                     )}
 
                     <button
+                        data-tour="timeline-add"
                         onClick={addPhase}
                         className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 bg-primary/10 text-primary border border-primary/25 rounded-xl font-semibold text-[11px] md:text-xs uppercase tracking-wider hover:bg-primary/20 active:scale-95 transition-all shrink-0 shadow-[0_2px_12px_rgba(169,154,233,0.12)]"
                     >

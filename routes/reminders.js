@@ -4,7 +4,7 @@ import { requireClerkAuth } from '../middleware/requireClerkAuth.js';
 import { reminderInput, pushConfig, validateSubscription, endpointHash } from '../lib/reminders.js';
 
 export function registerReminderRoutes(app, { auth = requireClerkAuth } = {}) {
-    app.use('/api/assistant/reminders', auth, rateLimit({ windowMs: 60000, limit: 60, standardHeaders: true, legacyHeaders: false }), (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+    app.use('/api/assistant/reminders', auth, rateLimit({ windowMs: 60000, limit: 60, standardHeaders: true, legacyHeaders: false, keyGenerator: req => `reminders:${req.userId}` }), (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
     app.get('/api/assistant/reminders', async (req, res) => {
         try {
             const reminders = await qAll('SELECT id, title, project_id, start_date, local_time, timezone, repeat_kind, due_at, enabled, last_delivery, last_error FROM assistant_reminders WHERE user_id = ? ORDER BY due_at LIMIT 200', [req.userId]);
