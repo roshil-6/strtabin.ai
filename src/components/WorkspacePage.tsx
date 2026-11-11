@@ -109,6 +109,8 @@ export default function WorkspacePage() {
     try {
       const token = await getToken();
       const data = await workspaceService.getWorkspace(workspaceId, token);
+      // Teams are managed in one place: the Community team hub.
+      if (data.workspace?.type === 'team') { navigate(`/community?team=${workspaceId}`, { replace: true }); return; }
       setWorkspace(data.workspace);
       setMembers(data.members || []);
       setProjects(data.projects || []);

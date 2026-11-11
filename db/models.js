@@ -481,8 +481,45 @@ export async function updateMemberRole(workspaceId, userId, newRole) {
     return true;
 }
 
+/** Remove a member (or let them leave). The owner can never be removed. Their projects become unassigned. */
+export async function removeWorkspaceMember(workspaceId, userId) {
+    const ws = await getWorkspace(workspaceId);
+    if (!ws || ws.owner_id === userId) return false;
+    const member = await qGet('SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [workspaceId, userId]);
+    if (!member) return false;
+    await qRun('DELETE FROM workspace_members WHERE workspace_id = ? AND user_id = ?', [workspaceId, userId]);
+    await qRun('UPDATE projects SET assigned_to = NULL WHERE workspace_id = ? AND assigned_to = ?', [workspaceId, userId]);
+    await qRun(`UPDATE workspaces SET updated_at = ${nowSql()} WHERE id = ?`, [workspaceId]);
+    return true;
+}
+
+/** Pending, unexpired invitations sent from a workspace (for its admins). */
+export async function getPendingWorkspaceInvitations(workspaceId) {
+    const expOk = isPostgres()
+        ? '(i.expires_at IS NULL OR i.expires_at > NOW())'
+        : "(i.expires_at IS NULL OR i.expires_at > datetime('now'))";
+    return qAll(
+        `
+        SELECT i.id, i.invitee_email, i.created_at, i.expires_at, u.username AS invitee_username, inv.username AS inviter_username
+        FROM invitations i
+        LEFT JOIN users u ON u.id = i.invitee_user_id
+        LEFT JOIN users inv ON inv.id = i.inviter_id
+        WHERE i.workspace_id = ? AND i.status = 'pending' AND ${expOk}
+        ORDER BY i.created_at DESC
+    `,
+        [workspaceId]
+    );
+}
+
+export async function cancelWorkspaceInvitation(workspaceId, invitationId) {
+    const inv = await qGet("SELECT 1 FROM invitations WHERE id = ? AND workspace_id = ? AND status = 'pending'", [invitationId, workspaceId]);
+    if (!inv) return false;
+    await qRun('DELETE FROM invitations WHERE id = ?', [invitationId]);
+    return true;
+}
+
 // ─── Member daily tasks ────────────────────────────────────────────────────
-export async function getMemberDailyTasks(workspaceId, userId = null, taskDate = null) {
+export async function getMemberDailyTasks(workspaceId, userId = null, taskDate = null, range = null) {
     let sql = `
         SELECT t.*, u.username as assignee_username, a.username as assigned_by_username
         FROM member_daily_tasks t
@@ -493,6 +530,8 @@ export async function getMemberDailyTasks(workspaceId, userId = null, taskDate =
     const params = [workspaceId];
     if (userId) { sql += ' AND t.user_id = ?'; params.push(userId); }
     if (taskDate) { sql += ' AND t.task_date = ?'; params.push(taskDate); }
+    if (range?.from) { sql += ' AND t.task_date >= ?'; params.push(range.from); }
+    if (range?.to) { sql += ' AND t.task_date <= ?'; params.push(range.to); }
     sql += ' ORDER BY t.task_date DESC, t.created_at DESC';
     return qAll(sql, params);
 }

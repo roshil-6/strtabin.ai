@@ -53,6 +53,9 @@ import {
     getProjectCanvas,
     joinWorkspaceById,
     getWorkspaceRevision,
+    removeWorkspaceMember,
+    getPendingWorkspaceInvitations,
+    cancelWorkspaceInvitation,
 } from '../db/models.js';
 import { getClerkUserCached } from '../lib/clerkUserCache.js';
 import { verifyBearerSub } from '../lib/clerkAuth.js';
@@ -325,6 +328,56 @@ export function registerWorkspaceRoutes(app, clerkClient) {
         }
     });
 
+    // DELETE /api/workspaces/:id/members/:userId — admins remove a member; anyone can remove themselves (leave)
+    app.delete('/api/workspaces/:id/members/:userId', requireAuthMiddleware, async (req, res) => {
+        try {
+            const workspaceId = parseInt(req.params.id, 10);
+            const targetUserId = parseInt(req.params.userId, 10);
+            if (isNaN(workspaceId) || isNaN(targetUserId)) return res.status(400).json({ error: 'Invalid ID.' });
+            const ws = await getWorkspace(workspaceId);
+            if (!ws) return res.status(404).json({ error: 'Workspace not found.' });
+            if (!(await hasWorkspaceAccess(req.userId, workspaceId))) return res.status(403).json({ error: 'Access denied.' });
+            const leaving = targetUserId === req.userId;
+            if (!leaving && !(await canManageMembers(req.userId, workspaceId))) return res.status(403).json({ error: 'Only admins can remove members.' });
+            if (ws.owner_id === targetUserId) return res.status(400).json({ error: leaving ? 'The team owner cannot leave the team.' : 'The team owner cannot be removed.' });
+            const removed = await removeWorkspaceMember(workspaceId, targetUserId);
+            if (!removed) return res.status(404).json({ error: 'Member not found.' });
+            await logActivity({ userId: req.userId, workspaceId, action: leaving ? 'left_workspace' : 'removed_member', entityType: 'member', entityId: String(targetUserId), metadata: {} });
+            return res.json({ ok: true, members: leaving ? [] : await getWorkspaceMembers(workspaceId) });
+        } catch (err) {
+            console.error('Remove member error:', err);
+            return res.status(500).json({ error: 'Failed to remove member.' });
+        }
+    });
+
+    // GET /api/workspaces/:id/invitations — pending invitations sent from this workspace (admin only)
+    app.get('/api/workspaces/:id/invitations', requireAuthMiddleware, async (req, res) => {
+        try {
+            const workspaceId = parseInt(req.params.id, 10);
+            if (isNaN(workspaceId)) return res.status(400).json({ error: 'Invalid workspace ID.' });
+            if (!(await canManageMembers(req.userId, workspaceId))) return res.status(403).json({ error: 'Only admins can see pending invitations.' });
+            return res.json({ invitations: await getPendingWorkspaceInvitations(workspaceId) });
+        } catch (err) {
+            console.error('Workspace invitations error:', err);
+            return res.status(500).json({ error: 'Failed to load invitations.' });
+        }
+    });
+
+    // DELETE /api/workspaces/:id/invitations/:invitationId — cancel a pending invitation (admin only)
+    app.delete('/api/workspaces/:id/invitations/:invitationId', requireAuthMiddleware, async (req, res) => {
+        try {
+            const workspaceId = parseInt(req.params.id, 10);
+            const invitationId = parseInt(req.params.invitationId, 10);
+            if (isNaN(workspaceId) || isNaN(invitationId)) return res.status(400).json({ error: 'Invalid ID.' });
+            if (!(await canManageMembers(req.userId, workspaceId))) return res.status(403).json({ error: 'Only admins can cancel invitations.' });
+            if (!(await cancelWorkspaceInvitation(workspaceId, invitationId))) return res.status(404).json({ error: 'Invitation not found.' });
+            return res.json({ ok: true });
+        } catch (err) {
+            console.error('Cancel invitation error:', err);
+            return res.status(500).json({ error: 'Failed to cancel invitation.' });
+        }
+    });
+
     // GET /api/workspaces/:id/daily-tasks — list daily tasks (?userId= & ?date= optional)
     app.get('/api/workspaces/:id/daily-tasks', requireAuthMiddleware, async (req, res) => {
         try {
@@ -333,7 +386,9 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (!(await hasWorkspaceAccess(req.userId, workspaceId))) return res.status(403).json({ error: 'Access denied.' });
             const userId = req.query.userId ? parseInt(req.query.userId, 10) : null;
             const taskDate = sanitizeStr(req.query.date, 20) || null;
-            const tasks = await getMemberDailyTasks(workspaceId, isNaN(userId) ? null : userId, taskDate);
+            const dateKey = value => (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null);
+            const range = { from: dateKey(req.query.from), to: dateKey(req.query.to) };
+            const tasks = await getMemberDailyTasks(workspaceId, isNaN(userId) ? null : userId, taskDate, range.from || range.to ? range : null);
             return res.json({ tasks });
         } catch (err) {
             console.error('Daily tasks error:', err);
@@ -357,6 +412,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (!member) return res.status(400).json({ error: 'User is not a workspace member.' });
             const taskId = await createMemberDailyTask({ workspaceId, userId, taskText: text, taskDate: date, assignedBy: req.userId });
             const task = await getMemberDailyTaskById(taskId);
+            if (userId !== req.userId) await logActivity({ userId: req.userId, workspaceId, action: 'assigned_duty', entityType: 'duty', entityId: String(taskId), metadata: { assignee: member.username || null } });
             return res.status(201).json({ task, taskId });
         } catch (err) {
             console.error('Create daily task error:', err);
@@ -378,11 +434,17 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (!isAdmin && !isAssignee) return res.status(403).json({ error: 'Access denied.' });
             const { taskText, status } = req.body || {};
             const updates = {};
-            if (taskText !== undefined && isAdmin) updates.taskText = taskText;
+            const ownDuty = isAssignee && task.assigned_by === req.userId;
+            if (taskText !== undefined && (isAdmin || ownDuty)) {
+                const text = sanitizeStr(taskText, 2000);
+                if (!text) return res.status(400).json({ error: 'Task text required.' });
+                updates.taskText = text;
+            }
             if (status !== undefined && (isAdmin || isAssignee)) updates.status = status;
             if (Object.keys(updates).length === 0) return res.json({ task });
             await updateMemberDailyTask(taskId, req.userId, updates);
             const updated = await getMemberDailyTaskById(taskId);
+            if (updates.status === 'done' && task.status !== 'done') await logActivity({ userId: req.userId, workspaceId, action: 'completed_duty', entityType: 'duty', entityId: String(taskId), metadata: { text: String(updated?.task_text || '').slice(0, 80) } });
             return res.json({ task: updated });
         } catch (err) {
             console.error('Update daily task error:', err);
@@ -396,9 +458,12 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const workspaceId = parseInt(req.params.id, 10);
             const taskId = parseInt(req.params.taskId, 10);
             if (isNaN(workspaceId) || isNaN(taskId)) return res.status(400).json({ error: 'Invalid ID.' });
-            if (!(await canManageMembers(req.userId, workspaceId))) return res.status(403).json({ error: 'Only admins can delete tasks.' });
+            if (!(await hasWorkspaceAccess(req.userId, workspaceId))) return res.status(403).json({ error: 'Access denied.' });
             const task = await getMemberDailyTaskById(taskId);
-            if (!task) return res.status(404).json({ error: 'Task not found.' });
+            if (!task || task.workspace_id !== workspaceId) return res.status(404).json({ error: 'Task not found.' });
+            // Admins can delete any duty; members can delete duties they added for themselves.
+            const ownDuty = task.user_id === req.userId && task.assigned_by === req.userId;
+            if (!ownDuty && !(await canManageMembers(req.userId, workspaceId))) return res.status(403).json({ error: 'Only admins can delete duties assigned by someone else.' });
             await deleteMemberDailyTask(taskId, req.userId);
             return res.json({ ok: true });
         } catch (err) {
