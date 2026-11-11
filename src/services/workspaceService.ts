@@ -163,11 +163,13 @@ export const workspaceService = {
   async getDailyTasks(
     workspaceId: number,
     token: string | null,
-    opts?: { userId?: number; date?: string }
+    opts?: { userId?: number; date?: string; from?: string; to?: string }
   ) {
     const params = new URLSearchParams();
     if (opts?.userId) params.set('userId', String(opts.userId));
     if (opts?.date) params.set('date', opts.date);
+    if (opts?.from) params.set('from', opts.from);
+    if (opts?.to) params.set('to', opts.to);
     const q = params.toString() ? `?${params}` : '';
     return fetchWithAuth(`/api/workspaces/${workspaceId}/daily-tasks${q}`, {}, token);
   },
@@ -203,6 +205,25 @@ export const workspaceService = {
       { method: 'DELETE' },
       token
     );
+  },
+
+  async updateWorkspace(workspaceId: number, data: { name?: string; visibility?: Visibility }, token: string | null) {
+    return fetchWithAuth(`/api/workspaces/${workspaceId}`, { method: 'PATCH', body: JSON.stringify(data) }, token) as Promise<{ workspace: Workspace }>;
+  },
+
+  /** Admins remove a member; passing your own id leaves the team. */
+  async removeMember(workspaceId: number, userId: number, token: string | null) {
+    return fetchWithAuth(`/api/workspaces/${workspaceId}/members/${userId}`, { method: 'DELETE' }, token) as Promise<{ ok: boolean; members: WorkspaceMember[] }>;
+  },
+
+  async getWorkspaceInvitations(workspaceId: number, token: string | null) {
+    return fetchWithAuth(`/api/workspaces/${workspaceId}/invitations`, {}, token) as Promise<{
+      invitations: { id: number; invitee_email: string | null; invitee_username: string | null; created_at: string }[];
+    }>;
+  },
+
+  async cancelWorkspaceInvitation(workspaceId: number, invitationId: number, token: string | null) {
+    return fetchWithAuth(`/api/workspaces/${workspaceId}/invitations/${invitationId}`, { method: 'DELETE' }, token);
   },
 
   async acceptInvitation(id: number, token: string | null) {

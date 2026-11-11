@@ -187,3 +187,43 @@ test('only a workspace admin can delete a project, and its canvas and reminders 
  assert.equal((await callRoute('delete /api/projects/:id', { userId: 1, params })).status, 404);
  assert.equal((await callRoute('delete /api/projects/:id', { userId: 1, params: { id: 'abc' } })).status, 400);
 });
+
+test('admins remove members, members can leave, and the owner always stays', async () => {
+ database.prepare("INSERT INTO workspaces (id,name,type,owner_id) VALUES (200,'Roster','team',1)").run();
+ for (const [id, role] of [[1,'admin'],[2,'member'],[3,'member']]) database.prepare('INSERT INTO workspace_members (workspace_id,user_id,role) VALUES (200,?,?)').run(id, role);
+ database.prepare("INSERT INTO projects (id,workspace_id,title,assigned_to) VALUES (201,200,'Owned by 3',3)").run();
+ const key = 'delete /api/workspaces/:id/members/:userId';
+ assert.equal((await callRoute(key, { userId: 2, params: { id: '200', userId: '3' } })).status, 403);
+ assert.equal((await callRoute(key, { userId: 4, params: { id: '200', userId: '4' } })).status, 403);
+ assert.equal((await callRoute(key, { userId: 1, params: { id: '200', userId: '1' } })).status, 400);
+ const removed = await callRoute(key, { userId: 1, params: { id: '200', userId: '3' } });
+ assert.equal(removed.status, 200); assert.ok(!removed.payload.members.some(member => member.id === 3));
+ assert.equal(database.prepare('SELECT assigned_to FROM projects WHERE id = 201').get().assigned_to, null);
+ assert.equal((await callRoute(key, { userId: 2, params: { id: '200', userId: '2' } })).status, 200);
+ assert.equal(database.prepare('SELECT COUNT(*) AS count FROM workspace_members WHERE workspace_id = 200').get().count, 1);
+});
+
+test('admins list and cancel pending invitations sent from their own team only', async () => {
+ database.prepare("INSERT INTO invitations (id,workspace_id,inviter_id,invitee_user_id,token) VALUES (300,1,1,4,'tok300')").run();
+ assert.equal((await callRoute('get /api/workspaces/:id/invitations', { userId: 2, params: { id: '1' } })).status, 403);
+ const listed = await callRoute('get /api/workspaces/:id/invitations', { userId: 1, params: { id: '1' } });
+ assert.equal(listed.status, 200); assert.ok(listed.payload.invitations.some(item => item.id === 300 && item.invitee_username === 'user4'));
+ assert.equal((await callRoute('delete /api/workspaces/:id/invitations/:invitationId', { userId: 1, params: { id: '100', invitationId: '300' } })).status, 404);
+ assert.equal((await callRoute('delete /api/workspaces/:id/invitations/:invitationId', { userId: 1, params: { id: '1', invitationId: '300' } })).status, 200);
+ assert.equal(database.prepare('SELECT id FROM invitations WHERE id = 300').get(), undefined);
+});
+
+test('duties load by date range and delete only inside their own team', async () => {
+ const add = (userId, body) => callRoute('post /api/workspaces/:id/daily-tasks', { userId, params: { id: '1' }, body });
+ const own = await add(2, { taskText: 'My own duty', taskDate: '2026-11-03' });
+ const assigned = await add(1, { userId: 2, taskText: 'Assigned duty', taskDate: '2026-11-05' });
+ await add(1, { userId: 2, taskText: 'Later duty', taskDate: '2026-11-20' });
+ const week = await callRoute('get /api/workspaces/:id/daily-tasks', { params: { id: '1' }, query: { from: '2026-11-02', to: '2026-11-08' } });
+ assert.deepEqual(week.payload.tasks.map(task => task.task_text).sort(), ['Assigned duty', 'My own duty']);
+ const del = 'delete /api/workspaces/:id/daily-tasks/:taskId';
+ assert.equal((await callRoute(del, { userId: 2, params: { id: '1', taskId: String(assigned.payload.taskId) } })).status, 403);
+ assert.equal((await callRoute(del, { userId: 1, params: { id: '100', taskId: String(own.payload.taskId) } })).status, 404);
+ assert.equal((await callRoute(del, { userId: 2, params: { id: '1', taskId: String(own.payload.taskId) } })).status, 200);
+ const renamed = await callRoute('patch /api/workspaces/:id/daily-tasks/:taskId', { userId: 2, params: { id: '1', taskId: String(assigned.payload.taskId) }, body: { taskText: 'Changed' } });
+ assert.equal(renamed.payload.task.task_text, 'Assigned duty');
+});

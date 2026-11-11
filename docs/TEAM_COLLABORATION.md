@@ -2,6 +2,15 @@
 
 Community provides Teams, Projects, Duties, Reports, People, Chats, and Insights sections. The interface uses the shared black, violet, and pure-white theme, responsive navigation, labeled controls, keyboard focus indicators, and native modal dialogs with focus containment and Escape handling.
 
+## Team hub
+
+All team work lives in Community (Teams, Projects, Duties, Reports). Opening `/workspace/:id` for a team, or joining with an invite link (`/join/:id`), redirects to `/community?team=:id`.
+
+- Team bar: switch teams, copy the invite link or team ID, invite by username or email, rename (admins), start a group chat, and leave the team (anyone except the owner).
+- Overview: active projects, today's duties progress, members, pending invites; your own duties with quick add; projects by stage; readable activity; people with roles, today's workload, messaging, and admin actions (make admin or member, remove). Admins see and cancel pending invitations.
+- Projects: search, stage filters with counts, a board grouped by stage or a list, inline owner and stage changes, and admin delete with confirmation.
+- Duties: day and week views, previous and next navigation, filter by everyone, only mine or one person, quick add (admins choose the assignee), inline edit and delete for admins and for the person who added their own duty.
+
 ## Team workflow
 
 - Create a private team or join using its workspace ID. Incoming invitations can be accepted or declined in Community.

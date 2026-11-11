@@ -31,7 +31,7 @@ export default function JoinWorkspacePage() {
       const token = await getToken();
       const { workspace } = await workspaceService.joinWorkspace(workspaceId, token);
       toast.success(`Joined "${workspace?.name || 'workspace'}"`);
-      navigate(`/workspace/${workspaceId}`);
+      navigate(`/community?team=${workspaceId}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not join workspace');
     } finally {
