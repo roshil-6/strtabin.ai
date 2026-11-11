@@ -63,7 +63,7 @@ export default function ProjectOverview() {
                     {/* AI Brain Callout */}
                     <div 
                         onClick={() => navigate(`/ai/${id}`, { state: location.state })}
-                        className="mt-2 p-6 rounded-2xl bg-violet-500/5 border border-violet-500/10 flex items-start gap-4 cursor-pointer hover:bg-violet-500/10 hover:border-violet-500/20 transition-all group relative overflow-hidden"
+                        className="mt-2 p-5 md:p-6 rounded-2xl bg-violet-500/5 border border-violet-500/10 flex items-start gap-4 cursor-pointer hover:bg-violet-500/10 hover:border-violet-500/20 transition-all group relative overflow-hidden"
                     >
                         {/* Shimmer effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
@@ -87,7 +87,7 @@ export default function ProjectOverview() {
                         </div>
                         
                         {/* Go to chat indicator */}
-                        <div className="ml-auto flex flex-col justify-center h-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="ml-auto hidden md:flex flex-col justify-center h-full opacity-0 group-hover:opacity-100 transition-opacity">
                             <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
                                 <Bot size={18} className="text-violet-300" />
                             </div>

@@ -313,10 +313,10 @@ export default function CalendarView() {
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 flex flex-col lg:flex-row gap-3 md:gap-4 px-2 md:px-6 pb-20 md:pb-6 overflow-hidden min-h-0">
+                <div className="calendar-body flex-1 flex flex-col lg:flex-row gap-3 md:gap-4 px-2 md:px-6 pb-20 md:pb-6 overflow-hidden min-h-0" data-mode={viewMode}>
 
                     {/* Calendar Grid / Weekly Planner */}
-                    <div className={`flex-1 rounded-2xl md:rounded-3xl border flex flex-col overflow-hidden transition-all duration-300 ${
+                    <div className={`calendar-panel flex-1 rounded-2xl md:rounded-3xl border flex flex-col overflow-hidden transition-all duration-300 ${
                         viewMode === 'month'
                             ? 'theme-card border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.15)]'
                             : 'theme-panel border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.15)]'
@@ -454,7 +454,7 @@ export default function CalendarView() {
                                     <ExecutionLogForm dateKey={todayKey} todayKey={todayKey} strategyId={id} />
                                 </div>
                             )}
-                            <div className="flex-1 grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-white/[0.05] overflow-y-auto md:overflow-hidden custom-scrollbar">
+                            <div className="calendar-week-days flex-1 grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-white/[0.05] overflow-y-auto md:overflow-hidden custom-scrollbar">
                                 {weekDays.map((date, i) => {
                                     const key = dateToKey(date);
                                     const dayEvents = activeCalendarEvents[key] || [];

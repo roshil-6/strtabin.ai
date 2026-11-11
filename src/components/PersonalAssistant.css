@@ -2003,3 +2003,18 @@
     bottom: calc(76px + env(safe-area-inset-bottom));
   }
 }
+
+/* Phones: Sasha's welcome starts under the tabs instead of overflowing upward, and the composer tools scroll in one row. */
+@media (max-width: 767px) {
+  .assistant-chat-shell.is-empty { flex: 1 0 auto; justify-content: flex-start; }
+  .assistant-welcome { margin: 8px auto 20px; }
+  .assistant-compose-tools { flex-wrap: nowrap; align-items: center; gap: 8px; }
+  .assistant-compose-left { flex: 1; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+  .assistant-compose-left::-webkit-scrollbar { display: none; }
+  .assistant-compose-left > * { flex-shrink: 0; }
+  .assistant-compose-left > :last-child { margin-right: 24px; }
+  .assistant-compose-right { flex-shrink: 0; }
+  /* On Sasha's own page the voice orb sits in the empty top-right corner instead of over the composer. */
+  body:has(.sasha-workspace) .agent-dock.collapsed { top: calc(10px + env(safe-area-inset-top)); bottom: auto; right: 12px; }
+  body:has(.sasha-workspace) .agent-dock.collapsed .agent-pill { width: 40px; height: 40px; min-height: 40px; }
+}

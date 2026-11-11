@@ -31,10 +31,10 @@ export const publicFeatures: PublicFeature[] = [
  {category:'Planning & progress',title:'Daily execution logs',desc:'Record what you did, what is blocking you and tomorrow’s next action, so progress stays visible day by day.'},
  {category:'Planning & progress',title:'Reports and progress tracking',desc:'Keep reports with their projects, monitor task completion and execution, and spot gaps in your plan.'},
  // AI assistance
- {category:'AI assistance',highlight:true,title:'Sasha AI chat and voice — Pro',desc:'Ask for project briefings, brainstorm ideas, and review proposed projects, tasks and flow maps before applying them. Use hosted AI without supplying an API key, within daily usage allowances.'},
+ {category:'AI assistance',highlight:true,title:'Sasha AI chat and voice (Pro)',desc:'Ask for project briefings, brainstorm ideas, and review proposed projects, tasks and flow maps before applying them. Use hosted AI without supplying an API key, within daily usage allowances.'},
  {category:'AI assistance',title:'Optional “Hey Sasha” voice activation',desc:'Enable wake listening in a supported browser tab and talk with Sasha. Choose your own agent name, interrupt spoken replies, and stop listening at any time. Microphone permission and internet access are required.'},
  {category:'AI assistance',highlight:true,title:'Your own AI with full project context',desc:'Choose project details for a capsule, then copy or download it for ChatGPT, Claude or Gemini. Paste or attach it in your own AI tool and save the response back to your project.'},
- {category:'AI assistance',title:'Stratabin AI reports — Pro',desc:'Generate a progress summary, risk review or action plan from your project inside Stratabin. Each report uses one Sasha request and is saved to the project.'},
+ {category:'AI assistance',title:'Stratabin AI reports (Pro)',desc:'Generate a progress summary, risk review or action plan from your project inside Stratabin. Each report uses one Sasha request and is saved to the project.'},
  {category:'AI assistance',title:'Connect Claude, ChatGPT or Gemini',desc:'Add Stratabin as a connector in your AI app, then ask it to save a report to a project. It can list project names and add reports only.'},
  {category:'AI assistance',title:'Saved AI analysis reports',desc:'Keep AI reports with the project they belong to, edit or archive them, and include them in PDF exports.'},
  // Teamwork
