@@ -986,3 +986,23 @@ a {
   /* While the keyboard is up, the Edit/Done pill would float over the text; tap outside the text to bring it back. */
   .writing-edit-fab[hidden]{display:none}
 }
+
+/* Calendar on phones: the week view scrolls as one page, and reminders take a single line. */
+@media(max-width:767px){
+  .calendar-body[data-mode="week"]{overflow-y:auto;padding-bottom:110px}
+  .calendar-body[data-mode="week"] .calendar-panel{flex:none;overflow:visible}
+  .calendar-body[data-mode="week"] .calendar-week-days{flex:none;overflow:visible}
+  .calendar-reminder-banner{margin:0 8px 10px!important;padding:10px 12px!important;align-items:center!important;flex-wrap:nowrap!important;gap:10px}
+  .calendar-reminder-banner small{display:none}
+  .calendar-reminder-banner strong{font-size:13px}
+  .calendar-reminder-banner button{margin-left:auto!important;min-height:36px!important;padding:0 12px!important}
+
+  /* Sasha shrinks to a small orb on phones so it stops covering content. */
+  .agent-dock.collapsed .agent-pill{width:48px;height:48px;min-height:48px;padding:0;justify-content:center;gap:0}
+  .agent-dock.collapsed .agent-pill>span:last-child{display:none}
+}
+@media(max-width:767px){
+  .calendar-week-days>*{min-height:0!important}
+  .calendar-week-days button.border-dashed{min-height:44px!important;flex-direction:row!important;gap:8px}
+  .calendar-week-days button.border-dashed *{margin:0!important}
+}

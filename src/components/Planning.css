@@ -117,3 +117,46 @@
 .timed-break-column>span,.timed-break-column>small { display:block; margin-top:8px; overflow-wrap:anywhere; }
 .timed-break-column>small { color:var(--text-muted); }
 .planning-page .weekly-grid.days-as-rows .break-name { font-size:14px; color:#64d8af; }
+
+/* Timetable on phones: day chips, then that day's slots as cards. */
+@media(max-width:767px){
+  .timetable-grid-tools .planning-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .timetable-grid-tools .planning-actions button{justify-content:center;min-height:42px;font-size:13px}
+  .tt-phone-days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -18px;padding:2px 18px 10px}
+  .tt-phone-days::-webkit-scrollbar{display:none}
+  .tt-phone-days button{position:relative;flex:0 0 auto;min-width:54px;min-height:44px;padding:0 12px;border-radius:14px;border:1px solid var(--border-strong);font-size:14px;font-weight:600;color:var(--text-muted);background:transparent}
+  .tt-phone-days button[aria-selected="true"]{background:var(--primary);border-color:var(--primary);color:#191722}
+  .tt-phone-days i{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;font-style:normal;font-size:10.5px;line-height:18px;font-weight:700;background:var(--bg-panel);color:var(--primary);border:1px solid var(--primary)}
+  .tt-phone-dayhead{display:flex;align-items:center;gap:8px;margin:6px 0 12px}
+  .tt-phone-dayhead input{flex:1;min-width:0;font-size:22px!important;font-weight:700;background:transparent;border:0;border-bottom:1px dashed var(--border-strong);border-radius:0;padding:4px 0;color:var(--text)}
+  .tt-phone-dayhead button{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;color:var(--text-muted);border:1px solid var(--border)}
+  .tt-phone-slots{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+  .tt-slot{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:16px;border:1px solid var(--border);border-left:3px solid var(--primary);background:var(--bg-panel)}
+  .tt-slot.is-break{border-left-color:#64d8af;background:rgba(100,216,175,.06)}
+  .tt-slot header{display:flex;align-items:center;gap:8px}
+  .tt-slot header>span{display:flex;align-items:center;gap:6px;flex:1;min-width:0;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--primary)}
+  .tt-slot.is-break header>span{color:#64d8af}
+  .tt-slot header small{font-size:12px;color:var(--text-muted)}
+  .tt-slot .break-name{flex:1;min-width:0;background:transparent;border:0;padding:0;font-size:13px!important;font-weight:700;color:#64d8af;text-transform:none;letter-spacing:0}
+  .planning-page .tt-slot-remove,.planning-page .tt-phone-dayhead button{flex-shrink:0;width:34px;height:34px;min-height:34px;padding:0;display:grid;place-items:center;border-radius:10px;color:var(--text-muted);border:1px solid var(--border)}
+  .tt-slot .period-time-inputs{display:flex;align-items:center;gap:8px}
+  .tt-slot .period-time-inputs input{flex:1;min-width:0;min-height:42px;padding:6px 10px;border-radius:11px;border:1px solid var(--border-strong);background:var(--input-bg);color:var(--text);font-size:16px}
+  .tt-slot .period-time-inputs>span{font-size:12px}
+  .tt-slot textarea{width:100%;min-height:64px;padding:10px 12px;border-radius:11px;border:1px solid var(--border);background:var(--bg-page);color:var(--text);font-size:16px;resize:vertical}
+  .planning-page .tt-slot .grid-break-button{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--border);font-size:12.5px}
+}
+
+/* Tasks on phones: a compact composer so the list stays in view. */
+@media(max-width:767px){
+  .planning-page .task-composer{padding:14px 16px;gap:10px;min-height:0!important;height:auto!important}
+  .planning-page .task-composer textarea{flex:none!important;min-height:52px!important;height:auto!important;font-size:17px!important;line-height:1.45}
+  .planning-page .task-composer button{min-height:42px}
+}
+@media(max-width:767px){
+  .planning-page{padding-top:16px!important}
+  .planning-page .planning-eyebrow:has(+ h1){display:none}
+  .planning-page .task-card:not(.task-composer){min-height:0!important}
+  .planning-page h1{font-size:26px!important;line-height:1.2}
+  .planning-page .task-card:not(.task-composer) .planning-actions{flex-wrap:nowrap;gap:6px}
+  .planning-page .task-card:not(.task-composer) .planning-actions button{padding:0 10px;min-height:40px;font-size:13px;white-space:nowrap}
+}
