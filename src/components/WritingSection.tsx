@@ -13,7 +13,7 @@ import VoiceTyping from './VoiceTyping';
 const WritingAttachmentPreview = lazy(() => import('./WritingAttachmentPreview'));
 const WritingScreenshotImport = lazy(() => import('./WritingScreenshotImport'));
 import useStore from '../store/useStore';
-import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard, Plus, GripHorizontal, ScanText, Check } from 'lucide-react';
+import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard, Plus, GripHorizontal, ScanText, Check, ChevronsUp } from 'lucide-react';
 import './WritingSection.css';
 
 interface WritingSectionProps {
@@ -25,10 +25,15 @@ interface WritingSectionProps {
 export default function WritingSection(props: WritingSectionProps) {
     return <WritingProject key={props.canvasId} {...props} />;
 }
+const FOCUS_KEY = 'stratabin-writing-focus';
+
 function WritingProject({ canvasId, initialView = 'document' }: WritingSectionProps) {
     const canvas = useStore(state => state.canvases[canvasId]);
     const [activeId, setActiveId] = useState(ROOT_PAGE);
     const [view, setView] = useState(initialView);
+    // Phones can fold away the header, page row and toolbar to give the writing the whole screen.
+    const [focusWriting, setFocusWritingState] = useState(() => { try { return localStorage.getItem(FOCUS_KEY) === '1'; } catch { return false; } });
+    const setFocusWriting = (value: boolean) => { setFocusWritingState(value); try { localStorage.setItem(FOCUS_KEY, value ? '1' : '0'); } catch { /* Only this visit remembers it. */ } };
     const [openNoteId, setOpenNoteId] = useState<string | null>(null);
     const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
     const [kind, setKind] = useState<NonNullable<WritingPage['kind']>>('scene');
@@ -73,10 +78,15 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
             </div>
         </article>;
     };
-    return <div className="writing-project">
+    const focusOn = focusWriting && view === 'document';
+    return <div className="writing-project" data-focus={focusOn}>
         <WritingPageTree pages={pages.filter(page => !page.quickNote)} activeId={selected} rootTitle={canvas?.name || canvas?.title || 'Main page'} select={selectPage} add={parent => create(parent)}
             mobileExtra={<div className="writing-view-mini" role="group" aria-label="Writing view on phones"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Board</button></div>} />
         <div className="writing-page-editor">
+            {focusOn && <div className="writing-focus-bar">
+                <button type="button" onClick={() => setFocusWriting(false)} aria-label="Show the project bar and writing tools"><ChevronDown size={16} /><span>Tools</span></button>
+                <strong>{selected === ROOT_PAGE ? canvas?.name || canvas?.title || 'Main page' : pages.find(page => page.id === selected)?.title || 'Untitled page'}</strong>
+            </div>}
             <div className="manuscript-toolbar"><div role="group" aria-label="Writing view"><button aria-pressed={view === 'document'} onClick={() => setView('document')}>Writing</button><button aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Section board</button></div><button className="manuscript-add-page" disabled={pages.length >= 100} onClick={() => create(ROOT_PAGE)}>+ Add page</button><span className="manuscript-count">{pages.length} / 100 items</span></div>
             {/* At the main page the path is just the project name, already shown as the title. */}
             {selected !== ROOT_PAGE && <nav className="writing-breadcrumbs" aria-label="Page path"><button onClick={() => selectPage(ROOT_PAGE)}>{canvas?.name || canvas?.title || 'Main page'}</button>{pageAncestors(pages, selected).map(page => <span key={page.id}><span aria-hidden="true">/</span><button aria-current={page.id === selected ? 'page' : undefined} onClick={() => selectPage(page.id)}>{page.title || 'Untitled page'}</button></span>)}</nav>}
@@ -85,7 +95,7 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
                 {view === 'cards' ? <><section className="manuscript-board expandable-scene-board" aria-label="Expandable section cards"><header><div><h3>{current?.title || 'Project sections'}</h3><p>Click a card to open its writing in a floating editor.</p></div><form className="manuscript-create" onSubmit={event => { event.preventDefault(); create(selected, newTitle.trim() || `Untitled ${writingKindLabel(kind)}`, [], kind); setNewTitle(''); }}><select aria-label="Type" value={kind} onChange={event => setKind(event.target.value as NonNullable<WritingPage['kind']>)}><option value="part">Part</option><option value="section">Section</option><option value="scene">Note</option></select><input aria-label="Title" value={newTitle} maxLength={200} placeholder={`New ${writingKindLabel(kind)} title…`} onChange={event => setNewTitle(event.target.value)} /><button type="submit" disabled={pages.length >= 100}><Plus size={14} />Add</button></form></header><div className="scene-box-grid">{(current && current.kind && current.kind !== 'page' ? [current] : pages.filter(page => page.parentId === selected)).map(page => renderCard(page))}</div>{!pages.length && <p className="manuscript-empty">Add your first part, section or note above. Its writing opens in a floating editor.</p>}</section>{openNote && <FloatingNoteEditor key={openNote.id} title={openNote.title || 'Untitled'} kindLabel={writingKindLabel(openNote.kind)} close={() => setOpenNoteId(null)}
                     actions={(['part', 'section', 'scene'] as const).map(type => <button key={type} disabled={pages.length >= 100} title={`Add a ${writingKindLabel(type)} inside this ${writingKindLabel(openNote.kind)}`} onClick={() => create(openNote.id, `Untitled ${writingKindLabel(type)}`, [], type)}>+ {writingKindLabel(type)}</button>)}>
                     <WritingEditor canvasId={canvasId} pageId={openNote.id} />
-                </FloatingNoteEditor>}</> : <WritingEditor key={selected} canvasId={canvasId} pageId={selected} /> }
+                </FloatingNoteEditor>}</> : <WritingEditor key={selected} canvasId={canvasId} pageId={selected} onHideBars={() => setFocusWriting(true)} /> }
             </div>
         </div>
     </div>;
@@ -123,7 +133,7 @@ function FloatingNoteEditor({ title, kindLabel, close, actions, children }: { ti
     </section>;
 }
 
-function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: string }) {
+function WritingEditor({ canvasId, pageId, onHideBars }: WritingSectionProps & { pageId: string; onHideBars?: () => void }) {
     const project = useStore(state => state.canvases[canvasId]);
     const page = project?.writingPages?.find(item => item.id === pageId);
     const canvas = page ? { ...project, name: page.title, title: page.title, writingContent: page.content } : project;
@@ -171,6 +181,8 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
     // Mobile Edit Mode state
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [mobileEditMode, setMobileEditMode] = useState(true);
+    // While the phone keyboard is up the Edit/Done pill would float over the text, so it steps aside.
+    const [typing, setTyping] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -336,6 +348,7 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                     {wc > 0 && <span className="text-[11px] text-[var(--text-dim)] font-medium whitespace-nowrap">{wc} words</span>}
                 </div>
 
+                {onHideBars && <button type="button" className="writing-hide-bars md:hidden" onClick={onHideBars} aria-label="Hide the bars while writing" title="Hide the bars while writing"><ChevronsUp size={17} /></button>}
                 <div className="mr-auto">
                     <WritingFormatBar preview={preview} onTogglePreview={() => setPreview(value => !value)} disabled={isMobile && !mobileEditMode}
                         target={formatTarget} />
@@ -404,7 +417,8 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
 
             {/* Content Area */}
             <div ref={scrollContainerRef} className="writing-scroll-area flex-1 overflow-y-auto custom-scrollbar"
-                onFocus={event => { if (event.target instanceof HTMLElement && event.target.classList.contains('rich-editor')) activeEditorRef.current = event.target; }}>
+                onFocus={event => { if (event.target instanceof HTMLElement && event.target.classList.contains('rich-editor')) activeEditorRef.current = event.target; setTyping(event.target instanceof HTMLElement && (event.target.isContentEditable || /^(INPUT|TEXTAREA)$/.test(event.target.tagName))); }}
+                onBlur={() => setTyping(false)}>
                 <div className="writing-document w-full mb-24 relative group">
                     
                     {(() => {
@@ -554,7 +568,7 @@ function WritingEditor({ canvasId, pageId }: WritingSectionProps & { pageId: str
                             }, 50);
                         }
                     }}
-                    className="writing-edit-fab md:hidden" data-editing={mobileEditMode}
+                    className="writing-edit-fab md:hidden" data-editing={mobileEditMode} hidden={typing}
                     aria-label="Toggle keyboard edit mode" aria-pressed={mobileEditMode}
                 >
                     {mobileEditMode ? <Check size={18} /> : <Keyboard size={18} />}
