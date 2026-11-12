@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     ArrowUpRight, Plus, Users, FolderKanban, ListChecks, FileText, MessageCircle, Check, Loader2, RefreshCw, UserPlus, Download, Upload,
     Pill as Capsule, Search, ChevronLeft, ChevronRight, ChevronDown, Link2, Copy, MoreHorizontal, Trash2, Pencil, LogOut, Shield, ShieldOff,
-    UserMinus, X, LayoutGrid, List as ListIcon, CalendarDays, CalendarRange, Lock, Activity, Mail, Clock,
+    UserMinus, X, LayoutGrid, List as ListIcon, CalendarDays, CalendarRange, Lock, Activity, Mail, Clock, GripVertical,
 } from 'lucide-react';
 import { workspaceService, type Workspace, type Project, type ProjectStatus, type MemberDailyTask, type Invitation, type WorkspaceMember, type ActivityLog } from '../services/workspaceService';
 import { type ChatUser } from '../services/chatService';
@@ -13,7 +13,9 @@ import { sanitizeExternalReports, type ExternalAiReport } from '../lib/projectAi
 import useStore from '../store/useStore';
 import TeamDialog from './TeamDialog';
 import MarkdownRenderer from './MarkdownRenderer';
+import { useStageDrag } from '../hooks/useStageDrag';
 import './TeamWorkspace.css';
+import './StageDrag.css';
 
 export type TeamView = 'teams' | 'projects' | 'duties' | 'reports';
 type Detail = Awaited<ReturnType<typeof workspaceService.getWorkspace>>;
@@ -25,6 +27,7 @@ const EMPTY_REPORTS: ExternalAiReport[] = [];
 const STAGES: { id: ProjectStatus; label: string }[] = [
     { id: 'idea', label: 'Idea' }, { id: 'planning', label: 'Planning' }, { id: 'executing', label: 'In progress' }, { id: 'completed', label: 'Done' },
 ];
+const STAGE_IDS = STAGES.map(stage => stage.id);
 const stageLabel = (status: ProjectStatus) => STAGES.find(stage => stage.id === status)?.label || status;
 const HEADINGS: Record<TeamView, [string, string]> = {
     teams: ['Overview', 'Who is on the team, what is moving and what needs attention today.'],
@@ -324,6 +327,15 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
     const allProjects = current?.projects || [];
     const matching = allProjects.filter(project => `${project.title} ${project.description || ''} ${project.assigned_to_username || ''}`.toLowerCase().includes(query.toLowerCase()));
     const filteredProjects = matching.filter(project => stageFilter === 'all' || project.status === stageFilter);
+    const stageDrag = useStageDrag<ProjectStatus>({
+        stages: STAGE_IDS,
+        disabled: busy,
+        onMove: (id, stage) => {
+            const project = allProjects.find(item => String(item.id) === id);
+            if (!project || project.status === stage) return;
+            void updateProject(project, { status: stage }).then(ok => { if (ok) setNotice(`Moved "${project.title}" to ${stageLabel(stage)}.`); });
+        },
+    });
     const visibleReports = reports.filter(report => !report.archived && `${report.title} ${report.content}`.toLowerCase().includes(query.toLowerCase()));
     const viewedReport = reports.find(report => report.id === selectedReport) || null;
     const today = localDateKey();
@@ -353,9 +365,10 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
         </li>;
     };
 
-    const projectCard = (project: Project) => <article key={project.id} className="th-project">
+    const projectCard = (project: Project, onBoard = false) => <article key={project.id} className="th-project" {...(onBoard ? stageDrag.itemProps(String(project.id), project.status) : {})}>
         <header>
             <span className={`th-stage th-stage-${project.status}`}>{stageLabel(project.status)}</span>
+            {onBoard && <button {...stageDrag.handleProps(String(project.id), project.status, project.title)}><GripVertical size={16} /></button>}
             <Menu label={`More actions for ${project.title}`}>{close => <>
                 <button role="menuitem" onClick={() => { close(); projectLink(project); }}><ArrowUpRight size={15} />Open project</button>
                 <button role="menuitem" onClick={() => { close(); capsuleLink(project.id); }}><Capsule size={15} />Prepare AI capsule</button>
@@ -541,15 +554,15 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
                             </div>
                         </div>
                         {!filteredProjects.length ? <div className="th-empty"><FolderKanban size={28} /><h3>{allProjects.length ? 'No projects match' : 'No shared projects yet'}</h3><p>{allProjects.length ? 'Try another search or stage.' : 'Create a project to plan, write and map ideas together.'}</p>{!allProjects.length && <button className="team-primary" onClick={() => open('project')}><Plus size={16} />New project</button>}</div>
-                            : projectLayout === 'board' && stageFilter === 'all' ? <div className="th-board">{STAGES.map(stage => {
+                            : projectLayout === 'board' && stageFilter === 'all' ? <div ref={stageDrag.bindBoard} className={`th-board${stageDrag.draggingId ? ' is-dragging' : ''}`}>{STAGES.map(stage => {
                                 const column = filteredProjects.filter(project => project.status === stage.id);
-                                return <section key={stage.id} className="th-board-column" aria-label={stage.label}>
+                                return <section key={stage.id} className="th-board-column" aria-label={stage.label} {...stageDrag.columnProps(stage.id)}>
                                     <header><span className={`th-stage th-stage-${stage.id}`}>{stage.label}</span><em>{column.length}</em></header>
-                                    {column.map(projectCard)}
-                                    {!column.length && <p className="th-column-empty">Nothing here</p>}
+                                    {column.map(project => projectCard(project, true))}
+                                    {!column.length && <p className="th-column-empty">{stageDrag.draggingId ? 'Drop here' : 'Drag a project here'}</p>}
                                 </section>;
                             })}</div>
-                                : <div className="th-project-grid">{filteredProjects.map(projectCard)}</div>}
+                                : <div className="th-project-grid">{filteredProjects.map(project => projectCard(project))}</div>}
                     </>}
 
                     {view === 'duties' && <>

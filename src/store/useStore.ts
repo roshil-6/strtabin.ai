@@ -67,6 +67,9 @@ export type DailyExecutionLog = {
     createdAt: number;
 };
 
+/** Where a project is in its life: Idea, Planning, In progress, Done. */
+export type ProjectStage = 'idea' | 'planning' | 'executing' | 'completed';
+
 export type CanvasData = {
     id: string;
     projectType?: 'strategy' | 'code' | 'notes';
@@ -88,6 +91,7 @@ export type CanvasData = {
     isPinned?: boolean; // Pin status
     isCurrent?: boolean; // Current focus status
     isStuck?: boolean; // User-marked blocked / needs attention
+    stage?: ProjectStage; // Board column; unset projects get a stage from their content
     mergedCanvasIds?: string[]; // IDs of canvases that are part of this merged project
     folderId?: string | null; // Associated folder ID
     goals?: CanvasGoal[]; // Outcome/metric tracking
@@ -246,6 +250,7 @@ export type RFState = {
     deleteEdge: (id: string) => void;
     togglePinCanvas: (id: string) => void;
     toggleStuckCanvas: (id: string) => void;
+    setCanvasStage: (id: string, stage: ProjectStage) => void;
     mergeCanvases: (ids: string[], title: string) => string;
 
     // Global Calendar
@@ -497,6 +502,14 @@ const useStore = create<RFState>()(
                             [id]: { ...canvas, isStuck: !canvas.isStuck, updatedAt: Date.now() },
                         },
                     };
+                });
+            },
+
+            setCanvasStage: (id, stage) => {
+                set((state) => {
+                    const canvas = state.canvases[id];
+                    if (!canvas || canvas.stage === stage) return state;
+                    return { canvases: { ...state.canvases, [id]: { ...canvas, stage, updatedAt: Date.now() } } };
                 });
             },
 

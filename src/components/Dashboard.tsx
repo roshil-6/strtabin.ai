@@ -1,6 +1,8 @@
 import { useAccountTransition } from '../store/useAccountTransition';
 import { dashboardDestination } from '../lib/dashboardDestination';
 import CompactProjectCard from './CompactProjectCard';
+import ProjectStageBoard from './ProjectStageBoard';
+import { PROJECT_STAGES } from '../lib/projectStages';
 import ExecutionLogForm from './ExecutionLogForm';
 import LavenderDotBackground from './LavenderDotBackground';
 import { localDateKey } from '../lib/localDate';
@@ -12,7 +14,7 @@ import useModalStore from '../store/useModalStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
-import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronDown, Hourglass, Archive, FileDown, PlugZap, BookOpen, Compass } from 'lucide-react';
+import { Plus, Layout, Calendar, CheckSquare, ArrowRight, ListTodo, Clock, Bot, Star, Trash2, GitMerge, CheckCircle2, X, Zap, Folder, Folders, FolderPlus, Menu, LogOut, Copy, Network, Pencil, Sparkles, Target, PenTool, Layers, BarChart2, Activity, User, Lock, Users, Flame, LogIn, Hash, ChevronDown, Hourglass, Archive, FileDown, PlugZap, BookOpen, Compass, LayoutGrid, Kanban } from 'lucide-react';
 import { useTour, tourSeen } from '../lib/productTour';
 const ExportPdfDialog = lazy(() => import('./ExportPdfDialog'));
 
@@ -28,7 +30,7 @@ import { workspaceService, type Workspace } from '../services/workspaceService';
 export default function Dashboard() {
     const navigate = useNavigate();
     const {
-        canvases, createCanvas, deleteCanvas, togglePinCanvas, toggleStuckCanvas, toggleCurrentProject,
+        canvases, createCanvas, deleteCanvas, togglePinCanvas, toggleStuckCanvas, setCanvasStage, toggleCurrentProject,
         mergeCanvases, folders, activeFolderId, createFolder, deleteFolder,
         setActiveFolder, moveItemToFolder, duplicateCanvas, updateCanvasName,
         dailyExecutionLogs,
@@ -38,6 +40,7 @@ export default function Dashboard() {
         deleteCanvas: state.deleteCanvas,
         togglePinCanvas: state.togglePinCanvas,
         toggleStuckCanvas: state.toggleStuckCanvas,
+        setCanvasStage: state.setCanvasStage,
         toggleCurrentProject: state.toggleCurrentProject,
         mergeCanvases: state.mergeCanvases,
         folders: state.folders,
@@ -59,6 +62,13 @@ export default function Dashboard() {
     const [tabKey, setTabKey] = useState(0);
     const [isFirstLoad, setIsFirstLoad] = useState(true);
     const [selectionMode, setSelectionMode] = useState(false);
+    const [projectView, setProjectViewState] = useState<'cards' | 'board'>(() => {
+        try { return localStorage.getItem('stratabin:project-view') === 'board' ? 'board' : 'cards'; } catch { return 'cards'; }
+    });
+    const setProjectView = (view: 'cards' | 'board') => {
+        setProjectViewState(view);
+        try { localStorage.setItem('stratabin:project-view', view); } catch { /* the choice just won't be remembered */ }
+    };
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [showFolderModal, setShowFolderModal] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
@@ -1248,6 +1258,27 @@ export default function Dashboard() {
                                 </div>
                             )}
 
+                            {filteredCanvases.length > 0 && !selectionMode && (
+                                <div className="flex items-center justify-between gap-3 px-1 -mb-2 md:-mb-6">
+                                    <p className="text-xs text-[var(--text-muted)]">{projectView === 'board' ? 'Drag projects between stages.' : `${filteredCanvases.length} ${filteredCanvases.length === 1 ? 'project' : 'projects'}`}</p>
+                                    <div className="psb-view-toggle" role="group" aria-label="Project view">
+                                        <button type="button" aria-pressed={projectView === 'cards'} onClick={() => setProjectView('cards')}><LayoutGrid size={14} />Cards</button>
+                                        <button type="button" aria-pressed={projectView === 'board'} onClick={() => setProjectView('board')}><Kanban size={14} />Board</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {projectView === 'board' && filteredCanvases.length > 0 && !selectionMode ? (
+                                <ProjectStageBoard
+                                    projects={sortByNewest(filteredCanvases)}
+                                    onOpen={project => navigate(`/strategy/${project.id}`)}
+                                    onMove={(id, stage) => {
+                                        setCanvasStage(id, stage);
+                                        const project = canvases[id];
+                                        toast.success(`Moved "${(project?.title || project?.name || 'Project').trim()}" to ${PROJECT_STAGES.find(item => item.id === stage)?.label}`);
+                                    }}
+                                />
+                            ) : <>
                             {/* Pinned Projects */}
                             {sortedDisplayPinned.length > 0 && (
                                 <section>
@@ -1373,6 +1404,7 @@ export default function Dashboard() {
                                     </>
                                 )}
                             </section>
+                            </>}
                         </div>
                     )}
                 </div>
