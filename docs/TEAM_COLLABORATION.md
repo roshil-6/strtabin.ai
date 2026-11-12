@@ -8,7 +8,7 @@ All team work lives in Community (Teams, Projects, Duties, Reports). Opening `/w
 
 - Team bar: switch teams, copy the invite link or team ID, invite by username or email, rename (admins), start a group chat, and leave the team (anyone except the owner).
 - Overview: active projects, today's duties progress, members, pending invites; your own duties with quick add; projects by stage; readable activity; people with roles, today's workload, messaging, and admin actions (make admin or member, remove). Admins see and cancel pending invitations.
-- Projects: search, stage filters with counts, a board grouped by stage or a list, inline owner and stage changes, and admin delete with confirmation.
+- Projects: search, stage filters with counts, a board grouped by stage (drag cards between stages with a mouse, the grip on touch screens, or the grip plus Left/Right arrow keys) or a list, inline owner and stage changes, and admin delete with confirmation.
 - Duties: day and week views, previous and next navigation, filter by everyone, only mine or one person, quick add (admins choose the assignee), inline edit and delete for admins and for the person who added their own duty.
 
 ## Team workflow
