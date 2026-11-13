@@ -1,4 +1,6 @@
-export type WritingPage = { id: string; parentId: string; title: string; content: string; quickNote?: boolean; noteX?: number; noteY?: number; kind?: 'page' | 'part' | 'section' | 'scene' };
+export const NOTE_COLORS = ['yellow', 'pink', 'green', 'blue', 'purple'] as const;
+export type NoteColor = typeof NOTE_COLORS[number];
+export type WritingPage = { id: string; parentId: string; title: string; content: string; quickNote?: boolean; noteX?: number; noteY?: number; noteColor?: NoteColor; kind?: 'page' | 'part' | 'section' | 'scene' };
 export const ROOT_PAGE = 'root';
 export function pageAncestors(pages: WritingPage[], id: string): WritingPage[] {
     const result: WritingPage[] = [];

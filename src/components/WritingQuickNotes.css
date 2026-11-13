@@ -1,0 +1,65 @@
+/* Quick notes look like paper sticky notes: pastel paper, dark ink, a tear-off strip and a folded corner. */
+.quick-note{
+  --paper:#fff4a3;--strip:#f7e46a;--ink:#2d2610;--ink-soft:#5e5430;
+  position:absolute;width:184px;min-height:118px;display:flex;flex-direction:column;
+  padding:0 0 10px;border-radius:3px 3px 3px 16px;
+  background:linear-gradient(225deg,transparent 0 14px,var(--paper) 14px);
+  color:var(--ink);
+  box-shadow:0 1px 1px rgba(0,0,0,.08),0 10px 18px -8px rgba(0,0,0,.35);
+  transform:translateX(var(--note-x,0)) rotate(var(--note-tilt,0deg));
+  transform-origin:top center;
+  transition:transform .18s ease,box-shadow .18s ease,width .18s ease;
+}
+/* Folded corner */
+.quick-note::after{content:'';position:absolute;top:0;right:0;width:14px;height:14px;border-bottom-left-radius:4px;background:linear-gradient(225deg,transparent 50%,var(--strip) 50%);box-shadow:-1px 1px 2px rgba(0,0,0,.12)}
+.quick-note[data-color="pink"]{--paper:#ffd8e4;--strip:#fdbcd0;--ink:#3a1422;--ink-soft:#6e3a4c}
+.quick-note[data-color="green"]{--paper:#d8f5cc;--strip:#bdeaa9;--ink:#15301a;--ink-soft:#3f6146}
+.quick-note[data-color="blue"]{--paper:#d3e8ff;--strip:#b4d6ff;--ink:#102a45;--ink-soft:#3c5876}
+.quick-note[data-color="purple"]{--paper:#e8dfff;--strip:#d5c7ff;--ink:#251a45;--ink-soft:#54487a}
+.quick-note:hover{box-shadow:0 1px 1px rgba(0,0,0,.08),0 14px 24px -10px rgba(0,0,0,.42)}
+.quick-note.is-open,.quick-note.is-moving{width:min(280px,100%);transform:translateX(var(--note-x,0)) rotate(0deg)}
+.quick-note.is-moving{transition:none;box-shadow:0 2px 2px rgba(0,0,0,.08),0 22px 34px -12px rgba(0,0,0,.5)}
+
+.quick-note-strip{display:flex;align-items:center;gap:2px;min-height:30px;padding:2px 18px 2px 4px;border-radius:3px 3px 0 0;background:linear-gradient(225deg,transparent 0 14px,var(--strip) 14px)}
+.quick-note-strip button{display:grid;place-items:center;width:28px;height:26px;min-height:0!important;padding:0!important;border:0!important;border-radius:6px;background:transparent!important;color:var(--ink-soft)!important}
+.quick-note-strip button:hover{background:rgba(0,0,0,.08)!important;color:var(--ink)!important}
+.quick-note-strip .quick-note-handle{flex:1;justify-content:start;padding-left:6px!important;cursor:grab;touch-action:none}
+.quick-note.is-moving .quick-note-handle{cursor:grabbing}
+
+.quick-note-preview{display:flex;flex-direction:column;gap:4px;flex:1;width:100%;padding:8px 12px 0!important;border:0!important;background:transparent!important;text-align:left;color:var(--ink)!important;cursor:pointer;min-height:0!important}
+.quick-note-preview strong{font-size:13.5px;font-weight:700;line-height:1.3;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.quick-note-preview span{font-size:12.5px;line-height:1.45;color:var(--ink-soft);white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+
+.quick-note-body{display:flex;flex-direction:column;gap:2px;padding:6px 12px 0}
+.quick-note input,.quick-note textarea{width:100%;background:transparent!important;border:0!important;box-shadow:none!important;padding:4px 0!important;color:var(--ink)!important;font-size:14px;outline:none}
+.quick-note input{font-weight:700}
+.quick-note input::placeholder,.quick-note textarea::placeholder{color:var(--ink-soft);opacity:.75}
+.quick-note textarea{resize:none;line-height:1.55;max-height:180px;overflow-y:auto;font-size:13.5px}
+.quick-note-colors{display:flex;gap:7px;padding-top:6px}
+.quick-note-colors button{width:18px;height:18px;min-height:0!important;padding:0!important;border-radius:50%;border:1.5px solid rgba(0,0,0,.18)!important;cursor:pointer}
+.quick-note-colors button[aria-checked="true"]{box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--ink)}
+.quick-note-colors [data-swatch="yellow"]{background:#ffe766!important}
+.quick-note-colors [data-swatch="pink"]{background:#ffb3c9!important}
+.quick-note-colors [data-swatch="green"]{background:#aee79a!important}
+.quick-note-colors [data-swatch="blue"]{background:#a6cfff!important}
+.quick-note-colors [data-swatch="purple"]{background:#cbb8ff!important}
+.quick-note button:focus-visible,.quick-note input:focus-visible,.quick-note textarea:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+
+@media (prefers-reduced-motion:reduce){.quick-note{transition:none}}
+
+/* Phones: small squares that stay out of the way; an open note is a compact card, not a full-width panel. */
+@media(max-width:767px){
+  .quick-note{width:132px;min-height:96px}
+  .quick-note-strip{min-height:28px}
+  .quick-note-preview{padding:6px 10px 0!important}
+  .quick-note-preview strong{font-size:12.5px}
+  .quick-note-preview span{font-size:11.5px;-webkit-line-clamp:3}
+  .quick-note.is-open,.quick-note.is-moving{width:min(236px,calc(100% - 8px))}
+  .quick-note-body{padding:4px 10px 0}
+  .quick-note input{font-size:15px}
+  .quick-note textarea{font-size:15px;max-height:112px}
+  .quick-note-strip button{width:34px;height:30px}
+  .quick-note-colors button{width:22px;height:22px}
+}
+.quick-notes-heading>button{white-space:nowrap;flex-shrink:0}
+@media(max-width:767px){.quick-notes-heading small{display:none}}
