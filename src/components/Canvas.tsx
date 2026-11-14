@@ -4,6 +4,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { Columns2, Square } from 'lucide-react';
 import WritingSection from './WritingSection';
 import BrainstormBoard from './BrainstormBoard';
+import { onViewPreference } from '../lib/viewPreferences';
 
 const SPLIT_KEY = 'stratabin-split-view';
 const RATIO_KEY = 'stratabin-split-ratio';
@@ -31,6 +32,7 @@ export default function Canvas() {
         return () => media.removeEventListener('change', change);
     }, []);
     useEffect(() => { try { localStorage.setItem(SPLIT_KEY, splitPreferred ? '1' : '0'); } catch { /* preference stays for this session */ } }, [splitPreferred]);
+    useEffect(() => onViewPreference('split', value => setSplitPreferred(value === '1')), []);
     useEffect(() => { try { localStorage.setItem(RATIO_KEY, String(Math.round(ratio))); } catch { /* preference stays for this session */ } }, [ratio]);
     if (!id) return null;
 

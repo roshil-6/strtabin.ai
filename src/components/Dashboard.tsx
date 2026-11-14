@@ -9,6 +9,7 @@ import { localDateKey } from '../lib/localDate';
 import { BUILT_IN_AI_ENABLED } from '../lib/featureFlags';
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { onViewPreference } from '../lib/viewPreferences';
 import useStore from '../store/useStore';
 import useModalStore from '../store/useModalStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -65,6 +66,7 @@ export default function Dashboard() {
     const [projectView, setProjectViewState] = useState<'cards' | 'board'>(() => {
         try { return localStorage.getItem('stratabin:project-view') === 'board' ? 'board' : 'cards'; } catch { return 'cards'; }
     });
+    useEffect(() => onViewPreference('projectView', value => setProjectViewState(value === 'board' ? 'board' : 'cards')), []);
     const setProjectView = (view: 'cards' | 'board') => {
         setProjectViewState(view);
         try { localStorage.setItem('stratabin:project-view', view); } catch { /* the choice just won't be remembered */ }

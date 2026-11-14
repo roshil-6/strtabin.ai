@@ -6,9 +6,15 @@ export const ASSISTANT_ACTION_TYPES = [
     'edit_task', 'reopen_task', 'delete_task', 'write', 'add_page', 'add_note', 'add_timeline',
     'rename_project', 'set_stage', 'set_flag', 'add_goal', 'update_goal', 'log_progress',
     'move_to_folder', 'create_folder', 'rename_folder',
+    'arrange_flow', 'set_layout', 'add_duty', 'complete_duty', 'assign_project',
 ] as const;
 export type AssistantActionType = typeof ASSISTANT_ACTION_TYPES[number];
-export const WORKSPACE_ACTIONS: readonly AssistantActionType[] = ['create_folder', 'rename_folder', 'open_screen'];
+export const WORKSPACE_ACTIONS: readonly AssistantActionType[] = ['create_folder', 'rename_folder', 'open_screen', 'set_layout', 'add_duty', 'complete_duty'];
+/** Applied right away, like navigation: they only change how the app looks. */
+export const VIEW_ACTIONS: readonly AssistantActionType[] = ['open_screen', 'set_layout'];
+/** Saved on the server in a team workspace; the server checks the user's team role. */
+export const TEAM_ACTIONS: readonly AssistantActionType[] = ['add_duty', 'complete_duty', 'assign_project'];
+export const FLOW_ORIENTATIONS = ['horizontal', 'vertical'] as const;
 export const LONG_TEXT_ACTIONS: readonly AssistantActionType[] = ['write', 'add_page', 'add_note', 'add_timeline'];
 export const ASSISTANT_TEXT_LIMIT = 6000;
 export const PROJECT_FLAGS = ['pinned', 'unpinned', 'blocked', 'unblocked'] as const;
@@ -74,6 +80,55 @@ export function parseFlowOutline(text: string): { label: string; depth: number; 
 }
 
 /** Workspace-only plans (folders, navigation) that need no selected project. */
+/**
+ * Re-lay out a flow map as tidy trees, left to right (horizontal) or top to bottom (vertical).
+ * Ideas keep their content and connections; only positions and connection sides change.
+ */
+export function arrangeFlow(nodes: CanvasData['nodes'], edges: CanvasData['edges'], orientation: 'horizontal' | 'vertical') {
+    if (!nodes.length) throw new Error('This project has no flow map to arrange yet.');
+    const ids = new Set(nodes.map(node => node.id));
+    const children = new Map<string, string[]>();
+    const parentOf = new Map<string, string>();
+    for (const edge of edges) {
+        if (!ids.has(edge.source) || !ids.has(edge.target) || edge.source === edge.target || parentOf.has(edge.target)) continue;
+        // Skip an edge that would close a loop.
+        let cursor: string | undefined = edge.source, loop = false;
+        while (cursor) { if (cursor === edge.target) { loop = true; break; } cursor = parentOf.get(cursor); }
+        if (loop) continue;
+        parentOf.set(edge.target, edge.source);
+        children.set(edge.source, [...(children.get(edge.source) || []), edge.target]);
+    }
+    const size = (node: CanvasData['nodes'][number]) => {
+        const style = (node.style || {}) as { width?: unknown; height?: unknown };
+        return { w: Number(node.width ?? style.width) || 220, h: Number(node.height ?? style.height) || 190 };
+    };
+    const maxW = Math.max(...nodes.map(node => size(node).w)), maxH = Math.max(...nodes.map(node => size(node).h));
+    const depthGap = orientation === 'horizontal' ? maxW + 100 : maxH + 80;
+    const rowGap = orientation === 'horizontal' ? maxH + 30 : maxW + 40;
+    const place = new Map<string, { depth: number; row: number }>();
+    let row = 0;
+    const visit = (id: string, depth: number): number => {
+        const kids = children.get(id) || [];
+        if (!kids.length) { place.set(id, { depth, row }); return row++; }
+        const rows = kids.map(kid => visit(kid, depth + 1));
+        const mid = (rows[0] + rows[rows.length - 1]) / 2;
+        place.set(id, { depth, row: mid });
+        return mid;
+    };
+    const ordered = [...nodes].sort((a, b) => orientation === 'horizontal' ? a.position.y - b.position.y : a.position.x - b.position.x);
+    for (const node of ordered) if (!parentOf.has(node.id)) { visit(node.id, 0); row += 0.5; }
+    const at = (id: string) => place.get(id) || { depth: 0, row: row++ };
+    const arranged = nodes.map(node => {
+        const { depth, row: r } = at(node.id);
+        const position = orientation === 'horizontal' ? { x: depth * depthGap, y: Math.round(r * rowGap) } : { x: Math.round(r * rowGap), y: depth * depthGap };
+        return { ...node, position };
+    });
+    const [from, to] = orientation === 'horizontal' ? ['right', 'left'] : ['bottom', 'top'];
+    const tree = new Set([...parentOf].map(([child, parent]) => `${parent}>${child}`));
+    const rewired = edges.map(edge => tree.has(`${edge.source}>${edge.target}`) ? { ...edge, sourceHandle: from, targetHandle: to } : edge);
+    return { nodes: arranged, edges: rewired };
+}
+
 export function planWorkspaceActions(workspace: AssistantWorkspace, actions: AssistantAction[], now: number, makeId: () => string) {
     const empty: CanvasData = { id: '', name: '', nodes: [], edges: [], updatedAt: 0 };
     if (actions.some(action => !WORKSPACE_ACTIONS.includes(action.type))) throw new Error('Select a project for these changes.');
@@ -98,10 +153,9 @@ export function planAssistantActions(project: CanvasData, calendar: Record<strin
     const findFolder = (name: string) => Object.values(folders).find(folder => folder.name.trim().toLowerCase() === name.trim().toLowerCase());
     let openProject = false;
     for (const action of actions) {
-        if (!(ASSISTANT_ACTION_TYPES as readonly string[]).includes(action.type) || action.type === 'create_project' || action.type === 'open_screen') {
-            if (action.type === 'open_screen') continue;
-            throw new Error('Unsupported action.');
-        }
+        if (!(ASSISTANT_ACTION_TYPES as readonly string[]).includes(action.type) || action.type === 'create_project') throw new Error('Unsupported action.');
+        // Views and team actions are applied by the caller, not stored in the project.
+        if (VIEW_ACTIONS.includes(action.type) || TEAM_ACTIONS.includes(action.type)) continue;
         if (typeof action.text !== 'string' || action.text.length > (LONG_TEXT_ACTIONS.includes(action.type) ? ASSISTANT_TEXT_LIMIT : action.type === 'create_flow' ? 2500 : 1000)) throw new Error('This change is too long. Ask for a shorter one.');
         if (['add_task', 'add_reminder'].includes(action.type) && (typeof action.text !== 'string' || !action.text.trim() || action.text.length > 1000)) throw new Error('Invalid task title.');
         if (action.type === 'open_project') openProject = true;
@@ -225,6 +279,12 @@ export function planAssistantActions(project: CanvasData, calendar: Record<strin
             if (!folders[id]) throw new Error('That folder no longer exists. Ask again.');
             rememberFolder(id);
             folders[id] = { ...folders[id], name: needsText(action, 'folder', 120) };
+        }
+        if (action.type === 'arrange_flow') {
+            const orientation = action.text.trim().toLowerCase();
+            if (!(FLOW_ORIENTATIONS as readonly string[]).includes(orientation)) throw new Error('Arrange the flow horizontally or vertically.');
+            const result = arrangeFlow(nodes, edges, orientation as 'horizontal' | 'vertical');
+            nodes = result.nodes; edges = result.edges; edited = true;
         }
         if (action.type === 'add_reminder') {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(action.date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(action.time)) throw new Error('Invalid reminder date or time.');

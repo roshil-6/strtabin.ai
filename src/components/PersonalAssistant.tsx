@@ -6,7 +6,9 @@ import { useAuth } from '@clerk/clerk-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Bot, X, Send, Volume2, VolumeX, Square, Check, ArrowUpRight, Sparkles, Maximize2, RotateCcw, Activity, BarChart2 } from 'lucide-react';
 import useStore from '../store/useStore';
-import { buildAssistantContext, buildDirectoryContext } from '../lib/assistantContext';
+import { buildAssistantContext, buildDirectoryContext, type TeamSnapshot } from '../lib/assistantContext';
+import { applyLayout } from '../lib/viewPreferences';
+import { useTheme } from '../context/useTheme';
 import { projectNamedIn } from '../lib/assistantProjects';
 import { isListedProject, isTeamProject } from '../lib/projectVisibility';
 import { API_BASE_URL } from '../constants';
@@ -21,7 +23,7 @@ import type { LiveVoiceClient } from '../lib/liveVoiceClient';
 import type { AssistantScreen, VoiceDecision } from '../lib/voiceProtocol';
 import './PersonalAssistant.css';
 import { projectBoardPatch } from '../lib/boardOperations';
-import { planAssistantActions, planWorkspaceActions, undoAssistantActions, undoWorkspaceActions, WORKSPACE_ACTIONS, type AssistantAction, type AssistantUndo } from '../lib/assistantActions';
+import { planAssistantActions, planWorkspaceActions, undoAssistantActions, undoWorkspaceActions, WORKSPACE_ACTIONS, VIEW_ACTIONS, TEAM_ACTIONS, type AssistantAction, type AssistantUndo } from '../lib/assistantActions';
 
 type Message = { id: string; role: 'user' | 'assistant'; text: string; actions?: AssistantAction[]; undo?: AssistantUndo; after?: string; projectId?: string; applied?: boolean };
 type ApplyResult = { status: 'applied' | 'failed' | 'cancelled'; summary?: string; reason?: string; executed: boolean };
@@ -71,11 +73,29 @@ const describeAction = (action: AssistantAction): string => {
         case 'move_to_folder': return action.text.trim() ? `move the project to folder “${action.text}”` : 'take the project out of its folder';
         case 'create_folder': return `create folder “${action.text}”`;
         case 'rename_folder': return `rename a folder to “${action.text}”`;
+        case 'arrange_flow': return `arrange the flow map ${action.text}ly`;
+        case 'set_layout': return `switch the layout to ${action.text}`;
+        case 'add_duty': return `add team duty “${action.text}”`;
+        case 'complete_duty': return 'mark a team duty done';
+        case 'assign_project': return action.taskId ? 'assign the project to a teammate' : 'unassign the project';
         case 'open_screen': return `open ${action.text}`;
         default: return 'open the project';
     }
 };
 const describePlan = (actions: AssistantAction[]) => actions.map(describeAction);
+/** "Write launch notes → Asha, Design team" instead of raw IDs on the approval card. */
+const teamActionLabel = (action: AssistantAction, teams: TeamSnapshot[], projectId: string) => {
+    const [teamId, second] = action.taskId.trim().split(':').map(Number);
+    if (action.type === 'assign_project') {
+        const team = teams.find(item => item.projects.some(project => `proj_${project.id}` === projectId));
+        const member = team?.members.find(item => item.id === Number(action.taskId));
+        return action.taskId ? `→ ${member?.username || 'a teammate'}${team ? ` (${team.name})` : ''}` : 'No one';
+    }
+    const team = teams.find(item => item.id === teamId);
+    if (action.type === 'complete_duty') return team?.duties.find(duty => duty.id === second)?.task_text || 'Duty no longer available';
+    const member = second ? team?.members.find(item => item.id === second)?.username || 'a teammate' : 'you';
+    return `${action.text} → ${member}${team ? `, ${team.name}` : ''}${action.date ? '' : ' · today'}`;
+};
 /** Everything an approved plan can change, to detect later edits before an undo. */
 const fingerprint = (project: unknown, calendar: unknown, workspace: { folders: unknown; dailyExecutionLogs: unknown }, undo?: AssistantUndo) => {
     const { updatedAt: _ignored, ...rest } = (project || {}) as { updatedAt?: number };
@@ -110,6 +130,10 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     const [accessError, setAccessError] = useState('');
     const [accessAttempt, setAccessAttempt] = useState(0);
     const [cloudProjects,setCloudProjects] = useState<Project[]>([]);
+    const { setTheme } = useTheme();
+    // Team workspaces for Sasha's snapshot, refreshed at most every 30 seconds and after team changes.
+    const teamCache = useRef<{ at: number; owner: string; teams: TeamSnapshot[] } | null>(null);
+    const [teamList, setTeamList] = useState<TeamSnapshot[]>([]);
     const [projectId, setProjectId] = useState('');
     const [draft, setDraft] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
@@ -136,7 +160,11 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
             .map(project => ({ id: project.id, name: (project.title || project.name || '').trim() || 'Untitled project' }));
         const seen = new Set(local.map(project => project.id));
-        return [...local, ...cloudProjects.filter(project => !seen.has(`proj_${project.id}`)).map(project => ({ id: `proj_${project.id}`, name: project.title }))];
+        const cloud = cloudProjects.filter(project => !seen.has(`proj_${project.id}`)).map(project => {
+            const row = project as Project & { workspace_type?: string; workspace_name?: string };
+            return { id: `proj_${project.id}`, name: project.title, ...(row.workspace_type === 'team' ? { team: row.workspace_name || 'Team' } : {}) };
+        });
+        return [...local, ...cloud];
     }, [canvases, cloudProjects]);
     const knownProject = (id: string) => projects.some(project => project.id === id);
     // Opening Sasha from inside a project works on that project.
@@ -190,6 +218,62 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     const close = () => { voice.current?.stop(); if (fullPage) navigate('/dashboard'); setOpen(false); window.speechSynthesis?.cancel(); launcher.current?.focus(); };
     const reset = () => { voice.current?.stop(); request.current?.abort(); request.current = null; locked.current = false; setBusy(false); setMessages([]); setError(''); window.speechSynthesis?.cancel(); };
     const directory = () => projects.map(item => ({ ...item, project: useStore.getState().canvases[item.id] }));
+    const loadTeams = async (force = false): Promise<TeamSnapshot[]> => {
+        const cached = teamCache.current;
+        if (!force && cached && cached.owner === userId && Date.now() - cached.at < 30000) return cached.teams;
+        const token = await getToken();
+        const list = (await workspaceService.getWorkspaces(token)).workspaces as { id: number; type: string }[];
+        const today = new Date(); const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const loaded = await Promise.allSettled(list.filter(item => item.type === 'team').slice(0, 6).map(async item => {
+            const [detail, duties] = await Promise.all([workspaceService.getWorkspace(item.id, token), workspaceService.getDailyTasks(item.id, token, { date }).catch(() => ({ tasks: [] }))]);
+            return { id: item.id, name: detail.workspace.name, role: detail.currentUserRole, me: detail.currentUserId, plan: detail.plan || null,
+                members: detail.members.map(member => ({ id: member.id, username: member.username, role: member.role })),
+                projects: detail.projects.map(project => ({ id: project.id, title: project.title, status: project.status, assigned_to: project.assigned_to, assigned_to_username: project.assigned_to_username })),
+                duties: (duties.tasks || []) } as TeamSnapshot;
+        }));
+        const teams = loaded.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
+        teamCache.current = { at: Date.now(), owner: userId || '', teams };
+        setTeamList(teams);
+        return teams;
+    };
+    const teamOf = (id: string, teams: TeamSnapshot[]) => teams.find(team => team.projects.some(project => `proj_${project.id}` === id));
+    /** Team changes go to the server, which checks the user's team role. They are shared and not undoable here. */
+    const runTeamActions = async (actions: AssistantAction[], id: string) => {
+        const teams = await loadTeams();
+        const token = await getToken();
+        const team = id ? teamOf(id, teams) : undefined;
+        const projectNumber = id && /^proj_\d+$/.test(id) ? Number(id.slice(5)) : 0;
+        const done: string[] = [];
+        for (const action of actions) {
+            if (action.type === 'add_duty' || action.type === 'complete_duty') {
+                const [teamId, second] = action.taskId.trim().split(':').map(Number);
+                const target = teams.find(item => item.id === teamId);
+                if (!target) throw new Error('That team is not in your list. Ask again.');
+                if (action.type === 'add_duty') {
+                    if (second && !target.members.some(member => member.id === second)) throw new Error(`That person is not a member of “${target.name}”.`);
+                    await workspaceService.createDailyTask(teamId, { taskText: action.text.trim(), ...(second ? { userId: second } : {}), ...(action.date ? { taskDate: action.date } : {}) }, token);
+                } else await workspaceService.updateDailyTask(teamId, second, { status: 'done' }, token);
+                done.push(describeAction(action));
+            }
+            if (action.type === 'assign_project' || (team && projectNumber && (action.type === 'set_stage' || action.type === 'rename_project'))) {
+                if (!team || !projectNumber) throw new Error('Only team projects can be assigned. Select a team project first.');
+                const member = Number(action.taskId.trim());
+                if (action.type === 'assign_project' && member && !team.members.some(item => item.id === member)) throw new Error(`That person is not a member of “${team.name}”.`);
+                const status = action.text.trim().toLowerCase().replace('in progress', 'executing').replace('done', 'completed');
+                await workspaceService.updateProject(projectNumber, action.type === 'assign_project' ? { assignedTo: member || null } : action.type === 'set_stage' ? { status: status as Project['status'] } : { title: action.text.trim() }, token);
+                if (action.type !== 'rename_project') done.push(describeAction(action));
+            }
+        }
+        if (done.length) teamCache.current = null;
+        return done;
+    };
+    /** Layout changes and navigation apply right away. */
+    const runViewActions = (actions: AssistantAction[], target: string) => {
+        const notes = actions.filter(action => action.type === 'set_layout').map(action => applyLayout(action.text.trim().toLowerCase(), setTheme));
+        const screen = actions.filter(action => action.type === 'open_screen').pop();
+        if (screen) openScreen(screen.text, target);
+        return notes;
+    };
     /** Load a project Sasha switches to: local ones are already here; cloud ones are fetched once. */
     const loadProject = async (id: string) => {
         if (!isProjectFetchedFromServer(id, userId) || !useStore.getState().canvases[id]) await hydrateNewProject(id, userId, await getToken());
@@ -199,7 +283,8 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         if (!token) throw new Error('Sign in again to connect your assistant.');
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         // No project selected: Sasha still sees every project, so it can find the one the user means.
-        if (!id) return buildDirectoryContext(directory(), { now: new Date(), timezone, folders: useStore.getState().folders });
+        const teams = await loadTeams().catch(() => [] as TeamSnapshot[]);
+        if (!id) return buildDirectoryContext(directory(), { now: new Date(), timezone, folders: useStore.getState().folders, teams });
         const projectId = id;
         if (!knownProject(projectId) || !isProjectFetchedFromServer(projectId, userId)) throw new Error('Select an available project first.');
         // Confirm access to the project and load reminders together; doing them in turn slowed every connect.
@@ -212,7 +297,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         if (!project) throw new Error('This project is no longer available.');
         const reminders = schedule.reminders.filter(item => !item.project_id || item.project_id === projectId);
         // A compact snapshot with the writing first; large projects are trimmed, never rejected.
-        return buildAssistantContext(project, state, { now: new Date(), timezone, reminders, otherProjects: projects });
+        return buildAssistantContext(project, state, { now: new Date(), timezone, reminders, otherProjects: projects, teams });
     };
     const send = async () => {
         if (locked.current || !draft.trim() || !ready) return;
@@ -235,9 +320,9 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(data.error || 'The assistant could not connect. Check that the backend is running.');
             if (controller.signal.aborted) return;
-            const navigationOnly = Array.isArray(data.actions) && data.actions.length > 0 && data.actions.every((action: AssistantAction) => action.type === 'open_screen');
+            const navigationOnly = Array.isArray(data.actions) && data.actions.length > 0 && data.actions.every((action: AssistantAction) => VIEW_ACTIONS.includes(action.type));
             setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', text }, { id: crypto.randomUUID(), role: 'assistant', text: data.reply, actions: navigationOnly ? [] : data.actions, projectId: target }]);
-            if (navigationOnly) openScreen(data.actions[data.actions.length - 1].text, target);
+            if (navigationOnly) runViewActions(data.actions, target);
             if (typeof data.remaining === 'number') setAccess(previous => previous && { ...previous, remaining: { chat: data.remaining, voice: previous.remaining?.voice ?? limits.voice } });
             setDraft('');
             if (readAloud && !voiceActive && !wakeActive) speak(data.reply);
@@ -278,8 +363,13 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 // Disable retries before a network write: a lost response must not create a duplicate project.
                 setMessages(previous => previous.map(item => item.id === message.id ? {...item,applied:true} : item));
                 const teams = await workspaceService.getWorkspaces(token);
-                let workspace = teams.workspaces.find((item: {type:string;role?:string}) => item.type === 'individual' && item.role === 'admin');
+                const teamId = Number(creation.taskId.trim()) || 0;
+                let workspace = teamId
+                    ? teams.workspaces.find((item: {id:number;type:string}) => item.id === teamId && item.type === 'team')
+                    : teams.workspaces.find((item: {type:string;role?:string}) => item.type === 'individual' && item.role === 'admin');
+                if (teamId && !workspace) throw new Error('That team is not in your list.');
                 if (!workspace) {const result = await workspaceService.createWorkspace({name:'My projects',type:'individual',visibility:'private'},token); workspace = result.workspace;}
+                if (teamId) teamCache.current = null;
                 const result = await workspaceService.createProject(workspace.id,{title:creation.text.trim(),type:'strategy'},token);
                 id = `proj_${result.project.id}`; created = result.project.title;
                 setCloudProjects(previous => [...previous,result.project]);
@@ -287,7 +377,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 setMessages(previous => previous.map(item => item.id === message.id ? {...item,projectId:id} : item));
                 actions = actions.slice(1);
                 if (!actions.length) {
-                    const summary = `Created “${created}” in your private workspace. It is now selected.`;
+                    const summary = `Created “${created}” in ${teamId ? `the team “${workspace.name}”` : 'your private workspace'}. It is now selected.`;
                     setMessages(previous => [...previous,{id:crypto.randomUUID(),role:'assistant',text:`${summary} Ask me to add a flow map or tasks.`}]);
                     voice.current?.updateContext(summary);
                     return { status: 'applied', executed: true, summary };
@@ -298,13 +388,13 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             // Folder changes and navigation work without a selected project.
             if (!id && !undoing && actions.length && actions.every(action => WORKSPACE_ACTIONS.includes(action.type))) {
                 const state = useStore.getState();
-                const planned = planWorkspaceActions(state, actions.filter(action => action.type !== 'open_screen'), Date.now(), () => crypto.randomUUID());
-                useStore.setState({ folders: planned.folders });
+                const planned = planWorkspaceActions(state, actions, Date.now(), () => crypto.randomUUID());
                 setMessages(previous => previous.map(item => item.id === message.id ? { ...item, applied: true } : item));
-                const screen = actions.filter(action => action.type === 'open_screen').pop();
-                if (screen) openScreen(screen.text, '');
-                const done = describePlan(actions.filter(action => action.type !== 'open_screen'));
-                const confirmation = done.length ? `Done: ${done.join('; ')}.` : 'Opened.';
+                const team = await runTeamActions(actions, '');
+                useStore.setState({ folders: planned.folders });
+                const views = runViewActions(actions, '');
+                const done = describePlan(actions.filter(action => !VIEW_ACTIONS.includes(action.type) && !TEAM_ACTIONS.includes(action.type)));
+                const confirmation = [done.length ? `Done: ${done.join('; ')}.` : '', team.length ? `Team: ${team.join('; ')} (saved for the whole team).` : '', ...views].filter(Boolean).join(' ') || 'Opened.';
                 setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: confirmation }]);
                 voice.current?.updateContext(confirmation);
                 return { status: 'applied', executed: true, summary: confirmation };
@@ -334,15 +424,16 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: 'Undid the approved changes.' }]);
                 return { status: 'applied', executed: true, summary: 'Undid the approved changes.' };
             }
-            const screens = actions.filter(action => action.type === 'open_screen');
-            const localActions = actions.filter(action => action.type !== 'add_reminder' && action.type !== 'open_screen');
+            const views = actions.filter(action => VIEW_ACTIONS.includes(action.type));
+            const localActions = actions.filter(action => action.type !== 'add_reminder' && !VIEW_ACTIONS.includes(action.type) && !TEAM_ACTIONS.includes(action.type));
             const planned = localActions.length ? planAssistantActions(project, calendar, localActions, Date.now(), () => crypto.randomUUID(), state) : { project, calendar, openProject: false, undo: { addedTaskIds: [], completedTaskIds: [], reminders: [] } as AssistantUndo, folders: state.folders, logs: state.dailyExecutionLogs };
             const reminders = actions.flatMap((action, index) => action.type === 'add_reminder' ? [{ id: `${message.id}_${index}`, title: action.text, projectId: id, date: action.date, time: action.time, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, repeat: action.repeat || 'once' }] : []);
             if (reminders.length) {
                 await reminderRequest('/batch', await getToken(), 'POST', { items: reminders });
                 planned.undo.serverReminderIds = reminders.map(item => item.id);
             }
-            if (!alive.current) return { status: 'failed', executed: reminders.length > 0, reason: 'Sasha closed before finishing.' };
+            const teamDone = await runTeamActions(actions, id);
+            if (!alive.current) return { status: 'failed', executed: reminders.length > 0 || teamDone.length > 0, reason: 'Sasha closed before finishing.' };
             // Avoid overwriting edits made elsewhere while the reminder save was in flight.
             if (useStore.getState().canvases[id] !== project || useStore.getState().projectCalendarEvents[id] !== state.projectCalendarEvents[id]) {
                 setMessages(previous => previous.map(item => item.id === message.id ? { ...item, applied: true } : item));
@@ -352,23 +443,25 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             setMessages(previous => previous.map(item => item.id === message.id ? { ...item, applied: true, undo: planned.undo, after: fingerprint(planned.project, planned.calendar, { folders: planned.folders, dailyExecutionLogs: planned.logs }, planned.undo) } : item));
             useStore.setState({ ...projectBoardPatch(useStore.getState(), id, planned.project), canvases: { ...useStore.getState().canvases, [id]: planned.project }, projectCalendarEvents: { ...useStore.getState().projectCalendarEvents, [id]: planned.calendar }, folders: planned.folders, dailyExecutionLogs: planned.logs });
             for (const { date, event } of planned.undo.reminders) NotificationManager.scheduleNotification(event.task, event.time, date, `${id}:${event.id}`);
-            const screen = screens[screens.length - 1];
-            if (screen) openScreen(screen.text, id);
+            const viewNotes = runViewActions(views, id);
+            if (views.some(action => action.type === 'open_screen')) { /* runViewActions opened the screen */ }
             // A new project with a flow map lands on the flow, so the result is visible right away.
             else if (created && actions.some(action => action.type === 'create_flow')) openScreen('flow', id);
             else if (planned.openProject || created) navigate(`/strategy/${encodeURIComponent(id)}`);
-            const done = describePlan(actions.filter(action => action.type !== 'open_screen'));
-            const changed = reminders.length || planned.project !== project || planned.undo.folders || planned.undo.logs;
+            const done = describePlan(actions.filter(action => !VIEW_ACTIONS.includes(action.type) && !TEAM_ACTIONS.includes(action.type) && !(teamDone.length && action.type === 'set_stage')));
+            const changed = reminders.length || planned.project !== project || planned.undo.folders || planned.undo.logs || teamDone.length;
             const confirmation = switched && !changed ? `Now working on “${switched}”. I can read its writing, flow and tasks — ask me to build its flow or plan next steps.` : (created ? `Created “${created}” and applied ${done.length} step${done.length === 1 ? '' : 's'}. ` : '') + (reminders.length
                 ? 'Saved the approved reminders to your account. Enable this device in Reminders for background notifications. Approved task changes use the normal project save queue.'
                 : changed
                     ? `Done: ${done.join('; ')}. Saved on this device; cloud projects sync through the normal save queue.`
                     : 'Opened your project.');
-            setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: confirmation }]);
-            if (switched) voice.current?.updateContext(`${confirmation}\n${await buildContext(id).catch(() => '')}`);
-            else voice.current?.updateContext(confirmation + '\nCurrent project tasks: ' + JSON.stringify(planned.project.todos));
-            if (readAloud && !voiceActive && !wakeActive) speak(confirmation);
-            return { status: 'applied', executed: true, summary: `${confirmation} Done: ${done.join('; ') || 'navigation'}.` };
+            const team = teamDone.length ? ` Team: ${teamDone.join('; ')} — saved for the whole team; undo here does not reverse team changes.` : '';
+            const fullConfirmation = [confirmation + team, ...viewNotes].join(' ').trim();
+            setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: fullConfirmation }]);
+            if (switched) voice.current?.updateContext(`${fullConfirmation}\n${await buildContext(id).catch(() => '')}`);
+            else voice.current?.updateContext(fullConfirmation + '\nCurrent project tasks: ' + JSON.stringify(planned.project.todos));
+            if (readAloud && !voiceActive && !wakeActive) speak(fullConfirmation);
+            return { status: 'applied', executed: true, summary: `${fullConfirmation} Done: ${done.join('; ') || 'navigation'}.` };
         } catch (cause) {
             const reason = cause instanceof Error ? cause.message : 'Could not apply these changes.';
             setError(cause instanceof Error ? `Could not finish: ${reason} Check your project before trying again.` : reason);
@@ -408,9 +501,9 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             onProposal={proposal => {
                 // Keep the call running: the plan is shown in the voice panel and can be approved by voice or tap.
                 const id = crypto.randomUUID();
-                const navigationOnly = proposal.actions.every(action => action.type === 'open_screen');
+                const navigationOnly = proposal.actions.every(action => VIEW_ACTIONS.includes(action.type));
                 setMessages(previous => [...previous, { id, role: 'assistant', text: proposal.reply, actions: navigationOnly ? [] : proposal.actions, projectId }]);
-                if (navigationOnly) openScreen(proposal.actions[proposal.actions.length - 1].text, projectId);
+                if (navigationOnly) runViewActions(proposal.actions, projectId);
                 else setPendingVoiceId(id);
             }} />
         {open && !fullPage && <div className="assistant-backdrop" onClick={close} aria-hidden="true" />}
@@ -566,6 +659,8 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                                                                             ? `${canvases[message.projectId || '']?.todos?.find(task => task.id === action.taskId)?.text || 'Task no longer available'}${action.type === 'edit_task' ? ` → ${action.text}` : ''}`
                                                                             : action.type === 'update_goal'
                                                                                 ? `${canvases[message.projectId || '']?.goals?.find(goal => goal.id === action.taskId)?.label || 'Goal no longer available'} → ${action.text}`
+                                                                                : action.type === 'add_duty' || action.type === 'complete_duty' || action.type === 'assign_project'
+                                                                                    ? teamActionLabel(action, teamList, message.projectId || '')
                                                                                 : action.type === 'rename_folder'
                                                                                     ? `${useStore.getState().folders[action.taskId]?.name || 'Folder no longer available'} → ${action.text}`
                                                                                     : action.type === 'open_project' && action.text
