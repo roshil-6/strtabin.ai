@@ -533,6 +533,26 @@
   color: var(--primary);
 }
 
+/* Writing Sasha will add, shown in full for review. */
+.assistant-action-text {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2, var(--bg));
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.assistant-action-desc:has(.assistant-action-text) {
+  width: 100%;
+}
+
 .sasha-flow-preview {
   width: 100%;
   display: flex;

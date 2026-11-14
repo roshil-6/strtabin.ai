@@ -6,7 +6,8 @@ import { useAuth } from '@clerk/clerk-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Bot, X, Send, Volume2, VolumeX, Square, Check, ArrowUpRight, Sparkles, Maximize2, RotateCcw, Activity, BarChart2 } from 'lucide-react';
 import useStore from '../store/useStore';
-import { buildAssistantContext } from '../lib/assistantContext';
+import { buildAssistantContext, buildDirectoryContext } from '../lib/assistantContext';
+import { projectNamedIn } from '../lib/assistantProjects';
 import { isListedProject, isTeamProject } from '../lib/projectVisibility';
 import { API_BASE_URL } from '../constants';
 import { useProjectLoader, isProjectFetchedFromServer, hydrateNewProject } from '../hooks/useProjectLoader';
@@ -20,7 +21,7 @@ import type { LiveVoiceClient } from '../lib/liveVoiceClient';
 import type { AssistantScreen, VoiceDecision } from '../lib/voiceProtocol';
 import './PersonalAssistant.css';
 import { projectBoardPatch } from '../lib/boardOperations';
-import { planAssistantActions, undoAssistantActions, type AssistantAction, type AssistantUndo } from '../lib/assistantActions';
+import { planAssistantActions, planWorkspaceActions, undoAssistantActions, undoWorkspaceActions, WORKSPACE_ACTIONS, type AssistantAction, type AssistantUndo } from '../lib/assistantActions';
 
 type Message = { id: string; role: 'user' | 'assistant'; text: string; actions?: AssistantAction[]; undo?: AssistantUndo; after?: string; projectId?: string; applied?: boolean };
 type ApplyResult = { status: 'applied' | 'failed' | 'cancelled'; summary?: string; reason?: string; executed: boolean };
@@ -46,7 +47,42 @@ function screenPath(screen: string, projectId: string) {
         default: return null;
     }
 }
-const describePlan = (actions: AssistantAction[]) => actions.map(action => action.type === 'create_project' ? `create project “${action.text}”` : action.type === 'create_flow' ? `add a flow map “${action.text.split('\n')[0]}”` : action.type === 'add_task' ? `add task “${action.text}”` : action.type === 'add_reminder' ? `remind “${action.text}” on ${action.date} ${action.time}` : action.type === 'complete_task' ? 'complete a task' : action.type === 'open_screen' ? `open ${action.text}` : 'open the project');
+const firstLine = (text: string) => { const line = text.trim().split('\n')[0].replace(/^#+\s*/, ''); return line.length > 60 ? `${line.slice(0, 57)}…` : line; };
+const describeAction = (action: AssistantAction): string => {
+    switch (action.type) {
+        case 'create_project': return `create project “${action.text}”`;
+        case 'create_flow': return `add a flow map “${firstLine(action.text)}”`;
+        case 'add_task': return `add task “${action.text}”`;
+        case 'add_reminder': return `remind “${action.text}” on ${action.date} ${action.time}`;
+        case 'complete_task': return 'complete a task';
+        case 'reopen_task': return 'reopen a task';
+        case 'edit_task': return `rename a task to “${action.text}”`;
+        case 'delete_task': return 'delete a task';
+        case 'write': return `add to the writing: “${firstLine(action.text)}”`;
+        case 'add_page': return `add writing page “${firstLine(action.text)}”`;
+        case 'add_note': return `add quick note “${firstLine(action.text)}”`;
+        case 'add_timeline': return 'add timeline notes';
+        case 'rename_project': return `rename the project to “${action.text}”`;
+        case 'set_stage': return `move the project to ${action.text}`;
+        case 'set_flag': return `mark the project ${action.text}`;
+        case 'add_goal': return `add goal “${action.text.split('|')[0].trim()}”`;
+        case 'update_goal': return `update goal progress to ${action.text}`;
+        case 'log_progress': return `log progress${action.date ? ` for ${action.date}` : ' for today'}`;
+        case 'move_to_folder': return action.text.trim() ? `move the project to folder “${action.text}”` : 'take the project out of its folder';
+        case 'create_folder': return `create folder “${action.text}”`;
+        case 'rename_folder': return `rename a folder to “${action.text}”`;
+        case 'open_screen': return `open ${action.text}`;
+        default: return 'open the project';
+    }
+};
+const describePlan = (actions: AssistantAction[]) => actions.map(describeAction);
+/** Everything an approved plan can change, to detect later edits before an undo. */
+const fingerprint = (project: unknown, calendar: unknown, workspace: { folders: unknown; dailyExecutionLogs: unknown }, undo?: AssistantUndo) => {
+    const { updatedAt: _ignored, ...rest } = (project || {}) as { updatedAt?: number };
+    void _ignored;
+    const folders = workspace.folders as Record<string, unknown>, logs = workspace.dailyExecutionLogs as Record<string, unknown>;
+    return JSON.stringify([rest, calendar, Object.keys(undo?.folders || {}).map(id => folders[id] ?? null), Object.keys(undo?.logs || {}).map(key => logs[key] ?? null)]);
+};
 
 export default function PersonalAssistant() {
     const { userId, isSignedIn } = useAuth();
@@ -153,10 +189,18 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     };
     const close = () => { voice.current?.stop(); if (fullPage) navigate('/dashboard'); setOpen(false); window.speechSynthesis?.cancel(); launcher.current?.focus(); };
     const reset = () => { voice.current?.stop(); request.current?.abort(); request.current = null; locked.current = false; setBusy(false); setMessages([]); setError(''); window.speechSynthesis?.cancel(); };
-    const buildContext = async () => {
+    const directory = () => projects.map(item => ({ ...item, project: useStore.getState().canvases[item.id] }));
+    /** Load a project Sasha switches to: local ones are already here; cloud ones are fetched once. */
+    const loadProject = async (id: string) => {
+        if (!isProjectFetchedFromServer(id, userId) || !useStore.getState().canvases[id]) await hydrateNewProject(id, userId, await getToken());
+    };
+    const buildContext = async (id = projectId) => {
         const token = await getToken();
         if (!token) throw new Error('Sign in again to connect your assistant.');
-        if (!projectId) return `Local time: ${new Date().toString()}\nNo project selected. Brainstorm freely, or propose creating a project. Do not claim to know existing project contents.`;
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        // No project selected: Sasha still sees every project, so it can find the one the user means.
+        if (!id) return buildDirectoryContext(directory(), { now: new Date(), timezone, folders: useStore.getState().folders });
+        const projectId = id;
         if (!knownProject(projectId) || !isProjectFetchedFromServer(projectId, userId)) throw new Error('Select an available project first.');
         // Confirm access to the project and load reminders together; doing them in turn slowed every connect.
         const [, schedule] = await Promise.all([
@@ -168,19 +212,23 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         if (!project) throw new Error('This project is no longer available.');
         const reminders = schedule.reminders.filter(item => !item.project_id || item.project_id === projectId);
         // A compact snapshot with the writing first; large projects are trimmed, never rejected.
-        return buildAssistantContext(project, state, { now: new Date(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, reminders });
+        return buildAssistantContext(project, state, { now: new Date(), timezone, reminders, otherProjects: projects });
     };
     const send = async () => {
         if (locked.current || !draft.trim() || !ready) return;
-        const project = useStore.getState().canvases[projectId];
-        if (projectId && (!project || !isProjectFetchedFromServer(projectId, userId))) { setError(loader.loading ? 'Loading this project. Try again in a moment.' : 'Select an available project first.'); return; }
-        const controller = new AbortController(); request.current = controller; locked.current = true; setBusy(true); setError('');
         const text = draft.trim();
+        // "Build the flow for my coffee cart project": work on the project the user names.
+        const named = projectNamedIn(text, projects);
+        const target = named && named !== projectId ? named : projectId;
+        const project = useStore.getState().canvases[target];
+        if (target === projectId && projectId && (!project || !isProjectFetchedFromServer(projectId, userId))) { setError(loader.loading ? 'Loading this project. Try again in a moment.' : 'Select an available project first.'); return; }
+        const controller = new AbortController(); request.current = controller; locked.current = true; setBusy(true); setError('');
         const timer = window.setTimeout(() => controller.abort(), 55000);
         try {
             const token = await getToken();
             if (!token) throw new Error('Sign in again to connect your assistant.');
-            const context = await buildContext();
+            if (target !== projectId) { await loadProject(target); if (controller.signal.aborted) return; setProjectId(target); }
+            const context = await buildContext(target);
             if (controller.signal.aborted) return;
             const response = await fetch(`${API_BASE_URL}/api/assistant/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, signal: controller.signal,
                 body: JSON.stringify({ provider, model: model.trim(), name: name.trim(), message: text, context, history: messages.slice(-8).map(message => ({ role: message.role, text: message.text.slice(0, 3000) })) }) });
@@ -188,8 +236,8 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             if (!response.ok) throw new Error(data.error || 'The assistant could not connect. Check that the backend is running.');
             if (controller.signal.aborted) return;
             const navigationOnly = Array.isArray(data.actions) && data.actions.length > 0 && data.actions.every((action: AssistantAction) => action.type === 'open_screen');
-            setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', text }, { id: crypto.randomUUID(), role: 'assistant', text: data.reply, actions: navigationOnly ? [] : data.actions, projectId }]);
-            if (navigationOnly) openScreen(data.actions[data.actions.length - 1].text, projectId);
+            setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', text }, { id: crypto.randomUUID(), role: 'assistant', text: data.reply, actions: navigationOnly ? [] : data.actions, projectId: target }]);
+            if (navigationOnly) openScreen(data.actions[data.actions.length - 1].text, target);
             if (typeof data.remaining === 'number') setAccess(previous => previous && { ...previous, remaining: { chat: data.remaining, voice: previous.remaining?.voice ?? limits.voice } });
             setDraft('');
             if (readAloud && !voiceActive && !wakeActive) speak(data.reply);
@@ -212,7 +260,17 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         try {
             let id = message.projectId || '';
             let created = '';
+            let switched = '';
             let actions = message.actions || [];
+            // open_project with a project ID switches Sasha to that project.
+            const target = actions.find(action => action.type === 'open_project' && action.text.trim() && action.text.trim() !== id)?.text.trim();
+            if (target && !undoing && !actions.some(action => action.type === 'create_project')) {
+                if (!knownProject(target)) throw new Error('That project is not in your list. Pick it in the project menu.');
+                await loadProject(target);
+                id = target; switched = projects.find(item => item.id === target)?.name || 'the project';
+                setProjectId(id);
+                setMessages(previous => previous.map(item => item.id === message.id ? { ...item, projectId: id } : item));
+            }
             const creation = actions.find(action => action.type === 'create_project');
             if (creation && !undoing) {
                 if (actions[0] !== creation || actions.filter(action => action.type === 'create_project').length !== 1 || !creation.text.trim() || creation.text.length > 200) throw new Error('Create one named project first, then its contents.');
@@ -237,7 +295,21 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 // The rest of the plan targets the new project; load it before planning.
                 await hydrateNewProject(id, userId, await getToken());
             }
-            if (!id || (!created && id !== projectId) || !isProjectFetchedFromServer(id, userId)) throw new Error('Project changed. Ask again with the correct project selected.');
+            // Folder changes and navigation work without a selected project.
+            if (!id && !undoing && actions.length && actions.every(action => WORKSPACE_ACTIONS.includes(action.type))) {
+                const state = useStore.getState();
+                const planned = planWorkspaceActions(state, actions.filter(action => action.type !== 'open_screen'), Date.now(), () => crypto.randomUUID());
+                useStore.setState({ folders: planned.folders });
+                setMessages(previous => previous.map(item => item.id === message.id ? { ...item, applied: true } : item));
+                const screen = actions.filter(action => action.type === 'open_screen').pop();
+                if (screen) openScreen(screen.text, '');
+                const done = describePlan(actions.filter(action => action.type !== 'open_screen'));
+                const confirmation = done.length ? `Done: ${done.join('; ')}.` : 'Opened.';
+                setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: confirmation }]);
+                voice.current?.updateContext(confirmation);
+                return { status: 'applied', executed: true, summary: confirmation };
+            }
+            if (!id || (!created && !switched && id !== projectId) || !isProjectFetchedFromServer(id, userId)) throw new Error('Project changed. Ask again with the correct project selected.');
             if (!created && /^proj_\d+$/.test(id)) await workspaceService.getProjectCanvas(Number(id.slice(5)), await getToken());
             if (!alive.current) return { status: 'failed', executed: Boolean(created), reason: 'Sasha closed before finishing.' };
             const state = useStore.getState();
@@ -245,23 +317,23 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             if (!project) throw new Error('Project no longer exists.');
             const calendar = state.projectCalendarEvents[id] || {};
             if (undoing) {
-                if (!message.undo || message.after !== JSON.stringify([project.todos, calendar, project.nodes, project.edges])) throw new Error('Project tasks or calendar changed since this action. Review them directly instead of undoing newer work.');
+                if (!message.undo || message.after !== fingerprint(project, calendar, state, message.undo)) throw new Error('This project changed since Sasha’s changes. Review it directly instead of undoing newer work.');
                 if (message.undo.serverReminderIds?.length) await reminderRequest('/batch/remove', await getToken(), 'DELETE', { ids: message.undo.serverReminderIds });
                 if (!alive.current) return { status: 'failed', executed: true, reason: 'Sasha closed before finishing.' };
-                if (message.after !== JSON.stringify([useStore.getState().canvases[id]?.todos, useStore.getState().projectCalendarEvents[id] || {}, useStore.getState().canvases[id]?.nodes, useStore.getState().canvases[id]?.edges])) throw new Error('Reminders were cancelled, but your project changed during undo. Review task changes manually.');
+                if (message.after !== fingerprint(useStore.getState().canvases[id], useStore.getState().projectCalendarEvents[id] || {}, useStore.getState(), message.undo)) throw new Error('Reminders were cancelled, but your project changed during undo. Review task changes manually.');
                 const current = useStore.getState();
                 const currentProject = current.canvases[id];
                 if (!currentProject) throw new Error('Project no longer exists.');
                 const reverted = undoAssistantActions(currentProject, current.projectCalendarEvents[id] || {}, message.undo);
                 setMessages(previous => previous.map(item => item.id === message.id ? { ...item, undo: undefined } : item));
-                useStore.setState({ ...projectBoardPatch(useStore.getState(), id, reverted.project), canvases: { ...useStore.getState().canvases, [id]: reverted.project }, projectCalendarEvents: { ...useStore.getState().projectCalendarEvents, [id]: reverted.calendar } });
+                useStore.setState({ ...projectBoardPatch(useStore.getState(), id, reverted.project), canvases: { ...useStore.getState().canvases, [id]: reverted.project }, projectCalendarEvents: { ...useStore.getState().projectCalendarEvents, [id]: reverted.calendar }, ...undoWorkspaceActions(useStore.getState(), message.undo) });
                 for (const { date, event } of message.undo.reminders) NotificationManager.cancelNotification(event.task, event.time, date, `${id}:${event.id}`);
-                setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: 'Undid the approved task and reminder changes.' }]);
+                setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: 'Undid the approved changes.' }]);
                 return { status: 'applied', executed: true, summary: 'Undid the approved changes.' };
             }
             const screens = actions.filter(action => action.type === 'open_screen');
             const localActions = actions.filter(action => action.type !== 'add_reminder' && action.type !== 'open_screen');
-            const planned = localActions.length ? planAssistantActions(project, calendar, localActions, Date.now(), () => crypto.randomUUID()) : { project, calendar, openProject: false, undo: { addedTaskIds: [], completedTaskIds: [], reminders: [] } as AssistantUndo };
+            const planned = localActions.length ? planAssistantActions(project, calendar, localActions, Date.now(), () => crypto.randomUUID(), state) : { project, calendar, openProject: false, undo: { addedTaskIds: [], completedTaskIds: [], reminders: [] } as AssistantUndo, folders: state.folders, logs: state.dailyExecutionLogs };
             const reminders = actions.flatMap((action, index) => action.type === 'add_reminder' ? [{ id: `${message.id}_${index}`, title: action.text, projectId: id, date: action.date, time: action.time, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, repeat: action.repeat || 'once' }] : []);
             if (reminders.length) {
                 await reminderRequest('/batch', await getToken(), 'POST', { items: reminders });
@@ -274,8 +346,8 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 throw new Error('Project changed during approval. Saved reminders appear under Reminders; local task changes were not applied. Ask again for task edits.');
             }
             // Disable reapplication before committing, including when browser persistence fails after mutation.
-            setMessages(previous => previous.map(item => item.id === message.id ? { ...item, applied: true, undo: planned.undo, after: JSON.stringify([planned.project.todos, planned.calendar, planned.project.nodes, planned.project.edges]) } : item));
-            useStore.setState({ ...projectBoardPatch(useStore.getState(), id, planned.project), canvases: { ...useStore.getState().canvases, [id]: planned.project }, projectCalendarEvents: { ...useStore.getState().projectCalendarEvents, [id]: planned.calendar } });
+            setMessages(previous => previous.map(item => item.id === message.id ? { ...item, applied: true, undo: planned.undo, after: fingerprint(planned.project, planned.calendar, { folders: planned.folders, dailyExecutionLogs: planned.logs }, planned.undo) } : item));
+            useStore.setState({ ...projectBoardPatch(useStore.getState(), id, planned.project), canvases: { ...useStore.getState().canvases, [id]: planned.project }, projectCalendarEvents: { ...useStore.getState().projectCalendarEvents, [id]: planned.calendar }, folders: planned.folders, dailyExecutionLogs: planned.logs });
             for (const { date, event } of planned.undo.reminders) NotificationManager.scheduleNotification(event.task, event.time, date, `${id}:${event.id}`);
             const screen = screens[screens.length - 1];
             if (screen) openScreen(screen.text, id);
@@ -283,13 +355,15 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             else if (created && actions.some(action => action.type === 'create_flow')) openScreen('flow', id);
             else if (planned.openProject || created) navigate(`/strategy/${encodeURIComponent(id)}`);
             const done = describePlan(actions.filter(action => action.type !== 'open_screen'));
-            const confirmation = (created ? `Created “${created}” and applied ${done.length} step${done.length === 1 ? '' : 's'}. ` : '') + (reminders.length
+            const changed = reminders.length || planned.project !== project || planned.undo.folders || planned.undo.logs;
+            const confirmation = switched && !changed ? `Now working on “${switched}”. I can read its writing, flow and tasks — ask me to build its flow or plan next steps.` : (created ? `Created “${created}” and applied ${done.length} step${done.length === 1 ? '' : 's'}. ` : '') + (reminders.length
                 ? 'Saved the approved reminders to your account. Enable this device in Reminders for background notifications. Approved task changes use the normal project save queue.'
-                : planned.undo.addedTaskIds.length || planned.undo.completedTaskIds.length || planned.undo.addedNodeIds?.length
-                    ? 'Saved the approved project changes locally. Cloud projects use the normal save queue; watch its status for sync errors.'
+                : changed
+                    ? `Done: ${done.join('; ')}. Saved on this device; cloud projects sync through the normal save queue.`
                     : 'Opened your project.');
             setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: confirmation }]);
-            voice.current?.updateContext(confirmation + '\nCurrent project tasks: ' + JSON.stringify(planned.project.todos));
+            if (switched) voice.current?.updateContext(`${confirmation}\n${await buildContext(id).catch(() => '')}`);
+            else voice.current?.updateContext(confirmation + '\nCurrent project tasks: ' + JSON.stringify(planned.project.todos));
             if (readAloud && !voiceActive && !wakeActive) speak(confirmation);
             return { status: 'applied', executed: true, summary: `${confirmation} Done: ${done.join('; ') || 'navigation'}.` };
         } catch (cause) {
@@ -485,11 +559,19 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                                                                 <div key={index} className="assistant-action-item">
                                                                     <span className="assistant-action-badge">{action.type.replaceAll('_', ' ')}</span>
                                                                     <span className="assistant-action-desc">
-                                                                        {action.type === 'complete_task'
-                                                                            ? canvases[message.projectId || '']?.todos?.find(task => task.id === action.taskId)?.text || 'Task no longer available'
-                                                                            : action.type === 'create_flow'
-                                                                                ? 'Connected idea map'
-                                                                                : action.text || canvases[message.projectId || '']?.name}
+                                                                        {['complete_task', 'reopen_task', 'delete_task', 'edit_task'].includes(action.type)
+                                                                            ? `${canvases[message.projectId || '']?.todos?.find(task => task.id === action.taskId)?.text || 'Task no longer available'}${action.type === 'edit_task' ? ` → ${action.text}` : ''}`
+                                                                            : action.type === 'update_goal'
+                                                                                ? `${canvases[message.projectId || '']?.goals?.find(goal => goal.id === action.taskId)?.label || 'Goal no longer available'} → ${action.text}`
+                                                                                : action.type === 'rename_folder'
+                                                                                    ? `${useStore.getState().folders[action.taskId]?.name || 'Folder no longer available'} → ${action.text}`
+                                                                                    : action.type === 'open_project' && action.text
+                                                                                        ? projects.find(item => item.id === action.text)?.name || 'Project not found'
+                                                                                        : action.type === 'create_flow'
+                                                                                            ? 'Connected idea map'
+                                                                                            : ['write', 'add_page', 'add_note', 'add_timeline', 'log_progress'].includes(action.type)
+                                                                                                ? <span className="assistant-action-text">{action.text}</span>
+                                                                                                : action.text || canvases[message.projectId || '']?.name}
                                                                         {action.date ? ` · ${action.date}` : ''}
                                                                         {action.time ? ` ${action.time}` : ''}
                                                                         {action.type === 'add_reminder' ? ` · ${action.repeat || 'once'} · ${Intl.DateTimeFormat().resolvedOptions().timeZone}` : ''}
