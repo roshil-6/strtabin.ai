@@ -1,13 +1,13 @@
 import AssistantProjectPicker from './AssistantProjectPicker';
 import MarkdownRenderer from './MarkdownRenderer';
 import useModalStore from '../store/useModalStore';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Bot, X, Send, Volume2, VolumeX, Square, Check, ArrowUpRight, Sparkles, Maximize2, RotateCcw, Activity, BarChart2 } from 'lucide-react';
 import useStore from '../store/useStore';
-import { useTimetables } from '../store/useTimetables';
-import { buildProjectCapsule } from '../lib/projectCapsule';
+import { buildAssistantContext } from '../lib/assistantContext';
+import { isListedProject, isTeamProject } from '../lib/projectVisibility';
 import { API_BASE_URL } from '../constants';
 import { useProjectLoader, isProjectFetchedFromServer, hydrateNewProject } from '../hooks/useProjectLoader';
 import { workspaceService, type Project } from '../services/workspaceService';
@@ -94,7 +94,23 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     const panel = useRef<HTMLElement>(null);
     const composerRef = useRef<HTMLTextAreaElement>(null);
     useEffect(() => {try {localStorage.setItem(`sasha-name:${userId}`,name);} catch {/* Name remains usable for this session. */}},[name,userId]);
-    const projects = cloudProjects.map(project => ({id:`proj_${project.id}`,name:project.title}));
+    // Every personal project Sasha can work on: ones made on the dashboard (stored here) and cloud projects.
+    const projects = useMemo(() => {
+        const local = Object.values(canvases).filter(project => isListedProject(project) && !isTeamProject(project))
+            .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+            .map(project => ({ id: project.id, name: (project.title || project.name || '').trim() || 'Untitled project' }));
+        const seen = new Set(local.map(project => project.id));
+        return [...local, ...cloudProjects.filter(project => !seen.has(`proj_${project.id}`)).map(project => ({ id: `proj_${project.id}`, name: project.title }))];
+    }, [canvases, cloudProjects]);
+    const knownProject = (id: string) => projects.some(project => project.id === id);
+    // Opening Sasha from inside a project works on that project.
+    const routeProject = location.pathname.match(/^\/(?:strategy|todo|timeline|calendar|ai|project|overview)\/([^/?#]+)/)?.[1];
+    useEffect(() => {
+        const id = routeProject ? decodeURIComponent(routeProject) : '';
+        if (!id || projectId || messagesRef.current.length || !knownProject(id)) return;
+        setProjectId(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [routeProject, projects]);
     const loader = useProjectLoader(projectId || undefined);
     // Free accounts can use Sasha while their trial credits last; Pro has a daily allowance.
     const trialLeft = access && !access.pro ? (access.remaining?.chat ?? 0) + (access.remaining?.voice ?? 0) : 0;
@@ -141,7 +157,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         const token = await getToken();
         if (!token) throw new Error('Sign in again to connect your assistant.');
         if (!projectId) return `Local time: ${new Date().toString()}\nNo project selected. Brainstorm freely, or propose creating a project. Do not claim to know existing project contents.`;
-        if (!cloudProjects.some(project => `proj_${project.id}` === projectId) || !isProjectFetchedFromServer(projectId, userId)) throw new Error('Select an available project first.');
+        if (!knownProject(projectId) || !isProjectFetchedFromServer(projectId, userId)) throw new Error('Select an available project first.');
         // Confirm access to the project and load reminders together; doing them in turn slowed every connect.
         const [, schedule] = await Promise.all([
             /^proj_\d+$/.test(projectId) ? workspaceService.getProjectCanvas(Number(projectId.slice(5)), token) : null,
@@ -151,14 +167,13 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         const project = state.canvases[projectId];
         if (!project) throw new Error('This project is no longer available.');
         const reminders = schedule.reminders.filter(item => !item.project_id || item.project_id === projectId);
-        const context = `Local time: ${new Date().toString()}\nTimezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}\nAccount reminders for this project and personal reminders: ${JSON.stringify(reminders)}\n` + buildProjectCapsule(project, { ...state, timetables: useTimetables.getState().tables }, 'Use this project as reference for the user’s request.');
-        if (context.length > 24000) throw new Error('This project exceeds the assistant context limit. Use the AI capsule workspace to export its full context.');
-        return context;
+        // A compact snapshot with the writing first; large projects are trimmed, never rejected.
+        return buildAssistantContext(project, state, { now: new Date(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, reminders });
     };
     const send = async () => {
         if (locked.current || !draft.trim() || !ready) return;
         const project = useStore.getState().canvases[projectId];
-        if (projectId && (!project || !isProjectFetchedFromServer(projectId, userId))) { setError('Select an available project first. Open cloud projects once to load them.'); return; }
+        if (projectId && (!project || !isProjectFetchedFromServer(projectId, userId))) { setError(loader.loading ? 'Loading this project. Try again in a moment.' : 'Select an available project first.'); return; }
         const controller = new AbortController(); request.current = controller; locked.current = true; setBusy(true); setError('');
         const text = draft.trim();
         const timer = window.setTimeout(() => controller.abort(), 55000);
