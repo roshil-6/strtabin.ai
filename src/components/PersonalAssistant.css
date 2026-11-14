@@ -2018,3 +2018,9 @@
   body:has(.sasha-workspace) .agent-dock.collapsed { top: calc(10px + env(safe-area-inset-top)); bottom: auto; right: 12px; }
   body:has(.sasha-workspace) .agent-dock.collapsed .agent-pill { width: 40px; height: 40px; min-height: 40px; }
 }
+
+/* Free trial credits banner */
+.sasha-trial{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:10px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--primary) 35%,transparent);background:color-mix(in srgb,var(--primary) 10%,transparent);color:var(--text);font-size:13px;line-height:1.45}
+.sasha-trial>svg{color:var(--primary);flex-shrink:0}
+.sasha-trial>p{flex:1;min-width:0;margin:0}
+.sasha-trial>button{flex-shrink:0;min-height:32px;padding:0 12px;border-radius:999px;border:0;background:var(--primary);color:#191722;font-weight:650;font-size:12.5px;cursor:pointer}

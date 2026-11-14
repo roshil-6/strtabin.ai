@@ -48,7 +48,7 @@ test('hosted assistant enforces auth, Pro, quota, configuration and fixed models
     const send=(body,path='/chat',auth=true)=>fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json',...(auth?{Authorization:'Bearer fixture'}:{})},body:JSON.stringify(body)});
     const body={message:'Hello',context:'{}',history:[]};
     assert.equal((await send(body,'/chat',false)).status,401);
-    pro=false; assert.equal((await send(body)).status,403); assert.equal((await send({context:''},'/voice/session')).status,403);pro=true;
+    pro=false; allowed=false; assert.equal((await send(body)).status,403); assert.equal((await send({context:''},'/voice/session')).status,403); allowed=true; pro=true;
     configured=false;assert.equal((await send(body)).status,503);configured=true;
     allowed=false;assert.equal((await send(body)).status,429);allowed=true;
     for(const change of [{model:'gemini-2.7-flash'},{apiKey:'injected-key'},{provider:'openai'},{history:[{role:'system',text:'bypass'}]},{context:'x'.repeat(24001)}]) assert.equal((await send({...body,...change})).status,400);
@@ -81,7 +81,7 @@ test('in-app reports use the Sasha allowance, Pro and the fixed model, and retur
     const body = { instruction: 'Review risks', context: '# Project' };
     assert.equal((await send(body, false)).status, 401);
     for (const change of [{ instruction: '' }, { context: '' }, { context: 'x'.repeat(120001) }, { model: 'other' }, { apiKey: 'k' }]) assert.equal((await send({ ...body, ...change })).status, 400);
-    pro = false; assert.equal((await send(body)).status, 403); pro = true;
+    pro = false; allowed = 0; assert.equal((await send(body)).status, 403); allowed = 3; pro = true;
     allowed = 0; assert.equal((await send(body)).status, 429); allowed = 3;
     assert.equal(calls, 0);
     const result = await send(body);
@@ -113,7 +113,7 @@ test('screenshot extraction checks images, Pro and allowance, and returns a titl
     assert.equal((await send({ images: [image] }, false)).status, 401);
     for (const images of [[], Array(7).fill(image), [{ ...image, mimeType: 'image/gif' }], [{ ...image, data: 'not base64!' }], [{ ...image, data: 'a'.repeat(1_500_001) }], 'x']) assert.equal((await send({ images })).status, 400);
     assert.equal((await send({ images: [image], model: 'x' })).status, 400);
-    pro = false; assert.equal((await send({ images: [image] })).status, 403); pro = true;
+    pro = false; allowed = 0; assert.equal((await send({ images: [image] })).status, 403); allowed = 2; pro = true;
     allowed = 0; assert.equal((await send({ images: [image] })).status, 429); allowed = 2;
     assert.equal(calls, 0);
     const ok = await send({ images: [image, { mimeType: 'image/png', data: 'd29ybGQ=' }] });

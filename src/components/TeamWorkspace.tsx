@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import {
-    ArrowUpRight, Plus, Users, FolderKanban, ListChecks, FileText, MessageCircle, Check, Loader2, RefreshCw, UserPlus, Download, Upload,
-    Pill as Capsule, Search, ChevronLeft, ChevronRight, ChevronDown, Link2, Copy, MoreHorizontal, Trash2, Pencil, LogOut, Shield, ShieldOff,
-    UserMinus, X, LayoutGrid, List as ListIcon, CalendarDays, CalendarRange, Lock, Activity, Mail, Clock, GripVertical,
+    ArrowUpRight, Plus, UsersRound, SquareKanban, ClipboardCheck, ScrollText, MessageCircle, Check, Loader2, RefreshCw, UserPlus, Download, Upload,
+    BrainCircuit as Capsule, Search, ChevronLeft, ChevronRight, ChevronDown, Link2, Copy, MoreHorizontal, Trash2, Pencil, LogOut, Shield, ShieldOff,
+    UserMinus, X, LayoutGrid, List as ListIcon, CalendarDays, CalendarRange, Lock, History, Mail, Clock, GripVertical, MailPlus, LayoutDashboard, CalendarCheck2, Sparkles, Hourglass, type LucideIcon,
 } from 'lucide-react';
 import { workspaceService, type Workspace, type Project, type ProjectStatus, type MemberDailyTask, type Invitation, type WorkspaceMember, type ActivityLog } from '../services/workspaceService';
 import { type ChatUser } from '../services/chatService';
@@ -110,6 +110,13 @@ function Menu({ label, children, icon = <MoreHorizontal size={17} /> }: { label:
     </div>;
 }
 
+type Tone = 'violet' | 'green' | 'blue' | 'amber' | 'pink' | 'teal';
+/** A tinted square behind an icon, so each area of the team hub is easy to tell apart at a glance. */
+function Tile({ icon: Icon, tone, size = 16 }: { icon: LucideIcon; tone: Tone; size?: number }) {
+    return <span className={`th-tile th-tile-${tone}`} aria-hidden="true"><Icon size={size} strokeWidth={2.1} /></span>;
+}
+const VIEW_ICONS: Record<TeamView, [LucideIcon, Tone]> = { teams: [LayoutDashboard, 'violet'], projects: [SquareKanban, 'violet'], duties: [ClipboardCheck, 'green'], reports: [ScrollText, 'amber'] };
+
 function Progress({ value, total, label }: { value: number; total: number; label: string }) {
     const percent = total ? Math.round((value / total) * 100) : 0;
     return <div className="th-progress" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><span style={{ width: `${percent}%` }} /></div>;
@@ -137,6 +144,9 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
     const [modal, setModal] = useState<Modal | null>(null);
     const [confirm, setConfirm] = useState<Confirm | null>(null);
     const [notice, setNotice] = useState('');
+    // Clock for the trial countdown; refreshed each minute so render stays pure.
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer); }, []);
     const [query, setQuery] = useState('');
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
@@ -327,6 +337,15 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
     const allProjects = current?.projects || [];
     const matching = allProjects.filter(project => `${project.title} ${project.description || ''} ${project.assigned_to_username || ''}`.toLowerCase().includes(query.toLowerCase()));
     const filteredProjects = matching.filter(project => stageFilter === 'all' || project.status === stageFilter);
+    const plan = current?.plan;
+    const trialHoursLeft = plan?.trial && plan.trialEndsAt ? Math.max(0, Math.ceil((Date.parse(plan.trialEndsAt) - now) / 3600000)) : 0;
+    const trialEnded = Boolean(plan?.trial && plan.expired);
+    const projectLimitReached = Boolean(plan?.trial && plan.projectLimit !== undefined && allProjects.length >= plan.projectLimit);
+    const newProject = () => {
+        if (trialEnded) { setNotice('This team\'s free trial has ended. The owner can upgrade to Pro to keep working together.'); return; }
+        if (projectLimitReached) { setNotice(`The free team trial includes ${plan?.projectLimit} shared project. Upgrade to Pro for unlimited team projects.`); return; }
+        open('project');
+    };
     const stageDrag = useStageDrag<ProjectStatus>({
         stages: STAGE_IDS,
         disabled: busy,
@@ -372,7 +391,7 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
             <Menu label={`More actions for ${project.title}`}>{close => <>
                 <button role="menuitem" onClick={() => { close(); projectLink(project); }}><ArrowUpRight size={15} />Open project</button>
                 <button role="menuitem" onClick={() => { close(); capsuleLink(project.id); }}><Capsule size={15} />Prepare AI capsule</button>
-                <button role="menuitem" onClick={() => { close(); setReportProjectId(project.id); onNavigate?.('reports'); }}><FileText size={15} />See reports</button>
+                <button role="menuitem" onClick={() => { close(); setReportProjectId(project.id); onNavigate?.('reports'); }}><ScrollText size={15} />See reports</button>
                 {admin && <button role="menuitem" className="is-danger" onClick={() => { close(); deleteProject(project); }}><Trash2 size={15} />Delete project</button>}
             </>}</Menu>
         </header>
@@ -396,12 +415,12 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
 
     if (!isSignedIn) return <div className="team-workspace th">
         <section className="th-welcome">
-            <span className="th-welcome-icon"><Users size={28} /></span>
+            <span className="th-welcome-icon"><UsersRound size={28} /></span>
             <h2>Work on projects with your team</h2>
             <p>Sign in to create a team, invite people and share projects, duties and reports. Your personal projects stay private.</p>
             <button className="team-primary" onClick={() => navigate('/auth')}>Sign in to start a team<ArrowUpRight size={16} /></button>
             <div className="th-welcome-grid">
-                {([[FolderKanban, 'Shared projects', 'Plans, writing and boards everyone can open.'], [ListChecks, 'Daily duties', 'Give each task an owner and a date.'], [Capsule, 'AI capsules', 'Send full project context to your AI.'], [MessageCircle, 'Team chat', 'Direct and group conversations.']] as const).map(([Icon, label, hint]) =>
+                {([[SquareKanban, 'Shared projects', 'Plans, writing and boards everyone can open.'], [ClipboardCheck, 'Daily duties', 'Give each task an owner and a date.'], [Capsule, 'AI capsules', 'Send full project context to your AI.'], [MessageCircle, 'Team chat', 'Direct and group conversations.']] as const).map(([Icon, label, hint]) =>
                     <div key={label}><Icon size={20} /><h3>{label}</h3><p>{hint}</p></div>)}
             </div>
         </section>
@@ -421,7 +440,7 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
 
         {loading ? <div className="team-loading" role="status"><Loader2 className="animate-spin" />Loading your teams…</div>
             : !workspaces.length ? <section className="th-start">
-                <span className="th-welcome-icon"><Users size={28} /></span>
+                <span className="th-welcome-icon"><UsersRound size={28} /></span>
                 <h2>Start your first team</h2>
                 <p>A team is a shared space for projects, daily duties and reports. Create one and invite people, or join a team with an invite link.</p>
                 <div className="team-actions"><button onClick={() => open('join')}><Link2 size={16} />Join with a link</button><button className="team-primary" onClick={() => open('team')}><Plus size={16} />Create a team</button></div>
@@ -464,8 +483,16 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
                     </div>
                 </header>
 
-                <div className="th-heading"><div><h2>{HEADINGS[view][0]}</h2><p>{HEADINGS[view][1]}</p></div>
-                    {current && view === 'projects' && <button className="team-primary" onClick={() => open('project')}><Plus size={16} />New project</button>}
+                {plan?.trial && <div className={`th-trial${trialEnded ? ' is-ended' : ''}`} role="status">
+                    <Tile icon={trialEnded ? Hourglass : Sparkles} tone={trialEnded ? 'amber' : 'violet'} />
+                    <p>{trialEnded
+                        ? <><strong>Free trial ended.</strong> This team is read-only. Everything stays visible{me === ownerId ? ' — upgrade to Pro to keep working together.' : '. The team owner can upgrade to Pro to keep working together.'}</>
+                        : <><strong>Free team trial</strong> · {trialHoursLeft} {trialHoursLeft === 1 ? 'hour' : 'hours'} left · {Math.min(allProjects.length, plan.projectLimit ?? 1)} of {plan.projectLimit ?? 1} shared project. Pro removes the limits for everyone in this team.</>}</p>
+                    {me === ownerId && <button type="button" onClick={() => navigate('/billing')}>{trialEnded ? 'Upgrade to Pro' : 'Get Pro'}</button>}
+                </div>}
+
+                <div className="th-heading"><div><h2><Tile icon={VIEW_ICONS[view][0]} tone={VIEW_ICONS[view][1]} size={18} />{HEADINGS[view][0]}</h2><p>{HEADINGS[view][1]}</p></div>
+                    {current && view === 'projects' && <button className="team-primary" aria-disabled={trialEnded || projectLimitReached} onClick={newProject}><Plus size={16} />New project</button>}
                     {current && view === 'reports' && <button className="team-primary" disabled={!reportProjectId || reportLoading} onClick={() => open('report')}><Plus size={16} />Share report</button>}
                 </div>
 
@@ -473,15 +500,15 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
 
                     {view === 'teams' && <>
                         <div className="th-stats">
-                            <button type="button" onClick={() => onNavigate?.('projects')}><span>Active projects</span><strong>{allProjects.filter(project => project.status !== 'completed').length}</strong><small>{allProjects.filter(project => project.status === 'completed').length} done</small></button>
-                            <button type="button" onClick={() => onNavigate?.('duties')}><span>Duties today</span><strong>{todayTasks.filter(task => task.status === 'done').length}<em>/{todayTasks.length}</em></strong><Progress value={todayTasks.filter(task => task.status === 'done').length} total={todayTasks.length} label="Team duties done today" /></button>
-                            <div><span>Members</span><strong>{members.length}</strong><small>{members.filter(member => member.role === 'admin' || member.id === ownerId).length} admin{members.filter(member => member.role === 'admin' || member.id === ownerId).length === 1 ? '' : 's'}</small></div>
-                            <div><span>{admin ? 'Pending invites' : 'Your duties today'}</span><strong>{admin ? sentInvites.length : `${myToday.filter(task => task.status === 'done').length}/${myToday.length}`}</strong><small>{admin ? 'waiting to join' : 'done'}</small></div>
+                            <button type="button" onClick={() => onNavigate?.('projects')}><span className="th-stat-label"><Tile icon={SquareKanban} tone="violet" />Active projects</span><strong>{allProjects.filter(project => project.status !== 'completed').length}</strong><small>{allProjects.filter(project => project.status === 'completed').length} done</small></button>
+                            <button type="button" onClick={() => onNavigate?.('duties')}><span className="th-stat-label"><Tile icon={ClipboardCheck} tone="green" />Duties today</span><strong>{todayTasks.filter(task => task.status === 'done').length}<em>/{todayTasks.length}</em></strong><Progress value={todayTasks.filter(task => task.status === 'done').length} total={todayTasks.length} label="Team duties done today" /></button>
+                            <div><span className="th-stat-label"><Tile icon={UsersRound} tone="blue" />Members</span><strong>{members.length}</strong><small>{members.filter(member => member.role === 'admin' || member.id === ownerId).length} admin{members.filter(member => member.role === 'admin' || member.id === ownerId).length === 1 ? '' : 's'}</small></div>
+                            <div><span className="th-stat-label">{admin ? <Tile icon={MailPlus} tone="pink" /> : <Tile icon={CalendarCheck2} tone="teal" />}{admin ? 'Pending invites' : 'Your duties today'}</span><strong>{admin ? sentInvites.length : `${myToday.filter(task => task.status === 'done').length}/${myToday.length}`}</strong><small>{admin ? 'waiting to join' : 'done'}</small></div>
                         </div>
                         <div className="th-overview">
                             <div className="th-column">
                                 <section className="th-panel">
-                                    <div className="th-panel-heading"><h3><ListChecks size={17} />Your duties · {prettyDate(overviewDate)}</h3><button onClick={() => onNavigate?.('duties')}>All duties<ChevronRight size={15} /></button></div>
+                                    <div className="th-panel-heading"><h3><Tile icon={ClipboardCheck} tone="green" />Your duties · {prettyDate(overviewDate)}</h3><button onClick={() => onNavigate?.('duties')}>All duties<ChevronRight size={15} /></button></div>
                                     {myToday.length ? <ul className="th-duty-list">{myToday.map(task => dutyRow(task, true))}</ul> : <p className="th-empty-line">Nothing on your list for today.</p>}
                                     <form className="th-quick-add" onSubmit={event => { event.preventDefault(); setQuickAssignee(''); void addQuickDuty(); }}>
                                         <Plus size={16} /><input aria-label="Add a duty for yourself today" placeholder="Add a duty for yourself…" value={quickDuty} maxLength={2000} onChange={event => setQuickDuty(event.target.value)} />
@@ -489,13 +516,13 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
                                     </form>
                                 </section>
                                 <section className="th-panel">
-                                    <div className="th-panel-heading"><h3><FolderKanban size={17} />Projects by stage</h3><button onClick={() => onNavigate?.('projects')}>Board<ChevronRight size={15} /></button></div>
+                                    <div className="th-panel-heading"><h3><Tile icon={SquareKanban} tone="violet" />Projects by stage</h3><button onClick={() => onNavigate?.('projects')}>Board<ChevronRight size={15} /></button></div>
                                     {allProjects.length ? <div className="th-stage-bars">{STAGES.map(stage => { const count = allProjects.filter(project => project.status === stage.id).length; return <button type="button" key={stage.id} onClick={() => { setStageFilter(stage.id); onNavigate?.('projects'); }}>
                                         <span className={`th-stage th-stage-${stage.id}`}>{stage.label}</span><Progress value={count} total={allProjects.length} label={`${stage.label} projects`} /><strong>{count}</strong>
                                     </button>; })}</div> : <div className="th-empty-line">No shared projects yet. <button onClick={() => open('project')}>Create the first one</button></div>}
                                 </section>
                                 <section className="th-panel">
-                                    <div className="th-panel-heading"><h3><Activity size={17} />Recent activity</h3></div>
+                                    <div className="th-panel-heading"><h3><Tile icon={History} tone="amber" />Recent activity</h3></div>
                                     {current.activities.length ? <ol className="th-activity">{current.activities.slice(0, 10).map(activity => <li key={activity.id}>
                                         <Avatar id={activity.user_id} name={activity.username || 'T'} size="sm" />
                                         <p><strong>{activity.user_id === me ? 'You' : activity.username || 'A teammate'}</strong> {describeActivity(activity)}</p>
@@ -505,7 +532,7 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
                             </div>
                             <div className="th-column">
                                 <section className="th-panel">
-                                    <div className="th-panel-heading"><h3><Users size={17} />People</h3>{admin && <button onClick={() => open('invite')}><UserPlus size={15} />Invite</button>}</div>
+                                    <div className="th-panel-heading"><h3><Tile icon={UsersRound} tone="blue" />People</h3>{admin && <button onClick={() => open('invite')}><UserPlus size={15} />Invite</button>}</div>
                                     <ul className="th-people">{members.map(member => {
                                         const theirs = todayTasks.filter(task => task.user_id === member.id);
                                         const isOwner = member.id === ownerId;
@@ -518,7 +545,7 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
                                             </div>
                                             {member.id !== me && <button className="th-icon-button" aria-label={`Message ${nameOf(member)}`} onClick={() => openChat(member)}><MessageCircle size={16} /></button>}
                                             {admin && !isOwner && member.id !== me && <Menu label={`Manage ${nameOf(member)}`}>{close => <>
-                                                <button role="menuitem" onClick={() => { close(); setDutyFilter(member.id); onNavigate?.('duties'); }}><ListChecks size={15} />See their duties</button>
+                                                <button role="menuitem" onClick={() => { close(); setDutyFilter(member.id); onNavigate?.('duties'); }}><ClipboardCheck size={15} />See their duties</button>
                                                 {member.role === 'admin' ? <button role="menuitem" onClick={() => { close(); void changeRole(member, 'member'); }}><ShieldOff size={15} />Make member</button>
                                                     : <button role="menuitem" onClick={() => { close(); void changeRole(member, 'admin'); }}><Shield size={15} />Make admin</button>}
                                                 <button role="menuitem" className="is-danger" onClick={() => { close(); removeMember(member); }}><UserMinus size={15} />Remove from team</button>
@@ -553,7 +580,7 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
                                 <button aria-pressed={projectLayout === 'list'} aria-label="List view" onClick={() => setProjectLayout('list')}><ListIcon size={15} /></button>
                             </div>
                         </div>
-                        {!filteredProjects.length ? <div className="th-empty"><FolderKanban size={28} /><h3>{allProjects.length ? 'No projects match' : 'No shared projects yet'}</h3><p>{allProjects.length ? 'Try another search or stage.' : 'Create a project to plan, write and map ideas together.'}</p>{!allProjects.length && <button className="team-primary" onClick={() => open('project')}><Plus size={16} />New project</button>}</div>
+                        {!filteredProjects.length ? <div className="th-empty"><Tile icon={SquareKanban} tone="violet" size={24} /><h3>{allProjects.length ? 'No projects match' : 'No shared projects yet'}</h3><p>{allProjects.length ? 'Try another search or stage.' : 'Create a project to plan, write and map ideas together.'}</p>{!allProjects.length && <button className="team-primary" onClick={() => open('project')}><Plus size={16} />New project</button>}</div>
                             : projectLayout === 'board' && stageFilter === 'all' ? <div ref={stageDrag.bindBoard} className={`th-board${stageDrag.draggingId ? ' is-dragging' : ''}`}>{STAGES.map(stage => {
                                 const column = filteredProjects.filter(project => project.status === stage.id);
                                 return <section key={stage.id} className="th-board-column" aria-label={stage.label} {...stageDrag.columnProps(stage.id)}>
@@ -602,7 +629,7 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
                                     <header><Avatar id={member.id} name={nameOf(member)} size="sm" /><strong>{nameOf(member)}{member.id === me && <em> (you)</em>}</strong><span>{list.filter(task => task.status === 'done').length}/{list.length}</span></header>
                                     {list.length ? <ul className="th-duty-list">{list.map(task => dutyRow(task))}</ul> : <p className="th-empty-line">No duties for this day.</p>}
                                 </section>)}</div>
-                                    : <div className="th-empty"><ListChecks size={28} /><h3>A clear day</h3><p>No duties for {date === today ? 'today' : prettyDate(date)}. Add one above and give it an owner.</p></div>}
+                                    : <div className="th-empty"><Tile icon={ClipboardCheck} tone="green" size={24} /><h3>A clear day</h3><p>No duties for {date === today ? 'today' : prettyDate(date)}. Add one above and give it an owner.</p></div>}
                             </>;
                         })() : <div className="th-week">{Array.from({ length: 7 }, (_, index) => shiftDate(range!.from, index)).map(day => {
                             const list = filteredTasks.filter(task => task.task_date === day);
@@ -618,16 +645,16 @@ export default function TeamWorkspace({ view, openChat, openGroup, onNavigate, i
                     </>}
 
                     {view === 'reports' && <>
-                        {!allProjects.length ? <div className="th-empty"><FileText size={28} /><h3>Reports live inside projects</h3><p>Create a shared project first, then publish reports and AI answers to it.</p><button className="team-primary" onClick={() => open('project')}><Plus size={16} />New project</button></div> : <>
+                        {!allProjects.length ? <div className="th-empty"><Tile icon={ScrollText} tone="amber" size={24} /><h3>Reports live inside projects</h3><p>Create a shared project first, then publish reports and AI answers to it.</p><button className="team-primary" onClick={() => open('project')}><Plus size={16} />New project</button></div> : <>
                             <div className="th-toolbar">
                                 <label className="th-filter"><span className="sr-only">Project</span><select value={reportProjectId || ''} onChange={event => { setReports([]); setSelectedReport(null); setReportProjectId(Number(event.target.value)); }}>{allProjects.map(project => <option key={project.id} value={project.id}>{project.title}</option>)}</select></label>
                                 <label className="th-search"><Search size={16} /><input aria-label="Search reports" placeholder="Search reports" value={query} onChange={event => setQuery(event.target.value)} /></label>
                                 <button disabled={!reportProjectId} onClick={() => reportProjectId && capsuleLink(reportProjectId)}><Capsule size={16} />Prepare AI capsule</button>
                             </div>
-                            {reportLoading ? <div className="team-loading" role="status"><Loader2 className="animate-spin" />Loading reports…</div> : !visibleReports.length ? <div className="th-empty"><FileText size={28} /><h3>{query ? 'No reports match' : 'No reports in this project yet'}</h3><p>{query ? 'Try another search.' : 'Write an update, paste an answer from your AI, or import a text file.'}</p>{!query && <button className="team-primary" onClick={() => open('report')}><Plus size={16} />Share report</button>}</div>
+                            {reportLoading ? <div className="team-loading" role="status"><Loader2 className="animate-spin" />Loading reports…</div> : !visibleReports.length ? <div className="th-empty"><Tile icon={ScrollText} tone="amber" size={24} /><h3>{query ? 'No reports match' : 'No reports in this project yet'}</h3><p>{query ? 'Try another search.' : 'Write an update, paste an answer from your AI, or import a text file.'}</p>{!query && <button className="team-primary" onClick={() => open('report')}><Plus size={16} />Share report</button>}</div>
                                 : <div className={`th-reports ${viewedReport ? 'has-detail' : ''}`}>
                                     <ul className="th-report-list">{visibleReports.map(report => <li key={report.id}><button aria-pressed={selectedReport === report.id} onClick={() => setSelectedReport(report.id)}>
-                                        <FileText size={18} /><span><strong>{report.title}</strong><small>{new Date(report.createdAt).toLocaleDateString()} · {report.content.length.toLocaleString()} characters</small></span><ChevronRight size={16} />
+                                        <ScrollText size={18} /><span><strong>{report.title}</strong><small>{new Date(report.createdAt).toLocaleDateString()} · {report.content.length.toLocaleString()} characters</small></span><ChevronRight size={16} />
                                     </button></li>)}</ul>
                                     {viewedReport && <article className="th-report-detail">
                                         <header><button className="th-icon-button th-report-back" aria-label="Back to report list" onClick={() => setSelectedReport(null)}><ChevronLeft size={17} /></button><h3>{viewedReport.title}</h3>

@@ -29,7 +29,6 @@ import {
   Image as ImageIcon,
   Paperclip,
   ChevronDown,
-  Sparkles,
   TrendingUp,
   Briefcase,
   BarChart2,
@@ -42,7 +41,7 @@ import GroupChatDialog from './GroupChatDialog';
 import ChatCapsuleDialog from './ChatCapsuleDialog';
 import LavenderDotBackground from './LavenderDotBackground';
 import './CommunityPage.css';
-import { Pill as Capsule, FolderKanban, ListChecks, FileText, Plus } from 'lucide-react';
+import { BrainCircuit as Capsule, Plus, LayoutDashboard, SquareKanban, ClipboardCheck, ScrollText, ContactRound, MessagesSquare, Lightbulb } from 'lucide-react';
 import { useMemo } from 'react';
 import useStore from '../store/useStore';
 import { listedProjects } from '../lib/projectVisibility';
@@ -500,7 +499,7 @@ export default function CommunityPage() {
   return (
     <div className="community-hub theme-page flex min-h-[100dvh] flex-col bg-[var(--bg-page)]">
       <LavenderDotBackground />
-      <header className="community-header"><div className="community-header-top"><div><button className="community-back" aria-label="Back to projects" onClick={() => navigate('/dashboard')}><ArrowLeft size={19} /></button><span className="community-brand-icon"><Network size={23} /></span><div><span className="team-eyebrow">STRATABIN / COMMUNITY</span><h1>Better work, together.</h1></div></div><div className="team-actions">{isSignedIn && <button onClick={() => { setTab('chat'); setShowGroup(true); }}><Plus size={16} />New group</button>}<span className="community-live-label"><span />Team workspace</span></div></div><nav className="community-tabs" aria-label="Community sections">{([{id:'teams',label:'Teams',icon:Users},{id:'projects',label:'Projects',icon:FolderKanban},{id:'duties',label:'Duties',icon:ListChecks},{id:'reports',label:'Reports',icon:FileText},{id:'people',label:'People',icon:UserPlus},{id:'chat',label:'Chats',icon:MessageCircle},{id:'feed',label:'Insights',icon:Sparkles}] as const).map(item => <button key={item.id} aria-current={tab === item.id ? 'page' : undefined} onClick={() => setTab(item.id)}><item.icon size={17}/>{item.label}{item.id==='chat'&&chats.some(chat=>chat.unread)&&<span className="community-unread">{chats.reduce((sum,chat)=>sum+(chat.unread||0),0)}</span>}</button>)}</nav></header>
+      <header className="community-header"><div className="community-header-top"><div><button className="community-back" aria-label="Back to projects" onClick={() => navigate('/dashboard')}><ArrowLeft size={19} /></button><span className="community-brand-icon"><Network size={23} /></span><div><span className="team-eyebrow">STRATABIN / COMMUNITY</span><h1>Better work, together.</h1></div></div><div className="team-actions">{isSignedIn && <button onClick={() => { setTab('chat'); setShowGroup(true); }}><Plus size={16} />New group</button>}<span className="community-live-label"><span />Team workspace</span></div></div><nav className="community-tabs" aria-label="Community sections">{([{id:'teams',label:'Teams',icon:LayoutDashboard},{id:'projects',label:'Projects',icon:SquareKanban},{id:'duties',label:'Duties',icon:ClipboardCheck},{id:'reports',label:'Reports',icon:ScrollText},{id:'people',label:'People',icon:ContactRound},{id:'chat',label:'Chats',icon:MessagesSquare},{id:'feed',label:'Insights',icon:Lightbulb}] as const).map(item => <button key={item.id} aria-current={tab === item.id ? 'page' : undefined} onClick={() => setTab(item.id)}><item.icon size={17}/>{item.label}{item.id==='chat'&&chats.some(chat=>chat.unread)&&<span className="community-unread">{chats.reduce((sum,chat)=>sum+(chat.unread||0),0)}</span>}</button>)}</nav></header>
       <div className={`community-content ${tab === 'chat' ? 'community-chat-layout' : ''}`}>
         {(['teams','projects','duties','reports'] as string[]).includes(tab) ? <TeamWorkspace key={userId || "guest"} view={tab as TeamView} initialTeamId={Number(new URLSearchParams(location.search).get('team')) || null} onNavigate={setTab} openChat={user => { void handleStartChat(user); }} openGroup={() => setShowGroup(true)} /> : !isSignedIn && (tab === 'chat' || tab === 'people') ? <section className="community-signin"><Users size={34}/><h2>Connect with your team.</h2><p>Sign in to find teammates, start personal or group chats, and share project capsules.</p><button className="team-primary" onClick={() => navigate('/auth')}>Sign in to collaborate<ExternalLink size={16}/></button></section> : tab === 'people' ? (
           <div className="flex-1 overflow-y-auto p-3 md:p-6">

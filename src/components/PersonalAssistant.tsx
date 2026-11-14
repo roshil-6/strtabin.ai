@@ -70,7 +70,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     const model = 'gemini-3.5-flash-lite';
     const voiceModel = 'gemini-3.8-live';
     const [motionEnabled, setMotionEnabled] = useState(true);
-    const [access, setAccess] = useState<{pro:boolean;configured:boolean;remaining?:{chat:number;voice:number}} | null>(null);
+    const [access, setAccess] = useState<{pro:boolean;trial?:boolean;configured:boolean;remaining?:{chat:number;voice:number};limits?:{chat:number;voice:number}} | null>(null);
     const [accessError, setAccessError] = useState('');
     const [accessAttempt, setAccessAttempt] = useState(0);
     const [cloudProjects,setCloudProjects] = useState<Project[]>([]);
@@ -96,7 +96,11 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     useEffect(() => {try {localStorage.setItem(`sasha-name:${userId}`,name);} catch {/* Name remains usable for this session. */}},[name,userId]);
     const projects = cloudProjects.map(project => ({id:`proj_${project.id}`,name:project.title}));
     const loader = useProjectLoader(projectId || undefined);
-    const ready = Boolean(access?.pro && access.configured && !loader.loading && !loader.error);
+    // Free accounts can use Sasha while their trial credits last; Pro has a daily allowance.
+    const trialLeft = access && !access.pro ? (access.remaining?.chat ?? 0) + (access.remaining?.voice ?? 0) : 0;
+    const canUse = Boolean(access && (access.pro || trialLeft > 0));
+    const ready = Boolean(canUse && access?.configured && !loader.loading && !loader.error);
+    const limits = access?.limits ?? { chat: 10, voice: 10 };
     const visible = fullPage || open;
     useEffect(() => {
         let cancelled = false;
@@ -171,7 +175,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             const navigationOnly = Array.isArray(data.actions) && data.actions.length > 0 && data.actions.every((action: AssistantAction) => action.type === 'open_screen');
             setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', text }, { id: crypto.randomUUID(), role: 'assistant', text: data.reply, actions: navigationOnly ? [] : data.actions, projectId }]);
             if (navigationOnly) openScreen(data.actions[data.actions.length - 1].text, projectId);
-            if (typeof data.remaining === 'number') setAccess(previous => previous && { ...previous, remaining: { chat: data.remaining, voice: previous.remaining?.voice ?? 10 } });
+            if (typeof data.remaining === 'number') setAccess(previous => previous && { ...previous, remaining: { chat: data.remaining, voice: previous.remaining?.voice ?? limits.voice } });
             setDraft('');
             if (readAloud && !voiceActive && !wakeActive) speak(data.reply);
         } catch (cause) {
@@ -300,8 +304,8 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         <AssistantLiveVoice key={provider} provider={provider} name={name.trim() || 'Agent'} model={voiceModel} motionEnabled={motionEnabled}
             hidden={open && !fullPage} ready={ready} disabled={busy || applying} projectId={projectId}
             launcherRef={launcher} context={buildContext} controllerRef={voice} onActive={setVoiceActive} onWakeActive={setWakeActive}
-            voiceRemaining={access?.remaining?.voice}
-            onVoiceRemaining={left => setAccess(previous => previous && { ...previous, remaining: { chat: previous.remaining?.chat ?? 10, voice: left } })}
+            voiceRemaining={access?.remaining?.voice} voiceLimit={limits.voice} trial={Boolean(access && !access.pro)}
+            onVoiceRemaining={left => setAccess(previous => previous && { ...previous, remaining: { chat: previous.remaining?.chat ?? limits.chat, voice: left } })}
             pending={pendingVoice ? { lines: describePlan(pendingVoice.actions || []), busy: applying } : null}
             onApplyPending={() => { if (pendingVoice) void apply(pendingVoice).then(result => { if (result.status === 'applied') { setPendingVoiceId(''); voice.current?.updateContext(`The user tapped Apply. ${result.summary}`); } }); }}
             onCancelPending={() => { if (pendingVoice) { cancelPlan(pendingVoice.id); voice.current?.updateContext('The user tapped Cancel on the pending plan. Nothing was changed.'); } }}
@@ -332,7 +336,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                     <div className="assistant-brand">
                         <span className="assistant-brand-icon" aria-hidden="true"><Sparkles size={15} /></span>
                         <strong>{agentLabel}</strong>
-                        <span className="assistant-pro-pill">PRO</span>
+                        <span className="assistant-pro-pill">{access && !access.pro ? 'TRIAL' : 'PRO'}</span>
                     </div>
                     <nav className="assistant-tabs" aria-label="Agent sections">
                         {(['chat', 'reminders', 'settings'] as const).map(item => (
@@ -355,12 +359,19 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
 
                 {!access && !accessError && <p role="status" className="assistant-status-banner">Checking your Sasha access…</p>}
                 {accessError && <div role="alert" className="assistant-error">{accessError}<button type="button" onClick={() => setAccessAttempt(value => value+1)}>Retry</button></div>}
-                {tab !== 'reminders' && access && !access.pro && (
+                {tab !== 'reminders' && access && !access.pro && trialLeft > 0 && (
+                    <div className="sasha-trial" role="status">
+                        <Sparkles size={16} aria-hidden="true"/>
+                        <p><strong>Free trial</strong> · {access.remaining?.chat ?? 0} of {limits.chat} chats and {access.remaining?.voice ?? 0} of {limits.voice} voice sessions left. Reports use chat credits.</p>
+                        <button type="button" onClick={() => navigate('/billing')}>Get Pro</button>
+                    </div>
+                )}
+                {tab !== 'reminders' && access && !access.pro && trialLeft === 0 && (
                     <div className="sasha-upgrade sasha-upgrade-compact">
                         <Bot size={22}/>
                         <div>
-                            <h3>Unlock {agentLabel} Pro</h3>
-                            <p>Brief your projects, brainstorm ideas, and generate tasks and flow maps with zero setup.</p>
+                            <h3>You have used your free {agentLabel} trial</h3>
+                            <p>Pro gives you {agentLabel} every day: brief your projects, brainstorm ideas, and generate tasks and flow maps with zero setup.</p>
                         </div>
                         <div className="sasha-upgrade-actions">
                             <button type="button" className="assistant-primary-btn" onClick={() => navigate('/billing')}>View Pro plan</button>
@@ -368,7 +379,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                         </div>
                     </div>
                 )}
-                {tab !== 'reminders' && access?.pro && !access.configured && <p role="alert" className="assistant-error">Sasha is waiting for the backend connection to be configured.</p>}
+                {tab !== 'reminders' && canUse && access && !access.configured && <p role="alert" className="assistant-error">Sasha is waiting for the backend connection to be configured.</p>}
 
                 {tab === 'settings' && <div className="sasha-settings-grid">
                     <section className="sasha-setting-section"><h3>Your assistant</h3><p>Make Sasha your own. Your name preference saves automatically.</p>
@@ -637,7 +648,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                                 </div>
                             </div>
                             <p className="sasha-credit-note">
-                                10 chat credits/day · 1 credit per request · Resets 00:00 UTC (5:30 AM India)
+                                {access && !access.pro ? `Free trial · ${access.remaining?.chat ?? 0} of ${limits.chat} chat credits left · 1 credit per request` : `${limits.chat} chat credits/day · 1 credit per request · Resets 00:00 UTC (5:30 AM India)`}
                             </p>
                         </div>
                     </div>

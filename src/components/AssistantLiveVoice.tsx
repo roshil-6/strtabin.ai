@@ -11,7 +11,7 @@ import { API_BASE_URL } from '../constants';
 import AssistantPresence from './AssistantPresence';
 import { WakeWordListener, type WakeRecognition, type WakeStatus } from '../lib/wakeWord';
 
-export default function AssistantLiveVoice({ provider, name, context, onTranscript, onProposal, onActive, onWakeActive, controllerRef, model, motionEnabled, hidden, ready, disabled, onOpen, launcherRef, projectId, voiceRemaining, onVoiceRemaining, pending, onApplyPending, onCancelPending, onDecision, onScreen }: {
+export default function AssistantLiveVoice({ provider, name, context, onTranscript, onProposal, onActive, onWakeActive, controllerRef, model, motionEnabled, hidden, ready, disabled, onOpen, launcherRef, projectId, voiceRemaining, voiceLimit = SESSION_LIMIT, trial = false, onVoiceRemaining, pending, onApplyPending, onCancelPending, onDecision, onScreen }: {
     onWakeActive: (active:boolean) => void;
     model: string; motionEnabled: boolean; hidden: boolean; ready: boolean; disabled: boolean;
     onOpen: (section: 'settings' | 'chat' | 'reminders') => void;
@@ -21,7 +21,7 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
     onProposal: (proposal: VoiceProposal) => void; onActive: (active: boolean) => void;
     controllerRef: React.MutableRefObject<LiveVoiceClient | null>;
     projectId?: string;
-    voiceRemaining?: number; onVoiceRemaining: (left: number) => void;
+    voiceRemaining?: number; voiceLimit?: number; trial?: boolean; onVoiceRemaining: (left: number) => void;
     pending: { lines: string[]; busy: boolean } | null; onApplyPending: () => void; onCancelPending: () => void;
     onDecision: (decision: VoiceDecision) => Promise<Record<string, unknown>>;
     onScreen: (screen: AssistantScreen) => Record<string, unknown>;
@@ -190,9 +190,9 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
             <p id="agent-gesture-hint" className="agent-hint" role="status">{hint}</p>
             <div className="agent-usage" aria-label="Voice usage">
                 {deadline > 0 && <span className={`agent-timer ${secondsLeft <= 30 ? 'low' : ''}`} title="Time left in this session"><Timer size={13} aria-hidden="true" />{clock(secondsLeft)} left</span>}
-                {voiceRemaining !== undefined && <span className="agent-sessions" title="Voice sessions left today">
-                    <span className="agent-meter" aria-hidden="true"><i style={{ width: `${Math.min(100, (voiceRemaining / SESSION_LIMIT) * 100)}%` }} /></span>
-                    {voiceRemaining} of {SESSION_LIMIT} sessions left today
+                {voiceRemaining !== undefined && <span className="agent-sessions" title={trial ? 'Free trial voice sessions left' : 'Voice sessions left today'}>
+                    <span className="agent-meter" aria-hidden="true"><i style={{ width: `${Math.min(100, (voiceRemaining / Math.max(1, voiceLimit)) * 100)}%` }} /></span>
+                    {voiceRemaining} of {voiceLimit} {trial ? 'free trial sessions left' : 'sessions left today'}
                 </span>}
             </div>
             {pending && <div className="agent-plan" role="region" aria-label="Pending plan">
@@ -216,7 +216,7 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
                 <button type="button" onClick={() => goTo(reportsPath)} title="Open project reports"><BarChart2 size={16} /><span>Reports</span></button>
             </nav>
             {wakeSwitch}
-            <p className="agent-footnote"><Info size={12} aria-hidden="true" /><span>Each session is up to 3 min and uses 1 of your {SESSION_LIMIT} daily sessions. Refills 00:00 UTC (5:30 AM India). Wake listening uses your browser’s speech recognition, which may process audio online.</span></p>
+            <p className="agent-footnote"><Info size={12} aria-hidden="true" /><span>{trial ? `Each session is up to 3 min. Your free trial includes ${voiceLimit} sessions; Pro gives you ${SESSION_LIMIT} every day.` : `Each session is up to 3 min and uses 1 of your ${SESSION_LIMIT} daily sessions. Refills 00:00 UTC (5:30 AM India).`} Wake listening uses your browser’s speech recognition, which may process audio online.</span></p>
         </>}
         {!expanded && wakeStatus !== 'off' && wakeSwitch}
         {error && <div className="agent-error" role="alert"><span>{error}</span><button type="button" onClick={() => setError('')}>Dismiss</button></div>}

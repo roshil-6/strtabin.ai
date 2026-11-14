@@ -7,6 +7,8 @@ const freeFeatures = [
     'Writing and brainstorming boards',
     'Tasks, calendars, and timelines',
     'Project capsules for your own AI',
+    'Try Sasha free: 2 chats and 2 voice sessions',
+    'Try teams free: 1 team and 1 shared project for 24 hours',
 ];
 const proFeatures = [
     'Unlimited active projects',
@@ -51,7 +53,7 @@ export default function PricingSection({ signedIn }: { signedIn: boolean }) {
                         <div className="mt-auto rounded-xl bg-primary/[0.06] border border-primary/15 p-4 text-sm leading-relaxed text-white/75">Start with Free, or view Pro subscription options.<Link to="/billing" className="block mt-3 text-primary underline underline-offset-4">View plans & billing</Link></div>
                     </article>
                 </div>
-                <p className="mt-6 text-sm text-white/65 leading-relaxed max-w-3xl">Free project and timetable allowances are planned limits and are not enforced yet. Sasha AI requires Pro and has daily usage allowances. Your own AI provider’s subscription and usage limits apply separately.</p>
+                <p className="mt-6 text-sm text-white/65 leading-relaxed max-w-3xl">Free project and timetable allowances are planned limits and are not enforced yet. Free accounts can try Sasha with 2 chat and 2 voice credits (in-app reports use chat credits) and try a team for 24 hours with one shared project. Pro has daily Sasha allowances and no team limits. Your own AI provider’s subscription and usage limits apply separately.</p>
             </div>
         </section>
     );

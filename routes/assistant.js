@@ -3,7 +3,10 @@ import rateLimit from 'express-rate-limit';
 import { requireClerkAuth } from '../middleware/requireClerkAuth.js';
 import { askProvider, generateReport, extractReportFromImages, REPORT_CONTEXT_LIMIT, EXTRACT_MAX_IMAGES, EXTRACT_IMAGE_LIMIT } from '../lib/assistant.js';
 import { createLiveSession } from '../lib/liveVoice.js';
-import { sashaAccess, reserveSashaUsage, sashaRemaining, SASHA_TEXT_MODEL, SASHA_VOICE_MODEL, SASHA_LIMITS } from '../lib/sashaAccess.js';
+import { sashaAccess, reserveSashaUsage, sashaRemaining, sashaLimits, SASHA_TEXT_MODEL, SASHA_VOICE_MODEL } from '../lib/sashaAccess.js';
+
+/** Free accounts get a one-time trial; when it is spent they are pointed to Pro. */
+const trialUsed = what => ({ error: `You have used your free ${what}. Upgrade to Pro for daily Sasha chats, voice and reports.`, code: 'TRIAL_USED' });
 
 /**
  * Per-account burst limits (the daily Sasha allowance is the real cap). Keyed by the signed-in user, not the IP:
@@ -20,8 +23,9 @@ export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = as
     app.get('/api/assistant/status', auth, async (req, res) => {
         res.set('Cache-Control', 'no-store');
         try {
-            const left = await remaining(req.userId).catch(() => null);
-            res.json({ ...await access(req), limits: SASHA_LIMITS, ...(left ? { remaining: left } : {}), textModel: SASHA_TEXT_MODEL, voiceModel: SASHA_VOICE_MODEL });
+            const status = await access(req);
+            const left = await remaining(req.userId, status.pro).catch(() => null);
+            res.json({ ...status, trial: !status.pro, limits: sashaLimits(status.pro), ...(left ? { remaining: left } : {}), textModel: SASHA_TEXT_MODEL, voiceModel: SASHA_VOICE_MODEL });
         }
         catch { res.status(503).json({ error: 'Could not check Sasha access. Please retry.' }); }
     });
@@ -36,14 +40,14 @@ export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = as
                 (kind === 'chat' && (typeof message !== 'string' || !message.trim() || message.length > 3000 || !Array.isArray(history) || history.length > 8 || history.some(item => !item || !['user','assistant'].includes(item.role) || typeof item.text !== 'string' || item.text.length > 3000)))) return res.status(400).json({error:'Shorten your request or project context and try again.'});
             try {
                 const status = await access(req);
-                if (!status.pro) return res.status(403).json({error:'Sasha is included with Pro. Your own AI capsule workspace is still available.', code:'PRO_REQUIRED'});
                 const apiKey = key();
                 if (!status.configured || !apiKey) return res.status(503).json({error:'Sasha is not configured on the server yet.'});
-                const used = await reserve(req.userId, kind);
+                const used = await reserve(req.userId, kind, status.pro);
+                if (!used && !status.pro) return res.status(403).json(trialUsed(kind === 'chat' ? 'Sasha chat credits' : 'Sasha voice credits'));
                 if (!used) return res.status(429).json({error:`Your daily Sasha ${kind === 'chat' ? 'request' : 'voice session'} allowance is used. It resets at midnight UTC. You can still use project capsules.`});
                 const input = {provider:'gemini', apiKey, model, message, context, history, name};
                 const result = kind === 'chat' ? await ask(input) : await live(input);
-                const left = typeof used === 'number' ? { remaining: Math.max(0, SASHA_LIMITS[kind] - used) } : {};
+                const left = typeof used === 'number' ? { remaining: Math.max(0, sashaLimits(status.pro)[kind] - used) } : {};
                 res.json(kind === 'voice' ? {...result,maxSeconds:180,...left} : {...result,...left});
             } catch (error) {
                 if (error.name === 'TimeoutError' || [429,503,504].includes(error.status)) return res.status(503).json({error:'Gemini is temporarily busy or took too long. Please try later. No project actions were applied.'});
@@ -61,13 +65,13 @@ export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = as
         if (typeof context !== 'string' || !context.trim() || context.length > REPORT_CONTEXT_LIMIT || typeof name !== 'string' || name.length > 40) return res.status(400).json({error:'This project is too large for one report. Turn off some sections (such as code files) and try again.', code:'CONTEXT_TOO_LARGE'});
         try {
             const status = await access(req);
-            if (!status.pro) return res.status(403).json({error:'In-app reports are included with Pro. You can still copy your project to your own AI.', code:'PRO_REQUIRED'});
             const apiKey = key();
             if (!status.configured || !apiKey) return res.status(503).json({error:'In-app reports are not configured on the server yet.'});
-            const used = await reserve(req.userId, 'chat');
+            const used = await reserve(req.userId, 'chat', status.pro);
+            if (!used && !status.pro) return res.status(403).json(trialUsed('Sasha credits'));
             if (!used) return res.status(429).json({error:'Your daily Sasha allowance is used. It resets at midnight UTC. You can still copy your project to your own AI.', code:'LIMIT_REACHED'});
             const result = await report({ apiKey, model: SASHA_TEXT_MODEL, instruction: instruction.trim(), context, name });
-            res.json({ ...result, ...(typeof used === 'number' ? { remaining: Math.max(0, SASHA_LIMITS.chat - used) } : {}) });
+            res.json({ ...result, ...(typeof used === 'number' ? { remaining: Math.max(0, sashaLimits(status.pro).chat - used) } : {}) });
         } catch (error) {
             if (error.name === 'TimeoutError' || [429,503,504].includes(error.status)) return res.status(503).json({error:'Gemini is busy or took too long. Please try again shortly.'});
             res.status(502).json({error:'The report could not be generated. Please try again later.'});
@@ -82,13 +86,13 @@ export function registerAssistantRoutes(app, { auth = requireClerkAuth, ask = as
             return res.status(400).json({error:`Add 1 to ${EXTRACT_MAX_IMAGES} PNG, JPEG or WebP screenshots.`});
         try {
             const status = await access(req);
-            if (!status.pro) return res.status(403).json({error:'Reading screenshots with Stratabin AI is included with Pro. You can still extract text without AI.', code:'PRO_REQUIRED'});
             const apiKey = key();
             if (!status.configured || !apiKey) return res.status(503).json({error:'Screenshot reading is not configured on the server yet. You can still extract text without AI.'});
-            const used = await reserve(req.userId, 'chat');
+            const used = await reserve(req.userId, 'chat', status.pro);
+            if (!used && !status.pro) return res.status(403).json(trialUsed('Sasha credits'));
             if (!used) return res.status(429).json({error:'Your daily Sasha allowance is used. It resets at midnight UTC. You can still extract text without AI.', code:'LIMIT_REACHED'});
             const result = await extract({ apiKey, model: SASHA_TEXT_MODEL, images: images.map(image => ({ mimeType: image.mimeType, data: image.data })) });
-            const left = typeof used === 'number' ? { remaining: Math.max(0, SASHA_LIMITS.chat - used) } : {};
+            const left = typeof used === 'number' ? { remaining: Math.max(0, sashaLimits(status.pro).chat - used) } : {};
             if (!result.content) return res.status(422).json({error:'No readable report was found in these screenshots. Try clearer screenshots or extract without AI.', ...left});
             res.json({ ...result, ...left });
         } catch (error) {

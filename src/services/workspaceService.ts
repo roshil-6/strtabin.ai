@@ -126,6 +126,7 @@ export const workspaceService = {
       activities: ActivityLog[];
       currentUserRole: string | null;
       currentUserId: number | null;
+      plan?: { pro: boolean; trial: boolean; trialEndsAt?: string; expired?: boolean; projectLimit?: number };
       revision?: string | null;
     }>;
   },

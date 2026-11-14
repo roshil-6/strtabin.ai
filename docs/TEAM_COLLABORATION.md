@@ -33,3 +33,9 @@ Project editing continues to use the existing shared canvas save mechanism, not 
 ## Validation
 
 Run `npm test`, `npm run lint`, and `npm run build`. `tests/teamCollaboration.test.mjs` uses an isolated in-memory SQLite database and validates group membership, outsider rejection, message membership, concurrent report append, report access/limits, and duty assignment/completion permissions. It invokes route handlers with test identities; it does not replace or weaken production authentication.
+
+## Free trial and Pro
+
+Teams owned by a Pro account have no limits. A free account can own one trial team: one shared project, editable for 24 hours after the team is created. After that the team is read-only (members can still view it and leave) until the owner upgrades. Limits live in `lib/plans.js` (`TEAM_TRIAL`); the workspace detail response includes `plan` so the hub can show the trial banner.
+
+Sasha: free accounts get a one-time trial of 2 chat and 2 voice credits (`SASHA_TRIAL` in `lib/sashaAccess.js`); in-app reports and screenshot reading use chat credits. Pro keeps the daily allowance.
