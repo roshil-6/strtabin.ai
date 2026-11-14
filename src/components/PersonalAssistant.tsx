@@ -309,7 +309,10 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 voice.current?.updateContext(confirmation);
                 return { status: 'applied', executed: true, summary: confirmation };
             }
-            if (!id || (!created && !switched && id !== projectId) || !isProjectFetchedFromServer(id, userId)) throw new Error('Project changed. Ask again with the correct project selected.');
+            const nameOf = (value: string) => projects.find(item => item.id === value)?.name || 'another project';
+            if (!id) throw new Error('This plan was made before a project was selected. Pick the project (or name it) and ask again.');
+            if (!created && !switched && id !== projectId) throw new Error(`This plan was for “${nameOf(id)}”, but ${projectId ? `“${nameOf(projectId)}”` : 'no project'} is selected now. Switch back or ask again.`);
+            if (!isProjectFetchedFromServer(id, userId)) await loadProject(id);
             if (!created && /^proj_\d+$/.test(id)) await workspaceService.getProjectCanvas(Number(id.slice(5)), await getToken());
             if (!alive.current) return { status: 'failed', executed: Boolean(created), reason: 'Sasha closed before finishing.' };
             const state = useStore.getState();

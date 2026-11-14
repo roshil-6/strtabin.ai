@@ -43,8 +43,10 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
         return () => clearInterval(timer);
     }, [deadline]);
     const secondsLeft = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : 0;
-    const handlers = useRef({ onDecision, onScreen, onVoiceRemaining });
-    useEffect(() => { handlers.current = { onDecision, onScreen, onVoiceRemaining }; });
+    // The call outlives renders: always reach the latest callbacks, so a plan proposed after the user
+    // switches projects is tied to the project selected now, not the one selected when the call started.
+    const handlers = useRef({ onDecision, onScreen, onVoiceRemaining, onProposal, onTranscript });
+    useEffect(() => { handlers.current = { onDecision, onScreen, onVoiceRemaining, onProposal, onTranscript }; });
     const wake = useRef<WakeWordListener | null>(null);
     const preparedAudio = useRef<AudioContext | null>(null);
     const wakeCallback = useRef(onWakeActive);
@@ -96,7 +98,9 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
                 return data;
             },
             onState: next => { setState(next); if (next === 'idle') { setDeadline(0); controllerRef.current = null; activeCallback.current(false); } },
-            onLevel: setLevel, onTranscript, onProposal, onError: setError,
+            onLevel: setLevel, onError: setError,
+            onTranscript: (role, text) => handlers.current.onTranscript(role, text),
+            onProposal: proposal => handlers.current.onProposal(proposal),
             onDecision: decision => handlers.current.onDecision(decision),
             onScreen: screen => handlers.current.onScreen(screen),
         });
