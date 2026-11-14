@@ -1,3 +1,4 @@
+import { ASSISTANT_ACTION_TYPES, ASSISTANT_TEXT_LIMIT } from './assistantActions.ts';
 export function pcmBase64(samples: Float32Array): string {
     const bytes = new Uint8Array(samples.length * 2);
     const view = new DataView(bytes.buffer);
@@ -33,7 +34,7 @@ export function parseVoiceProposal(value: unknown): VoiceProposal {
     const item = value as VoiceProposal;
     if (!item || typeof item.reply !== 'string' || item.reply.length > 12000 || !Array.isArray(item.actions) || item.actions.length < 1 || item.actions.length > 8) throw new Error('Invalid voice action proposal.');
     for (const action of item.actions) {
-        if (!action || !['open_project', 'add_task', 'complete_task', 'add_reminder', 'create_project', 'create_flow', 'open_screen'].includes(action.type) || ['text', 'date', 'time', 'taskId'].some(key => typeof action[key as keyof typeof action] !== 'string' || String(action[key as keyof typeof action]).length > 1000) || (action.repeat !== undefined && !['once', 'daily', 'weekdays', 'weekly'].includes(action.repeat))) throw new Error('Invalid voice action.');
+        if (!action || !(ASSISTANT_ACTION_TYPES as readonly string[]).includes(action.type) || ['text', 'date', 'time', 'taskId'].some(key => typeof action[key as keyof typeof action] !== 'string' || String(action[key as keyof typeof action]).length > (key === 'text' ? ASSISTANT_TEXT_LIMIT : 1000)) || (action.repeat !== undefined && !['once', 'daily', 'weekdays', 'weekly'].includes(action.repeat))) throw new Error('Invalid voice action.');
     }
     if (item.actions.some(action => action.type === 'open_screen' && !(ASSISTANT_SCREENS as readonly string[]).includes(action.text))) throw new Error('Unknown screen.');
     return item;
