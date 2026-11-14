@@ -6,6 +6,26 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 
+/**
+ * Read an attachment's bytes without fetch(): the site's Content Security Policy blocks fetching data: URLs
+ * ("Failed to fetch"), and attachments are stored as data: URLs.
+ */
+async function readAttachment(url: string, signal: AbortSignal): Promise<ArrayBuffer> {
+    if (url.startsWith('data:')) {
+        const comma = url.indexOf(',');
+        if (comma < 0) throw new Error('This attachment is damaged. Attach the original file again.');
+        const meta = url.slice(5, comma), body = url.slice(comma + 1);
+        if (!meta.endsWith(';base64')) return new TextEncoder().encode(decodeURIComponent(body)).buffer as ArrayBuffer;
+        const binary = atob(body);
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+        return bytes.buffer;
+    }
+    const response = await fetch(url, { signal });
+    if (!response.ok) throw new Error('Could not read this attachment.');
+    return response.arrayBuffer();
+}
+
 export default function WritingAttachmentPreview({ doc, close }: { doc: { name: string; url: string }; close: () => void }) {
     const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
     const [page, setPage] = useState(1);
@@ -26,18 +46,17 @@ export default function WritingAttachmentPreview({ doc, close }: { doc: { name: 
             try {
                 if (!doc.url.startsWith('data:') && !doc.url.startsWith('blob:')) throw new Error('This attachment link cannot be previewed. Attach the original file again.');
                 if (image) { setLoading(false); return; }
-                const response = await fetch(doc.url, { signal: controller.signal });
-                if (!response.ok) throw new Error('Could not read this attachment.');
+                const data = await readAttachment(doc.url, controller.signal);
                 if (ext === 'pdf') {
-                    pdfTask = getDocument({ data: new Uint8Array(await response.arrayBuffer()) });
+                    pdfTask = getDocument({ data: new Uint8Array(data) });
                     const document = await pdfTask.promise;
                     if (!disposed) setPdf(document);
                 } else if (ext === 'docx') {
                     const mammoth = await import('mammoth');
-                    const result = await mammoth.convertToHtml({ arrayBuffer: await response.arrayBuffer() });
+                    const result = await mammoth.convertToHtml({ arrayBuffer: data });
                     if (!disposed) setHtml(DOMPurify.sanitize(result.value, { FORBID_TAGS: ['img', 'style', 'iframe', 'object'], FORBID_ATTR: ['style'] }));
                 } else if (['txt', 'md', 'csv', 'json', 'log'].includes(ext)) {
-                    const value = await response.text();
+                    const value = new TextDecoder().decode(data);
                     if (!disposed) setText(value);
                 } else throw new Error('Preview supports PDF, DOCX, images, TXT, Markdown, CSV, and JSON. Convert older DOC files to DOCX or PDF before attaching them.');
             } catch (err) { if (!disposed) setError(err instanceof Error ? err.message : 'Could not preview this file.'); }
