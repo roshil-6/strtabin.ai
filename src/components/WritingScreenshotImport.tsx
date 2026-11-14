@@ -51,7 +51,7 @@ export default function WritingScreenshotImport({ insertText, addImages, close }
     };
     const moveShot = (index: number) => setShots(previous => { const next = previous.slice(); [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next; });
 
-    const canUseAi = Boolean(userId) && shots.length > 0 && !busy && status?.pro === true && status.configured && status.remaining !== 0;
+    const canUseAi = Boolean(userId) && shots.length > 0 && !busy && Boolean(status) && status!.configured && status!.remaining !== 0;
     const extractWithAi = async () => {
         if (!canUseAi) return;
         setBusy('ai'); setMessage('');
@@ -87,8 +87,9 @@ export default function WritingScreenshotImport({ insertText, addImages, close }
 
     const help = !userId ? 'Sign in to extract with Stratabin AI. Extract without AI is free.'
         : !status ? 'Checking your Sasha allowance…'
-        : !status.pro ? <>Extracting with Stratabin AI is included with Pro. <Link to="/billing">See Pro</Link> · Extract without AI is free.</>
         : !status.configured ? 'Stratabin AI is not available on the server yet. Extract without AI is free.'
+        : !status.pro && status.remaining === 0 ? <>You have used your free Sasha credits. <Link to="/billing">See Pro</Link> · Extract without AI is free.</>
+        : !status.pro ? <>Free trial: Stratabin AI uses 1 Sasha credit{status.remaining !== undefined ? ` · ${status.remaining} of ${status.limit} left` : ''}. <Link to="/billing">See Pro</Link> · Extract without AI is free.</>
         : status.remaining === 0 ? 'Your daily Sasha allowance is used. Extract without AI is still free.'
         : `Stratabin AI uses 1 Sasha request${status.remaining !== undefined ? ` · ${status.remaining} of ${status.limit} left today` : ''}. The first extraction without AI downloads a reader (about 5 MB).`;
 

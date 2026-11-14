@@ -58,6 +58,8 @@ import {
     cancelWorkspaceInvitation,
 } from '../db/models.js';
 import { getClerkUserCached } from '../lib/clerkUserCache.js';
+import { qGet } from '../db/driver.js';
+import { teamPlan, isUserPro, TEAM_TRIAL, TEAM_TRIAL_ENDED } from '../lib/plans.js';
 import { verifyBearerSub } from '../lib/clerkAuth.js';
 import { requireClerkAuth as requireAuthMiddleware } from '../middleware/requireClerkAuth.js';
 
@@ -85,6 +87,16 @@ function validateProjectStatus(s) {
 export function registerWorkspaceRoutes(app, clerkClient) {
     app.locals.clerk = clerkClient;
 
+    /** Free team trials become read-only after 24 hours. Sends the 403 and returns true when the write must stop. */
+    const trialEnded = async (req, res, workspace) => {
+        const ws = typeof workspace === 'object' ? workspace : await getWorkspace(workspace);
+        if (!ws || ws.type !== 'team') return false;
+        const plan = await teamPlan(ws, { ...req, app });
+        if (!plan.expired) return false;
+        res.status(403).json(TEAM_TRIAL_ENDED);
+        return true;
+    };
+
     // POST /api/workspaces/join — join team workspace by ID (auth required)
     app.post('/api/workspaces/join', requireAuthMiddleware, async (req, res) => {
         try {
@@ -94,6 +106,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const ws = await getWorkspace(workspaceId);
             if (!ws) return res.status(404).json({ error: 'Workspace not found.' });
             if (ws.type !== 'team') return res.status(400).json({ error: 'Only team workspaces can be joined by ID.' });
+            if (await trialEnded(req, res, ws)) return;
 
             const joined = await joinWorkspaceById(workspaceId, req.userId);
             if (!joined) return res.status(400).json({ error: 'You are already a member of this workspace.' });
@@ -124,6 +137,10 @@ export function registerWorkspaceRoutes(app, clerkClient) {
 
             if (!nameStr) {
                 return res.status(400).json({ error: 'Workspace name is required.' });
+            }
+            if (workspaceType === 'team' && !(await isUserPro(req.userId, { clerkUser: req.clerkUser, clerk: app.locals.clerk }))) {
+                const owned = await qGet("SELECT COUNT(*) AS count FROM workspaces WHERE owner_id = ? AND type = 'team'", [req.userId]);
+                if (Number(owned?.count || 0) >= TEAM_TRIAL.teams) return res.status(403).json({ error: 'The free plan includes one trial team. Upgrade to Pro to create more teams.', code: 'TEAM_PRO_REQUIRED' });
             }
 
             const id = await createWorkspace({
@@ -187,6 +204,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 projects,
                 currentUserRole,
                 currentUserId: req.userId,
+                plan: await teamPlan(ws, { ...req, app }),
                 revision: rev?.revision ?? null,
                 activities: activities.map(a => ({
                     ...a,
@@ -259,6 +277,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (ws.type !== 'team') {
                 return res.status(400).json({ error: 'Only team workspaces support invitations.' });
             }
+            if (await trialEnded(req, res, ws)) return;
 
             const { email, username, userId } = req.body || {};
             const inviteeEmail = sanitizeStr(email, 255);
@@ -402,6 +421,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const workspaceId = parseInt(req.params.id, 10);
             if (isNaN(workspaceId)) return res.status(400).json({ error: 'Invalid workspace ID.' });
             if (!(await hasWorkspaceAccess(req.userId, workspaceId))) return res.status(403).json({ error: 'Access denied.' });
+            if (await trialEnded(req, res, workspaceId)) return;
             const { userId: targetUserId, taskText, taskDate } = req.body || {};
             const text = sanitizeStr(taskText, 2000);
             if (!text) return res.status(400).json({ error: 'Task text required.' });
@@ -429,6 +449,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (!(await hasWorkspaceAccess(req.userId, workspaceId))) return res.status(403).json({ error: 'Access denied.' });
             const task = await getMemberDailyTaskById(taskId);
             if (!task || task.workspace_id !== workspaceId) return res.status(404).json({ error: 'Task not found.' });
+            if (await trialEnded(req, res, workspaceId)) return;
             const isAdmin = await canManageMembers(req.userId, workspaceId);
             const isAssignee = task.user_id === req.userId;
             if (!isAdmin && !isAssignee) return res.status(403).json({ error: 'Access denied.' });
@@ -478,6 +499,8 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const id = parseInt(req.params.id, 10);
             if (isNaN(id)) return res.status(400).json({ error: 'Invalid invitation ID.' });
 
+            const invite = await qGet('SELECT workspace_id FROM invitations WHERE id = ?', [id]);
+            if (invite?.workspace_id && await trialEnded(req, res, invite.workspace_id)) return;
             const ok = await acceptInvitation(req.userId, id);
             if (!ok) return res.status(400).json({ error: 'Could not accept invitation.' });
 
@@ -522,6 +545,14 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (!(await hasWorkspaceAccess(req.userId, workspaceId))) {
                 console.warn('[projects] Access denied for user', req.userId, 'workspace', workspaceId);
                 return res.status(403).json({ error: 'Access denied.' });
+            }
+
+            const workspace = await getWorkspace(workspaceId);
+            if (await trialEnded(req, res, workspace)) return;
+            const plan = await teamPlan(workspace, { ...req, app });
+            if (plan.trial) {
+                const existing = await qGet('SELECT COUNT(*) AS count FROM projects WHERE workspace_id = ?', [workspaceId]);
+                if (Number(existing?.count || 0) >= TEAM_TRIAL.projects) return res.status(403).json({ error: 'The free team trial includes one shared project. Upgrade to Pro for unlimited team projects.', code: 'TEAM_PROJECT_LIMIT' });
             }
 
             const { title, type, description, status, canvasId, assignedTo } = req.body || {};
@@ -580,6 +611,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
                 return res.status(403).json({ error: 'Access denied.' });
             }
 
+            if (await trialEnded(req, res, project.workspace_id)) return;
             const { title, description, status, assignedTo, canvasId } = req.body || {};
             const updates = {};
             if (title !== undefined) updates.title = sanitizeStr(title, 200);
@@ -734,6 +766,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             if (!Number.isSafeInteger(projectId) || projectId < 1) return res.status(400).json({ error: 'Invalid project.' });
             const project = await getProject(projectId);
             if (!project || !(await hasWorkspaceAccess(req.userId, project.workspace_id))) return res.status(403).json({ error: 'Project access denied.' });
+            if (await trialEnded(req, res, project.workspace_id)) return;
             const { title, content, provider } = req.body || {};
             if (typeof content !== 'string' || !content.trim() || content.length > 40000) return res.status(400).json({ error: 'Report must contain 1–40,000 characters.' });
             const now = Date.now();
@@ -752,6 +785,7 @@ export function registerWorkspaceRoutes(app, clerkClient) {
             const project = await getProject(projectId);
             if (!project) return res.status(404).json({ error: 'Project not found.' });
             if (!(await hasWorkspaceAccess(req.userId, project.workspace_id))) return res.status(403).json({ error: 'Access denied.' });
+            if (await trialEnded(req, res, project.workspace_id)) return;
             const previousCanvas = await getProjectCanvas(projectId);
             const previousData = previousCanvas?.data ? JSON.parse(previousCanvas.data) : {};
             const incoming = req.body || {};
