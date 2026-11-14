@@ -3,6 +3,31 @@ import type { CanvasData, CalendarEvent } from '../store/useStore';
 export type AssistantAction = { type: 'open_project' | 'add_task' | 'complete_task' | 'add_reminder' | 'create_project' | 'create_flow' | 'open_screen'; text: string; taskId: string; date: string; time: string; repeat?: 'once' | 'daily' | 'weekdays' | 'weekly' };
 export type AssistantUndo = { addedNodeIds?: string[]; addedEdgeIds?: string[]; serverReminderIds?: string[]; addedTaskIds: string[]; completedTaskIds: string[]; reminders: { date: string; event: CalendarEvent }[] };
 
+export const FLOW_MAX_IDEAS = 25;
+export const FLOW_MAX_DEPTH = 3;
+/**
+ * A flow outline is one idea per line. The first line is the main idea; indent lines by two spaces
+ * (or more) to nest them under the line above, up to three levels. Leading bullets are ignored.
+ */
+export function parseFlowOutline(text: string): { label: string; depth: number; parent: number }[] {
+    const lines = text.split('\n').filter(line => line.trim());
+    const items: { label: string; depth: number; parent: number }[] = [];
+    // Indentation is relative: a line nests under the closest earlier line that is indented less.
+    const stack: { indent: number; index: number }[] = [];
+    for (const line of lines) {
+        const indent = (line.match(/^\s*/)?.[0] || '').replace(/\t/g, '  ').length;
+        const label = line.trim().replace(/^([-*•]|\d+[.)])\s+/, '').trim();
+        if (!label) continue;
+        if (!items.length) { items.push({ label, depth: 0, parent: -1 }); continue; }
+        while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
+        while (stack.length >= FLOW_MAX_DEPTH) stack.pop();
+        const parent = stack.length ? stack[stack.length - 1].index : 0;
+        items.push({ label, depth: stack.length + 1, parent });
+        stack.push({ indent, index: items.length - 1 });
+    }
+    return items;
+}
+
 /** Prepare a complete batch without mutating the store, so invalid later actions cannot partly apply. */
 export function planAssistantActions(project: CanvasData, calendar: Record<string, CalendarEvent[]>, actions: AssistantAction[], now: number, makeId: () => string) {
     if (!actions.length || actions.length > 8) throw new Error('Invalid action batch.');
@@ -17,12 +42,23 @@ export function planAssistantActions(project: CanvasData, calendar: Record<strin
         if (['add_task', 'add_reminder'].includes(action.type) && (typeof action.text !== 'string' || !action.text.trim() || action.text.length > 1000)) throw new Error('Invalid task title.');
         if (action.type === 'open_project') openProject = true;
         if (action.type === 'create_flow') {
-            const labels = action.text.split('\n').map(line => line.trim()).filter(Boolean);
-            if (labels.length < 2 || labels.length > 13 || labels.some(label => label.length > 100)) throw new Error('A flow needs a main idea and 1–12 short sub-ideas.');
+            const items = parseFlowOutline(action.text);
+            if (items.length < 2 || items.length > FLOW_MAX_IDEAS || items.some(item => item.label.length > 100)) throw new Error(`A flow needs a main idea and 1–${FLOW_MAX_IDEAS - 1} short ideas.`);
             const x = nodes.length ? Math.max(...nodes.map(node => node.position.x + 260)) + 80 : 0;
-            const root = makeId();
-            const added = labels.map((label, i) => ({id:i ? makeId() : root,type:'brainstorm',position:{x:x+(i ? 320 : 0),y:i ? (i-1)*230 : 0},style:{width:220,height:190},data:{label,kind:'sticky',color:i ? '#d8e7fb' : '#efdafa',...(i ? {parentIdeaId:root} : {})}}));
-            const connections = added.slice(1).map(node => ({id:makeId(),source:root,target:node.id,sourceHandle:'right',targetHandle:'left',type:'smoothstep'}));
+            // Tree layout: each level is a column; leaves take one row each and parents sit centred on their children.
+            const kids = items.map((_, index) => items.flatMap((item, child) => item.parent === index ? [child] : []));
+            const rows: number[] = [];
+            let row = 0;
+            const place = (index: number): number => {
+                if (!kids[index].length) return (rows[index] = row++);
+                const placed = kids[index].map(place);
+                return (rows[index] = (placed[0] + placed[placed.length - 1]) / 2);
+            };
+            place(0);
+            const colors = ['#efdafa', '#d8e7fb', '#dff3e4', '#fff2c9'];
+            const ids = items.map(() => makeId());
+            const added = items.map((item, i) => ({id:ids[i],type:'brainstorm',position:{x:x+item.depth*320,y:Math.round(rows[i]*220)},style:item.depth > 1 ? {width:200,height:160} : {width:220,height:190},data:{label:item.label,kind:'sticky',color:colors[item.depth],...(item.parent >= 0 ? {parentIdeaId:ids[item.parent]} : {})}}));
+            const connections = items.flatMap((item, i) => item.parent >= 0 ? [{id:makeId(),source:ids[item.parent],target:ids[i],sourceHandle:'right',targetHandle:'left',type:'smoothstep'}] : []);
             nodes = [...nodes,...added]; edges = [...edges,...connections];
             undo.addedNodeIds = [...(undo.addedNodeIds || []),...added.map(node => node.id)];
             undo.addedEdgeIds = [...(undo.addedEdgeIds || []),...connections.map(edge => edge.id)];
