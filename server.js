@@ -110,7 +110,9 @@ function sendHealth(req, res) {
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
-    res.status(200).json({ status: 'ok', database: isDbReady() });
+    // The deployed commit (Railway sets this), so it is easy to check that a backend redeploy went out.
+    const version = String(process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GIT_COMMIT || '').slice(0, 7) || undefined;
+    res.status(200).json({ status: 'ok', database: isDbReady(), version });
 }
 app.get('/health', sendHealth);
 app.get('/health/', sendHealth);

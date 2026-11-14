@@ -8,6 +8,7 @@ import { Bot, X, Send, Volume2, VolumeX, Square, Check, ArrowUpRight, Sparkles, 
 import useStore from '../store/useStore';
 import { buildAssistantContext, buildDirectoryContext, type TeamSnapshot } from '../lib/assistantContext';
 import { applyLayout } from '../lib/viewPreferences';
+import { isLayoutOnly, layoutIntents } from '../lib/layoutIntent';
 import { useTheme } from '../context/useTheme';
 import { projectNamedIn } from '../lib/assistantProjects';
 import { isListedProject, isTeamProject } from '../lib/projectVisibility';
@@ -302,6 +303,13 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     const send = async () => {
         if (locked.current || !draft.trim() || !ready) return;
         const text = draft.trim();
+        // "Dark mode", "side by side", "board view": the app does these itself, instantly and without using a credit.
+        if (isLayoutOnly(text)) {
+            const notes = layoutIntents(text).layouts.map(option => applyLayout(option, setTheme));
+            setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', text }, { id: crypto.randomUUID(), role: 'assistant', text: `Done. ${notes.join(' ')}` }]);
+            setDraft('');
+            return;
+        }
         // "Build the flow for my coffee cart project": work on the project the user names.
         const named = projectNamedIn(text, projects);
         const target = named && named !== projectId ? named : projectId;
@@ -320,6 +328,18 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(data.error || 'The assistant could not connect. Check that the backend is running.');
             if (controller.signal.aborted) return;
+            // Layout requests the model missed are still carried out: views right away, flow orientation as a proposal.
+            const intents = layoutIntents(text);
+            const proposed: AssistantAction[] = Array.isArray(data.actions) ? data.actions : [];
+            const missedLayouts = intents.layouts.filter(option => !proposed.some(action => action.type === 'set_layout' && action.text.trim().toLowerCase() === option));
+            const missedFlow = intents.orientation && target && (useStore.getState().canvases[target]?.nodes?.length ?? 0) > 0 && !proposed.some(action => action.type === 'arrange_flow' || action.type === 'create_flow');
+            const fallbackNotes = missedLayouts.map(option => applyLayout(option, setTheme));
+            if (missedFlow && proposed.length < 8) data.actions = [...proposed, { type: 'arrange_flow', text: intents.orientation, taskId: '', date: '', time: '' }];
+            if (fallbackNotes.length || missedFlow) {
+                const refused = /\b(not|isn['’]?t|aren['’]?t|cannot|can['’]?t|unable|don['’]?t|doesn['’]?t)\b[^.]*\b(support|available|possible|able|option|feature|change|do that)/i.test(data.reply || '');
+                const added = [...fallbackNotes, ...(missedFlow ? [`Review and apply to arrange the flow map ${intents.orientation}ly.`] : [])].join(' ');
+                data.reply = refused || !String(data.reply || '').trim() ? added : `${data.reply}\n\n${added}`;
+            }
             const navigationOnly = Array.isArray(data.actions) && data.actions.length > 0 && data.actions.every((action: AssistantAction) => VIEW_ACTIONS.includes(action.type));
             setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', text }, { id: crypto.randomUUID(), role: 'assistant', text: data.reply, actions: navigationOnly ? [] : data.actions, projectId: target }]);
             if (navigationOnly) runViewActions(data.actions, target);
