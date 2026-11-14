@@ -12,6 +12,7 @@ import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import VoiceTyping from './VoiceTyping';
 const WritingAttachmentPreview = lazy(() => import('./WritingAttachmentPreview'));
 const WritingScreenshotImport = lazy(() => import('./WritingScreenshotImport'));
+import { onViewPreference } from '../lib/viewPreferences';
 import useStore from '../store/useStore';
 import { Image as ImageIcon, GitBranch, Layout, X, FileText, Trash2, File, ChevronDown, Keyboard, Plus, GripHorizontal, ScanText, Check, ChevronsUp } from 'lucide-react';
 import './WritingSection.css';
@@ -33,6 +34,7 @@ function WritingProject({ canvasId, initialView = 'document' }: WritingSectionPr
     const [view, setView] = useState(initialView);
     // Phones can fold away the header, page row and toolbar to give the writing the whole screen.
     const [focusWriting, setFocusWritingState] = useState(() => { try { return localStorage.getItem(FOCUS_KEY) === '1'; } catch { return false; } });
+    useEffect(() => onViewPreference('focusWriting', value => setFocusWritingState(value === '1')), []);
     const setFocusWriting = (value: boolean) => { setFocusWritingState(value); try { localStorage.setItem(FOCUS_KEY, value ? '1' : '0'); } catch { /* Only this visit remembers it. */ } };
     const [openNoteId, setOpenNoteId] = useState<string | null>(null);
     const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
@@ -198,6 +200,7 @@ function WritingEditor({ canvasId, pageId, onHideBars }: WritingSectionProps & {
         } catch { return 16; }
     });
 
+    useEffect(() => onViewPreference('fontSize', value => { const size = Number(value); if (Number.isFinite(size)) setFontSize(Math.max(12, Math.min(32, size))); }), []);
     const updateFontSize = (delta: number) => {
         setFontSize(prev => {
             const next = Math.max(12, Math.min(32, prev + delta));

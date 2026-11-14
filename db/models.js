@@ -367,7 +367,7 @@ export async function getProfileActivity(userId, limit = 20) {
 export async function getProfileProjects(userId, limit = 20) {
     return qAll(
         `
-        SELECT p.*, w.name as workspace_name
+        SELECT p.*, w.name as workspace_name, w.type as workspace_type
         FROM projects p
         JOIN workspace_members wm ON wm.workspace_id = p.workspace_id AND wm.user_id = ?
         JOIN workspaces w ON w.id = p.workspace_id
