@@ -66,7 +66,7 @@ const describeAction = (action: AssistantAction): string => {
         case 'add_note': return `add quick note “${firstLine(action.text)}”`;
         case 'add_timeline': return 'add timeline notes';
         case 'rename_project': return `rename the project to “${action.text}”`;
-        case 'set_stage': return `move the project to ${action.text}`;
+        case 'set_stage': return `move the project to ${({ idea: 'Idea', planning: 'Planning', executing: 'In progress', completed: 'Done' } as Record<string, string>)[action.text.trim().toLowerCase()] || action.text}`;
         case 'set_flag': return `mark the project ${action.text}`;
         case 'add_goal': return `add goal “${action.text.split('|')[0].trim()}”`;
         case 'update_goal': return `update goal progress to ${action.text}`;
@@ -145,6 +145,10 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
     const [applying, setApplying] = useState(false);
     const [error, setError] = useState('');
     const [readAloud, setReadAloud] = useState(false);
+    // Changes Sasha can undo apply straight away (with Undo); shared or server-side changes still ask first.
+    const [autoApply, setAutoApplyState] = useState(() => { try { return localStorage.getItem(`sasha-auto-apply:${userId}`) !== '0'; } catch { return true; } });
+    const setAutoApply = (value: boolean) => { setAutoApplyState(value); try { localStorage.setItem(`sasha-auto-apply:${userId}`, value ? '1' : '0'); } catch { /* applies to this visit */ } };
+    const [autoApplyId, setAutoApplyId] = useState('');
     const request = useRef<AbortController | null>(null);
     const locked = useRef(false);
     const actionLock = useRef(false);
@@ -177,6 +181,13 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeProject, projects]);
     const loader = useProjectLoader(projectId || undefined);
+    useEffect(() => {
+        if (!autoApplyId || busy || applying) return;
+        const message = messagesRef.current.find(item => item.id === autoApplyId);
+        setAutoApplyId('');
+        if (message && !message.applied) void apply(message);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoApplyId, busy, applying]);
     // Free accounts can use Sasha while their trial credits last; Pro has a daily allowance.
     const trialLeft = access && !access.pro ? (access.remaining?.chat ?? 0) + (access.remaining?.voice ?? 0) : 0;
     const canUse = Boolean(access && (access.pro || trialLeft > 0));
@@ -268,6 +279,11 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
         if (done.length) teamCache.current = null;
         return done;
     };
+    /** Plans Sasha can fully undo, on the user's own projects. Team, server-side and new-project plans wait for Apply. */
+    const canAutoApply = (actions: AssistantAction[], target: string) => actions.length > 0
+        && !actions.some(action => action.type === 'create_project' || TEAM_ACTIONS.includes(action.type))
+        && !(target && teamOf(target, teamList))
+        && !projects.find(item => item.id === target && 'team' in item);
     /** Layout changes and navigation apply right away. */
     const runViewActions = (actions: AssistantAction[], target: string) => {
         const notes = actions.filter(action => action.type === 'set_layout').map(action => applyLayout(action.text.trim().toLowerCase(), setTheme));
@@ -341,7 +357,9 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 data.reply = refused || !String(data.reply || '').trim() ? added : `${data.reply}\n\n${added}`;
             }
             const navigationOnly = Array.isArray(data.actions) && data.actions.length > 0 && data.actions.every((action: AssistantAction) => VIEW_ACTIONS.includes(action.type));
-            setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', text }, { id: crypto.randomUUID(), role: 'assistant', text: data.reply, actions: navigationOnly ? [] : data.actions, projectId: target }]);
+            const replyId = crypto.randomUUID();
+            setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', text }, { id: replyId, role: 'assistant', text: data.reply, actions: navigationOnly ? [] : data.actions, projectId: target }]);
+            if (!navigationOnly && autoApply && canAutoApply(data.actions || [], target)) setAutoApplyId(replyId);
             if (navigationOnly) runViewActions(data.actions, target);
             if (typeof data.remaining === 'number') setAccess(previous => previous && { ...previous, remaining: { chat: data.remaining, voice: previous.remaining?.voice ?? limits.voice } });
             setDraft('');
@@ -587,6 +605,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                 {tab !== 'reminders' && canUse && access && !access.configured && <p role="alert" className="assistant-error">Sasha is waiting for the backend connection to be configured.</p>}
 
                 {tab === 'settings' && <div className="sasha-settings-grid">
+                    <section className="sasha-setting-section"><h3>Changes</h3><p>{autoApply ? 'Sasha applies changes to your own projects right away; tap Undo to reverse them. Team changes and new projects still ask first.' : 'Sasha shows every change for you to review and apply.'}</p><label className="sasha-toggle-row"><input type="checkbox" checked={autoApply} onChange={event => setAutoApply(event.target.checked)} /> Apply changes automatically</label></section>
                     <section className="sasha-setting-section"><h3>Your assistant</h3><p>Make Sasha your own. Your name preference saves automatically.</p>
                         <label htmlFor="sasha-agent-name">Assistant name</label><input id="sasha-agent-name" value={name} maxLength={40} disabled={busy || voiceActive} onChange={event => setName(event.target.value)} />
                         <small>Use this name when speaking to your assistant.</small>
@@ -668,7 +687,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
                                                 {!!message.actions?.length && (
                                                     <div className="assistant-actions">
                                                         <div className="assistant-actions-header">
-                                                            <strong>{message.applied ? 'Reviewed actions' : 'Review proposed actions'}</strong>
+                                                            <strong>{message.applied ? (message.undo ? 'Applied — you can undo' : 'Applied') : 'Not applied yet — review and tap Apply'}</strong>
                                                         </div>
                                                         <div className="assistant-actions-list">
                                                             {message.actions.map((action, index) => (
