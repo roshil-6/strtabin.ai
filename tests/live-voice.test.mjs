@@ -16,7 +16,7 @@ test('live sessions use short-lived credentials without returning permanent keys
         assert.equal(sent.options.body.includes('permanent-private-key'), false);
         assert.equal(result.maxSeconds, 540);
         if (provider === 'openai') { assert.equal(sent.body.expires_after.seconds, 60); assert.equal(sent.body.session.tools[0].name, 'propose_actions'); }
-        else { assert.equal(sent.body.uses, 1); assert.deepEqual(sent.body.bidiGenerateContentSetup, result.setup); assert.deepEqual(result.setup.generationConfig.responseModalities, ['AUDIO']); assert.match(result.setup.systemInstruction.parts[0].text, /never executes/i); }
+        else { assert.equal(sent.body.uses, 1); assert.deepEqual(sent.body.bidiGenerateContentSetup, result.setup); assert.deepEqual(result.setup.generationConfig.responseModalities, ['AUDIO']); assert.match(result.setup.systemInstruction.parts[0].text, /Never say something changed unless a tool result says status applied/); }
     }
     await assert.rejects(createLiveSession({ provider: 'openai' }, async () => ({ ok: false })), /Could not start live voice/);
 });

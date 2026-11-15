@@ -3,6 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, MicOff, Settings2, MessageSquare, Bell, MoreHorizontal, ChevronDown, Activity, BarChart2, Pencil, PhoneOff, Info, Check, X, Timer } from 'lucide-react';
 import { LiveVoiceClient, type VoiceState } from '../lib/liveVoiceClient';
+import type { LayoutOption } from '../lib/viewPreferences';
 import type { VoiceProposal, VoiceDecision, AssistantScreen } from '../lib/voiceProtocol';
 
 const SESSION_LIMIT = 10;
@@ -11,20 +12,21 @@ import { API_BASE_URL } from '../constants';
 import AssistantPresence from './AssistantPresence';
 import { WakeWordListener, type WakeRecognition, type WakeStatus } from '../lib/wakeWord';
 
-export default function AssistantLiveVoice({ provider, name, context, onTranscript, onProposal, onActive, onWakeActive, controllerRef, model, motionEnabled, hidden, ready, disabled, onOpen, launcherRef, projectId, voiceRemaining, voiceLimit = SESSION_LIMIT, trial = false, onVoiceRemaining, pending, onApplyPending, onCancelPending, onDecision, onScreen }: {
+export default function AssistantLiveVoice({ provider, name, context, onTranscript, onProposal, onActive, onWakeActive, controllerRef, model, motionEnabled, hidden, ready, disabled, onOpen, launcherRef, projectId, voiceRemaining, voiceLimit = SESSION_LIMIT, trial = false, onVoiceRemaining, pending, onApplyPending, onCancelPending, onDecision, onScreen, onLayout }: {
     onWakeActive: (active:boolean) => void;
     model: string; motionEnabled: boolean; hidden: boolean; ready: boolean; disabled: boolean;
     onOpen: (section: 'settings' | 'chat' | 'reminders') => void;
     launcherRef: React.RefObject<HTMLButtonElement>;
     provider: string; name: string; context: () => Promise<string>;
     onTranscript: (role: 'user' | 'assistant', text: string) => void;
-    onProposal: (proposal: VoiceProposal) => void; onActive: (active: boolean) => void;
+    onProposal: (proposal: VoiceProposal) => void | Record<string, unknown> | Promise<Record<string, unknown> | void>; onActive: (active: boolean) => void;
     controllerRef: React.MutableRefObject<LiveVoiceClient | null>;
     projectId?: string;
     voiceRemaining?: number; voiceLimit?: number; trial?: boolean; onVoiceRemaining: (left: number) => void;
     pending: { lines: string[]; busy: boolean } | null; onApplyPending: () => void; onCancelPending: () => void;
     onDecision: (decision: VoiceDecision) => Promise<Record<string, unknown>>;
     onScreen: (screen: AssistantScreen) => Record<string, unknown>;
+    onLayout: (layout: LayoutOption) => Record<string, unknown>;
 }) {
     const { getToken } = useAuth();
     const navigate = useNavigate();
@@ -45,8 +47,8 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
     const secondsLeft = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : 0;
     // The call outlives renders: always reach the latest callbacks, so a plan proposed after the user
     // switches projects is tied to the project selected now, not the one selected when the call started.
-    const handlers = useRef({ onDecision, onScreen, onVoiceRemaining, onProposal, onTranscript });
-    useEffect(() => { handlers.current = { onDecision, onScreen, onVoiceRemaining, onProposal, onTranscript }; });
+    const handlers = useRef({ onDecision, onScreen, onVoiceRemaining, onProposal, onTranscript, onLayout });
+    useEffect(() => { handlers.current = { onDecision, onScreen, onVoiceRemaining, onProposal, onTranscript, onLayout }; });
     const wake = useRef<WakeWordListener | null>(null);
     const preparedAudio = useRef<AudioContext | null>(null);
     const wakeCallback = useRef(onWakeActive);
@@ -103,6 +105,7 @@ export default function AssistantLiveVoice({ provider, name, context, onTranscri
             onProposal: proposal => handlers.current.onProposal(proposal),
             onDecision: decision => handlers.current.onDecision(decision),
             onScreen: screen => handlers.current.onScreen(screen),
+            onLayout: layout => handlers.current.onLayout(layout),
         });
         controllerRef.current = client; void client.start();
     };
