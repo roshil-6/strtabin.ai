@@ -499,7 +499,7 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             if (switched) voice.current?.updateContext(`${fullConfirmation}\n${await buildContext(id).catch(() => '')}`);
             else voice.current?.updateContext(fullConfirmation + '\nCurrent project tasks: ' + JSON.stringify(planned.project.todos));
             if (readAloud && !voiceActive && !wakeActive) speak(fullConfirmation);
-            return { status: 'applied', executed: true, summary: `${fullConfirmation} Done: ${done.join('; ') || 'navigation'}.` };
+            return { status: 'applied', executed: true, summary: fullConfirmation.startsWith('Done:') ? fullConfirmation : `${fullConfirmation} Done: ${done.join('; ') || 'navigation'}.` };
         } catch (cause) {
             const reason = cause instanceof Error ? cause.message : 'Could not apply these changes.';
             setError(cause instanceof Error ? `Could not finish: ${reason} Check your project before trying again.` : reason);
@@ -535,14 +535,37 @@ function AssistantSession({ fullPage }: {fullPage:boolean}) {
             onDecision={decideVoicePlan}
             onScreen={(screen: AssistantScreen) => openScreen(screen, projectId) ? { status: 'opened', screen } : { status: 'rejected', reason: 'That screen needs a selected project. Ask the user which project.' }}
             onOpen={section => { voice.current?.stop(); setTab(section); setOpen(true); }}
-            onTranscript={(role, text) => { if (text.trim()) setMessages(previous => [...previous, { id: crypto.randomUUID(), role, text }]); }}
-            onProposal={proposal => {
-                // Keep the call running: the plan is shown in the voice panel and can be approved by voice or tap.
+            onTranscript={(role, text) => {
+                if (!text.trim()) return;
+                setMessages(previous => [...previous, { id: crypto.randomUUID(), role, text }]);
+                if (role !== 'user') return;
+                const { layouts } = layoutIntents(text);
+                if (layouts.length) {
+                    const notes = layouts.map(option => applyLayout(option, setTheme));
+                    setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: notes.join(' ') }]);
+                    voice.current?.updateContext(`The app already applied the user's layout request: ${notes.join(' ')} Confirm it briefly; do not ask to apply it.`);
+                }
+            }}
+            onLayout={layout => {
+                const summary = applyLayout(layout, setTheme);
+                setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'assistant', text: summary }]);
+                return { status: 'applied', executed: true, summary };
+            }}
+            onProposal={async proposal => {
+                // Keep the call running: views apply at once, undoable plans apply when auto-apply is on, others wait for approval.
                 const id = crypto.randomUUID();
                 const navigationOnly = proposal.actions.every(action => VIEW_ACTIONS.includes(action.type));
-                setMessages(previous => [...previous, { id, role: 'assistant', text: proposal.reply, actions: navigationOnly ? [] : proposal.actions, projectId }]);
-                if (navigationOnly) runViewActions(proposal.actions, projectId);
-                else setPendingVoiceId(id);
+                const message: Message = { id, role: 'assistant', text: proposal.reply, actions: navigationOnly ? [] : proposal.actions, projectId };
+                setMessages(previous => [...previous, message]);
+                if (navigationOnly) {
+                    const notes = runViewActions(proposal.actions, projectId);
+                    return { status: 'applied', executed: true, summary: notes.join(' ') || 'Opened.' };
+                }
+                if (autoApply && canAutoApply(proposal.actions, projectId)) {
+                    const result = await apply(message);
+                    if (result.status === 'applied') return result;
+                }
+                setPendingVoiceId(id);
             }} />
         {open && !fullPage && <div className="assistant-backdrop" onClick={close} aria-hidden="true" />}
         {visible && <section ref={panel} id="personal-assistant" className={`assistant-panel ${fullPage ? 'sasha-workspace' : ''} assistant-settings-view assistant-view-${tab}`} role={fullPage ? 'region' : 'dialog'} aria-label="Sasha AI workspace" aria-modal={fullPage ? undefined : true} onKeyDown={event => {

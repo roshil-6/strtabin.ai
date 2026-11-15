@@ -1,4 +1,5 @@
-import { decodePcm, pcmBase64, parseVoiceProposal, parseVoiceDecision, parseVoiceScreen, type VoiceProposal, type VoiceDecision, type AssistantScreen } from './voiceProtocol.ts';
+import { decodePcm, pcmBase64, parseVoiceProposal, parseVoiceDecision, parseVoiceScreen, parseVoiceLayout, type VoiceProposal, type VoiceDecision, type AssistantScreen } from './voiceProtocol.ts';
+import type { LayoutOption } from './viewPreferences.ts';
 
 type ToolResult = Record<string, unknown>;
 
@@ -11,7 +12,9 @@ type Options = {
     onState: (state: VoiceState) => void;
     onLevel: (level: number) => void;
     onTranscript: (role: 'user' | 'assistant', text: string) => void;
-    onProposal: (proposal: VoiceProposal) => void;
+    /** May apply the plan straight away and say so; otherwise it waits for the user's approval. */
+    onProposal: (proposal: VoiceProposal) => void | ToolResult | Promise<ToolResult | void>;
+    onLayout?: (layout: LayoutOption) => ToolResult;
     /** The user answered the pending plan out loud; resolves with what actually happened. */
     onDecision?: (decision: VoiceDecision) => Promise<ToolResult>;
     onScreen?: (screen: AssistantScreen) => ToolResult;
@@ -127,13 +130,19 @@ export class LiveVoiceClient {
             try { return this.options.onScreen ? this.options.onScreen(parseVoiceScreen(args)) : { status: 'rejected', reason: 'Navigation is unavailable.' }; }
             catch { return { status: 'rejected', reason: 'Unknown screen; name one of the listed screens.' }; }
         }
+        if (name === 'change_layout') {
+            try { return this.options.onLayout ? this.options.onLayout(parseVoiceLayout(args)) : { status: 'rejected', reason: 'Layout changes are unavailable.' }; }
+            catch { return { status: 'rejected', reason: 'Unknown layout; use one of the listed layouts.' }; }
+        }
         if (name !== 'propose_actions') return { status: 'rejected', reason: 'Unsupported tool.' };
         if (this.calls.has(id)) return { status: 'awaiting_user_approval', executed: false };
         try {
             const proposal = parseVoiceProposal(args);
-            this.calls.add(id); this.options.onProposal(proposal);
+            this.calls.add(id);
+            const outcome = await this.options.onProposal(proposal);
+            if (outcome) return outcome;
             return { status: 'awaiting_user_approval', executed: false, instruction: 'Briefly describe the plan and ask whether to apply it. Nothing has been saved yet. The user can answer by voice or tap Apply.' };
-        } catch { return { status: 'rejected', executed: false, reason: 'Invalid proposal; clarify the request.' }; }
+        } catch (error) { return { status: 'failed', executed: false, reason: error instanceof Error ? error.message : 'Invalid proposal; clarify the request.' }; }
     }
     private async startGemini(token: string, setup: object) {
         // The capture worklet was loaded in start(), alongside the microphone and session requests.

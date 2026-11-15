@@ -29,6 +29,13 @@ export function parseVoiceScreen(value: unknown): AssistantScreen {
     return screen as AssistantScreen;
 }
 
+import { LAYOUT_OPTIONS, type LayoutOption } from './viewPreferences.ts';
+export function parseVoiceLayout(value: unknown): LayoutOption {
+    const layout = String((value as { layout?: unknown })?.layout ?? '').trim().toLowerCase();
+    if (!(LAYOUT_OPTIONS as readonly string[]).includes(layout)) throw new Error('Unknown layout.');
+    return layout as LayoutOption;
+}
+
 export type VoiceProposal = { reply: string; actions: import('./assistantActions').AssistantAction[] };
 export function parseVoiceProposal(value: unknown): VoiceProposal {
     const item = value as VoiceProposal;
